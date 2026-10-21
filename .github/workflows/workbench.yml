@@ -1,0 +1,33 @@
+name: Workbench CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/workbench.yml"
+      - "incubator/workbench/**"
+  pull_request:
+    paths:
+      - ".github/workflows/workbench.yml"
+      - "incubator/workbench/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: incubator/workbench
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: incubator/workbench/.nvmrc
+          cache: npm
+          cache-dependency-path: incubator/workbench/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

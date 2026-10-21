@@ -1,0 +1,26 @@
+{
+  "name": "scenario-simulation-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26 <27"
+  },
+  "scripts": {
+    "prebuild": "node scripts/check-node-version.js",
+    "build": "tsc -p tsconfig.json",
+    "predev": "node scripts/check-node-version.js",
+    "dev": "tsx watch src/index.ts",
+    "prestart": "node scripts/check-node-version.js",
+    "start": "node dist/index.js",
+    "pretest": "node scripts/check-node-version.js",
+    "test": "tsx --test test/*.test.ts",
+    "pretypecheck": "node scripts/check-node-version.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

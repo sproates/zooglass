@@ -14,6 +14,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,15 +34,7 @@ class ViewFunctionalTests {
     @Test
     void matchingEventsUpdateTheLatestViewReturnedByHttp() throws Exception {
         HttpClient httpClient = HttpClient.newHttpClient();
-        WebSocket socket = httpClient.newWebSocketBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .buildAsync(URI.create("ws://localhost:" + port + "/events"), new WebSocket.Listener() {
-                    @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        return WebSocket.Listener.super.onText(webSocket, data, last);
-                    }
-                })
-                .join();
+        WebSocket socket = connect(httpClient);
 
         try {
             assertThat(getView(httpClient, "match", "match-42").statusCode()).isEqualTo(404);
@@ -66,6 +60,56 @@ class ViewFunctionalTests {
         }
     }
 
+    @Test
+    void viewsDefinedOverHttpStartWithEventsReceivedAfterDefinition() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket socket = connect(httpClient);
+
+        try {
+            send(socket, "match-feed", "score.updated", "item-before-view", "{\"home\":0}");
+            awaitView(httpClient, "match", "item-before-view", "0");
+
+            String definition = objectMapper.writeValueAsString(Map.of(
+                    "id", "runtime-items",
+                    "fields", Map.of("score", List.of(Map.of(
+                            "sourceId", "match-feed",
+                            "type", "score.updated")))));
+            assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(201);
+            assertThat(getView(httpClient, "runtime-items", "item-before-view").statusCode()).isEqualTo(404);
+
+            send(socket, "match-feed", "score.updated", "item-after-view", "{\"home\":1}");
+            JsonNode view = awaitView(httpClient, "runtime-items", "item-after-view", "1");
+            assertThat(view.at("/data/score/home").asInt()).isEqualTo(1);
+
+            assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(409);
+            assertThat(defineView(httpClient, "{\"id\":\"invalid\",\"fields\":{}}").statusCode()).isEqualTo(400);
+        } finally {
+            socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    private WebSocket connect(HttpClient httpClient) {
+        return httpClient.newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .buildAsync(URI.create("ws://localhost:" + port + "/events"), new WebSocket.Listener() {
+                    @Override
+                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+                        return WebSocket.Listener.super.onText(webSocket, data, last);
+                    }
+                })
+                .join();
+    }
+
+    private HttpResponse<String> defineView(HttpClient client, String definition)
+            throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/views"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(definition))
+                .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     private HttpResponse<String> getView(HttpClient client, String viewId, String entityId)
             throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
@@ -77,13 +121,18 @@ class ViewFunctionalTests {
 
     private JsonNode awaitView(HttpClient client, String viewId, String entityId, String expectedHomeScore)
             throws Exception {
+        return awaitView(client, viewId, entityId, "/data/score/home", expectedHomeScore);
+    }
+
+    private JsonNode awaitView(HttpClient client, String viewId, String entityId, String dataPath, String expectedValue)
+            throws Exception {
         long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
         HttpResponse<String> response;
         do {
             response = getView(client, viewId, entityId);
             if (response.statusCode() == 200) {
                 JsonNode view = objectMapper.readTree(response.body());
-                if (view.at("/data/score/home").asText().equals(expectedHomeScore)) {
+                if (view.at(dataPath).asText().equals(expectedValue)) {
                     return view;
                 }
             }

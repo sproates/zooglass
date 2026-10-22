@@ -2,10 +2,12 @@ name: Workbench CI
 
 on:
   push:
+    branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
   pull_request:
+    branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"

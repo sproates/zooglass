@@ -1,7 +1,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { formatTraceEntry, playScenario, type TraceEntry } from "./playback.js";
 import { loadScenario, type Scenario } from "./scenario.js";
@@ -32,7 +36,7 @@ function getPort(): Promise<number> {
   });
 }
 
-function startZooGlass(port: number): ChildProcess {
+function startZooGlass(port: number, configLocation?: string): ChildProcess {
   const zooGlassDirectory = resolve("../zooglass");
   const wrapper = process.platform === "win32" ? "mvnw.cmd" : "./mvnw";
   const args = [
@@ -47,6 +51,12 @@ function startZooGlass(port: number): ChildProcess {
     cwd: zooGlassDirectory,
     stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      ...(configLocation === undefined
+        ? {}
+        : { ZOOGLASS_VIEWS_CONFIG: configLocation }),
+    },
   });
 
   child.stdout?.on("data", (chunk: Buffer) => {
@@ -57,6 +67,43 @@ function startZooGlass(port: number): ChildProcess {
   });
 
   return child;
+}
+
+async function checkView(
+  port: number,
+  check: Extract<TraceEntry, { kind: "view-check" }>,
+): Promise<void> {
+  const url = `http://127.0.0.1:${port}/views/${encodeURIComponent(check.viewId)}/${encodeURIComponent(check.entityId)}`;
+  const startedAt = Date.now();
+  let lastActual: unknown = "view not found";
+
+  while (Date.now() - startedAt < 5_000) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+      if (response.ok) {
+        const body: unknown = await response.json();
+        if (typeof body === "object" && body !== null && "data" in body) {
+          lastActual = body.data;
+          if (isDeepStrictEqual(body.data, check.expected)) {
+            console.log(
+              `View check passed: ${check.viewId} (${check.entityId})`,
+            );
+            return;
+          }
+        }
+      } else {
+        lastActual = `HTTP ${response.status}`;
+      }
+    } catch (error) {
+      lastActual = error instanceof Error ? error.message : String(error);
+    }
+
+    await delay(25);
+  }
+
+  throw new Error(
+    `View check failed for ${check.viewId} (${check.entityId}). Expected ${JSON.stringify(check.expected)}, got ${JSON.stringify(lastActual)}.`,
+  );
 }
 
 async function waitForZooGlass(
@@ -196,6 +243,8 @@ async function playConnectedScenario(
             payload: entry.payload,
           }),
         );
+      } else if (entry.kind === "view-check") {
+        await checkView(port, entry);
       } else {
         const clientId = getClientId(entry);
         if (clientId === undefined) {
@@ -232,23 +281,88 @@ async function stopZooGlass(child: ChildProcess): Promise<void> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  if (args.length > 1) {
-    throw new Error("Usage: npm run integrate -- [scenario.json]");
+  if (args.length === 0) {
+    args.push("scenarios/live-match.json");
   }
 
-  const scenarioPath = resolve(args[0] ?? "scenarios/live-match.json");
-  const scenario = await loadScenario(scenarioPath);
+  const scenarios = await Promise.all(
+    args.map(async (path, index) =>
+      namespaceScenario(await loadScenario(resolve(path)), index),
+    ),
+  );
   const port = await getPort();
-  const child = startZooGlass(port);
+  const views = scenarios.flatMap((scenario) => scenario.views);
+  const configDirectory =
+    views.length === 0
+      ? undefined
+      : await mkdtemp(join(tmpdir(), "zooglass-workbench-"));
+  const configPath =
+    configDirectory === undefined
+      ? undefined
+      : join(configDirectory, "views.json");
+
+  if (configPath !== undefined) {
+    await writeFile(configPath, JSON.stringify({ views }));
+  }
+
+  const child = startZooGlass(
+    port,
+    configPath === undefined ? undefined : pathToFileURL(configPath).href,
+  );
 
   try {
     await waitForZooGlass(port, child);
     console.log(`ZooGlass is ready at http://127.0.0.1:${port}`);
-    console.log(`Scenario: ${scenario.name}`);
-    await playConnectedScenario(scenario, port);
+    for (const scenario of scenarios) {
+      console.log(`Scenario: ${scenario.name}`);
+      await playConnectedScenario(scenario, port);
+    }
   } finally {
     await stopZooGlass(child);
+    if (configDirectory !== undefined) {
+      await rm(configDirectory, { recursive: true, force: true });
+    }
   }
+}
+
+function namespaceScenario(scenario: Scenario, index: number): Scenario {
+  const namespace = `scenario-${index + 1}`;
+  const sourceIds = new Map(
+    scenario.sources.map((source) => [source.id, `${namespace}-${source.id}`]),
+  );
+  const viewIds = new Map(
+    scenario.views.map((view) => [view.id, `${namespace}-${view.id}`]),
+  );
+
+  return {
+    ...scenario,
+    sources: scenario.sources.map((source) => ({
+      ...source,
+      id: sourceIds.get(source.id)!,
+    })),
+    views: scenario.views.map((view) => ({
+      ...view,
+      id: viewIds.get(view.id)!,
+      fields: Object.fromEntries(
+        Object.entries(view.fields).map(([name, matchers]) => [
+          name,
+          matchers.map((matcher) => ({
+            ...matcher,
+            sourceId: sourceIds.get(matcher.sourceId)!,
+          })),
+        ]),
+      ),
+    })),
+    timeline: scenario.timeline.map((entry) => {
+      if (entry.kind === "source-event") {
+        return { ...entry, sourceId: sourceIds.get(entry.sourceId)! };
+      }
+      if (entry.kind === "view-check") {
+        return { ...entry, viewId: viewIds.get(entry.viewId)! };
+      }
+      return entry;
+    }),
+  };
 }
 
 main().catch((error: unknown) => {

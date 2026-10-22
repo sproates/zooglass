@@ -3,8 +3,12 @@
     {
       "id": "match",
       "fields": {
-        "score": { "sourceId": "match-feed", "type": "score.updated" },
-        "odds": { "sourceId": "bookmaker", "type": "odds.updated" }
+        "score": [
+          { "sourceId": "match-feed", "type": "score.updated" }
+        ],
+        "odds": [
+          { "sourceId": "bookmaker", "type": "odds.updated" }
+        ]
       }
     }
   ]

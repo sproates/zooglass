@@ -23,7 +23,8 @@ For example, a client can send:
 
 The example config maps `score.updated` events from `match-feed` to the `score`
 field and `odds.updated` events from `bookmaker` to the `odds` field of the
-`match` view. Query the latest representation for an entity at
+`match` view. Each field can list multiple matching source and event type pairs;
+any matching event replaces that field's value. Query the latest representation for an entity at
 `GET /views/match/match-42`. The endpoint returns JSON, or `404` if no matching
 event has populated that view yet. All view data is held in memory and is lost
 when ZooGlass restarts. The config can be changed with the
@@ -44,6 +45,9 @@ Run the tests with:
   `ZooGlassFunctionalTests` checks the health endpoint, and
   `ViewFunctionalTests` sends events over WebSocket and queries the view over
   HTTP.
+- The [Scenario Simulator](../workbench/README.md) is intended to carry most
+  scenario testing. It drives different event and client behaviors through
+  ZooGlass and checks the resulting views.
 - **Integration tests** check behavior across a boundary between ZooGlass and
   another system, such as Kafka delivering events to ZooGlass. We don't have
   these yet.

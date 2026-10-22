@@ -50,6 +50,22 @@
       }
     },
     {
+      "kind": "view-check",
+      "simulationTime": 900,
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        }
+      }
+    },
+    {
       "kind": "source-event",
       "simulationTime": 1250,
       "sourceId": "inventory",
@@ -58,6 +74,55 @@
       "payload": {
         "status": "reserved",
         "sourceTimestamp": 1100
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1250,
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        },
+        "inventory": {
+          "status": "reserved",
+          "sourceTimestamp": 1100
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "order",
+      "fields": {
+        "order": [
+          {
+            "sourceId": "orders",
+            "type": "order.accepted"
+          },
+          {
+            "sourceId": "orders",
+            "type": "order.packed"
+          }
+        ],
+        "payment": [
+          {
+            "sourceId": "payments",
+            "type": "payment.authorised"
+          }
+        ],
+        "inventory": [
+          {
+            "sourceId": "inventory",
+            "type": "inventory.reserved"
+          }
+        ]
       }
     }
   ]

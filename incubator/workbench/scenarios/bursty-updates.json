@@ -81,6 +81,42 @@
         "draw": 3.6,
         "awayWin": 5.1
       }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1010,
+      "viewId": "match",
+      "entityId": "match-91",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0
+        },
+        "odds": {
+          "homeWin": 1.62,
+          "draw": 3.6,
+          "awayWin": 5.1
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          }
+        ],
+        "odds": [
+          {
+            "sourceId": "bookmaker",
+            "type": "odds.updated"
+          }
+        ]
+      }
     }
   ]
 }

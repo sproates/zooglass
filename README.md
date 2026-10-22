@@ -12,6 +12,13 @@ At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won'
 
 The service uses Java 25 and Spring Boot.
 
-The [Scenario Simulator](incubator/workbench/README.md) uses TypeScript and Node 26 to play JSON scenarios on a deterministic simulated timeline. It doesn’t connect to ZooGlass or anything else yet.
+The [Scenario Simulator](incubator/workbench/README.md) uses TypeScript and Node 26 to play JSON scenarios on a deterministic simulated timeline. It can run those scenarios through a local ZooGlass process and check the views it produces.
 
 See the [ZooGlass prototype](incubator/zooglass/README.md) and try the [live-match scenario](incubator/workbench/scenarios/live-match.json).
+
+## Testing
+
+ZooGlass has unit and functional tests for the system itself. The Workbench is
+where most scenario testing should happen: it drives different event and client
+behaviours through ZooGlass and checks the resulting views. Tests for
+integrations with external systems, such as Kafka, are a separate concern.

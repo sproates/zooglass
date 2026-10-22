@@ -23,7 +23,7 @@ class ViewStoreTests {
         store.apply("unmatched-feed", "score.updated", "match-42", payload("{\"home\":9}"));
         store.apply("match-feed", "score.updated", "match-42", payload("{\"home\":0,\"away\":0}"));
         store.apply("bookmaker", "odds.updated", "match-42", payload("{\"homeWin\":2.1}"));
-        store.apply("match-feed", "score.updated", "match-42", payload("{\"home\":1,\"away\":0}"));
+        store.apply("match-feed", "score.corrected", "match-42", payload("{\"home\":1,\"away\":0}"));
         store.apply("match-feed", "score.updated", "match-99", payload("{\"home\":2,\"away\":1}"));
 
         ViewSnapshot match42 = store.get("match", "match-42").orElseThrow();
@@ -52,7 +52,9 @@ class ViewStoreTests {
     private static ViewConfiguration configuration() {
         return new ViewConfiguration(List.of(
                 new ViewConfiguration.ViewDefinition("match", Map.of(
-                        "score", new ViewConfiguration.EventMatcher("match-feed", "score.updated"),
-                        "odds", new ViewConfiguration.EventMatcher("bookmaker", "odds.updated")))));
+                        "score", List.of(
+                                new ViewConfiguration.EventMatcher("match-feed", "score.updated"),
+                                new ViewConfiguration.EventMatcher("match-feed", "score.corrected")),
+                        "odds", List.of(new ViewConfiguration.EventMatcher("bookmaker", "odds.updated"))))));
     }
 }

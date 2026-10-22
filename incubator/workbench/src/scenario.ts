@@ -6,7 +6,7 @@ export interface ScenarioSource {
 }
 
 export interface ScenarioEvent {
-  atMs: number;
+  simulationTimeMs: number;
   sourceId: string;
   type: string;
   entityId: string;
@@ -68,8 +68,14 @@ export function parseScenario(input: unknown): Scenario {
       throw new Error(`Expected events[${index}] to be an object.`);
     }
 
-    if (!Number.isInteger(event.atMs) || (event.atMs as number) < 0) {
-      throw new Error(`Expected events[${index}].atMs to be a non-negative integer.`);
+    if (
+      typeof event.simulationTimeMs !== "number" ||
+      !Number.isInteger(event.simulationTimeMs) ||
+      event.simulationTimeMs < 0
+    ) {
+      throw new Error(
+        `Expected events[${index}].simulationTimeMs to be a non-negative integer.`,
+      );
     }
 
     const sourceId = requiredString(event.sourceId, `events[${index}].sourceId`);
@@ -82,7 +88,7 @@ export function parseScenario(input: unknown): Scenario {
     }
 
     return {
-      atMs: event.atMs as number,
+      simulationTimeMs: event.simulationTimeMs,
       sourceId,
       type: requiredString(event.type, `events[${index}].type`),
       entityId: requiredString(event.entityId, `events[${index}].entityId`),

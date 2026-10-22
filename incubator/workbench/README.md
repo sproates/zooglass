@@ -12,11 +12,11 @@ npm run simulate -- scenarios/live-match.json
 ```
 
 Each scenario has a name, a list of event sources, and a list of events. An
-event names its source, type, entity, payload, and `atMs` schedule time. The
-workbench prints events by `atMs`; events with the same time stay in the order
-they appear in the file. Here, `atMs` only means when the workbench schedules
-an event during this run. It does not define the event's domain timestamp or
-ZooGlass's ordering guarantees.
+event names its source, type, entity, payload, and `simulationTimeMs`. This is
+the elapsed simulated time when the event is scheduled to appear. The workbench
+prints events by `simulationTimeMs`; events with the same time stay in the order
+they appear in the file. This field does not define the event's domain timestamp
+or ZooGlass's ordering guarantees.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.

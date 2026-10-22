@@ -5,7 +5,17 @@ export interface ScenarioSource {
   name: string;
 }
 
-export interface ScenarioEvent {
+export type ClientState =
+  "connecting" | "connected" | "disconnecting" | "disconnected";
+
+export interface ScenarioClient {
+  id: string;
+  name: string;
+  initialState: ClientState;
+}
+
+export interface ScenarioSourceEvent {
+  kind: "source-event";
   simulationTime: number;
   sourceId: string;
   type: string;
@@ -13,10 +23,32 @@ export interface ScenarioEvent {
   payload: Record<string, unknown>;
 }
 
+export interface ScenarioClientStateChange {
+  kind: "client-state";
+  simulationTime: number;
+  clientId: string;
+  state: ClientState;
+}
+
+export type ScenarioTimelineEntry =
+  ScenarioSourceEvent | ScenarioClientStateChange;
+
 export interface Scenario {
   name: string;
   sources: ScenarioSource[];
-  events: ScenarioEvent[];
+  clients: ScenarioClient[];
+  timeline: ScenarioTimelineEntry[];
+}
+
+const clientStates: ClientState[] = [
+  "connecting",
+  "connected",
+  "disconnecting",
+  "disconnected",
+];
+
+function isClientState(value: unknown): value is ClientState {
+  return clientStates.some((state) => state === value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -40,8 +72,11 @@ export function parseScenario(input: unknown): Scenario {
   if (!Array.isArray(input.sources)) {
     throw new Error("Expected sources to be an array.");
   }
-  if (!Array.isArray(input.events)) {
-    throw new Error("Expected events to be an array.");
+  if (!Array.isArray(input.clients)) {
+    throw new Error("Expected clients to be an array.");
+  }
+  if (!Array.isArray(input.timeline)) {
+    throw new Error("Expected timeline to be an array.");
   }
 
   const sources = input.sources.map((source, index): ScenarioSource => {
@@ -63,45 +98,104 @@ export function parseScenario(input: unknown): Scenario {
     sourceIds.add(source.id);
   }
 
-  const events = input.events.map((event, index): ScenarioEvent => {
-    if (!isRecord(event)) {
-      throw new Error(`Expected events[${index}] to be an object.`);
+  const clients = input.clients.map((client, index): ScenarioClient => {
+    if (!isRecord(client)) {
+      throw new Error(`Expected clients[${index}] to be an object.`);
+    }
+
+    const initialState = client.initialState;
+    if (!isClientState(initialState)) {
+      throw new Error(
+        `Expected clients[${index}].initialState to be a client state.`,
+      );
+    }
+
+    return {
+      id: requiredString(client.id, `clients[${index}].id`),
+      name: requiredString(client.name, `clients[${index}].name`),
+      initialState,
+    };
+  });
+
+  const clientIds = new Set<string>();
+  for (const client of clients) {
+    if (clientIds.has(client.id)) {
+      throw new Error(`Client id "${client.id}" is declared more than once.`);
+    }
+    clientIds.add(client.id);
+  }
+
+  const timeline = input.timeline.map((entry, index): ScenarioTimelineEntry => {
+    if (!isRecord(entry)) {
+      throw new Error(`Expected timeline[${index}] to be an object.`);
     }
 
     if (
-      typeof event.simulationTime !== "number" ||
-      !Number.isInteger(event.simulationTime) ||
-      event.simulationTime < 0
+      typeof entry.simulationTime !== "number" ||
+      !Number.isInteger(entry.simulationTime) ||
+      entry.simulationTime < 0
     ) {
       throw new Error(
-        `Expected events[${index}].simulationTime to be a non-negative integer.`,
+        `Expected timeline[${index}].simulationTime to be a non-negative integer.`,
+      );
+    }
+
+    if (entry.kind === "client-state") {
+      const clientId = requiredString(
+        entry.clientId,
+        `timeline[${index}].clientId`,
+      );
+      if (!clientIds.has(clientId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown client "${clientId}".`,
+        );
+      }
+
+      if (!isClientState(entry.state)) {
+        throw new Error(
+          `Expected timeline[${index}].state to be a client state.`,
+        );
+      }
+
+      return {
+        kind: "client-state",
+        simulationTime: entry.simulationTime,
+        clientId,
+        state: entry.state,
+      };
+    }
+
+    if (entry.kind !== "source-event") {
+      throw new Error(
+        `Expected timeline[${index}].kind to be "source-event" or "client-state".`,
       );
     }
 
     const sourceId = requiredString(
-      event.sourceId,
-      `events[${index}].sourceId`,
+      entry.sourceId,
+      `timeline[${index}].sourceId`,
     );
     if (!sourceIds.has(sourceId)) {
       throw new Error(
-        `events[${index}] refers to unknown source "${sourceId}".`,
+        `timeline[${index}] refers to unknown source "${sourceId}".`,
       );
     }
 
-    if (!isRecord(event.payload)) {
-      throw new Error(`Expected events[${index}].payload to be an object.`);
+    if (!isRecord(entry.payload)) {
+      throw new Error(`Expected timeline[${index}].payload to be an object.`);
     }
 
     return {
-      simulationTime: event.simulationTime,
+      kind: "source-event",
+      simulationTime: entry.simulationTime,
       sourceId,
-      type: requiredString(event.type, `events[${index}].type`),
-      entityId: requiredString(event.entityId, `events[${index}].entityId`),
-      payload: event.payload,
+      type: requiredString(entry.type, `timeline[${index}].type`),
+      entityId: requiredString(entry.entityId, `timeline[${index}].entityId`),
+      payload: entry.payload,
     };
   });
 
-  return { name, sources, events };
+  return { name, sources, clients, timeline };
 }
 
 export async function loadScenario(path: string): Promise<Scenario> {

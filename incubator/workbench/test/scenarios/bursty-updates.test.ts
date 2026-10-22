@@ -11,7 +11,7 @@ const scenarioPath = fileURLToPath(
 test("keeps a burst of updates in time order", async () => {
   const scenario = await loadScenario(scenarioPath);
   const oddsEvents = playScenario(scenario).filter(
-    (event) => event.type === "odds.updated",
+    (entry) => entry.kind === "source-event" && entry.type === "odds.updated",
   );
 
   assert.equal(oddsEvents.length, 4);

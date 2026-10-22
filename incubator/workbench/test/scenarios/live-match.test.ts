@@ -16,7 +16,7 @@ test("loads the live match score and odds timeline", async () => {
     "A live match with independent score and odds feeds",
   );
   assert.deepEqual(
-    playScenario(scenario).map((event) => event.simulationTime),
+    playScenario(scenario).map((entry) => entry.simulationTime),
     [0, 250, 1200, 1350],
   );
 });

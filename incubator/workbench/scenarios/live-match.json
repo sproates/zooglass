@@ -1,37 +1,64 @@
 {
   "name": "A live match with independent score and odds feeds",
   "sources": [
-    { "id": "match-feed", "name": "Match feed" },
-    { "id": "bookmaker", "name": "Bookmaker" }
-  ],
-  "events": [
     {
+      "id": "match-feed",
+      "name": "Match feed"
+    },
+    {
+      "id": "bookmaker",
+      "name": "Bookmaker"
+    }
+  ],
+  "clients": [],
+  "timeline": [
+    {
+      "kind": "source-event",
       "simulationTime": 0,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
-      "payload": { "home": 0, "away": 0, "period": "first-half" }
+      "payload": {
+        "home": 0,
+        "away": 0,
+        "period": "first-half"
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 250,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",
-      "payload": { "homeWin": 2.1, "draw": 3.2, "awayWin": 3.6 }
+      "payload": {
+        "homeWin": 2.1,
+        "draw": 3.2,
+        "awayWin": 3.6
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 1200,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
-      "payload": { "home": 1, "away": 0, "period": "first-half" }
+      "payload": {
+        "home": 1,
+        "away": 0,
+        "period": "first-half"
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 1350,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",
-      "payload": { "homeWin": 1.55, "draw": 3.7, "awayWin": 5.4 }
+      "payload": {
+        "homeWin": 1.55,
+        "draw": 3.7,
+        "awayWin": 5.4
+      }
     }
   ]
 }

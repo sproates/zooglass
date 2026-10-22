@@ -1,38 +1,64 @@
 {
   "name": "An inventory update arrives late",
   "sources": [
-    { "id": "orders", "name": "Order service" },
-    { "id": "payments", "name": "Payment service" },
-    { "id": "inventory", "name": "Inventory service" }
-  ],
-  "events": [
     {
+      "id": "orders",
+      "name": "Order service"
+    },
+    {
+      "id": "payments",
+      "name": "Payment service"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory service"
+    }
+  ],
+  "clients": [],
+  "timeline": [
+    {
+      "kind": "source-event",
       "simulationTime": 0,
       "sourceId": "orders",
       "type": "order.accepted",
       "entityId": "order-108",
-      "payload": { "status": "accepted", "sourceTimestamp": 1000 }
+      "payload": {
+        "status": "accepted",
+        "sourceTimestamp": 1000
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 180,
       "sourceId": "payments",
       "type": "payment.authorised",
       "entityId": "order-108",
-      "payload": { "status": "authorised", "sourceTimestamp": 1180 }
+      "payload": {
+        "status": "authorised",
+        "sourceTimestamp": 1180
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 900,
       "sourceId": "orders",
       "type": "order.packed",
       "entityId": "order-108",
-      "payload": { "status": "packed", "sourceTimestamp": 1900 }
+      "payload": {
+        "status": "packed",
+        "sourceTimestamp": 1900
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 1250,
       "sourceId": "inventory",
       "type": "inventory.reserved",
       "entityId": "order-108",
-      "payload": { "status": "reserved", "sourceTimestamp": 1100 }
+      "payload": {
+        "status": "reserved",
+        "sourceTimestamp": 1100
+      }
     }
   ]
 }

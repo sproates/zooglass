@@ -10,7 +10,9 @@ const scenarioPath = fileURLToPath(
 
 test("keeps arrival time separate from the older source timestamp", async () => {
   const scenario = await loadScenario(scenarioPath);
-  const events = playScenario(scenario);
+  const events = playScenario(scenario).filter(
+    (entry) => entry.kind === "source-event",
+  );
   const packedOrder = events.find((event) => event.type === "order.packed");
   const inventoryReservation = events.find(
     (event) => event.type === "inventory.reserved",

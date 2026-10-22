@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "zooglass.views.config=classpath:views-test.json")
-class ViewIntegrationTests {
+class ViewFunctionalTests {
 
     @LocalServerPort
     private int port;

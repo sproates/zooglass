@@ -13,7 +13,7 @@ import java.net.http.HttpResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class ZooGlassApplicationTests {
+class ZooGlassFunctionalTests {
 
     @LocalServerPort
     private int port;

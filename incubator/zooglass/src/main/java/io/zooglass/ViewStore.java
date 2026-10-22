@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -125,13 +126,22 @@ public class ViewStore {
         }
     }
 
-    public synchronized void apply(String sourceId, String type, String entityId, JsonNode payload) {
+    public synchronized List<ViewSnapshot> apply(String sourceId, String type, String entityId, JsonNode payload) {
         List<FieldTarget> targets = targetsByEvent.getOrDefault(new EventKey(sourceId, type), List.of());
+        Set<String> changedViews = new LinkedHashSet<>();
         for (FieldTarget target : targets) {
             Map<String, JsonNode> viewData = dataByView.get(target.viewId())
                     .computeIfAbsent(entityId, ignored -> new LinkedHashMap<>());
             viewData.put(target.fieldName(), payload.deepCopy());
+            changedViews.add(target.viewId());
         }
+        return changedViews.stream()
+                .map(viewId -> get(viewId, entityId).orElseThrow())
+                .toList();
+    }
+
+    public synchronized boolean containsView(String viewId) {
+        return dataByView.containsKey(viewId);
     }
 
     public synchronized Optional<ViewSnapshot> get(String viewId, String entityId) {

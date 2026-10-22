@@ -44,13 +44,16 @@ Each scenario has a name, a list of event sources, a list of clients, view
 definitions, and a timeline. View definitions map event source and type pairs
 to fields in a view. A field can be updated by more than one event type. A
 timeline entry can be a source event, a client state change, a runtime
-`view-definition`, or a `view-check`. Source events have a source, type, entity,
-payload, and `simulationTime`. A runtime view definition has an id and fields
-and is sent to ZooGlass at that point in the timeline. A view-check names a
-view and entity and gives the complete expected view data; use `null` to check
-that no data exists for that entity. Client state changes name a client and its
-new state. The supported states are `connecting`, `connected`, `disconnecting`,
-and `disconnected`.
+`view-definition`, a `client-subscription`, a `view-check`, or a
+`client-view-check`. Source events have a source, type, entity, payload, and
+`simulationTime`. A runtime view definition has an id and fields and is sent to
+ZooGlass at that point in the timeline. A client subscription subscribes or
+unsubscribes a connected client to a view and entity. A `view-check` names a view
+and entity and gives the complete expected view data; use `null` to check that
+no data exists for that entity. A `client-view-check` checks the view data
+received by that client over WebSocket. Client state changes name a client and
+its new state. The supported states are `connecting`, `connected`,
+`disconnecting`, and `disconnected`.
 
 Each client has an `initialState`. Timeline entries then record later state
 changes alongside source events. `simulationTime` is the elapsed simulated time
@@ -61,8 +64,7 @@ ZooGlass's ordering guarantees.
 
 The `simulate` command emits a combined trace without starting ZooGlass. The
 `integrate` command plays the scenario over real local WebSocket connections
-and checks the resulting views over HTTP. It checks ZooGlass's current view
-state; it does not test delivery of live updates to clients.
+and checks the resulting views over HTTP and client WebSocket messages.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.
@@ -91,6 +93,8 @@ separate kind of integration test.
 - `runtime-view-definition.json` creates two views at different points in the
   event timeline. Both match the same events, but each starts with no data and
   only reflects events received after it was created.
+- `live-view-updates.json` subscribes a connected client to a view, sends events
+  through ZooGlass, and checks the updates received over WebSocket.
 
 Run any scenario by passing its path, for example:
 

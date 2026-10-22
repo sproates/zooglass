@@ -10,13 +10,18 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfiguration implements WebSocketConfigurer {
 
     private final EventLoggingWebSocketHandler eventLoggingWebSocketHandler;
+    private final LiveViewWebSocketHandler liveViewWebSocketHandler;
 
-    public WebSocketConfiguration(EventLoggingWebSocketHandler eventLoggingWebSocketHandler) {
+    public WebSocketConfiguration(
+            EventLoggingWebSocketHandler eventLoggingWebSocketHandler,
+            LiveViewWebSocketHandler liveViewWebSocketHandler) {
         this.eventLoggingWebSocketHandler = eventLoggingWebSocketHandler;
+        this.liveViewWebSocketHandler = liveViewWebSocketHandler;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(eventLoggingWebSocketHandler, "/events");
+        registry.addHandler(liveViewWebSocketHandler, "/views/live");
     }
 }

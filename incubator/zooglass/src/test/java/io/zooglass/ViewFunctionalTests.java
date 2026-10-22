@@ -16,7 +16,10 @@ import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -88,6 +91,36 @@ class ViewFunctionalTests {
         }
     }
 
+    @Test
+    void liveViewWebSocketAcknowledgesSubscriptionsAndSendsMatchingUpdates() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket eventSocket = connect(httpClient);
+        LiveViewClient liveViewClient = connectLiveViewClient(httpClient);
+
+        try {
+            liveViewClient.socket().sendText(
+                    "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"live-match-42\"}",
+                    true).join();
+
+            JsonNode acknowledgement = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
+            assertThat(acknowledgement.get("type").asText()).isEqualTo("subscribed");
+            assertThat(acknowledgement.get("viewId").asText()).isEqualTo("match");
+            assertThat(acknowledgement.get("entityId").asText()).isEqualTo("live-match-42");
+
+            send(eventSocket, "match-feed", "score.updated", "live-match-42", "{\"home\":1,\"away\":0}");
+
+            JsonNode update = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
+            assertThat(update.get("type").asText()).isEqualTo("view-update");
+            assertThat(update.get("viewId").asText()).isEqualTo("match");
+            assertThat(update.get("entityId").asText()).isEqualTo("live-match-42");
+            assertThat(update.at("/data/score/home").asInt()).isEqualTo(1);
+            assertThat(update.at("/data/score/away").asInt()).isEqualTo(0);
+        } finally {
+            liveViewClient.socket().sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+            eventSocket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
     private WebSocket connect(HttpClient httpClient) {
         return httpClient.newWebSocketBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -98,6 +131,35 @@ class ViewFunctionalTests {
                     }
                 })
                 .join();
+    }
+
+    private LiveViewClient connectLiveViewClient(HttpClient httpClient) {
+        BlockingQueue<String> messages = new LinkedBlockingQueue<>();
+        WebSocket socket = httpClient.newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .buildAsync(URI.create("ws://localhost:" + port + "/views/live"), new WebSocket.Listener() {
+                    @Override
+                    public void onOpen(WebSocket webSocket) {
+                        webSocket.request(1);
+                    }
+
+                    @Override
+                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+                        messages.add(data.toString());
+                        webSocket.request(1);
+                        return null;
+                    }
+                })
+                .join();
+        return new LiveViewClient(socket, messages);
+    }
+
+    private static String awaitMessage(BlockingQueue<String> messages) throws InterruptedException {
+        String message = messages.poll(5, TimeUnit.SECONDS);
+        if (message == null) {
+            throw new AssertionError("Timed out waiting for a live view WebSocket message.");
+        }
+        return message;
     }
 
     private HttpResponse<String> defineView(HttpClient client, String definition)
@@ -146,5 +208,8 @@ class ViewFunctionalTests {
         String event = "{\"sourceId\":\"" + sourceId + "\",\"type\":\"" + type
                 + "\",\"entityId\":\"" + entityId + "\",\"payload\":" + payload + "}";
         socket.sendText(event, true).join();
+    }
+
+    private record LiveViewClient(WebSocket socket, BlockingQueue<String> messages) {
     }
 }

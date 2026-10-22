@@ -15,11 +15,11 @@ public class EventLoggingWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(EventLoggingWebSocketHandler.class);
     private final ObjectMapper objectMapper;
-    private final ViewStore viewStore;
+    private final LiveViewBroadcaster liveViewBroadcaster;
 
-    public EventLoggingWebSocketHandler(ObjectMapper objectMapper, ViewStore viewStore) {
+    public EventLoggingWebSocketHandler(ObjectMapper objectMapper, LiveViewBroadcaster liveViewBroadcaster) {
         this.objectMapper = objectMapper;
-        this.viewStore = viewStore;
+        this.liveViewBroadcaster = liveViewBroadcaster;
     }
 
     @Override
@@ -41,7 +41,7 @@ public class EventLoggingWebSocketHandler extends TextWebSocketHandler {
                 return;
             }
 
-            viewStore.apply(
+            liveViewBroadcaster.apply(
                     event.get("sourceId").stringValue(),
                     event.get("type").stringValue(),
                     event.get("entityId").stringValue(),

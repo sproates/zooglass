@@ -13,7 +13,7 @@ async function main(): Promise<void> {
 
   console.log(scenario.name);
   console.log(`Scenario file: ${scenarioPath}`);
-  console.log("Simulation time | Source | Event type | Entity | Payload");
+  console.log("Simulation time | Source event or client state");
 
   for (const entry of playScenario(scenario)) {
     console.log(formatTraceEntry(entry));

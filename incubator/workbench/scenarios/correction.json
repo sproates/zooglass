@@ -1,44 +1,77 @@
 {
   "name": "A match score is corrected",
   "sources": [
-    { "id": "match-feed", "name": "Match feed" },
-    { "id": "bookmaker", "name": "Bookmaker" }
-  ],
-  "events": [
     {
+      "id": "match-feed",
+      "name": "Match feed"
+    },
+    {
+      "id": "bookmaker",
+      "name": "Bookmaker"
+    }
+  ],
+  "clients": [],
+  "timeline": [
+    {
+      "kind": "source-event",
       "simulationTime": 0,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
-      "payload": { "home": 0, "away": 0, "revision": 1 }
+      "payload": {
+        "home": 0,
+        "away": 0,
+        "revision": 1
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 400,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
-      "payload": { "home": 2, "away": 0, "revision": 2 }
+      "payload": {
+        "home": 2,
+        "away": 0,
+        "revision": 2
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 520,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",
-      "payload": { "homeWin": 1.3, "draw": 4.2, "awayWin": 9.5 }
+      "payload": {
+        "homeWin": 1.3,
+        "draw": 4.2,
+        "awayWin": 9.5
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 1100,
       "sourceId": "match-feed",
       "type": "score.corrected",
       "entityId": "match-42",
-      "payload": { "home": 1, "away": 0, "revision": 3, "correctsRevision": 2 }
+      "payload": {
+        "home": 1,
+        "away": 0,
+        "revision": 3,
+        "correctsRevision": 2
+      }
     },
     {
+      "kind": "source-event",
       "simulationTime": 1250,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",
-      "payload": { "homeWin": 1.55, "draw": 3.7, "awayWin": 5.4 }
+      "payload": {
+        "homeWin": 1.55,
+        "draw": 3.7,
+        "awayWin": 5.4
+      }
     }
   ]
 }

@@ -8,29 +8,46 @@ const scenarioPath = fileURLToPath(
   new URL("../../scenarios/disconnect-catch-up.json", import.meta.url),
 );
 
-test("shows feed updates during a disconnect and a catch-up on reconnect", async () => {
+test("plays location updates alongside the viewer connection state", async () => {
   const scenario = await loadScenario(scenarioPath);
   const events = playScenario(scenario);
   const disconnectedAt = events.find(
-    (event) => event.type === "client.disconnected",
+    (entry) => entry.kind === "client-state" && entry.state === "disconnected",
   )?.simulationTime;
   const reconnectedAt = events.find(
-    (event) => event.type === "client.reconnected",
+    (entry) =>
+      entry.kind === "client-state" &&
+      entry.state === "connected" &&
+      entry.simulationTime > Number(disconnectedAt),
   )?.simulationTime;
   const updatesDuringDisconnect = events.filter(
-    (event) =>
-      event.type === "vehicle.location.updated" &&
-      event.simulationTime > Number(disconnectedAt) &&
-      event.simulationTime < Number(reconnectedAt),
+    (entry) =>
+      entry.kind === "source-event" &&
+      entry.type === "vehicle.location.updated" &&
+      entry.simulationTime > Number(disconnectedAt) &&
+      entry.simulationTime < Number(reconnectedAt),
   );
-  const replay = events.find(
-    (event) => event.type === "vehicle.location.replayed",
+  const clientTransitions = events.filter(
+    (entry) => entry.kind === "client-state",
+  );
+  const initialState = events.find(
+    (entry) => entry.kind === "client-initial-state",
   );
 
   assert.ok(disconnectedAt !== undefined);
   assert.ok(reconnectedAt !== undefined);
+  assert.equal(initialState?.state, "disconnected");
   assert.equal(updatesDuringDisconnect.length, 2);
-  assert.ok(replay);
-  assert.equal(replay.simulationTime, reconnectedAt);
-  assert.equal(replay.payload.updatesSinceDisconnect, 2);
+  assert.deepEqual(
+    clientTransitions.map((entry) => entry.state),
+    [
+      "connecting",
+      "connected",
+      "disconnecting",
+      "disconnected",
+      "connecting",
+      "connected",
+    ],
+  );
+  assert.ok(reconnectedAt > Number(disconnectedAt));
 });

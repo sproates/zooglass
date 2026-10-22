@@ -10,7 +10,9 @@ const scenarioPath = fileURLToPath(
 
 test("places the corrected score after the original report", async () => {
   const scenario = await loadScenario(scenarioPath);
-  const events = playScenario(scenario);
+  const events = playScenario(scenario).filter(
+    (entry) => entry.kind === "source-event",
+  );
   const original = events.find((event) => event.type === "score.updated");
   const correction = events.find((event) => event.type === "score.corrected");
 

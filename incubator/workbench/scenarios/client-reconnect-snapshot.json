@@ -1,0 +1,142 @@
+{
+  "name": "A reconnecting client receives the current view snapshot",
+  "sources": [
+    {
+      "id": "match-feed",
+      "name": "Match feed"
+    }
+  ],
+  "clients": [
+    {
+      "id": "scoreboard-1",
+      "name": "Live scoreboard",
+      "initialState": "connected"
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-subscription",
+      "simulationTime": 0,
+      "clientId": "scoreboard-1",
+      "action": "subscribe",
+      "viewId": "match",
+      "entityId": "match-42"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 0
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 100,
+      "clientId": "scoreboard-1",
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0
+        }
+      }
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 200,
+      "clientId": "scoreboard-1",
+      "state": "disconnecting"
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 220,
+      "clientId": "scoreboard-1",
+      "state": "disconnected"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 300,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 1
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 400,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 2,
+        "away": 1
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 400,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 2,
+          "away": 1
+        }
+      }
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 500,
+      "clientId": "scoreboard-1",
+      "state": "connecting"
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 520,
+      "clientId": "scoreboard-1",
+      "state": "connected"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 530,
+      "clientId": "scoreboard-1",
+      "action": "subscribe",
+      "viewId": "match",
+      "entityId": "match-42"
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 530,
+      "clientId": "scoreboard-1",
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 2,
+          "away": 1
+        }
+      }
+    }
+  ]
+}

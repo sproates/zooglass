@@ -65,6 +65,9 @@ ZooGlass's ordering guarantees.
 The `simulate` command emits a combined trace without starting ZooGlass. The
 `integrate` command plays the scenario over real local WebSocket connections
 and checks the resulting views over HTTP and client WebSocket messages.
+Client connections and subscriptions are separate timeline actions, so a
+scenario can disconnect a client, keep sending source events, then reconnect,
+subscribe again, and check the current snapshot it receives.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.
@@ -95,6 +98,9 @@ separate kind of integration test.
   only reflects events received after it was created.
 - `live-view-updates.json` subscribes a connected client to a view, sends events
   through ZooGlass, and checks the updates received over WebSocket.
+- `client-reconnect-snapshot.json` disconnects a subscribed client while two
+  updates arrive, then reconnects and checks that a new subscription receives
+  the latest snapshot.
 
 Run any scenario by passing its path, for example:
 

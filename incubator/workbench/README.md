@@ -1,8 +1,9 @@
 # Scenario Simulator
 
-The workbench currently reads a small JSON scenario and prints its source events
-and client state changes as a deterministic timeline. It uses simulated time
-only; it does not wait in real time or connect to a broker or other service.
+The workbench can print a scenario as a deterministic timeline, or run it
+against a local ZooGlass instance. The connected run uses the scenario's
+simulated times as real delays while it sends events and changes client
+connections.
 
 From this directory, run the example with:
 
@@ -10,6 +11,20 @@ From this directory, run the example with:
 npm ci
 npm run simulate -- scenarios/live-match.json
 ```
+
+To start ZooGlass and send a scenario to it over WebSockets, run:
+
+```sh
+npm run integrate -- scenarios/live-match.json
+```
+
+This starts ZooGlass with the Maven Wrapper, waits for its health check, opens a
+WebSocket connection for each event source and scenario client, and sends each
+event at its scheduled simulation time. Source connections send JSON messages
+to ZooGlass; client state changes open or close their WebSocket connections.
+ZooGlass currently logs received messages and does not process or deliver them
+to connected clients. The workbench stops the local ZooGlass process when the
+scenario finishes.
 
 Each scenario has a name, a list of event sources, a list of clients, and a
 timeline. A timeline entry is either a source event or a client state change.
@@ -24,9 +39,9 @@ entries by `simulationTime`; entries with the same time stay in the order they
 appear in the file. This field does not define an event's domain timestamp or
 ZooGlass's ordering guarantees.
 
-The runner emits a combined trace of source events and client state changes. It
-doesn't connect to ZooGlass, deliver events to clients, or check what a client
-would receive. It's a way to describe and inspect scenario timing for now.
+The `simulate` command emits a combined trace without starting ZooGlass. The
+`integrate` command drives ZooGlass over real local WebSocket connections, but
+does not check what a client would receive.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.
@@ -34,9 +49,10 @@ grows.
 ## Scenarios
 
 There are a few small examples now. Each one is a timeline to discuss and
-exercise as the workbench grows. At the moment, the simulator only prints the
-timeline. It doesn't apply business rules or check what ZooGlass would do with
-the events.
+exercise as the workbench grows. The print-only simulator does not apply
+business rules or check what ZooGlass would do with the events. The connected
+runner sends the events to ZooGlass, which currently logs them without applying
+business rules.
 
 - `live-match.json` shows score and odds updates arriving from separate feeds.
 - `late-update.json` shows an older order and inventory update arriving after
@@ -44,8 +60,9 @@ the events.
   `simulationTime` still says when each event appears in the replay.
 - `correction.json` shows a score feed correcting a result it reported earlier.
 - `disconnect-catch-up.json` shows location updates arriving while a viewer is
-  disconnected, then the viewer reconnecting. It doesn't simulate what the
-  viewer receives after reconnecting.
+  disconnected, then the viewer reconnecting. The connected runner applies
+  those connection changes, but ZooGlass does not yet deliver updates to the
+  viewer.
 - `bursty-updates.json` shows several odds changes arriving close together.
 
 Run any scenario by passing its path, for example:

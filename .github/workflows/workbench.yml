@@ -6,11 +6,13 @@ on:
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
+      - "incubator/zooglass/**"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
+      - "incubator/zooglass/**"
 
 permissions:
   contents: read
@@ -29,6 +31,13 @@ jobs:
           node-version-file: incubator/workbench/.nvmrc
           cache: npm
           cache-dependency-path: incubator/workbench/package-lock.json
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: incubator/zooglass/pom.xml
 
       - run: npm ci
       - run: npm run lint

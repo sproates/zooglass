@@ -25,6 +25,7 @@ public class LiveViewWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
+        broadcaster.registerSession(session);
         logger.info("WebSocket client connected: {}", session.getId());
     }
 

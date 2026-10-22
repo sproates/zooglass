@@ -99,20 +99,20 @@ class ViewFunctionalTests {
 
         try {
             liveViewClient.socket().sendText(
-                    "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"match-42\"}",
+                    "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"live-match-42\"}",
                     true).join();
 
             JsonNode acknowledgement = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
             assertThat(acknowledgement.get("type").asText()).isEqualTo("subscribed");
             assertThat(acknowledgement.get("viewId").asText()).isEqualTo("match");
-            assertThat(acknowledgement.get("entityId").asText()).isEqualTo("match-42");
+            assertThat(acknowledgement.get("entityId").asText()).isEqualTo("live-match-42");
 
-            send(eventSocket, "match-feed", "score.updated", "match-42", "{\"home\":1,\"away\":0}");
+            send(eventSocket, "match-feed", "score.updated", "live-match-42", "{\"home\":1,\"away\":0}");
 
             JsonNode update = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
             assertThat(update.get("type").asText()).isEqualTo("view-update");
             assertThat(update.get("viewId").asText()).isEqualTo("match");
-            assertThat(update.get("entityId").asText()).isEqualTo("match-42");
+            assertThat(update.get("entityId").asText()).isEqualTo("live-match-42");
             assertThat(update.at("/data/score/home").asInt()).isEqualTo(1);
             assertThat(update.at("/data/score/away").asInt()).isEqualTo(0);
         } finally {

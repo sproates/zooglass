@@ -5,7 +5,9 @@ export interface TraceEntry extends ScenarioEvent {
 }
 
 export function playScenario(scenario: Scenario): TraceEntry[] {
-  const sourceNames = new Map(scenario.sources.map((source) => [source.id, source.name]));
+  const sourceNames = new Map(
+    scenario.sources.map((source) => [source.id, source.name]),
+  );
 
   return scenario.events
     .map((event, declarationOrder) => ({

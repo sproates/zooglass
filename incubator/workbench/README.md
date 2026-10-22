@@ -20,3 +20,15 @@ domain timestamp or ZooGlass's ordering guarantees.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.
+
+## Code style
+
+The project uses the recommended ESLint rules for JavaScript and TypeScript,
+with Prettier enforcing formatting. Run the checks with:
+
+```sh
+npm run lint
+npm run format:check
+```
+
+Apply formatting with `npm run format`.

@@ -78,9 +78,14 @@ export function parseScenario(input: unknown): Scenario {
       );
     }
 
-    const sourceId = requiredString(event.sourceId, `events[${index}].sourceId`);
+    const sourceId = requiredString(
+      event.sourceId,
+      `events[${index}].sourceId`,
+    );
     if (!sourceIds.has(sourceId)) {
-      throw new Error(`events[${index}] refers to unknown source "${sourceId}".`);
+      throw new Error(
+        `events[${index}] refers to unknown source "${sourceId}".`,
+      );
     }
 
     if (!isRecord(event.payload)) {
@@ -105,7 +110,9 @@ export async function loadScenario(path: string): Promise<Scenario> {
     contents = await readFile(path, "utf8");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Could not read scenario at "${path}": ${message}`);
+    throw new Error(`Could not read scenario at "${path}": ${message}`, {
+      cause: error,
+    });
   }
 
   let input: unknown;
@@ -113,7 +120,9 @@ export async function loadScenario(path: string): Promise<Scenario> {
     input = JSON.parse(contents);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Scenario at "${path}" is not valid JSON: ${message}`);
+    throw new Error(`Scenario at "${path}" is not valid JSON: ${message}`, {
+      cause: error,
+    });
   }
 
   return parseScenario(input);

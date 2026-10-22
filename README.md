@@ -8,7 +8,7 @@ Keeping that view useful gets harder when updates arrive late, out of order, are
 
 ZooGlass aims to help keep event-driven views current, and clarify what data they reflect.
 
-At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won't find much interest code yet.
+At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won't find much interesting code yet.
 
 The service uses Java 25 and Spring Boot.
 

@@ -1,0 +1,62 @@
+{
+  "name": "A viewer reconnects to a live journey",
+  "sources": [
+    { "id": "vehicle-feed", "name": "Vehicle feed" },
+    { "id": "viewer", "name": "Viewer connection" }
+  ],
+  "events": [
+    {
+      "simulationTime": 0,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": { "latitude": 51.5074, "longitude": -0.1278 }
+    },
+    {
+      "simulationTime": 300,
+      "sourceId": "viewer",
+      "type": "client.disconnected",
+      "entityId": "viewer-1",
+      "payload": { "rideId": "ride-73" }
+    },
+    {
+      "simulationTime": 700,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": { "latitude": 51.5081, "longitude": -0.1269 }
+    },
+    {
+      "simulationTime": 1100,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": { "latitude": 51.509, "longitude": -0.1258 }
+    },
+    {
+      "simulationTime": 1500,
+      "sourceId": "viewer",
+      "type": "client.reconnected",
+      "entityId": "viewer-1",
+      "payload": { "rideId": "ride-73" }
+    },
+    {
+      "simulationTime": 1500,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.replayed",
+      "entityId": "ride-73",
+      "payload": {
+        "updatesSinceDisconnect": 2,
+        "latitude": 51.509,
+        "longitude": -0.1258
+      }
+    },
+    {
+      "simulationTime": 1700,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": { "latitude": 51.5097, "longitude": -0.1249 }
+    }
+  ]
+}

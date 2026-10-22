@@ -1,0 +1,38 @@
+{
+  "name": "An inventory update arrives late",
+  "sources": [
+    { "id": "orders", "name": "Order service" },
+    { "id": "payments", "name": "Payment service" },
+    { "id": "inventory", "name": "Inventory service" }
+  ],
+  "events": [
+    {
+      "simulationTime": 0,
+      "sourceId": "orders",
+      "type": "order.accepted",
+      "entityId": "order-108",
+      "payload": { "status": "accepted", "sourceTimestamp": 1000 }
+    },
+    {
+      "simulationTime": 180,
+      "sourceId": "payments",
+      "type": "payment.authorised",
+      "entityId": "order-108",
+      "payload": { "status": "authorised", "sourceTimestamp": 1180 }
+    },
+    {
+      "simulationTime": 900,
+      "sourceId": "orders",
+      "type": "order.packed",
+      "entityId": "order-108",
+      "payload": { "status": "packed", "sourceTimestamp": 1900 }
+    },
+    {
+      "simulationTime": 1250,
+      "sourceId": "inventory",
+      "type": "inventory.reserved",
+      "entityId": "order-108",
+      "payload": { "status": "reserved", "sourceTimestamp": 1100 }
+    }
+  ]
+}

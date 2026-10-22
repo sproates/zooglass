@@ -67,6 +67,10 @@ queued in order for each client, with up to 128 pending messages. If a client
 cannot keep up and its queue fills, ZooGlass closes that connection with status
 1013 rather than allowing its backlog to grow without limit.
 
+Subscriptions belong to a WebSocket connection. After reconnecting, a client
+must subscribe again; ZooGlass sends the current snapshot if one exists. It does
+not replay the updates missed while the client was disconnected.
+
 Run the tests with:
 
 ```sh

@@ -51,6 +51,19 @@ after a restart. The startup config can be changed with the
 `zooglass.views.config` property, using a Spring resource location such as
 `file:/path/to/views.json`.
 
+Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
+subscription request for a view and entity:
+
+```json
+{"action":"subscribe","viewId":"match","entityId":"match-42"}
+```
+
+ZooGlass acknowledges the subscription with a `subscribed` message. If the view
+already has data, it also sends the current snapshot. Later matching events send
+`view-update` messages containing the full latest snapshot. Send the same
+request with `"action":"unsubscribe"` to stop receiving updates. A client
+connection is removed from all subscriptions when it closes.
+
 Run the tests with:
 
 ```sh

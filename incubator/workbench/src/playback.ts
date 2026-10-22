@@ -1,6 +1,8 @@
 import type {
   Scenario,
   ScenarioClientStateChange,
+  ScenarioClientSubscription,
+  ScenarioClientViewCheck,
   ScenarioSourceEvent,
   ScenarioViewDefinition,
   ScenarioViewCheck,
@@ -11,6 +13,14 @@ export interface SourceEventTraceEntry extends ScenarioSourceEvent {
 }
 
 export interface ClientStateTraceEntry extends ScenarioClientStateChange {
+  clientName: string;
+}
+
+export interface ClientSubscriptionTraceEntry extends ScenarioClientSubscription {
+  clientName: string;
+}
+
+export interface ClientViewCheckTraceEntry extends ScenarioClientViewCheck {
   clientName: string;
 }
 
@@ -28,6 +38,8 @@ export type ViewDefinitionTraceEntry = ScenarioViewDefinition;
 export type TraceEntry =
   | SourceEventTraceEntry
   | ClientStateTraceEntry
+  | ClientSubscriptionTraceEntry
+  | ClientViewCheckTraceEntry
   | ClientInitialStateTraceEntry
   | ViewDefinitionTraceEntry
   | ViewCheckTraceEntry;
@@ -61,11 +73,7 @@ export function playScenario(scenario: Scenario): TraceEntry[] {
       };
     }
 
-    if (entry.kind === "view-check") {
-      return entry;
-    }
-
-    if (entry.kind === "view-definition") {
+    if (entry.kind === "view-check" || entry.kind === "view-definition") {
       return entry;
     }
 
@@ -103,6 +111,14 @@ export function formatTraceEntry(entry: TraceEntry): string {
 
   if (entry.kind === "view-definition") {
     return `${time} Define view ${entry.id}`;
+  }
+
+  if (entry.kind === "client-subscription") {
+    return `${time} Client ${entry.clientName} ${entry.action}s ${entry.viewId} (${entry.entityId})`;
+  }
+
+  if (entry.kind === "client-view-check") {
+    return `${time} Check ${entry.clientName} received ${entry.viewId} (${entry.entityId})  ${JSON.stringify(entry.expected)}`;
   }
 
   return `${time} Client ${entry.clientName} (${entry.clientId})  ${entry.state}`;

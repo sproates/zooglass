@@ -12,6 +12,8 @@ import { loadScenario, type Scenario } from "./scenario.js";
 
 const connectionTimeoutMs = 10_000;
 const startupTimeoutMs = 60_000;
+const messageTimeoutMs = 5_000;
+const messagesBySocket = new WeakMap<WebSocket, unknown[]>();
 
 function getPort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
@@ -175,6 +177,20 @@ async function waitForZooGlass(
 function connectClient(url: string): Promise<WebSocket> {
   return new Promise((resolveSocket, reject) => {
     const socket = new WebSocket(url);
+    const messages: unknown[] = [];
+    messagesBySocket.set(socket, messages);
+    socket.addEventListener("message", (event) => {
+      if (typeof event.data !== "string") {
+        messages.push(event.data);
+        return;
+      }
+
+      try {
+        messages.push(JSON.parse(event.data) as unknown);
+      } catch {
+        messages.push(event.data);
+      }
+    });
     const timeout = setTimeout(() => {
       socket.close();
       reject(new Error(`Timed out connecting to ${url}.`));
@@ -199,6 +215,37 @@ function connectClient(url: string): Promise<WebSocket> {
   });
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function waitForClientMessage(
+  socket: WebSocket,
+  matches: (message: unknown) => boolean,
+  description: string,
+): Promise<unknown> {
+  const messages = messagesBySocket.get(socket);
+  if (messages === undefined) {
+    throw new Error("No message queue is available for the client connection.");
+  }
+
+  const deadline = Date.now() + messageTimeoutMs;
+  while (Date.now() < deadline) {
+    const index = messages.findIndex(matches);
+    if (index >= 0) {
+      return messages.splice(index, 1)[0];
+    }
+    if (socket.readyState !== WebSocket.OPEN) {
+      throw new Error(
+        "Client connection closed before the expected message arrived.",
+      );
+    }
+    await delay(10);
+  }
+
+  throw new Error(`Timed out waiting for ${description}.`);
+}
+
 async function closeClient(socket: WebSocket | undefined): Promise<void> {
   if (socket === undefined || socket.readyState === WebSocket.CLOSED) {
     return;
@@ -210,7 +257,12 @@ async function closeClient(socket: WebSocket | undefined): Promise<void> {
 }
 
 function getClientId(entry: TraceEntry): string | undefined {
-  if (entry.kind === "client-initial-state" || entry.kind === "client-state") {
+  if (
+    entry.kind === "client-initial-state" ||
+    entry.kind === "client-state" ||
+    entry.kind === "client-subscription" ||
+    entry.kind === "client-view-check"
+  ) {
     return entry.clientId;
   }
   return undefined;
@@ -233,12 +285,68 @@ async function applyClientState(
   sockets.delete(entry.clientId);
 }
 
+async function applyClientSubscription(
+  entry: Extract<TraceEntry, { kind: "client-subscription" }>,
+  sockets: Map<string, WebSocket>,
+): Promise<void> {
+  const socket = sockets.get(entry.clientId);
+  if (socket === undefined || socket.readyState !== WebSocket.OPEN) {
+    throw new Error(
+      `Client ${entry.clientId} is not connected when its subscription is scheduled.`,
+    );
+  }
+
+  socket.send(
+    JSON.stringify({
+      action: entry.action,
+      viewId: entry.viewId,
+      entityId: entry.entityId,
+    }),
+  );
+  const responseType =
+    entry.action === "subscribe" ? "subscribed" : "unsubscribed";
+  await waitForClientMessage(
+    socket,
+    (message) =>
+      isJsonObject(message) &&
+      message.type === responseType &&
+      message.viewId === entry.viewId &&
+      message.entityId === entry.entityId,
+    `${responseType} response for ${entry.viewId} (${entry.entityId})`,
+  );
+}
+
+async function checkClientView(
+  entry: Extract<TraceEntry, { kind: "client-view-check" }>,
+  sockets: Map<string, WebSocket>,
+): Promise<void> {
+  const socket = sockets.get(entry.clientId);
+  if (socket === undefined || socket.readyState !== WebSocket.OPEN) {
+    throw new Error(
+      `Client ${entry.clientId} is not connected when its view update is expected.`,
+    );
+  }
+
+  await waitForClientMessage(
+    socket,
+    (message) =>
+      isJsonObject(message) &&
+      message.type === "view-update" &&
+      message.viewId === entry.viewId &&
+      message.entityId === entry.entityId &&
+      isDeepStrictEqual(message.data, entry.expected),
+    `view update for client ${entry.clientId}: ${entry.viewId} (${entry.entityId})`,
+  );
+  console.log(`Client view check passed: ${entry.clientId} (${entry.viewId})`);
+}
+
 async function playConnectedScenario(
   scenario: Scenario,
   port: number,
   fastPlayback: boolean,
 ): Promise<void> {
-  const url = `ws://127.0.0.1:${port}/events`;
+  const sourceUrl = `ws://127.0.0.1:${port}/events`;
+  const clientUrl = `ws://127.0.0.1:${port}/views/live`;
   const sourceSockets = new Map<string, WebSocket>();
   const clientSockets = new Map<string, WebSocket>();
   const trace = playScenario(scenario);
@@ -248,7 +356,7 @@ async function playConnectedScenario(
 
   try {
     for (const source of scenario.sources) {
-      sourceSockets.set(source.id, await connectClient(url));
+      sourceSockets.set(source.id, await connectClient(sourceUrl));
       console.log(`Connected source ${source.name} (${source.id})`);
     }
 
@@ -283,12 +391,16 @@ async function playConnectedScenario(
         await checkView(port, entry);
       } else if (entry.kind === "view-definition") {
         await defineView(port, entry);
+      } else if (entry.kind === "client-subscription") {
+        await applyClientSubscription(entry, clientSockets);
+      } else if (entry.kind === "client-view-check") {
+        await checkClientView(entry, clientSockets);
       } else {
         const clientId = getClientId(entry);
         if (clientId === undefined) {
           throw new Error("Could not identify client in scenario trace entry.");
         }
-        await applyClientState(entry, url, clientSockets);
+        await applyClientState(entry, clientUrl, clientSockets);
       }
     }
   } finally {
@@ -410,6 +522,12 @@ function namespaceScenario(scenario: Scenario, index: number): Scenario {
         return { ...entry, sourceId: sourceIds.get(entry.sourceId)! };
       }
       if (entry.kind === "view-check") {
+        return { ...entry, viewId: viewIds.get(entry.viewId)! };
+      }
+      if (
+        entry.kind === "client-subscription" ||
+        entry.kind === "client-view-check"
+      ) {
         return { ...entry, viewId: viewIds.get(entry.viewId)! };
       }
       if (entry.kind === "view-definition") {

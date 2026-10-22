@@ -1,0 +1,99 @@
+{
+  "name": "A client receives live view updates over WebSocket",
+  "sources": [
+    {
+      "id": "match-feed",
+      "name": "Match feed"
+    }
+  ],
+  "clients": [
+    {
+      "id": "scoreboard-1",
+      "name": "Live scoreboard",
+      "initialState": "connected"
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-subscription",
+      "simulationTime": 0,
+      "clientId": "scoreboard-1",
+      "action": "subscribe",
+      "viewId": "match",
+      "entityId": "match-42"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 0
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 100,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 100,
+      "clientId": "scoreboard-1",
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1000,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 1
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1000,
+      "clientId": "scoreboard-1",
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 1
+        }
+      }
+    }
+  ]
+}

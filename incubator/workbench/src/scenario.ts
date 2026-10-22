@@ -45,6 +45,24 @@ export interface ScenarioClientStateChange {
   state: ClientState;
 }
 
+export interface ScenarioClientSubscription {
+  kind: "client-subscription";
+  simulationTime: number;
+  clientId: string;
+  action: "subscribe" | "unsubscribe";
+  viewId: string;
+  entityId: string;
+}
+
+export interface ScenarioClientViewCheck {
+  kind: "client-view-check";
+  simulationTime: number;
+  clientId: string;
+  viewId: string;
+  entityId: string;
+  expected: Record<string, unknown>;
+}
+
 export interface ScenarioViewCheck {
   kind: "view-check";
   simulationTime: number;
@@ -56,6 +74,8 @@ export interface ScenarioViewCheck {
 export type ScenarioTimelineEntry =
   | ScenarioSourceEvent
   | ScenarioClientStateChange
+  | ScenarioClientSubscription
+  | ScenarioClientViewCheck
   | ScenarioViewCheck
   | ScenarioViewDefinition;
 
@@ -277,6 +297,72 @@ export function parseScenario(input: unknown): Scenario {
       };
     }
 
+    if (entry.kind === "client-subscription") {
+      const clientId = requiredString(
+        entry.clientId,
+        `timeline[${index}].clientId`,
+      );
+      if (!clientIds.has(clientId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown client "${clientId}".`,
+        );
+      }
+      if (entry.action !== "subscribe" && entry.action !== "unsubscribe") {
+        throw new Error(
+          `Expected timeline[${index}].action to be "subscribe" or "unsubscribe".`,
+        );
+      }
+
+      const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+      if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown view "${viewId}".`,
+        );
+      }
+
+      return {
+        kind: "client-subscription",
+        simulationTime: entry.simulationTime,
+        clientId,
+        action: entry.action,
+        viewId,
+        entityId: requiredString(entry.entityId, `timeline[${index}].entityId`),
+      };
+    }
+
+    if (entry.kind === "client-view-check") {
+      const clientId = requiredString(
+        entry.clientId,
+        `timeline[${index}].clientId`,
+      );
+      if (!clientIds.has(clientId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown client "${clientId}".`,
+        );
+      }
+
+      const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+      if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown view "${viewId}".`,
+        );
+      }
+      if (!isRecord(entry.expected)) {
+        throw new Error(
+          `Expected timeline[${index}].expected to be an object.`,
+        );
+      }
+
+      return {
+        kind: "client-view-check",
+        simulationTime: entry.simulationTime,
+        clientId,
+        viewId,
+        entityId: requiredString(entry.entityId, `timeline[${index}].entityId`),
+        expected: entry.expected,
+      };
+    }
+
     if (entry.kind === "view-definition") {
       const view = parseView(entry, `timeline[${index}]`, sourceIds);
       return {
@@ -314,7 +400,7 @@ export function parseScenario(input: unknown): Scenario {
 
     if (entry.kind !== "source-event") {
       throw new Error(
-        `Expected timeline[${index}].kind to be "source-event", "client-state", "view-definition", or "view-check".`,
+        `Expected timeline[${index}].kind to be "source-event", "client-state", "client-subscription", "client-view-check", "view-definition", or "view-check".`,
       );
     }
 

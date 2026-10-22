@@ -11,6 +11,8 @@
     "build": "tsc -p tsconfig.json",
     "predev": "node scripts/check-node-version.js",
     "dev": "tsx watch src/index.ts",
+    "presimulate": "node scripts/check-node-version.js",
+    "simulate": "tsx src/index.ts",
     "prestart": "node scripts/check-node-version.js",
     "start": "node dist/index.js",
     "pretest": "node scripts/check-node-version.js",

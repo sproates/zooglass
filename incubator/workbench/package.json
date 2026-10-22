@@ -20,7 +20,7 @@
     "prestart": "node scripts/check-node-version.js",
     "start": "node dist/index.js",
     "pretest": "node scripts/check-node-version.js",
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --test test/*.test.ts test/scenarios/*.test.ts",
     "pretypecheck": "node scripts/check-node-version.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

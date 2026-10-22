@@ -1,0 +1,44 @@
+{
+  "name": "A match score is corrected",
+  "sources": [
+    { "id": "match-feed", "name": "Match feed" },
+    { "id": "bookmaker", "name": "Bookmaker" }
+  ],
+  "events": [
+    {
+      "simulationTime": 0,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": { "home": 0, "away": 0, "revision": 1 }
+    },
+    {
+      "simulationTime": 400,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": { "home": 2, "away": 0, "revision": 2 }
+    },
+    {
+      "simulationTime": 520,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": { "homeWin": 1.3, "draw": 4.2, "awayWin": 9.5 }
+    },
+    {
+      "simulationTime": 1100,
+      "sourceId": "match-feed",
+      "type": "score.corrected",
+      "entityId": "match-42",
+      "payload": { "home": 1, "away": 0, "revision": 3, "correctsRevision": 2 }
+    },
+    {
+      "simulationTime": 1250,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": { "homeWin": 1.55, "draw": 3.7, "awayWin": 5.4 }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Odds change in a burst",
+  "sources": [
+    { "id": "match-feed", "name": "Match feed" },
+    { "id": "bookmaker", "name": "Bookmaker" }
+  ],
+  "events": [
+    {
+      "simulationTime": 0,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-91",
+      "payload": { "home": 0, "away": 0 }
+    },
+    {
+      "simulationTime": 1000,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-91",
+      "payload": { "homeWin": 2.1, "draw": 3.2, "awayWin": 3.6 }
+    },
+    {
+      "simulationTime": 1002,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-91",
+      "payload": { "homeWin": 2.05, "draw": 3.25, "awayWin": 3.7 }
+    },
+    {
+      "simulationTime": 1004,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-91",
+      "payload": { "homeWin": 1.98, "draw": 3.3, "awayWin": 3.8 }
+    },
+    {
+      "simulationTime": 1007,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-91",
+      "payload": { "home": 1, "away": 0 }
+    },
+    {
+      "simulationTime": 1010,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-91",
+      "payload": { "homeWin": 1.62, "draw": 3.6, "awayWin": 5.1 }
+    }
+  ]
+}

@@ -21,6 +21,29 @@ domain timestamp or ZooGlass's ordering guarantees.
 The format and runner are an initial experiment and can change as the workbench
 grows.
 
+## Scenarios
+
+There are a few small examples now. Each one is a timeline to discuss and
+exercise as the workbench grows. At the moment, the simulator only prints the
+events. It doesn't model a client, apply business rules, or check what ZooGlass
+would do with them.
+
+- `live-match.json` shows score and odds updates arriving from separate feeds.
+- `late-update.json` shows an older order and inventory update arriving after
+  newer order activity. The `sourceTimestamp` values are example payload data;
+  `simulationTime` still says when each event appears in the replay.
+- `correction.json` shows a score feed correcting a result it reported earlier.
+- `disconnect-catch-up.json` shows location updates while a viewer is away,
+  followed by updates sent after it reconnects. The connection and replay events
+  are part of the example timeline, not behaviour the simulator implements.
+- `bursty-updates.json` shows several odds changes arriving close together.
+
+Run any scenario by passing its path, for example:
+
+```sh
+npm run simulate -- scenarios/late-update.json
+```
+
 ## Code style
 
 The project uses the recommended ESLint rules for JavaScript and TypeScript,

@@ -1,0 +1,32 @@
+name: ZooGlass CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/zooglass.yml"
+      - "incubator/zooglass/**"
+  pull_request:
+    paths:
+      - ".github/workflows/zooglass.yml"
+      - "incubator/zooglass/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: incubator/zooglass
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: incubator/zooglass/pom.xml
+
+      - run: ./mvnw --batch-mode verify

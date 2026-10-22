@@ -26,6 +26,16 @@ ZooGlass at startup, and each `view-check` queries the HTTP view endpoint and
 compares its data with the expected JSON. The workbench stops the local
 ZooGlass process when the scenario finishes.
 
+Pass several scenario paths to play them in order against one ZooGlass process:
+
+```sh
+npm run integrate -- scenarios/live-match.json scenarios/correction.json
+```
+
+The runner gives each scenario its own source and view IDs so its events don't
+affect another scenario's views. The functional test suite uses this batch mode
+to avoid starting ZooGlass separately for every scenario.
+
 Each scenario has a name, a list of event sources, a list of clients, view
 definitions, and a timeline. View definitions map event source and type pairs
 to fields in a view. A field can be updated by more than one event type. A
@@ -52,9 +62,11 @@ grows.
 
 ## Scenarios
 
-The functional scenario tests play every scenario against a running ZooGlass
-instance. They check view contents and exercise any client connection changes
-in the timeline.
+ZooGlass has unit and functional tests for its components and core running
+behaviour. Most scenario testing belongs here in the Workbench: these functional
+scenarios drive event and client behaviour through ZooGlass and check its view
+responses. External-system tests, such as checking a Kafka adapter, are a
+separate kind of integration test.
 
 - `live-match.json` checks a match view assembled from score and odds updates
   arriving from separate feeds.

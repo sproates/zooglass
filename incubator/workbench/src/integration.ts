@@ -281,15 +281,19 @@ async function stopZooGlass(child: ChildProcess): Promise<void> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  if (args.length > 1) {
-    throw new Error("Usage: npm run integrate -- [scenario.json]");
+  if (args.length === 0) {
+    args.push("scenarios/live-match.json");
   }
 
-  const scenarioPath = resolve(args[0] ?? "scenarios/live-match.json");
-  const scenario = await loadScenario(scenarioPath);
+  const scenarios = await Promise.all(
+    args.map(async (path, index) =>
+      namespaceScenario(await loadScenario(resolve(path)), index),
+    ),
+  );
   const port = await getPort();
+  const views = scenarios.flatMap((scenario) => scenario.views);
   const configDirectory =
-    scenario.views.length === 0
+    views.length === 0
       ? undefined
       : await mkdtemp(join(tmpdir(), "zooglass-workbench-"));
   const configPath =
@@ -298,7 +302,7 @@ async function main(): Promise<void> {
       : join(configDirectory, "views.json");
 
   if (configPath !== undefined) {
-    await writeFile(configPath, JSON.stringify({ views: scenario.views }));
+    await writeFile(configPath, JSON.stringify({ views }));
   }
 
   const child = startZooGlass(
@@ -309,14 +313,56 @@ async function main(): Promise<void> {
   try {
     await waitForZooGlass(port, child);
     console.log(`ZooGlass is ready at http://127.0.0.1:${port}`);
-    console.log(`Scenario: ${scenario.name}`);
-    await playConnectedScenario(scenario, port);
+    for (const scenario of scenarios) {
+      console.log(`Scenario: ${scenario.name}`);
+      await playConnectedScenario(scenario, port);
+    }
   } finally {
     await stopZooGlass(child);
     if (configDirectory !== undefined) {
       await rm(configDirectory, { recursive: true, force: true });
     }
   }
+}
+
+function namespaceScenario(scenario: Scenario, index: number): Scenario {
+  const namespace = `scenario-${index + 1}`;
+  const sourceIds = new Map(
+    scenario.sources.map((source) => [source.id, `${namespace}-${source.id}`]),
+  );
+  const viewIds = new Map(
+    scenario.views.map((view) => [view.id, `${namespace}-${view.id}`]),
+  );
+
+  return {
+    ...scenario,
+    sources: scenario.sources.map((source) => ({
+      ...source,
+      id: sourceIds.get(source.id)!,
+    })),
+    views: scenario.views.map((view) => ({
+      ...view,
+      id: viewIds.get(view.id)!,
+      fields: Object.fromEntries(
+        Object.entries(view.fields).map(([name, matchers]) => [
+          name,
+          matchers.map((matcher) => ({
+            ...matcher,
+            sourceId: sourceIds.get(matcher.sourceId)!,
+          })),
+        ]),
+      ),
+    })),
+    timeline: scenario.timeline.map((entry) => {
+      if (entry.kind === "source-event") {
+        return { ...entry, sourceId: sourceIds.get(entry.sourceId)! };
+      }
+      if (entry.kind === "view-check") {
+        return { ...entry, viewId: viewIds.get(entry.viewId)! };
+      }
+      return entry;
+    }),
+  };
 }
 
 main().catch((error: unknown) => {

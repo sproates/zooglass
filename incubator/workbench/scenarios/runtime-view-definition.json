@@ -1,0 +1,139 @@
+{
+  "name": "Views created at different times only receive later events",
+  "sources": [
+    {
+      "id": "catalog-feed",
+      "name": "Catalog feed"
+    }
+  ],
+  "clients": [],
+  "views": [
+    {
+      "id": "event-observer",
+      "fields": {
+        "item": [
+          {
+            "sourceId": "catalog-feed",
+            "type": "item.changed"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "source-event",
+      "simulationTime": 0,
+      "sourceId": "catalog-feed",
+      "type": "item.changed",
+      "entityId": "item-before-view",
+      "payload": {
+        "value": 0
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 0,
+      "viewId": "event-observer",
+      "entityId": "item-before-view",
+      "expected": {
+        "item": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "kind": "view-definition",
+      "simulationTime": 0,
+      "id": "primary-view",
+      "fields": {
+        "item": [
+          {
+            "sourceId": "catalog-feed",
+            "type": "item.changed"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 0,
+      "viewId": "primary-view",
+      "entityId": "item-before-view",
+      "expected": null
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "catalog-feed",
+      "type": "item.changed",
+      "entityId": "item-42",
+      "payload": {
+        "value": 1
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 100,
+      "viewId": "primary-view",
+      "entityId": "item-42",
+      "expected": {
+        "item": {
+          "value": 1
+        }
+      }
+    },
+    {
+      "kind": "view-definition",
+      "simulationTime": 200,
+      "id": "secondary-view",
+      "fields": {
+        "item": [
+          {
+            "sourceId": "catalog-feed",
+            "type": "item.changed"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 200,
+      "viewId": "secondary-view",
+      "entityId": "item-42",
+      "expected": null
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 300,
+      "sourceId": "catalog-feed",
+      "type": "item.changed",
+      "entityId": "item-42",
+      "payload": {
+        "value": 2
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 300,
+      "viewId": "primary-view",
+      "entityId": "item-42",
+      "expected": {
+        "item": {
+          "value": 2
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 300,
+      "viewId": "secondary-view",
+      "entityId": "item-42",
+      "expected": {
+        "item": {
+          "value": 2
+        }
+      }
+    }
+  ]
+}

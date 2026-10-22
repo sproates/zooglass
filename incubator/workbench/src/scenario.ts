@@ -24,6 +24,11 @@ export interface ScenarioView {
   fields: Record<string, ScenarioEventMatcher[]>;
 }
 
+export interface ScenarioViewDefinition extends ScenarioView {
+  kind: "view-definition";
+  simulationTime: number;
+}
+
 export interface ScenarioSourceEvent {
   kind: "source-event";
   simulationTime: number;
@@ -45,11 +50,14 @@ export interface ScenarioViewCheck {
   simulationTime: number;
   viewId: string;
   entityId: string;
-  expected: Record<string, unknown>;
+  expected: Record<string, unknown> | null;
 }
 
 export type ScenarioTimelineEntry =
-  ScenarioSourceEvent | ScenarioClientStateChange | ScenarioViewCheck;
+  | ScenarioSourceEvent
+  | ScenarioClientStateChange
+  | ScenarioViewCheck
+  | ScenarioViewDefinition;
 
 export interface Scenario {
   name: string;
@@ -80,6 +88,61 @@ function requiredString(value: unknown, field: string): string {
   }
 
   return value;
+}
+
+function parseView(
+  input: unknown,
+  label: string,
+  sourceIds: Set<string>,
+): ScenarioView {
+  if (!isRecord(input)) {
+    throw new Error(`Expected ${label} to be an object.`);
+  }
+
+  if (!isRecord(input.fields) || Object.keys(input.fields).length === 0) {
+    throw new Error(`Expected ${label}.fields to be a non-empty object.`);
+  }
+
+  const fields: Record<string, ScenarioEventMatcher[]> = {};
+  for (const [fieldName, matchersInput] of Object.entries(input.fields)) {
+    requiredString(fieldName, `${label} field name`);
+    if (!Array.isArray(matchersInput) || matchersInput.length === 0) {
+      throw new Error(
+        `Expected ${label}.fields.${fieldName} to be a non-empty array.`,
+      );
+    }
+
+    fields[fieldName] = matchersInput.map((matcher, matcherIndex) => {
+      if (!isRecord(matcher)) {
+        throw new Error(
+          `Expected ${label}.fields.${fieldName}[${matcherIndex}] to be an object.`,
+        );
+      }
+
+      const sourceId = requiredString(
+        matcher.sourceId,
+        `${label}.fields.${fieldName}[${matcherIndex}].sourceId`,
+      );
+      if (!sourceIds.has(sourceId)) {
+        throw new Error(
+          `View field "${fieldName}" refers to unknown source "${sourceId}".`,
+        );
+      }
+
+      return {
+        sourceId,
+        type: requiredString(
+          matcher.type,
+          `${label}.fields.${fieldName}[${matcherIndex}].type`,
+        ),
+      };
+    });
+  }
+
+  return {
+    id: requiredString(input.id, `${label}.id`),
+    fields,
+  };
 }
 
 export function parseScenario(input: unknown): Scenario {
@@ -149,58 +212,9 @@ export function parseScenario(input: unknown): Scenario {
     throw new Error("Expected views to be an array.");
   }
 
-  const views = viewsInput.map((view, viewIndex): ScenarioView => {
-    if (!isRecord(view)) {
-      throw new Error(`Expected views[${viewIndex}] to be an object.`);
-    }
-
-    if (!isRecord(view.fields) || Object.keys(view.fields).length === 0) {
-      throw new Error(
-        `Expected views[${viewIndex}].fields to be a non-empty object.`,
-      );
-    }
-
-    const fields: Record<string, ScenarioEventMatcher[]> = {};
-    for (const [fieldName, matchersInput] of Object.entries(view.fields)) {
-      requiredString(fieldName, `views[${viewIndex}] field name`);
-      if (!Array.isArray(matchersInput) || matchersInput.length === 0) {
-        throw new Error(
-          `Expected views[${viewIndex}].fields.${fieldName} to be a non-empty array.`,
-        );
-      }
-
-      fields[fieldName] = matchersInput.map((matcher, matcherIndex) => {
-        if (!isRecord(matcher)) {
-          throw new Error(
-            `Expected views[${viewIndex}].fields.${fieldName}[${matcherIndex}] to be an object.`,
-          );
-        }
-
-        const sourceId = requiredString(
-          matcher.sourceId,
-          `views[${viewIndex}].fields.${fieldName}[${matcherIndex}].sourceId`,
-        );
-        if (!sourceIds.has(sourceId)) {
-          throw new Error(
-            `View field "${fieldName}" refers to unknown source "${sourceId}".`,
-          );
-        }
-
-        return {
-          sourceId,
-          type: requiredString(
-            matcher.type,
-            `views[${viewIndex}].fields.${fieldName}[${matcherIndex}].type`,
-          ),
-        };
-      });
-    }
-
-    return {
-      id: requiredString(view.id, `views[${viewIndex}].id`),
-      fields,
-    };
-  });
+  const views = viewsInput.map((view, index) =>
+    parseView(view, `views[${index}]`, sourceIds),
+  );
 
   const viewIds = new Set<string>();
   for (const view of views) {
@@ -208,6 +222,19 @@ export function parseScenario(input: unknown): Scenario {
       throw new Error(`View id "${view.id}" is declared more than once.`);
     }
     viewIds.add(view.id);
+  }
+
+  const runtimeViewIds = new Set<string>();
+  for (const [index, entry] of input.timeline.entries()) {
+    if (!isRecord(entry) || entry.kind !== "view-definition") {
+      continue;
+    }
+
+    const viewId = requiredString(entry.id, `timeline[${index}].id`);
+    if (viewIds.has(viewId) || runtimeViewIds.has(viewId)) {
+      throw new Error(`View id "${viewId}" is declared more than once.`);
+    }
+    runtimeViewIds.add(viewId);
   }
 
   const timeline = input.timeline.map((entry, index): ScenarioTimelineEntry => {
@@ -250,9 +277,18 @@ export function parseScenario(input: unknown): Scenario {
       };
     }
 
+    if (entry.kind === "view-definition") {
+      const view = parseView(entry, `timeline[${index}]`, sourceIds);
+      return {
+        kind: "view-definition",
+        simulationTime: entry.simulationTime,
+        ...view,
+      };
+    }
+
     if (entry.kind === "view-check") {
       const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
-      if (!viewIds.has(viewId)) {
+      if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
         throw new Error(
           `timeline[${index}] refers to unknown view "${viewId}".`,
         );
@@ -261,7 +297,7 @@ export function parseScenario(input: unknown): Scenario {
         entry.entityId,
         `timeline[${index}].entityId`,
       );
-      if (!isRecord(entry.expected)) {
+      if (entry.expected !== null && !isRecord(entry.expected)) {
         throw new Error(
           `Expected timeline[${index}].expected to be an object.`,
         );
@@ -278,7 +314,7 @@ export function parseScenario(input: unknown): Scenario {
 
     if (entry.kind !== "source-event") {
       throw new Error(
-        `Expected timeline[${index}].kind to be "source-event", "client-state", or "view-check".`,
+        `Expected timeline[${index}].kind to be "source-event", "client-state", "view-definition", or "view-check".`,
       );
     }
 

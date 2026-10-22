@@ -78,24 +78,39 @@ async function checkView(
   let lastActual: unknown = "view not found";
 
   while (Date.now() - startedAt < 5_000) {
+    let response: Response;
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
-      if (response.ok) {
-        const body: unknown = await response.json();
-        if (typeof body === "object" && body !== null && "data" in body) {
-          lastActual = body.data;
-          if (isDeepStrictEqual(body.data, check.expected)) {
-            console.log(
-              `View check passed: ${check.viewId} (${check.entityId})`,
-            );
-            return;
-          }
-        }
-      } else {
-        lastActual = `HTTP ${response.status}`;
-      }
+      response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
     } catch (error) {
       lastActual = error instanceof Error ? error.message : String(error);
+      await delay(25);
+      continue;
+    }
+
+    if (check.expected === null) {
+      if (response.status === 404) {
+        console.log(
+          `View absence check passed: ${check.viewId} (${check.entityId})`,
+        );
+        return;
+      }
+      if (response.ok) {
+        throw new Error(
+          `Expected view ${check.viewId} (${check.entityId}) to be absent, but it was present.`,
+        );
+      }
+      lastActual = `HTTP ${response.status}`;
+    } else if (response.ok) {
+      const body: unknown = await response.json();
+      if (typeof body === "object" && body !== null && "data" in body) {
+        lastActual = body.data;
+        if (isDeepStrictEqual(body.data, check.expected)) {
+          console.log(`View check passed: ${check.viewId} (${check.entityId})`);
+          return;
+        }
+      }
+    } else {
+      lastActual = `HTTP ${response.status}`;
     }
 
     await delay(25);
@@ -104,6 +119,24 @@ async function checkView(
   throw new Error(
     `View check failed for ${check.viewId} (${check.entityId}). Expected ${JSON.stringify(check.expected)}, got ${JSON.stringify(lastActual)}.`,
   );
+}
+
+async function defineView(
+  port: number,
+  entry: Extract<TraceEntry, { kind: "view-definition" }>,
+): Promise<void> {
+  const response = await fetch(`http://127.0.0.1:${port}/views`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: entry.id, fields: entry.fields }),
+    signal: AbortSignal.timeout(1_000),
+  });
+
+  if (response.status !== 201) {
+    throw new Error(
+      `Could not define view ${entry.id}: ZooGlass returned HTTP ${response.status}.`,
+    );
+  }
 }
 
 async function waitForZooGlass(
@@ -248,6 +281,8 @@ async function playConnectedScenario(
         );
       } else if (entry.kind === "view-check") {
         await checkView(port, entry);
+      } else if (entry.kind === "view-definition") {
+        await defineView(port, entry);
       } else {
         const clientId = getClientId(entry);
         if (clientId === undefined) {
@@ -338,17 +373,18 @@ function namespaceScenario(scenario: Scenario, index: number): Scenario {
   const sourceIds = new Map(
     scenario.sources.map((source) => [source.id, `${namespace}-${source.id}`]),
   );
+  const allViews = [
+    ...scenario.views,
+    ...scenario.timeline.filter(
+      (entry): entry is Extract<TraceEntry, { kind: "view-definition" }> =>
+        entry.kind === "view-definition",
+    ),
+  ];
   const viewIds = new Map(
-    scenario.views.map((view) => [view.id, `${namespace}-${view.id}`]),
+    allViews.map((view) => [view.id, `${namespace}-${view.id}`]),
   );
-
-  return {
-    ...scenario,
-    sources: scenario.sources.map((source) => ({
-      ...source,
-      id: sourceIds.get(source.id)!,
-    })),
-    views: scenario.views.map((view) => ({
+  const namespaceView = <T extends Scenario["views"][number]>(view: T): T =>
+    ({
       ...view,
       id: viewIds.get(view.id)!,
       fields: Object.fromEntries(
@@ -360,13 +396,24 @@ function namespaceScenario(scenario: Scenario, index: number): Scenario {
           })),
         ]),
       ),
+    }) as T;
+
+  return {
+    ...scenario,
+    sources: scenario.sources.map((source) => ({
+      ...source,
+      id: sourceIds.get(source.id)!,
     })),
+    views: scenario.views.map(namespaceView),
     timeline: scenario.timeline.map((entry) => {
       if (entry.kind === "source-event") {
         return { ...entry, sourceId: sourceIds.get(entry.sourceId)! };
       }
       if (entry.kind === "view-check") {
         return { ...entry, viewId: viewIds.get(entry.viewId)! };
+      }
+      if (entry.kind === "view-definition") {
+        return namespaceView(entry);
       }
       return entry;
     }),

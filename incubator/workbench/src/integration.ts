@@ -40,6 +40,9 @@ function startZooGlass(port: number): ChildProcess {
     `-Dspring-boot.run.arguments=--server.port=${port}`,
     "spring-boot:run",
   ];
+  if (process.env.MAVEN_REPO_LOCAL !== undefined) {
+    args.unshift(`-Dmaven.repo.local=${process.env.MAVEN_REPO_LOCAL}`);
+  }
   const child = spawn(wrapper, args, {
     cwd: zooGlassDirectory,
     stdio: ["ignore", "pipe", "pipe"],

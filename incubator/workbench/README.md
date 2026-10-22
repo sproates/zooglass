@@ -32,6 +32,10 @@ Pass several scenario paths to play them in order against one ZooGlass process:
 npm run integrate -- scenarios/live-match.json scenarios/correction.json
 ```
 
+Add `--fast` to preserve the timeline order but skip its real-time waits. The
+functional test suite uses this mode; regular `integrate` runs keep the timed
+playback for demonstrations.
+
 The runner gives each scenario its own source and view IDs so its events don't
 affect another scenario's views. The functional test suite uses this batch mode
 to avoid starting ZooGlass separately for every scenario.

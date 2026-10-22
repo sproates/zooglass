@@ -34,7 +34,13 @@ test(
 
     const child = spawn(
       "npm",
-      ["run", "integrate", "--", ...scenarios.map((scenario) => scenario.path)],
+      [
+        "run",
+        "integrate",
+        "--",
+        "--fast",
+        ...scenarios.map((scenario) => scenario.path),
+      ],
       {
         cwd: process.cwd(),
         stdio: ["ignore", "pipe", "pipe"],

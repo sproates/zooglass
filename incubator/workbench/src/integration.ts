@@ -203,6 +203,7 @@ async function applyClientState(
 async function playConnectedScenario(
   scenario: Scenario,
   port: number,
+  fastPlayback: boolean,
 ): Promise<void> {
   const url = `ws://127.0.0.1:${port}/events`;
   const sourceSockets = new Map<string, WebSocket>();
@@ -220,10 +221,12 @@ async function playConnectedScenario(
 
     const startedAt = performance.now();
     for (const entry of trace) {
-      const elapsedTime = performance.now() - startedAt;
-      const waitTime = entry.simulationTime - elapsedTime;
-      if (waitTime > 0) {
-        await delay(waitTime);
+      if (!fastPlayback) {
+        const elapsedTime = performance.now() - startedAt;
+        const waitTime = entry.simulationTime - elapsedTime;
+        if (waitTime > 0) {
+          await delay(waitTime);
+        }
       }
 
       console.log(formatTraceEntry(entry));
@@ -281,12 +284,17 @@ async function stopZooGlass(child: ChildProcess): Promise<void> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  if (args.length === 0) {
-    args.push("scenarios/live-match.json");
+  const fastPlayback = args.includes("--fast");
+  const scenarioPaths = args.filter((argument) => argument !== "--fast");
+  if (scenarioPaths.some((path) => path.startsWith("--"))) {
+    throw new Error("Usage: npm run integrate -- [--fast] [scenario.json ...]");
+  }
+  if (scenarioPaths.length === 0) {
+    scenarioPaths.push("scenarios/live-match.json");
   }
 
   const scenarios = await Promise.all(
-    args.map(async (path, index) =>
+    scenarioPaths.map(async (path, index) =>
       namespaceScenario(await loadScenario(resolve(path)), index),
     ),
   );
@@ -315,7 +323,7 @@ async function main(): Promise<void> {
     console.log(`ZooGlass is ready at http://127.0.0.1:${port}`);
     for (const scenario of scenarios) {
       console.log(`Scenario: ${scenario.name}`);
-      await playConnectedScenario(scenario, port);
+      await playConnectedScenario(scenario, port, fastPlayback);
     }
   } finally {
     await stopZooGlass(child);

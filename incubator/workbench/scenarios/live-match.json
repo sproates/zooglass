@@ -6,28 +6,28 @@
   ],
   "events": [
     {
-      "simulationTimeMs": 0,
+      "simulationTime": 0,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
       "payload": { "home": 0, "away": 0, "period": "first-half" }
     },
     {
-      "simulationTimeMs": 250,
+      "simulationTime": 250,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",
       "payload": { "homeWin": 2.1, "draw": 3.2, "awayWin": 3.6 }
     },
     {
-      "simulationTimeMs": 1200,
+      "simulationTime": 1200,
       "sourceId": "match-feed",
       "type": "score.updated",
       "entityId": "match-42",
       "payload": { "home": 1, "away": 0, "period": "first-half" }
     },
     {
-      "simulationTimeMs": 1350,
+      "simulationTime": 1350,
       "sourceId": "bookmaker",
       "type": "odds.updated",
       "entityId": "match-42",

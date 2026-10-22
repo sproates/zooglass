@@ -15,13 +15,13 @@ export function playScenario(scenario: Scenario): TraceEntry[] {
     }))
     .sort(
       (left, right) =>
-        left.event.simulationTimeMs - right.event.simulationTimeMs ||
+        left.event.simulationTime - right.event.simulationTime ||
         left.declarationOrder - right.declarationOrder,
     )
     .map(({ event, sourceName }) => ({ ...event, sourceName }));
 }
 
 export function formatTraceEntry(entry: TraceEntry): string {
-  const time = `+${entry.simulationTimeMs}ms`.padEnd(8);
+  const time = `+${entry.simulationTime}ms`.padEnd(8);
   return `${time} ${entry.sourceName} (${entry.sourceId})  ${entry.type}  ${entry.entityId}  ${JSON.stringify(entry.payload)}`;
 }

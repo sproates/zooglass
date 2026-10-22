@@ -35,3 +35,15 @@ Run the tests with:
 ```sh
 ./mvnw test
 ```
+
+## Test types
+
+- **Unit tests** check one component in isolation. `ViewStoreTests` checks how
+  event matchers update the in-memory view state.
+- **Functional tests** check ZooGlass behavior as a single running system.
+  `ZooGlassFunctionalTests` checks the health endpoint, and
+  `ViewFunctionalTests` sends events over WebSocket and queries the view over
+  HTTP.
+- **Integration tests** check behavior across a boundary between ZooGlass and
+  another system, such as Kafka delivering events to ZooGlass. We don't have
+  these yet.

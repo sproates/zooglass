@@ -2,6 +2,7 @@ package io.zooglass;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -23,25 +24,15 @@ public class ViewStore {
     private final Map<EventKey, List<FieldTarget>> targetsByEvent = new HashMap<>();
     private final Map<String, Map<String, Map<String, JsonNode>>> dataByView = new HashMap<>();
 
+    @Autowired
     public ViewStore(
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
             @Value("${zooglass.views.config:classpath:views.json}") String configLocation) {
-        loadConfiguration(objectMapper, resourceLoader, configLocation);
+        this(loadConfiguration(objectMapper, resourceLoader, configLocation));
     }
 
-    private void loadConfiguration(
-            ObjectMapper objectMapper,
-            ResourceLoader resourceLoader,
-            String configLocation) {
-        Resource resource = resourceLoader.getResource(configLocation);
-        ViewConfiguration configuration;
-        try (var input = resource.getInputStream()) {
-            configuration = objectMapper.readValue(input, ViewConfiguration.class);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Could not load view configuration from " + configLocation, exception);
-        }
-
+    ViewStore(ViewConfiguration configuration) {
         if (configuration == null || configuration.views() == null) {
             throw new IllegalStateException("View configuration must contain a views array.");
         }
@@ -71,6 +62,21 @@ public class ViewStore {
                         .add(new FieldTarget(view.id(), field.getKey()));
             }
         }
+    }
+
+    private static ViewConfiguration loadConfiguration(
+            ObjectMapper objectMapper,
+            ResourceLoader resourceLoader,
+            String configLocation) {
+        Resource resource = resourceLoader.getResource(configLocation);
+        ViewConfiguration configuration;
+        try (var input = resource.getInputStream()) {
+            configuration = objectMapper.readValue(input, ViewConfiguration.class);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not load view configuration from " + configLocation, exception);
+        }
+
+        return configuration;
     }
 
     private static void validateName(String value, String label) {

@@ -43,11 +43,14 @@ to avoid starting ZooGlass separately for every scenario.
 Each scenario has a name, a list of event sources, a list of clients, view
 definitions, and a timeline. View definitions map event source and type pairs
 to fields in a view. A field can be updated by more than one event type. A
-timeline entry can be a source event, a client state change, or a `view-check`.
-Source events have a source, type, entity, payload, and `simulationTime`. A
-view-check names a view and entity and gives the complete expected view data.
-Client state changes name a client and its new state. The supported states are
-`connecting`, `connected`, `disconnecting`, and `disconnected`.
+timeline entry can be a source event, a client state change, a runtime
+`view-definition`, or a `view-check`. Source events have a source, type, entity,
+payload, and `simulationTime`. A runtime view definition has an id and fields
+and is sent to ZooGlass at that point in the timeline. A view-check names a
+view and entity and gives the complete expected view data; use `null` to check
+that no data exists for that entity. Client state changes name a client and its
+new state. The supported states are `connecting`, `connected`, `disconnecting`,
+and `disconnected`.
 
 Each client has an `initialState`. Timeline entries then record later state
 changes alongside source events. `simulationTime` is the elapsed simulated time
@@ -85,6 +88,9 @@ separate kind of integration test.
   view.
 - `bursty-updates.json` checks the view after several odds changes arrive close
   together.
+- `runtime-view-definition.json` creates two views at different points in the
+  event timeline. Both match the same events, but each starts with no data and
+  only reflects events received after it was created.
 
 Run any scenario by passing its path, for example:
 

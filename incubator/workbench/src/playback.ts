@@ -2,6 +2,7 @@ import type {
   Scenario,
   ScenarioClientStateChange,
   ScenarioSourceEvent,
+  ScenarioViewDefinition,
   ScenarioViewCheck,
 } from "./scenario.js";
 
@@ -22,11 +23,13 @@ export interface ClientInitialStateTraceEntry {
 }
 
 export type ViewCheckTraceEntry = ScenarioViewCheck;
+export type ViewDefinitionTraceEntry = ScenarioViewDefinition;
 
 export type TraceEntry =
   | SourceEventTraceEntry
   | ClientStateTraceEntry
   | ClientInitialStateTraceEntry
+  | ViewDefinitionTraceEntry
   | ViewCheckTraceEntry;
 
 function isSourceEvent(entry: TraceEntry): entry is SourceEventTraceEntry {
@@ -62,6 +65,10 @@ export function playScenario(scenario: Scenario): TraceEntry[] {
       return entry;
     }
 
+    if (entry.kind === "view-definition") {
+      return entry;
+    }
+
     return {
       ...entry,
       clientName: clientNames.get(entry.clientId) ?? entry.clientId,
@@ -89,7 +96,13 @@ export function formatTraceEntry(entry: TraceEntry): string {
   }
 
   if (entry.kind === "view-check") {
-    return `${time} Check view ${entry.viewId} (${entry.entityId})  ${JSON.stringify(entry.expected)}`;
+    const expectation =
+      entry.expected === null ? "not present" : JSON.stringify(entry.expected);
+    return `${time} Check view ${entry.viewId} (${entry.entityId})  ${expectation}`;
+  }
+
+  if (entry.kind === "view-definition") {
+    return `${time} Define view ${entry.id}`;
   }
 
   return `${time} Client ${entry.clientName} (${entry.clientId})  ${entry.state}`;

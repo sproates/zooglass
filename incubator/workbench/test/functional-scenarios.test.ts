@@ -117,7 +117,7 @@ test(
     }
 
     assert.equal(
-      (output.match(/View check passed:/g) ?? []).length,
+      (output.match(/View (?:check|absence check) passed:/g) ?? []).length,
       expectedViewChecks,
       `Expected all scenario view checks to pass.\n${output}`,
     );

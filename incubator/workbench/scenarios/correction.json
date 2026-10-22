@@ -10,7 +10,13 @@
       "name": "Bookmaker"
     }
   ],
-  "clients": [],
+  "clients": [
+    {
+      "id": "scoreboard-1",
+      "name": "Live scoreboard",
+      "initialState": "connecting"
+    }
+  ],
   "timeline": [
     {
       "kind": "source-event",

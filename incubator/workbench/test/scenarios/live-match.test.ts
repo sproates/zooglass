@@ -17,7 +17,10 @@ test("loads the live match score and odds timeline", async () => {
   );
   assert.deepEqual(
     playScenario(scenario)
-      .filter((entry) => entry.kind !== "view-check")
+      .filter(
+        (entry) =>
+          entry.kind === "source-event" || entry.kind === "client-state",
+      )
       .map((entry) => entry.simulationTime),
     [0, 250, 1200, 1350],
   );

@@ -73,6 +73,15 @@ test(
         (entry) => entry.kind === "view-check",
       ).length;
 
+      for (const client of scenario.data.clients) {
+        if (
+          client.initialState === "connecting" ||
+          client.initialState === "connected"
+        ) {
+          expectedConnections += 1;
+        }
+      }
+
       const clientConnections = new Map(
         scenario.data.clients.map((client) => [
           client.id,

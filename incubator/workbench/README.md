@@ -12,7 +12,7 @@ npm ci
 npm run simulate -- scenarios/live-match.json
 ```
 
-To start ZooGlass and send a scenario to it over WebSockets, run:
+To start ZooGlass and play a scenario against it, run:
 
 ```sh
 npm run integrate -- scenarios/live-match.json
@@ -20,16 +20,19 @@ npm run integrate -- scenarios/live-match.json
 
 This starts ZooGlass with the Maven Wrapper, waits for its health check, opens a
 WebSocket connection for each event source and scenario client, and sends each
-event at its scheduled simulation time. Source connections send JSON messages
-to ZooGlass; client state changes open or close their WebSocket connections.
-ZooGlass currently logs received messages and does not process or deliver them
-to connected clients. The workbench stops the local ZooGlass process when the
-scenario finishes.
+event at its scheduled simulation time. Client state changes open or close
+their WebSocket connections. The scenario's view definitions are loaded by
+ZooGlass at startup, and each `view-check` queries the HTTP view endpoint and
+compares its data with the expected JSON. The workbench stops the local
+ZooGlass process when the scenario finishes.
 
-Each scenario has a name, a list of event sources, a list of clients, and a
-timeline. A timeline entry is either a source event or a client state change.
-Source events have a source, type, entity, payload, and `simulationTime`. Client
-state changes name a client and its new state. The supported states are
+Each scenario has a name, a list of event sources, a list of clients, view
+definitions, and a timeline. View definitions map event source and type pairs
+to fields in a view. A field can be updated by more than one event type. A
+timeline entry can be a source event, a client state change, or a `view-check`.
+Source events have a source, type, entity, payload, and `simulationTime`. A
+view-check names a view and entity and gives the complete expected view data.
+Client state changes name a client and its new state. The supported states are
 `connecting`, `connected`, `disconnecting`, and `disconnected`.
 
 Each client has an `initialState`. Timeline entries then record later state
@@ -40,30 +43,32 @@ appear in the file. This field does not define an event's domain timestamp or
 ZooGlass's ordering guarantees.
 
 The `simulate` command emits a combined trace without starting ZooGlass. The
-`integrate` command drives ZooGlass over real local WebSocket connections, but
-does not check what a client would receive.
+`integrate` command plays the scenario over real local WebSocket connections
+and checks the resulting views over HTTP. It checks ZooGlass's current view
+state; it does not test delivery of live updates to clients.
 
 The format and runner are an initial experiment and can change as the workbench
 grows.
 
 ## Scenarios
 
-There are a few small examples now. Each one is a timeline to discuss and
-exercise as the workbench grows. The print-only simulator does not apply
-business rules or check what ZooGlass would do with the events. The connected
-runner sends the events to ZooGlass, which currently logs them without applying
-business rules.
+The functional scenario tests play every scenario against a running ZooGlass
+instance. They check view contents and exercise any client connection changes
+in the timeline.
 
-- `live-match.json` shows score and odds updates arriving from separate feeds.
+- `live-match.json` checks a match view assembled from score and odds updates
+  arriving from separate feeds.
 - `late-update.json` shows an older order and inventory update arriving after
-  newer order activity. The `sourceTimestamp` values are example payload data;
+  newer order activity, then checks the view before and after the inventory
+  event. The `sourceTimestamp` values are example payload data;
   `simulationTime` still says when each event appears in the replay.
-- `correction.json` shows a score feed correcting a result it reported earlier.
+- `correction.json` checks a score feed replacing an earlier result with a
+  correction.
 - `disconnect-catch-up.json` shows location updates arriving while a viewer is
-  disconnected, then the viewer reconnecting. The connected runner applies
-  those connection changes, but ZooGlass does not yet deliver updates to the
-  viewer.
-- `bursty-updates.json` shows several odds changes arriving close together.
+  disconnected, then the viewer reconnecting, and checks the latest location
+  view.
+- `bursty-updates.json` checks the view after several odds changes arrive close
+  together.
 
 Run any scenario by passing its path, for example:
 

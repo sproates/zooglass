@@ -1,7 +1,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { formatTraceEntry, playScenario, type TraceEntry } from "./playback.js";
 import { loadScenario, type Scenario } from "./scenario.js";
@@ -32,7 +36,7 @@ function getPort(): Promise<number> {
   });
 }
 
-function startZooGlass(port: number): ChildProcess {
+function startZooGlass(port: number, configLocation?: string): ChildProcess {
   const zooGlassDirectory = resolve("../zooglass");
   const wrapper = process.platform === "win32" ? "mvnw.cmd" : "./mvnw";
   const args = [
@@ -47,6 +51,12 @@ function startZooGlass(port: number): ChildProcess {
     cwd: zooGlassDirectory,
     stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      ...(configLocation === undefined
+        ? {}
+        : { ZOOGLASS_VIEWS_CONFIG: configLocation }),
+    },
   });
 
   child.stdout?.on("data", (chunk: Buffer) => {
@@ -57,6 +67,43 @@ function startZooGlass(port: number): ChildProcess {
   });
 
   return child;
+}
+
+async function checkView(
+  port: number,
+  check: Extract<TraceEntry, { kind: "view-check" }>,
+): Promise<void> {
+  const url = `http://127.0.0.1:${port}/views/${encodeURIComponent(check.viewId)}/${encodeURIComponent(check.entityId)}`;
+  const startedAt = Date.now();
+  let lastActual: unknown = "view not found";
+
+  while (Date.now() - startedAt < 5_000) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+      if (response.ok) {
+        const body: unknown = await response.json();
+        if (typeof body === "object" && body !== null && "data" in body) {
+          lastActual = body.data;
+          if (isDeepStrictEqual(body.data, check.expected)) {
+            console.log(
+              `View check passed: ${check.viewId} (${check.entityId})`,
+            );
+            return;
+          }
+        }
+      } else {
+        lastActual = `HTTP ${response.status}`;
+      }
+    } catch (error) {
+      lastActual = error instanceof Error ? error.message : String(error);
+    }
+
+    await delay(25);
+  }
+
+  throw new Error(
+    `View check failed for ${check.viewId} (${check.entityId}). Expected ${JSON.stringify(check.expected)}, got ${JSON.stringify(lastActual)}.`,
+  );
 }
 
 async function waitForZooGlass(
@@ -196,6 +243,8 @@ async function playConnectedScenario(
             payload: entry.payload,
           }),
         );
+      } else if (entry.kind === "view-check") {
+        await checkView(port, entry);
       } else {
         const clientId = getClientId(entry);
         if (clientId === undefined) {
@@ -239,7 +288,23 @@ async function main(): Promise<void> {
   const scenarioPath = resolve(args[0] ?? "scenarios/live-match.json");
   const scenario = await loadScenario(scenarioPath);
   const port = await getPort();
-  const child = startZooGlass(port);
+  const configDirectory =
+    scenario.views.length === 0
+      ? undefined
+      : await mkdtemp(join(tmpdir(), "zooglass-workbench-"));
+  const configPath =
+    configDirectory === undefined
+      ? undefined
+      : join(configDirectory, "views.json");
+
+  if (configPath !== undefined) {
+    await writeFile(configPath, JSON.stringify({ views: scenario.views }));
+  }
+
+  const child = startZooGlass(
+    port,
+    configPath === undefined ? undefined : pathToFileURL(configPath).href,
+  );
 
   try {
     await waitForZooGlass(port, child);
@@ -248,6 +313,9 @@ async function main(): Promise<void> {
     await playConnectedScenario(scenario, port);
   } finally {
     await stopZooGlass(child);
+    if (configDirectory !== undefined) {
+      await rm(configDirectory, { recursive: true, force: true });
+    }
   }
 }
 

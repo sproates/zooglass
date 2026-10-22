@@ -14,6 +14,16 @@ export interface ScenarioClient {
   initialState: ClientState;
 }
 
+export interface ScenarioEventMatcher {
+  sourceId: string;
+  type: string;
+}
+
+export interface ScenarioView {
+  id: string;
+  fields: Record<string, ScenarioEventMatcher[]>;
+}
+
 export interface ScenarioSourceEvent {
   kind: "source-event";
   simulationTime: number;
@@ -30,13 +40,22 @@ export interface ScenarioClientStateChange {
   state: ClientState;
 }
 
+export interface ScenarioViewCheck {
+  kind: "view-check";
+  simulationTime: number;
+  viewId: string;
+  entityId: string;
+  expected: Record<string, unknown>;
+}
+
 export type ScenarioTimelineEntry =
-  ScenarioSourceEvent | ScenarioClientStateChange;
+  ScenarioSourceEvent | ScenarioClientStateChange | ScenarioViewCheck;
 
 export interface Scenario {
   name: string;
   sources: ScenarioSource[];
   clients: ScenarioClient[];
+  views: ScenarioView[];
   timeline: ScenarioTimelineEntry[];
 }
 
@@ -125,6 +144,72 @@ export function parseScenario(input: unknown): Scenario {
     clientIds.add(client.id);
   }
 
+  const viewsInput = input.views ?? [];
+  if (!Array.isArray(viewsInput)) {
+    throw new Error("Expected views to be an array.");
+  }
+
+  const views = viewsInput.map((view, viewIndex): ScenarioView => {
+    if (!isRecord(view)) {
+      throw new Error(`Expected views[${viewIndex}] to be an object.`);
+    }
+
+    if (!isRecord(view.fields) || Object.keys(view.fields).length === 0) {
+      throw new Error(
+        `Expected views[${viewIndex}].fields to be a non-empty object.`,
+      );
+    }
+
+    const fields: Record<string, ScenarioEventMatcher[]> = {};
+    for (const [fieldName, matchersInput] of Object.entries(view.fields)) {
+      requiredString(fieldName, `views[${viewIndex}] field name`);
+      if (!Array.isArray(matchersInput) || matchersInput.length === 0) {
+        throw new Error(
+          `Expected views[${viewIndex}].fields.${fieldName} to be a non-empty array.`,
+        );
+      }
+
+      fields[fieldName] = matchersInput.map((matcher, matcherIndex) => {
+        if (!isRecord(matcher)) {
+          throw new Error(
+            `Expected views[${viewIndex}].fields.${fieldName}[${matcherIndex}] to be an object.`,
+          );
+        }
+
+        const sourceId = requiredString(
+          matcher.sourceId,
+          `views[${viewIndex}].fields.${fieldName}[${matcherIndex}].sourceId`,
+        );
+        if (!sourceIds.has(sourceId)) {
+          throw new Error(
+            `View field "${fieldName}" refers to unknown source "${sourceId}".`,
+          );
+        }
+
+        return {
+          sourceId,
+          type: requiredString(
+            matcher.type,
+            `views[${viewIndex}].fields.${fieldName}[${matcherIndex}].type`,
+          ),
+        };
+      });
+    }
+
+    return {
+      id: requiredString(view.id, `views[${viewIndex}].id`),
+      fields,
+    };
+  });
+
+  const viewIds = new Set<string>();
+  for (const view of views) {
+    if (viewIds.has(view.id)) {
+      throw new Error(`View id "${view.id}" is declared more than once.`);
+    }
+    viewIds.add(view.id);
+  }
+
   const timeline = input.timeline.map((entry, index): ScenarioTimelineEntry => {
     if (!isRecord(entry)) {
       throw new Error(`Expected timeline[${index}] to be an object.`);
@@ -165,9 +250,35 @@ export function parseScenario(input: unknown): Scenario {
       };
     }
 
+    if (entry.kind === "view-check") {
+      const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+      if (!viewIds.has(viewId)) {
+        throw new Error(
+          `timeline[${index}] refers to unknown view "${viewId}".`,
+        );
+      }
+      const entityId = requiredString(
+        entry.entityId,
+        `timeline[${index}].entityId`,
+      );
+      if (!isRecord(entry.expected)) {
+        throw new Error(
+          `Expected timeline[${index}].expected to be an object.`,
+        );
+      }
+
+      return {
+        kind: "view-check",
+        simulationTime: entry.simulationTime,
+        viewId,
+        entityId,
+        expected: entry.expected,
+      };
+    }
+
     if (entry.kind !== "source-event") {
       throw new Error(
-        `Expected timeline[${index}].kind to be "source-event" or "client-state".`,
+        `Expected timeline[${index}].kind to be "source-event", "client-state", or "view-check".`,
       );
     }
 
@@ -195,7 +306,7 @@ export function parseScenario(input: unknown): Scenario {
     };
   });
 
-  return { name, sources, clients, timeline };
+  return { name, sources, clients, views, timeline };
 }
 
 export async function loadScenario(path: string): Promise<Scenario> {

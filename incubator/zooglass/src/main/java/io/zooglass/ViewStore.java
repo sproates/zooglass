@@ -48,18 +48,22 @@ public class ViewStore {
             }
 
             dataByView.put(view.id(), new HashMap<>());
-            for (Map.Entry<String, ViewConfiguration.EventMatcher> field : view.fields().entrySet()) {
+            for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
                 validateName(field.getKey(), "field name in view " + view.id());
-                ViewConfiguration.EventMatcher matcher = field.getValue();
-                if (matcher == null) {
-                    throw new IllegalStateException("View field " + field.getKey() + " must define an event matcher.");
+                if (field.getValue() == null || field.getValue().isEmpty()) {
+                    throw new IllegalStateException("View field " + field.getKey() + " must define at least one event matcher.");
                 }
-                validateName(matcher.sourceId(), "sourceId for " + view.id() + "." + field.getKey());
-                validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
+                for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
+                    if (matcher == null) {
+                        throw new IllegalStateException("View field " + field.getKey() + " has an empty event matcher.");
+                    }
+                    validateName(matcher.sourceId(), "sourceId for " + view.id() + "." + field.getKey());
+                    validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
 
-                EventKey key = new EventKey(matcher.sourceId(), matcher.type());
-                targetsByEvent.computeIfAbsent(key, ignored -> new ArrayList<>())
-                        .add(new FieldTarget(view.id(), field.getKey()));
+                    EventKey key = new EventKey(matcher.sourceId(), matcher.type());
+                    targetsByEvent.computeIfAbsent(key, ignored -> new ArrayList<>())
+                            .add(new FieldTarget(view.id(), field.getKey()));
+                }
             }
         }
     }

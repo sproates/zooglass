@@ -49,6 +49,24 @@
       }
     },
     {
+      "kind": "view-check",
+      "simulationTime": 520,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 2,
+          "away": 0,
+          "revision": 2
+        },
+        "odds": {
+          "homeWin": 1.3,
+          "draw": 4.2,
+          "awayWin": 9.5
+        }
+      }
+    },
+    {
       "kind": "source-event",
       "simulationTime": 1100,
       "sourceId": "match-feed",
@@ -71,6 +89,48 @@
         "homeWin": 1.55,
         "draw": 3.7,
         "awayWin": 5.4
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1250,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0,
+          "revision": 3,
+          "correctsRevision": 2
+        },
+        "odds": {
+          "homeWin": 1.55,
+          "draw": 3.7,
+          "awayWin": 5.4
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          },
+          {
+            "sourceId": "match-feed",
+            "type": "score.corrected"
+          }
+        ],
+        "odds": [
+          {
+            "sourceId": "bookmaker",
+            "type": "odds.updated"
+          }
+        ]
       }
     }
   ]

@@ -72,6 +72,18 @@
       }
     },
     {
+      "kind": "view-check",
+      "simulationTime": 1100,
+      "viewId": "journey",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.509,
+          "longitude": -0.1258
+        }
+      }
+    },
+    {
       "kind": "client-state",
       "simulationTime": 1450,
       "clientId": "viewer-1",
@@ -92,6 +104,31 @@
       "payload": {
         "latitude": 51.5097,
         "longitude": -0.1249
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1700,
+      "viewId": "journey",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5097,
+          "longitude": -0.1249
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "journey",
+      "fields": {
+        "location": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
       }
     }
   ]

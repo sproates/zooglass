@@ -39,31 +39,67 @@ public class ViewStore {
 
         Set<String> viewIds = new HashSet<>();
         for (ViewConfiguration.ViewDefinition view : configuration.views()) {
-            validateName(view == null ? null : view.id(), "view id");
+            if (view == null) {
+                throw new IllegalStateException("View configuration contains an empty view definition.");
+            }
+            try {
+                validate(view);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalStateException(exception.getMessage(), exception);
+            }
             if (!viewIds.add(view.id())) {
                 throw new IllegalStateException("View id is configured more than once: " + view.id());
             }
-            if (view.fields() == null || view.fields().isEmpty()) {
-                throw new IllegalStateException("View " + view.id() + " must define at least one field.");
+            register(view);
+        }
+    }
+
+    public synchronized boolean define(ViewConfiguration.ViewDefinition view) {
+        validate(view);
+        if (dataByView.containsKey(view.id())) {
+            return false;
+        }
+
+        register(view);
+        return true;
+    }
+
+    private void register(ViewConfiguration.ViewDefinition view) {
+        List<Map.Entry<EventKey, FieldTarget>> targets = new ArrayList<>();
+        for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
+            for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
+                targets.add(Map.entry(
+                        new EventKey(matcher.sourceId(), matcher.type()),
+                        new FieldTarget(view.id(), field.getKey())));
             }
+        }
 
-            dataByView.put(view.id(), new HashMap<>());
-            for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
-                validateName(field.getKey(), "field name in view " + view.id());
-                if (field.getValue() == null || field.getValue().isEmpty()) {
-                    throw new IllegalStateException("View field " + field.getKey() + " must define at least one event matcher.");
-                }
-                for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
-                    if (matcher == null) {
-                        throw new IllegalStateException("View field " + field.getKey() + " has an empty event matcher.");
-                    }
-                    validateName(matcher.sourceId(), "sourceId for " + view.id() + "." + field.getKey());
-                    validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
+        dataByView.put(view.id(), new HashMap<>());
+        for (Map.Entry<EventKey, FieldTarget> target : targets) {
+            targetsByEvent.computeIfAbsent(target.getKey(), ignored -> new ArrayList<>()).add(target.getValue());
+        }
+    }
 
-                    EventKey key = new EventKey(matcher.sourceId(), matcher.type());
-                    targetsByEvent.computeIfAbsent(key, ignored -> new ArrayList<>())
-                            .add(new FieldTarget(view.id(), field.getKey()));
+    private static void validate(ViewConfiguration.ViewDefinition view) {
+        if (view == null) {
+            throw new IllegalArgumentException("View definition must be a JSON object.");
+        }
+        validateName(view.id(), "view id");
+        if (view.fields() == null || view.fields().isEmpty()) {
+            throw new IllegalArgumentException("View " + view.id() + " must define at least one field.");
+        }
+
+        for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
+            validateName(field.getKey(), "field name in view " + view.id());
+            if (field.getValue() == null || field.getValue().isEmpty()) {
+                throw new IllegalArgumentException("View field " + field.getKey() + " must define at least one event matcher.");
+            }
+            for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
+                if (matcher == null) {
+                    throw new IllegalArgumentException("View field " + field.getKey() + " has an empty event matcher.");
                 }
+                validateName(matcher.sourceId(), "sourceId for " + view.id() + "." + field.getKey());
+                validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
             }
         }
     }
@@ -85,7 +121,7 @@ public class ViewStore {
 
     private static void validateName(String value, String label) {
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("View configuration requires a non-empty " + label + ".");
+            throw new IllegalArgumentException("View configuration requires a non-empty " + label + ".");
         }
     }
 

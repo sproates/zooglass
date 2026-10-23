@@ -10,6 +10,28 @@
           { "sourceId": "bookmaker", "type": "odds.updated" }
         ]
       }
+    },
+    {
+      "id": "vehicle-live-map",
+      "fields": {
+        "position": [
+          { "sourceId": "vehicle-feed", "type": "vehicle.location.updated" }
+        ]
+      },
+      "ordering": {
+        "position": { "mode": "latestBySequence", "sequenceField": "sequence" }
+      }
+    },
+    {
+      "id": "vehicle-trip-history",
+      "fields": {
+        "positions": [
+          { "sourceId": "vehicle-feed", "type": "vehicle.location.updated" }
+        ]
+      },
+      "ordering": {
+        "positions": { "mode": "historyBySequence", "sequenceField": "sequence" }
+      }
     }
   ]
 }

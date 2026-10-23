@@ -2,6 +2,8 @@ package io.zooglass;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -68,10 +71,13 @@ public class ViewStore {
     private void register(ViewConfiguration.ViewDefinition view) {
         List<Map.Entry<EventKey, FieldTarget>> targets = new ArrayList<>();
         for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
+            ViewConfiguration.Ordering ordering = view.ordering() == null
+                    ? null
+                    : view.ordering().get(field.getKey());
             for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
                 targets.add(Map.entry(
                         new EventKey(matcher.sourceId(), matcher.type()),
-                        new FieldTarget(view.id(), field.getKey())));
+                        new FieldTarget(view.id(), field.getKey(), ordering)));
             }
         }
 
@@ -103,6 +109,21 @@ public class ViewStore {
                 validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
             }
         }
+
+        if (view.ordering() != null) {
+            for (Map.Entry<String, ViewConfiguration.Ordering> entry : view.ordering().entrySet()) {
+                if (!view.fields().containsKey(entry.getKey())) {
+                    throw new IllegalArgumentException("Ordering is configured for unknown view field "
+                            + entry.getKey() + " in view " + view.id() + ".");
+                }
+                ViewConfiguration.Ordering ordering = entry.getValue();
+                if (ordering == null || !("latestBySequence".equals(ordering.mode())
+                        || "historyBySequence".equals(ordering.mode()))) {
+                    throw new IllegalArgumentException("View " + view.id() + " has an unsupported ordering mode.");
+                }
+                validateName(ordering.sequenceField(), "sequenceField for " + view.id() + "." + entry.getKey());
+            }
+        }
     }
 
     private static ViewConfiguration loadConfiguration(
@@ -130,10 +151,26 @@ public class ViewStore {
         List<FieldTarget> targets = targetsByEvent.getOrDefault(new EventKey(sourceId, type), List.of());
         Set<String> changedViews = new LinkedHashSet<>();
         for (FieldTarget target : targets) {
-            Map<String, JsonNode> viewData = dataByView.get(target.viewId())
-                    .computeIfAbsent(entityId, ignored -> new LinkedHashMap<>());
-            viewData.put(target.fieldName(), payload.deepCopy());
-            changedViews.add(target.viewId());
+            Map<String, Map<String, JsonNode>> entities = dataByView.get(target.viewId());
+            Map<String, JsonNode> viewData = entities.get(entityId);
+            boolean newEntity = viewData == null;
+            if (newEntity) {
+                viewData = new LinkedHashMap<>();
+            }
+            boolean changed = switch (target.ordering() == null ? "arrival" : target.ordering().mode()) {
+                case "latestBySequence" -> applyLatestBySequence(viewData, target, payload);
+                case "historyBySequence" -> applyHistoryBySequence(viewData, target, payload);
+                default -> {
+                    viewData.put(target.fieldName(), payload.deepCopy());
+                    yield true;
+                }
+            };
+            if (changed) {
+                if (newEntity) {
+                    entities.put(entityId, viewData);
+                }
+                changedViews.add(target.viewId());
+            }
         }
         return changedViews.stream()
                 .map(viewId -> get(viewId, entityId).orElseThrow())
@@ -158,6 +195,62 @@ public class ViewStore {
     private record EventKey(String sourceId, String type) {
     }
 
-    private record FieldTarget(String viewId, String fieldName) {
+    private static boolean applyLatestBySequence(
+            Map<String, JsonNode> viewData,
+            FieldTarget target,
+            JsonNode payload) {
+        JsonNode sequence = sequence(payload, target.ordering().sequenceField());
+        if (sequence == null) {
+            return false;
+        }
+
+        JsonNode current = viewData.get(target.fieldName());
+        if (current != null && sequence(current, target.ordering().sequenceField()) != null
+                && compareSequences(sequence, sequence(current, target.ordering().sequenceField())) <= 0) {
+            return false;
+        }
+
+        viewData.put(target.fieldName(), payload.deepCopy());
+        return true;
+    }
+
+    private static boolean applyHistoryBySequence(
+            Map<String, JsonNode> viewData,
+            FieldTarget target,
+            JsonNode payload) {
+        JsonNode newSequence = sequence(payload, target.ordering().sequenceField());
+        if (newSequence == null) {
+            return false;
+        }
+
+        List<JsonNode> events = new ArrayList<>();
+        JsonNode current = viewData.get(target.fieldName());
+        if (current != null && current.isArray()) {
+            current.forEach(event -> events.add(event.deepCopy()));
+        }
+        if (events.stream().anyMatch(event -> compareSequences(
+                sequence(event, target.ordering().sequenceField()), newSequence) == 0)) {
+            return false;
+        }
+        events.add(payload.deepCopy());
+        events.sort(Comparator.comparing(
+                event -> sequence(event, target.ordering().sequenceField()),
+                ViewStore::compareSequences));
+        ArrayNode history = JsonNodeFactory.instance.arrayNode();
+        events.forEach(history::add);
+        viewData.put(target.fieldName(), history);
+        return true;
+    }
+
+    private static JsonNode sequence(JsonNode payload, String fieldName) {
+        JsonNode sequence = payload.get(fieldName);
+        return sequence != null && sequence.isNumber() ? sequence : null;
+    }
+
+    private static int compareSequences(JsonNode left, JsonNode right) {
+        return left.decimalValue().compareTo(right.decimalValue());
+    }
+
+    private record FieldTarget(String viewId, String fieldName, ViewConfiguration.Ordering ordering) {
     }
 }

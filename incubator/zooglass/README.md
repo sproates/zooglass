@@ -51,6 +51,34 @@ after a restart. The startup config can be changed with the
 `zooglass.views.config` property, using a Spring resource location such as
 `file:/path/to/views.json`.
 
+For a field that needs ordering by a numeric sequence in each event payload, a
+view can opt into a strategy. `latestBySequence` keeps only the event with the
+highest sequence for that entity. `historyBySequence` keeps the received events
+as an array in sequence order and ignores duplicate sequence numbers. For
+example:
+
+```json
+{
+  "id": "vehicle-live-map",
+  "fields": {
+    "position": [
+      { "sourceId": "vehicle-feed", "type": "vehicle.location.updated" }
+    ]
+  },
+  "ordering": {
+    "position": { "mode": "latestBySequence", "sequenceField": "sequence" }
+  }
+}
+```
+
+Ordering is configured per view field, so the same feed can drive a latest
+position view and a trip history view. The sequence must be numeric and
+monotonically describe measurement order for an entity; events without a
+numeric sequence are ignored by these strategies. This prototype does not wait
+for missing sequence numbers, detect gaps, or know when a history is complete.
+Trip history is held entirely in memory and grows without a bound, so it is an
+exploration of the view behavior rather than a production retention policy.
+
 Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
 subscription request for a view and entity:
 

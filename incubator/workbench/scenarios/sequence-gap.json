@@ -131,19 +131,6 @@
     {
       "kind": "view-check",
       "simulationTime": 501,
-      "viewId": "live-map",
-      "entityId": "car-17",
-      "expected": {
-        "position": {
-          "sequence": 42,
-          "latitude": 51.2,
-          "longitude": -0.1
-        }
-      }
-    },
-    {
-      "kind": "view-check",
-      "simulationTime": 502,
       "viewId": "trip-history",
       "entityId": "car-17",
       "expected": {
@@ -164,6 +151,19 @@
             "longitude": -0.1
           }
         ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 502,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 51.2,
+          "longitude": -0.1
+        }
       }
     }
   ]

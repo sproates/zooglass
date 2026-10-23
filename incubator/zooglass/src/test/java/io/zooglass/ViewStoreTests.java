@@ -37,16 +37,7 @@ class ViewStoreTests {
 
     @Test
     void vehicleViewsCanKeepTheLatestPositionOrAnOrderedHistory() throws Exception {
-        ViewConfiguration configuration = new ViewConfiguration(List.of(
-                new ViewConfiguration.ViewDefinition("live-map", Map.of(
-                        "position", List.of(new ViewConfiguration.EventMatcher(
-                                "vehicle-feed", "vehicle.location.updated"))),
-                        Map.of("position", new ViewConfiguration.Ordering("latestBySequence", "sequence"))),
-                new ViewConfiguration.ViewDefinition("trip-history", Map.of(
-                        "positions", List.of(new ViewConfiguration.EventMatcher(
-                                "vehicle-feed", "vehicle.location.updated"))),
-                        Map.of("positions", new ViewConfiguration.Ordering("historyBySequence", "sequence")))));
-        ViewStore store = new ViewStore(configuration);
+        ViewStore store = new ViewStore(vehicleConfiguration());
 
         store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
                 payload("{\"sequence\":42,\"latitude\":51.2}"));
@@ -63,6 +54,21 @@ class ViewStoreTests {
                 .isEqualTo(payload("[{\"sequence\":40,\"latitude\":51.0},"
                         + "{\"sequence\":41,\"latitude\":51.1},"
                         + "{\"sequence\":42,\"latitude\":51.2}]"));
+    }
+
+    @Test
+    void ignoredSequencesDoNotCreateEntityViews() throws Exception {
+        ViewStore store = new ViewStore(vehicleConfiguration());
+
+        assertThat(store.apply("vehicle-feed", "vehicle.location.updated", "missing-sequence",
+                payload("{\"latitude\":51.2}"))).isEmpty();
+        assertThat(store.apply("vehicle-feed", "vehicle.location.updated", "string-sequence",
+                payload("{\"sequence\":\"42\",\"latitude\":51.2}"))).isEmpty();
+
+        assertThat(store.get("live-map", "missing-sequence")).isEmpty();
+        assertThat(store.get("live-map", "string-sequence")).isEmpty();
+        assertThat(store.get("trip-history", "missing-sequence")).isEmpty();
+        assertThat(store.get("trip-history", "string-sequence")).isEmpty();
     }
 
     @Test
@@ -86,5 +92,17 @@ class ViewStoreTests {
                                 new ViewConfiguration.EventMatcher("match-feed", "score.updated"),
                                 new ViewConfiguration.EventMatcher("match-feed", "score.corrected")),
                         "odds", List.of(new ViewConfiguration.EventMatcher("bookmaker", "odds.updated"))))));
+    }
+
+    private static ViewConfiguration vehicleConfiguration() {
+        return new ViewConfiguration(List.of(
+                new ViewConfiguration.ViewDefinition("live-map", Map.of(
+                        "position", List.of(new ViewConfiguration.EventMatcher(
+                                "vehicle-feed", "vehicle.location.updated"))),
+                        Map.of("position", new ViewConfiguration.Ordering("latestBySequence", "sequence"))),
+                new ViewConfiguration.ViewDefinition("trip-history", Map.of(
+                        "positions", List.of(new ViewConfiguration.EventMatcher(
+                                "vehicle-feed", "vehicle.location.updated"))),
+                        Map.of("positions", new ViewConfiguration.Ordering("historyBySequence", "sequence")))));
     }
 }

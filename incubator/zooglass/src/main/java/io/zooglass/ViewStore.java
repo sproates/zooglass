@@ -151,8 +151,12 @@ public class ViewStore {
         List<FieldTarget> targets = targetsByEvent.getOrDefault(new EventKey(sourceId, type), List.of());
         Set<String> changedViews = new LinkedHashSet<>();
         for (FieldTarget target : targets) {
-            Map<String, JsonNode> viewData = dataByView.get(target.viewId())
-                    .computeIfAbsent(entityId, ignored -> new LinkedHashMap<>());
+            Map<String, Map<String, JsonNode>> entities = dataByView.get(target.viewId());
+            Map<String, JsonNode> viewData = entities.get(entityId);
+            boolean newEntity = viewData == null;
+            if (newEntity) {
+                viewData = new LinkedHashMap<>();
+            }
             boolean changed = switch (target.ordering() == null ? "arrival" : target.ordering().mode()) {
                 case "latestBySequence" -> applyLatestBySequence(viewData, target, payload);
                 case "historyBySequence" -> applyHistoryBySequence(viewData, target, payload);
@@ -162,6 +166,9 @@ public class ViewStore {
                 }
             };
             if (changed) {
+                if (newEntity) {
+                    entities.put(entityId, viewData);
+                }
                 changedViews.add(target.viewId());
             }
         }

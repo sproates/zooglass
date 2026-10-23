@@ -1,0 +1,168 @@
+{
+  "name": "A live sports betting market combines score and odds feeds",
+  "sources": [
+    {
+      "id": "match-feed",
+      "name": "Match data provider"
+    },
+    {
+      "id": "bookmaker",
+      "name": "Bookmaker odds feed"
+    }
+  ],
+  "clients": [
+    {
+      "id": "market-screen",
+      "name": "Live market screen",
+      "initialState": "connected"
+    }
+  ],
+  "views": [
+    {
+      "id": "market",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          }
+        ],
+        "odds": [
+          {
+            "sourceId": "bookmaker",
+            "type": "odds.updated"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-subscription",
+      "simulationTime": 0,
+      "clientId": "market-screen",
+      "action": "subscribe",
+      "viewId": "market",
+      "entityId": "match-42"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 0,
+        "away": 0,
+        "period": "first-half"
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 100,
+      "clientId": "market-screen",
+      "viewId": "market",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 0,
+          "away": 0,
+          "period": "first-half"
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 250,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": {
+        "homeWin": 2.1,
+        "draw": 3.2,
+        "awayWin": 3.6
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 250,
+      "clientId": "market-screen",
+      "viewId": "market",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 0,
+          "away": 0,
+          "period": "first-half"
+        },
+        "odds": {
+          "homeWin": 2.1,
+          "draw": 3.2,
+          "awayWin": 3.6
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1200,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 0,
+        "period": "first-half"
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1200,
+      "clientId": "market-screen",
+      "viewId": "market",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0,
+          "period": "first-half"
+        },
+        "odds": {
+          "homeWin": 2.1,
+          "draw": 3.2,
+          "awayWin": 3.6
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1350,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": {
+        "homeWin": 1.55,
+        "draw": 3.7,
+        "awayWin": 5.4
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1350,
+      "clientId": "market-screen",
+      "viewId": "market",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0,
+          "period": "first-half"
+        },
+        "odds": {
+          "homeWin": 1.55,
+          "draw": 3.7,
+          "awayWin": 5.4
+        }
+      }
+    }
+  ]
+}

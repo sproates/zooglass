@@ -64,6 +64,33 @@ class ViewFunctionalTests {
     }
 
     @Test
+    void vehicleViewsApplyDifferentSequenceOrderingPolicies() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket socket = connect(httpClient);
+
+        try {
+            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+                    "{\"sequence\":42,\"latitude\":51.2,\"longitude\":-0.1}");
+            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+                    "{\"sequence\":40,\"latitude\":51.0,\"longitude\":-0.3}");
+            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+                    "{\"sequence\":41,\"latitude\":51.1,\"longitude\":-0.2}");
+
+            JsonNode liveMap = awaitView(httpClient, "vehicle-live-map", "car-17",
+                    "/data/position/sequence", "42");
+            assertThat(liveMap.at("/data/position/latitude").asDouble()).isEqualTo(51.2);
+
+            JsonNode tripHistory = awaitView(httpClient, "vehicle-trip-history", "car-17",
+                    "/data/positions/2/sequence", "42");
+            assertThat(tripHistory.at("/data/positions/0/sequence").asInt()).isEqualTo(40);
+            assertThat(tripHistory.at("/data/positions/1/sequence").asInt()).isEqualTo(41);
+            assertThat(tripHistory.at("/data/positions/2/sequence").asInt()).isEqualTo(42);
+        } finally {
+            socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    @Test
     void viewsDefinedOverHttpStartWithEventsReceivedAfterDefinition() throws Exception {
         HttpClient httpClient = HttpClient.newHttpClient();
         WebSocket socket = connect(httpClient);

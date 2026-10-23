@@ -36,6 +36,36 @@ class ViewStoreTests {
     }
 
     @Test
+    void vehicleViewsCanKeepTheLatestPositionOrAnOrderedHistory() throws Exception {
+        ViewConfiguration configuration = new ViewConfiguration(List.of(
+                new ViewConfiguration.ViewDefinition("live-map", Map.of(
+                        "position", List.of(new ViewConfiguration.EventMatcher(
+                                "vehicle-feed", "vehicle.location.updated"))),
+                        Map.of("position", new ViewConfiguration.Ordering("latestBySequence", "sequence"))),
+                new ViewConfiguration.ViewDefinition("trip-history", Map.of(
+                        "positions", List.of(new ViewConfiguration.EventMatcher(
+                                "vehicle-feed", "vehicle.location.updated"))),
+                        Map.of("positions", new ViewConfiguration.Ordering("historyBySequence", "sequence")))));
+        ViewStore store = new ViewStore(configuration);
+
+        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+                payload("{\"sequence\":42,\"latitude\":51.2}"));
+        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+                payload("{\"sequence\":40,\"latitude\":51.0}"));
+        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+                payload("{\"sequence\":41,\"latitude\":51.1}"));
+        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+                payload("{\"sequence\":41,\"latitude\":51.1}"));
+
+        assertThat(store.get("live-map", "car-17").orElseThrow().data().get("position"))
+                .isEqualTo(payload("{\"sequence\":42,\"latitude\":51.2}"));
+        assertThat(store.get("trip-history", "car-17").orElseThrow().data().get("positions"))
+                .isEqualTo(payload("[{\"sequence\":40,\"latitude\":51.0},"
+                        + "{\"sequence\":41,\"latitude\":51.1},"
+                        + "{\"sequence\":42,\"latitude\":51.2}]"));
+    }
+
+    @Test
     void rejectsAViewWithoutFields() {
         ViewConfiguration invalidConfiguration = new ViewConfiguration(List.of(
                 new ViewConfiguration.ViewDefinition("empty", Map.of())));

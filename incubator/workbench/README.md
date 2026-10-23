@@ -82,6 +82,29 @@ makes sense if the source guarantees that sequence values are contiguous; a
 monotonically increasing sequence alone is not enough to prove an event is
 missing.
 
+### What a sequence guarantees
+
+Before treating a jump as a gap, define what the number counts and where it is
+unique. A source might provide a contiguous sequence per entity, a position in
+a shared feed or partition, or only a value that increases when that source
+emits an event. Those guarantees are not interchangeable.
+
+For example, a shared feed may assign sequence 40 to car 17, 41 to car 22, and
+42 to car 17. Car 17's history then contains 40 and 42, but nothing is missing
+from that car's history: 41 belongs to a different entity. The
+`shared-sequence-across-entities.json` scenario demonstrates this alongside
+`sequence-gap.json`, where 41 really is a delayed event for car 17.
+
+To detect gaps reliably, ZooGlass would need a source contract that says the
+sequence is contiguous at the scope of the view, plus a way to know the range
+that should exist. Even then, a jump between 40 and 42 only identifies an
+interior gap. Knowing that 42 is the final event, or that no more events are
+coming, requires a further signal with a documented completeness meaning, such
+as a watermark or end-of-stream marker. A heartbeat only helps if it also
+communicates a sequence or high-water mark. The prototype does not model those
+contracts or signals; its ordering strategies only order the events they
+receive.
+
 A timeline entry can be a source event, a client state change, a runtime
 `view-definition`, a `client-subscription`, a `view-check`, or a
 `client-view-check`. Source events have a source, type, entity, payload, and
@@ -162,6 +185,9 @@ business rules of a sportsbook, order system, or ride service.
 - `sequence-gap.json` shows a history view before and after a missing vehicle
   position arrives late, alongside a latest-position view that continues to
   show the highest sequence.
+- `shared-sequence-across-entities.json` shows why a number skipped by one
+  entity may belong to another entity in a shared feed, rather than being a
+  missing event.
 
 Run any scenario by passing its path, for example:
 

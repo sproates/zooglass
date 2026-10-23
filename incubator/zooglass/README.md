@@ -82,11 +82,16 @@ exploration of the view behavior rather than a production retention policy.
 For example, if sequence 40 arrives, followed by 42, the history view currently
 shows `[40, 42]`. If 41 arrives later, ZooGlass inserts it into the history as
 `[40, 41, 42]`. The latest-position view remains at 42. This ordering alone
-does not prove that a sequence is missing: gap detection depends on the source
-using contiguous sequence values for each entity. The Workbench's
-[`sequence-gap` scenario](../workbench/scenarios/sequence-gap.json) demonstrates
-this behavior. No policy has been chosen for waiting on missing events or
-exposing an incomplete-history status.
+does not prove that a sequence is missing: ZooGlass does not verify that a
+source uses contiguous sequence values for each entity. The Workbench's
+[`sequence-gap` scenario](../workbench/scenarios/sequence-gap.json) assumes
+that guarantee; its
+[`shared-sequence-across-entities` scenario](../workbench/scenarios/shared-sequence-across-entities.json)
+shows how a shared feed can produce the same jump without an event missing from
+that entity's history. See the Workbench notes on [what a sequence
+guarantees](../workbench/README.md#what-a-sequence-guarantees). No policy has
+been chosen for waiting on missing events or exposing an incomplete-history
+status.
 
 Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
 subscription request for a view and entity:

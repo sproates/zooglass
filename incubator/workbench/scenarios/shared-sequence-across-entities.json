@@ -1,0 +1,102 @@
+{
+  "name": "A feed sequence is shared across vehicles",
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "name": "Vehicle location feed with a shared sequence"
+    }
+  ],
+  "clients": [],
+  "views": [
+    {
+      "id": "trip-history",
+      "fields": {
+        "positions": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "positions": {
+          "mode": "historyBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "source-event",
+      "simulationTime": 0,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 40,
+        "latitude": 51.0,
+        "longitude": -0.3
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-22",
+      "payload": {
+        "sequence": 41,
+        "latitude": 52.0,
+        "longitude": -1.0
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 200,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 42,
+        "latitude": 51.2,
+        "longitude": -0.1
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 201,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 202,
+      "viewId": "trip-history",
+      "entityId": "car-22",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 41,
+            "latitude": 52.0,
+            "longitude": -1.0
+          }
+        ]
+      }
+    }
+  ]
+}

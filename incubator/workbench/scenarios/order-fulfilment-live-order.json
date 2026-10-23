@@ -1,0 +1,175 @@
+{
+  "name": "An order dashboard combines fulfilment updates from three services",
+  "sources": [
+    {
+      "id": "orders",
+      "name": "Order service"
+    },
+    {
+      "id": "payments",
+      "name": "Payment service"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory service"
+    }
+  ],
+  "clients": [
+    {
+      "id": "order-dashboard",
+      "name": "Order dashboard",
+      "initialState": "connected"
+    }
+  ],
+  "views": [
+    {
+      "id": "order",
+      "fields": {
+        "order": [
+          {
+            "sourceId": "orders",
+            "type": "order.accepted"
+          },
+          {
+            "sourceId": "orders",
+            "type": "order.packed"
+          }
+        ],
+        "payment": [
+          {
+            "sourceId": "payments",
+            "type": "payment.authorised"
+          }
+        ],
+        "inventory": [
+          {
+            "sourceId": "inventory",
+            "type": "inventory.reserved"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-subscription",
+      "simulationTime": 0,
+      "clientId": "order-dashboard",
+      "action": "subscribe",
+      "viewId": "order",
+      "entityId": "order-108"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 50,
+      "sourceId": "orders",
+      "type": "order.accepted",
+      "entityId": "order-108",
+      "payload": {
+        "status": "accepted",
+        "sourceTimestamp": 1000
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 50,
+      "clientId": "order-dashboard",
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "accepted",
+          "sourceTimestamp": 1000
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 180,
+      "sourceId": "payments",
+      "type": "payment.authorised",
+      "entityId": "order-108",
+      "payload": {
+        "status": "authorised",
+        "sourceTimestamp": 1180
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 180,
+      "clientId": "order-dashboard",
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "accepted",
+          "sourceTimestamp": 1000
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 900,
+      "sourceId": "orders",
+      "type": "order.packed",
+      "entityId": "order-108",
+      "payload": {
+        "status": "packed",
+        "sourceTimestamp": 1900
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 900,
+      "clientId": "order-dashboard",
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1250,
+      "sourceId": "inventory",
+      "type": "inventory.reserved",
+      "entityId": "order-108",
+      "payload": {
+        "status": "reserved",
+        "sourceTimestamp": 1100
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1250,
+      "clientId": "order-dashboard",
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        },
+        "inventory": {
+          "status": "reserved",
+          "sourceTimestamp": 1100
+        }
+      }
+    }
+  ]
+}

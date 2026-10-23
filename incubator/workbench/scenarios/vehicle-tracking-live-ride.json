@@ -1,0 +1,202 @@
+{
+  "name": "A rider follows a vehicle and catches up after reconnecting",
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "name": "Vehicle location feed"
+    }
+  ],
+  "clients": [
+    {
+      "id": "rider-app",
+      "name": "Rider app",
+      "initialState": "disconnected"
+    }
+  ],
+  "views": [
+    {
+      "id": "ride",
+      "fields": {
+        "location": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-state",
+      "simulationTime": 0,
+      "clientId": "rider-app",
+      "state": "connecting"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 10,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": {
+        "latitude": 51.5074,
+        "longitude": -0.1278
+      }
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 20,
+      "clientId": "rider-app",
+      "state": "connected"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 30,
+      "clientId": "rider-app",
+      "action": "subscribe",
+      "viewId": "ride",
+      "entityId": "ride-73"
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 30,
+      "clientId": "rider-app",
+      "viewId": "ride",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5074,
+          "longitude": -0.1278
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": {
+        "latitude": 51.5081,
+        "longitude": -0.1269
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 100,
+      "clientId": "rider-app",
+      "viewId": "ride",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5081,
+          "longitude": -0.1269
+        }
+      }
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 200,
+      "clientId": "rider-app",
+      "state": "disconnecting"
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 220,
+      "clientId": "rider-app",
+      "state": "disconnected"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 300,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": {
+        "latitude": 51.509,
+        "longitude": -0.1258
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 400,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": {
+        "latitude": 51.5097,
+        "longitude": -0.1249
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 400,
+      "viewId": "ride",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5097,
+          "longitude": -0.1249
+        }
+      }
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 500,
+      "clientId": "rider-app",
+      "state": "connecting"
+    },
+    {
+      "kind": "client-state",
+      "simulationTime": 520,
+      "clientId": "rider-app",
+      "state": "connected"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 530,
+      "clientId": "rider-app",
+      "action": "subscribe",
+      "viewId": "ride",
+      "entityId": "ride-73"
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 530,
+      "clientId": "rider-app",
+      "viewId": "ride",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5097,
+          "longitude": -0.1249
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 600,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "ride-73",
+      "payload": {
+        "latitude": 51.5104,
+        "longitude": -0.124
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 600,
+      "clientId": "rider-app",
+      "viewId": "ride",
+      "entityId": "ride-73",
+      "expected": {
+        "location": {
+          "latitude": 51.5104,
+          "longitude": -0.124
+        }
+      }
+    }
+  ]
+}

@@ -80,6 +80,23 @@ scenarios drive event and client behaviour through ZooGlass and check its view
 responses. External-system tests, such as checking a Kafka adapter, are a
 separate kind of integration test.
 
+### Business examples
+
+These scenarios show three distinct applications that could use ZooGlass:
+
+- `sports-betting-live-market.json` combines score updates from a match feed
+  with bookmaker odds and sends the changing market view to a client.
+- `order-fulfilment-live-order.json` combines order, payment, and inventory
+  updates for an order dashboard, including a late inventory update.
+- `vehicle-tracking-live-ride.json` sends vehicle locations to a rider app,
+  including disconnecting, missing updates, reconnecting, and receiving the
+  latest snapshot.
+
+They exercise live data flows and view delivery; they don't implement the
+business rules of a sportsbook, order system, or ride service.
+
+### Focused scenarios
+
 - `live-match.json` checks a match view assembled from score and odds updates
   arriving from separate feeds.
 - `late-update.json` shows an older order and inventory update arriving after

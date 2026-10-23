@@ -19,9 +19,17 @@ export interface ScenarioEventMatcher {
   type: string;
 }
 
+export type ScenarioOrderingMode = "latestBySequence" | "historyBySequence";
+
+export interface ScenarioOrdering {
+  mode: ScenarioOrderingMode;
+  sequenceField: string;
+}
+
 export interface ScenarioView {
   id: string;
   fields: Record<string, ScenarioEventMatcher[]>;
+  ordering?: Record<string, ScenarioOrdering>;
 }
 
 export interface ScenarioViewDefinition extends ScenarioView {
@@ -110,6 +118,48 @@ function requiredString(value: unknown, field: string): string {
   return value;
 }
 
+function parseOrdering(
+  input: unknown,
+  label: string,
+  fields: Record<string, ScenarioEventMatcher[]>,
+): Record<string, ScenarioOrdering> {
+  if (!isRecord(input)) {
+    throw new Error(`Expected ${label}.ordering to be an object.`);
+  }
+
+  const ordering: Record<string, ScenarioOrdering> = {};
+  for (const [fieldName, orderingInput] of Object.entries(input)) {
+    if (!Object.hasOwn(fields, fieldName)) {
+      throw new Error(
+        `Ordering is configured for unknown field "${fieldName}" in ${label}.`,
+      );
+    }
+    if (!isRecord(orderingInput)) {
+      throw new Error(
+        `Expected ${label}.ordering.${fieldName} to be an object.`,
+      );
+    }
+    if (
+      orderingInput.mode !== "latestBySequence" &&
+      orderingInput.mode !== "historyBySequence"
+    ) {
+      throw new Error(
+        `Expected ${label}.ordering.${fieldName}.mode to be "latestBySequence" or "historyBySequence".`,
+      );
+    }
+
+    ordering[fieldName] = {
+      mode: orderingInput.mode,
+      sequenceField: requiredString(
+        orderingInput.sequenceField,
+        `${label}.ordering.${fieldName}.sequenceField`,
+      ),
+    };
+  }
+
+  return ordering;
+}
+
 function parseView(
   input: unknown,
   label: string,
@@ -159,9 +209,15 @@ function parseView(
     });
   }
 
+  const id = requiredString(input.id, `${label}.id`);
+  if (input.ordering === undefined) {
+    return { id, fields };
+  }
+
   return {
-    id: requiredString(input.id, `${label}.id`),
+    id,
     fields,
+    ordering: parseOrdering(input.ordering, label, fields),
   };
 }
 

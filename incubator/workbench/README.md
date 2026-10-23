@@ -42,8 +42,16 @@ to avoid starting ZooGlass separately for every scenario.
 
 Each scenario has a name, a list of event sources, a list of clients, view
 definitions, and a timeline. View definitions map event source and type pairs
-to fields in a view. A field can be updated by more than one event type. A
-timeline entry can be a source event, a client state change, a runtime
+to fields in a view. A field can be updated by more than one event type, and it
+can also set an ordering strategy using a numeric field from each event:
+`latestBySequence` keeps the event with the highest sequence, while
+`historyBySequence` keeps accepted events in sequence order. These settings
+work for startup views and runtime `view-definition` entries. The
+`vehicle-event-ordering.json` scenario sends a newer vehicle position before
+older ones, then checks both views, duplicate and invalid sequences, and a
+client reconnect.
+
+A timeline entry can be a source event, a client state change, a runtime
 `view-definition`, a `client-subscription`, a `view-check`, or a
 `client-view-check`. Source events have a source, type, entity, payload, and
 `simulationTime`. A runtime view definition has an id and fields and is sent to
@@ -118,6 +126,8 @@ business rules of a sportsbook, order system, or ride service.
 - `client-reconnect-snapshot.json` disconnects a subscribed client while two
   updates arrive, then reconnects and checks that a new subscription receives
   the latest snapshot.
+- `vehicle-event-ordering.json` sends vehicle positions out of sequence and
+  checks a latest-position view and an ordered trip history view.
 
 Run any scenario by passing its path, for example:
 

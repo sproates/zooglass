@@ -130,7 +130,11 @@ async function defineView(
   const response = await fetch(`http://127.0.0.1:${port}/views`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: entry.id, fields: entry.fields }),
+    body: JSON.stringify({
+      id: entry.id,
+      fields: entry.fields,
+      ordering: entry.ordering,
+    }),
     signal: AbortSignal.timeout(1_000),
   });
 

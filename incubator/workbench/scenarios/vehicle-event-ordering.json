@@ -420,6 +420,49 @@
       }
     },
     {
+      "kind": "view-check",
+      "simulationTime": 81,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 43,
+          "latitude": 51.3,
+          "longitude": 0.0
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 82,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 41,
+            "latitude": 51.1,
+            "longitude": -0.2
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          },
+          {
+            "sequence": 43,
+            "latitude": 51.3,
+            "longitude": 0.0
+          }
+        ]
+      }
+    },
+    {
       "kind": "client-state",
       "simulationTime": 90,
       "clientId": "rider-app",

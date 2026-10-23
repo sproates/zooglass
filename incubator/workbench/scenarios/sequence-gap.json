@@ -1,0 +1,170 @@
+{
+  "name": "A missing sequence arrives late",
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "name": "Vehicle location feed"
+    }
+  ],
+  "clients": [],
+  "views": [
+    {
+      "id": "live-map",
+      "fields": {
+        "position": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "position": {
+          "mode": "latestBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    },
+    {
+      "id": "trip-history",
+      "fields": {
+        "positions": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "positions": {
+          "mode": "historyBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "source-event",
+      "simulationTime": 0,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 40,
+        "latitude": 51.0,
+        "longitude": -0.3
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          }
+        ]
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 42,
+        "latitude": 51.2,
+        "longitude": -0.1
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 101,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 51.2,
+          "longitude": -0.1
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 102,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 500,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 41,
+        "latitude": 51.1,
+        "longitude": -0.2
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 501,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 41,
+            "latitude": 51.1,
+            "longitude": -0.2
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 502,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 51.2,
+          "longitude": -0.1
+        }
+      }
+    }
+  ]
+}

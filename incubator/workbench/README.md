@@ -51,6 +51,37 @@ work for startup views and runtime `view-definition` entries. The
 older ones, then checks both views, duplicate and invalid sequences, and a
 client reconnect.
 
+### Sequence gaps
+
+`sequence-gap.json` explores what happens when a vehicle reports sequence 40,
+then 42, and only later sends 41. The example assumes sequence numbers are
+contiguous for each vehicle. After 42 arrives, the current history view
+immediately shows `[40, 42]`; when 41 arrives, it becomes `[40, 41, 42]`. The
+latest-position view stays at 42 throughout. ZooGlass sorts the history it has
+received, but it does not currently identify the gap or mark the history as
+incomplete.
+
+There are a few general ways a system could handle this:
+
+- **Show received events immediately.** This keeps the view responsive. The
+  view should also expose that a sequence is missing so a client does not
+  mistake a partial history for a complete one.
+- **Wait for missing sequences.** This can keep the visible history contiguous,
+  but a missing event that never arrives can hold later events back forever.
+  It needs a policy for timeouts, recovery, and how much data to buffer.
+- **Wait for a bounded period.** This limits how long the view waits, but needs
+  a definition of the period and a rule for events arriving after it expires.
+  A time-based policy may also depend on clocks or progress signals from the
+  event source.
+
+These choices depend on what a view promises. A live map may prefer the latest
+position with little delay; a trip history may care more about completeness.
+This scenario documents current behavior and makes the trade-off concrete. It
+does not select or implement a new gap-handling policy. Also, gap detection only
+makes sense if the source guarantees that sequence values are contiguous; a
+monotonically increasing sequence alone is not enough to prove an event is
+missing.
+
 A timeline entry can be a source event, a client state change, a runtime
 `view-definition`, a `client-subscription`, a `view-check`, or a
 `client-view-check`. Source events have a source, type, entity, payload, and
@@ -128,6 +159,9 @@ business rules of a sportsbook, order system, or ride service.
   the latest snapshot.
 - `vehicle-event-ordering.json` sends vehicle positions out of sequence and
   checks a latest-position view and an ordered trip history view.
+- `sequence-gap.json` shows a history view before and after a missing vehicle
+  position arrives late, alongside a latest-position view that continues to
+  show the highest sequence.
 
 Run any scenario by passing its path, for example:
 

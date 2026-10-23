@@ -91,7 +91,8 @@ shows how a shared feed can produce the same jump without an event missing from
 that entity's history. See the Workbench notes on [what a sequence
 guarantees](../workbench/README.md#what-a-sequence-guarantees). No policy has
 been chosen for waiting on missing events or exposing an incomplete-history
-status.
+status. The [source progress exploration](source-progress-signals.md) compares
+signals ZooGlass might use to decide whether an event history is complete.
 
 Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
 subscription request for a view and entity:

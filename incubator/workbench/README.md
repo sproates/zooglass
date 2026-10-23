@@ -105,6 +105,9 @@ communicates a sequence or high-water mark. The prototype does not model those
 contracts or signals; its ordering strategies only order the events they
 receive.
 
+For a comparison of possible source progress signals and their trade-offs, see
+the [source progress exploration](../zooglass/source-progress-signals.md).
+
 A timeline entry can be a source event, a client state change, a runtime
 `view-definition`, a `client-subscription`, a `view-check`, or a
 `client-view-check`. Source events have a source, type, entity, payload, and

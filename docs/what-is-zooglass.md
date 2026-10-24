@@ -20,15 +20,15 @@ covers a small part of them.
 
 ## Where it fits
 
-![Intended architecture: source events flow up through ZooGlass to a vehicle app, with Workbench alongside controlling and observing each boundary. The yellow test proxy can interrupt the data path. Browser orchestration and fault injection are planned.](diagrams/zooglass-workbench.svg)
+![Intended production role: independent source systems feed ZooGlass, which interprets events, maintains defined views and delivers them to web apps, mobile apps and other services.](diagrams/zooglass-intended-production.svg)
 
-Read the stack from the bottom upwards. The vehicle is a concrete example of
-the wider problem; the same division of responsibilities could apply to a
-match, an order or an operational dashboard.
+Read the stack from the bottom upwards. This is the intended role of ZooGlass in
+an application serving real users. It shows logical responsibilities, including
+capabilities that remain to be built. It doesn't prescribe separate deployable
+services for the internal boxes, or claim that a production deployment is ready.
 
-**The sources provide facts.** In this example a simulated feed sends vehicle
-positions through a real service connection. In a deployed application, sources
-would be the systems that own those facts. Their event contracts would need to
+**The sources provide facts.** Operational services, device feeds and external
+providers own the information they supply. Their event contracts would need to
 say how an entity is identified, what an update means and what ordering or
 revision information can be relied on. Connecting to a source doesn't establish
 those meanings by itself.
@@ -45,19 +45,16 @@ which vehicle to show, how to explain stale information, or what an operator is
 allowed to do. The goal is for it to spend less effort reconstructing source
 history and managing the consequences of delivery order.
 
-**Workbench sits alongside that path.** It is the environment for exercising
-ZooGlass and its clients through controlled scenarios. Its horizontal connections
-represent ways to advance a source, inspect service state, operate a client and
-check the display. The browser bridge, Playwright observer and proxy shown here
-belong to the planned verification environment. An application using ZooGlass
-wouldn't need Workbench to serve its users.
+The view definitions and source contracts are deliberate application choices.
+ZooGlass would need enough information to relate records from different systems,
+apply the right update policy and restrict access to the resulting views. Its
+state storage, retention, scaling and recovery mechanisms still need their own
+design. The diagram describes the product boundary without selecting that
+infrastructure.
 
-The colours describe roles. Green identifies the application data path. Blue
-identifies orchestration and evidence. **Yellow identifies the test fault gate**:
-a proxy Workbench would use to interrupt the browser's data connection. It isn't
-a live warning indicator, and it isn't a required component of a production
-ZooGlass deployment. While that route is broken, the separate control path would
-let Workbench observe the app and the source could continue sending events.
+Workbench belongs to the development and verification environment described
+[later in this article](#how-we-build-and-test-it). It isn't a runtime dependency
+for an application serving users through ZooGlass.
 
 ## A live view has to mean something
 
@@ -149,7 +146,21 @@ Whether ZooGlass makes this simpler in practice is something the working
 applications need to establish. Storage, retention, recovery and operating cost
 still have to be designed for the workload.
 
-## Why Workbench belongs in this picture
+## How we build and test it
+
+![Intended testing environment: Workbench sits alongside the vehicle stack, controlling source events and browser actions, inspecting results and breaking or restoring the data connection through a blue test proxy.](diagrams/zooglass-workbench.svg)
+
+This is a different view of the system: the environment we are building to
+exercise ZooGlass. The vehicle app and feed make a concrete scenario. Workbench
+runs alongside the stack, with a separate control path to each boundary. The
+browser bridge, Playwright observer and fault proxy are planned test machinery.
+
+Blue marks that machinery and its control connections; green marks the
+application components and data flow. The proxy is blue because it belongs to
+Workbench's testing environment, even though it carries real application data.
+Its role is to let a scenario interrupt that connection. Colour describes
+ownership and purpose, not whether a fault is currently active.
+
 
 The difficult behaviour often occurs between components. A producer can send
 an event successfully while the service is still processing it. A service can
@@ -162,7 +173,7 @@ view; observe the browser's actual receipt; and independently inspect the
 rendered marker and history. Expected values belong in the checks. They must
 never supply the app's displayed data.
 
-The yellow gate makes failure observable too. Workbench would break the real
+The fault gate makes failure observable too. Workbench would break the real
 data connection, allow the feed to advance and then restore the route. The app
 would have to detect the interruption and recover through its own connection
 logic. Keeping control separate from data lets us examine that behaviour while
@@ -197,7 +208,7 @@ The [prototype guide](../incubator/zooglass/README.md) describes the behaviour
 available to try now, and the [Workbench guide](../incubator/workbench/README.md)
 describes the scenario runner. The separate
 [browser orchestration design](plans/browser-orchestration.md) develops one
-concrete way to verify the journey shown in the diagram.
+concrete way to verify the journey shown in the testing diagram.
 
 ## Where the idea should earn its place
 

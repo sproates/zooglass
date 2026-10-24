@@ -45,8 +45,8 @@ checks; this design unifies scenario verification rather than replacing them.
 ![Workbench controls the browser separately from the ZooGlass data path. Playwright checks the rendered view.](../diagrams/zooglass-workbench.svg)
 
 This is the shared diagram used in the project-level
-[ZooGlass explanation](../what-is-zooglass.md). Yellow marks the test fault gate,
-not an active failure.
+[ZooGlass explanation](../what-is-zooglass.md). Blue marks test machinery and control,
+including the fault gate. It does not indicate an active failure.
 
 The control path and the vehicle-data path are separate. Breaking the data proxy
 leaves Workbench able to observe and control the browser, while the source keeps

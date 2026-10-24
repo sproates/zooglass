@@ -10,8 +10,8 @@ ZooGlass aims to help keep event-driven views current, and clarify what data the
 
 [What we're trying to build](docs/what-is-zooglass.md) explains the intended
 product, the promises its views should make, and how Workbench will help us
-verify them. It uses a vertical architecture diagram to connect source events,
-ZooGlass and the application people actually see.
+verify them. Separate diagrams show ZooGlass's intended production role and the
+Workbench environment used to build and test it.
 
 At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won't find much interesting code yet.
 

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+<title id="title">ZooGlass in an application: intended production role</title>
+<desc id="desc">Independent operational services, device feeds and external providers supply events to ZooGlass. Within ZooGlass, source contracts and entity identities inform view maintenance; configured rules govern ordering, duplicates and corrections; delivery exposes permitted views to web apps, mobile apps and other services. Applications subscribe and recover through the delivery boundary. This is a logical target architecture, not a production readiness claim or a selected deployment topology. Workbench and testing machinery are absent.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#286552"/></marker>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182c40}.heading{font-size:27px;font-weight:700}.label{font-size:21px;font-weight:700}.body{font-size:18px}.detail{font-size:17px;fill:#40566d}.flow{stroke:#286552;stroke-width:3;fill:none;marker-end:url(#arrow)}.branch{stroke:#286552;stroke-width:3;fill:none}.box{fill:#f0f8f4;stroke:#43866e;stroke-width:2}.inner{fill:#fff;stroke:#b3d4c6;stroke-width:1.5}</style>
+</defs>
+<rect width="1080" height="1080" fill="#fff"/>
+<text x="40" y="44" class="heading">ZooGlass in an application</text>
+<text x="40" y="74" class="body">Intended production role: independent events become maintained live views.</text>
+<text x="40" y="101" class="detail">Target responsibilities, including capabilities still to be designed and implemented.</text>
+<rect x="40" y="132" width="295" height="95" rx="12" class="box"/>
+<text x="62" y="169" class="label">Web apps</text><text x="62" y="199" class="detail">Render and act on view state</text>
+<rect x="372" y="132" width="295" height="95" rx="12" class="box"/>
+<text x="394" y="169" class="label">Mobile apps</text><text x="394" y="199" class="detail">Keep users informed</text>
+<rect x="705" y="132" width="295" height="95" rx="12" class="box"/>
+<text x="727" y="169" class="label">Other services</text><text x="727" y="199" class="detail">Consume defined views</text>
+<path d="M520 330V280H187V227" class="flow"/>
+<path d="M520 280V227" class="flow"/>
+<path d="M520 280H852V227" class="flow"/>
+<text x="550" y="253" class="detail">Snapshots and updates</text>
+<text x="40" y="309" class="detail">Each app receives its permitted views.</text>
+<text x="560" y="303" class="detail">Clients subscribe and recover</text>
+<text x="560" y="324" class="detail">through this boundary.</text>
+<rect x="40" y="330" width="960" height="475" rx="18" class="box"/>
+<text x="65" y="371" class="heading">ZooGlass</text>
+<text x="65" y="400" class="detail">One logical service boundary; internal boxes describe responsibilities.</text>
+<rect x="65" y="422" width="910" height="87" rx="10" class="inner"/>
+<text x="88" y="453" class="label">Serve live views</text>
+<text x="88" y="483" class="body">Subscriptions • access rules • delivery and recovery contracts</text>
+<path d="M520 548V509" class="flow"/>
+<rect x="65" y="548" width="910" height="87" rx="10" class="inner"/>
+<text x="88" y="579" class="label">Maintain application-facing state</text>
+<text x="88" y="609" class="body">View definitions • ordering and correction rules • freshness and provenance</text>
+<path d="M520 674V635" class="flow"/>
+<rect x="65" y="674" width="910" height="87" rx="10" class="inner"/>
+<text x="88" y="705" class="label">Interpret incoming events</text>
+<text x="88" y="735" class="body">Source contracts • entity identities • relationships between source records</text>
+<text x="65" y="789" class="detail">Teams define these meanings and policies for their application.</text>
+<path d="M187 912V862H520V805" class="flow"/>
+<path d="M520 912V862" class="branch"/>
+<path d="M852 912V862H520" class="branch"/>
+<text x="40" y="831" class="detail">Events from independent systems</text>
+<text x="40" y="853" class="detail">through defined integrations</text>
+<rect x="40" y="912" width="295" height="87" rx="12" class="box"/>
+<text x="62" y="947" class="label">Operational services</text><text x="62" y="977" class="detail">Own business facts</text>
+<rect x="372" y="912" width="295" height="87" rx="12" class="box"/>
+<text x="394" y="947" class="label">Device / telemetry feeds</text><text x="394" y="977" class="detail">Report observations</text>
+<rect x="705" y="912" width="295" height="87" rx="12" class="box"/>
+<text x="727" y="947" class="label">External providers</text><text x="727" y="977" class="detail">Contribute their own facts</text>
+<text x="40" y="1035" class="detail">Sources retain ownership of facts. Apps retain ownership of user experience and decisions.</text>
+<text x="40" y="1062" class="detail">Storage, scaling and deployment topology remain separate design decisions.</text>
+</svg>

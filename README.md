@@ -35,3 +35,13 @@ ZooGlass has unit and functional tests for the system itself. The Workbench is
 where most scenario testing should happen: it drives different event and client
 behaviours through ZooGlass and checks the resulting views. Tests for
 integrations with external systems, such as Kafka, are a separate concern.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks and review expectations.
+Report suspected vulnerabilities privately using [SECURITY.md](SECURITY.md).
+
+## Licence
+
+ZooGlass is licensed under the [MIT licence](LICENSE).
+Copyright (c) 2026 Ian Sproates.

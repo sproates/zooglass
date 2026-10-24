@@ -12,6 +12,19 @@ if (!runId || !clientId || !registration.get("token")) {
     if (control.readyState === WebSocket.OPEN)
       control.send(JSON.stringify({ ...message, runId, clientId }));
   };
+  const step = document.querySelector("#step");
+  const reset = document.querySelector("#reset");
+  const controlError = document.querySelector("#control-error");
+  for (const [button, action] of [
+    [step, "step"],
+    [reset, "reset"],
+  ]) {
+    button.addEventListener("click", () => {
+      controlError.textContent = "";
+      button.disabled = true;
+      send({ type: "control-request", action });
+    });
+  }
   let client;
   let busy = false;
   const completed = new Map();
@@ -34,6 +47,23 @@ if (!runId || !clientId || !registration.get("token")) {
         );
         send({ type: "ready" });
         status.textContent = "Connected to Workbench";
+        return;
+      }
+      if (message.type === "run-state") {
+        document.querySelector("#workbench-controls").hidden = false;
+        const state = message.state;
+        if (state.phase === "failed") client?.fail(state.detail);
+        step.disabled = state.phase !== "ready";
+        reset.disabled = ["starting", "resetting", "closed"].includes(
+          state.phase,
+        );
+        document.querySelector("#run-progress").textContent =
+          `${state.completed}/${state.total} steps checked · ${state.detail}`;
+        controlError.textContent = "";
+        return;
+      }
+      if (message.type === "control-rejected") {
+        controlError.textContent = message.reason;
         return;
       }
       if (message.type === "run-failed" && client) {
@@ -90,6 +120,10 @@ if (!runId || !clientId || !registration.get("token")) {
     }
   });
   control.addEventListener("close", () => {
+    step.disabled = true;
+    reset.disabled = true;
+    controlError.textContent =
+      "Control connection lost. Type reset in the terminal to start again.";
     client?.fail("Workbench control connection lost.");
     client?.close();
     status.textContent = "Workbench disconnected · playback stopped";

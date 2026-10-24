@@ -31,17 +31,29 @@ npm run demo -- vehicle-tracker
 ```
 
 The command compiles the app's TypeScript, starts ZooGlass and an owned Chromium
-session, connects the viewer and subscribes to both views. It sends positions
+session, connects the viewer and subscribes to both views. **Step** sends one position at a time, using positions
 40–59 from the [journey fixture](../workbench/scenarios/vehicle-browser-journey.json),
 awaiting the HTTP and browser receipt checks after each send. The page stays
 open at position 59 with twenty history entries. Add `--basic` to use the short
 40/42 fixture. Ctrl+C closes the owned resources.
 
-The current preview plays once automatically. Step/reset controls, duplicate
-delivery and automatic recovery remain planned. To run again, stop
-and restart the command. `--headless` runs without a visible window. See the
+**Reset** cancels pending work, closes the old browser and service, and opens a
+fresh session with empty views. It waits for cleanup before starting the
+replacement. The window closes and reopens during reset. Step is disabled while
+an action is running; Reset can interrupt it. Failed steps stop further advance.
+
+You can also type `step`, `reset` or `quit` in the terminal. Terminal reset
+remains available after the browser page closes. `--headless` uses the same
+controls through the terminal without showing a window.
+
+Add `--auto` for the previous timed demonstration. That mode plays once and
+keeps the result open; it has no interactive controls. The recording above shows
+this automatic mode. Play/pause, duplicate delivery and automatic recovery remain
+planned. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
+
+![Step and Reset controls after completing the short fixture.](docs/step-reset.png)
 
 ## Reading the display
 
@@ -71,8 +83,10 @@ After disconnect or unsubscribe, previously received values remain visible and
 are labelled **Last received**. Reconnecting does not make them current: each
 view must receive its own fresh snapshot. A connection failure stops playback
 and shows an error. In a visible demo, the failed page remains open for
-inspection until closed or Ctrl+C; headless runs clean up immediately. Restart
-the command to try again. Automatic reconnection is not implemented.
+inspection. Use Reset to start again, or type `reset` in the terminal if the
+page or control connection is gone. Ctrl+C closes all owned resources. In
+`--auto` mode, restart the command after failure; automatic headless runs clean
+up on failure. Automatic reconnection is not implemented.
 
 ## Checks and current limits
 
@@ -85,7 +99,10 @@ and that the phone-width layout has no horizontal overflow. `npm run build`,
 Separate controlled protocol tests cover explicit empty snapshots, waiting,
 unsubscribe, reconnect and connection failure. They do not establish service
 recovery behaviour. These checks cover rendering and visible connection states. The full demo still needs
-interactive lifecycle controls, repeat/reset acceptance, automatic recovery
-and rendered checks integrated into interactive action completion.
+automatic recovery and independent rendered checks integrated into interactive
+action completion. Lifecycle tests verify two runs separated by reset, reset
+during a pending check, fresh view state, old host/service closure and reset
+after page loss. The step counter reports completed service and browser receipt
+checks; it does not yet certify the independently rendered result.
 The local host registration is not production authorisation. See the
 [demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

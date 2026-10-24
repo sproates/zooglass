@@ -18,6 +18,19 @@
         <span id="status" role="status">Connecting to Workbench…</span
         ><span id="connection-status" role="status">ZooGlass disconnected</span>
       </div>
+      <section
+        id="workbench-controls"
+        class="workbench-controls"
+        hidden
+        aria-label="Workbench scenario controls"
+      >
+        <div class="control-buttons">
+          <button id="step" type="button" disabled>Step</button>
+          <button id="reset" type="button" disabled>Reset</button>
+        </div>
+        <p id="run-progress" role="status">Starting…</p>
+        <p id="control-error" role="alert"></p>
+      </section>
       <div class="layout">
         <section class="route-panel" aria-labelledby="route-title">
           <div class="panel-heading">
@@ -75,8 +88,8 @@
       </div>
       <footer>
         Snapshots arrive independently. Connecting points is a visual aid, not
-        proof of the route travelled. Step and reset controls are still being
-        built.
+        proof of the route travelled. Workbench controls the scenario; vehicle
+        values come from ZooGlass snapshots.
       </footer>
     </main>
   </body>

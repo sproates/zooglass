@@ -125,54 +125,63 @@ test(
   },
 );
 
-test(
-  "demo command stops its service and host on SIGTERM",
-  { timeout: 90_000 },
-  async () => {
-    const child = spawn(
-      process.execPath,
-      ["--import", "tsx", "src/demo.ts", "vehicle-tracker", "--headless"],
-      { stdio: ["ignore", "pipe", "pipe"] },
-    );
-    let output = "";
-    const exited = once(child, "close");
-    const ready = new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error("Demo startup timed out: " + output)),
-        60_000,
+for (const automatic of [false, true]) {
+  test(
+    `demo command ${automatic ? "automatic" : "interactive"} stops its service and host on SIGTERM`,
+    { timeout: 90_000 },
+    async () => {
+      const child = spawn(
+        process.execPath,
+        [
+          "--import",
+          "tsx",
+          "src/demo.ts",
+          "vehicle-tracker",
+          "--headless",
+          ...(automatic ? ["--auto"] : []),
+        ],
+        { stdio: ["ignore", "pipe", "pipe"] },
       );
-      child.once("error", reject);
-      child.once("close", () => {
-        clearTimeout(timer);
-        reject(new Error("Demo exited before readiness: " + output));
-      });
-      child.stdout.on("data", (chunk) => {
-        output += chunk.toString();
-        const match = output.match(
-          /Browser host ready at (http:\/\/127\.0\.0\.1:\d+)/,
+      let output = "";
+      const exited = once(child, "close");
+      const ready = new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("Demo startup timed out: " + output)),
+          60_000,
         );
-        if (match) {
+        child.once("error", reject);
+        child.once("close", () => {
           clearTimeout(timer);
-          resolve(match[1]);
-        }
+          reject(new Error("Demo exited before readiness: " + output));
+        });
+        child.stdout.on("data", (chunk) => {
+          output += chunk.toString();
+          const match = output.match(
+            /Browser host ready at (http:\/\/127\.0\.0\.1:\d+)/,
+          );
+          if (match) {
+            clearTimeout(timer);
+            resolve(match[1]);
+          }
+        });
+        child.stderr.on("data", (chunk) => {
+          output += chunk.toString();
+        });
       });
-      child.stderr.on("data", (chunk) => {
-        output += chunk.toString();
-      });
-    });
-    try {
-      const origin = await ready;
-      child.kill("SIGTERM");
-      const [code] = await exited;
-      assert.equal(code, 0, output);
-      await assert.rejects(fetch(origin));
-      const port = output.match(/Tomcat started on port (\d+)/)?.[1];
-      assert.ok(port, output);
-      await assert.rejects(fetch(`http://127.0.0.1:${port}/actuator/health`));
-    } finally {
-      if (child.exitCode === null && child.signalCode === null)
+      try {
+        const origin = await ready;
         child.kill("SIGTERM");
-      await exited;
-    }
-  },
-);
+        const [code] = await exited;
+        assert.equal(code, 0, output);
+        await assert.rejects(fetch(origin));
+        const port = output.match(/Tomcat started on port (\d+)/)?.[1];
+        assert.ok(port, output);
+        await assert.rejects(fetch(`http://127.0.0.1:${port}/actuator/health`));
+      } finally {
+        if (child.exitCode === null && child.signalCode === null)
+          child.kill("SIGTERM");
+        await exited;
+      }
+    },
+  );
+}

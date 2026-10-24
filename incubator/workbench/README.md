@@ -201,6 +201,9 @@ business rules of a sportsbook, order system, or ride service.
 - `client-reconnect-snapshot.json` disconnects a subscribed client while two
   updates arrive, then reconnects and checks that a new subscription receives
   the latest snapshot.
+- `vehicle-browser-journey.json` sends twenty positions, 40–59, along a route
+  with turns. Position 41 alone is delayed until after 42; later positions arrive
+  in order. HTTP and browser checks verify received history and latest position.
 - `vehicle-browser-basic.json` is the finite first slice for the planned browser
   demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
   positions 40 and 42 for `car-17`. Each send is followed by HTTP and client
@@ -284,7 +287,7 @@ the [source progress exploration](../zooglass/source-progress-signals.md).
 ## Browser host preview
 
 The local browser host can launch an owned Chromium session and register its
-vehicle page over a separate control connection and play the basic fixture:
+vehicle page over a separate control connection and play the twenty-position journey:
 
 ```sh
 npm ci
@@ -297,11 +300,12 @@ needs browser system packages. Playwright is pinned in the package manifest;
 install its matching Chromium after changing that dependency. Java 25 and
 Node 26 remain prerequisites. Add `--headless` to the demo command for an
 invisible browser session. Ctrl+C stops the owned browser, host and ZooGlass.
-Closing the owned page or losing its control connection fails the session and
-also triggers cleanup.
+Closing the owned page triggers cleanup. A failed visible run stops playback
+and retains its page for inspection until closed or Ctrl+C. Headless failures
+clean up immediately. Control loss is a failure, not a recovery instruction.
 
-The command compiles the TypeScript vehicle app and runs the existing 40/42
-fixture through the shared scenario session and browser executor. It waits for
+The command compiles the TypeScript vehicle app and runs the 40–59 journey
+fixture (or the short 40/42 fixture with `--basic`) through the shared scenario session and browser executor. It waits for
 actual socket and subscription acknowledgements, then checks service state and
 browser receipts. The [vehicle display](../vehicle-tracker/README.md) renders
 latest position, a schematic route and received history from those snapshots.
@@ -320,8 +324,10 @@ ZooGlass: registration, subscription and snapshot delivery, independent control
 and data connections, page-exit cleanup, a fresh run and cancelled startup.
 It requires the Chromium installation above. The standard `npm test` also
 checks rejected origins, invalid registrations, duplicate clients and timeout
-cleanup. The browser suite also checks both rendered views at positions 40 and
-42, full-snapshot replacement on resubscription and a narrow layout. Both suites
+cleanup. The browser suite checks both rendered views for both fixtures,
+full-snapshot replacement on resubscription and a narrow layout. Controlled
+protocol peers additionally check waiting, explicit empty snapshots, retained
+values and visible failures. Both suites
 run in Workbench CI. Full interactive demo acceptance remains outstanding.
 
 ## Where we're heading

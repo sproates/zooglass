@@ -7,137 +7,166 @@ import { openScenarioSession } from "../../src/scenario-session.js";
 import { playScenario } from "../../src/playback.js";
 import { loadScenario } from "../../src/scenario.js";
 
-const fixture = fileURLToPath(
-  new URL("../../scenarios/vehicle-browser-basic.json", import.meta.url),
-);
+for (const variant of ["basic", "journey"]) {
+  const fixture = fileURLToPath(
+    new URL(`../../scenarios/vehicle-browser-${variant}.json`, import.meta.url),
+  );
 
-test(
-  "the fixture drives both rendered browser views through actual subscriptions",
-  { timeout: 90_000 },
-  async () => {
-    const scenario = await loadScenario(fixture);
-    const service = await startZooGlassSession({ views: scenario.views });
-    try {
-      const browser = await startBrowserSession(service.baseUrl, {
-        signal: service.signal,
-        headless: true,
-      });
+  test(
+    `${variant} drives both rendered browser views through actual subscriptions`,
+    { timeout: 90_000 },
+    async () => {
+      const scenario = await loadScenario(fixture);
+      const service = await startZooGlassSession({ views: scenario.views });
       try {
-        const session = await openScenarioSession(scenario, service.baseUrl, {
-          signal: browser.signal,
-          createClientExecutor: () => browser.host.executor,
+        const browser = await startBrowserSession(service.baseUrl, {
+          signal: service.signal,
+          headless: true,
         });
         try {
-          assert.equal(
-            await browser.page.locator("#current-sequence").textContent(),
-            "—",
-          );
-          assert.equal(await browser.page.locator("#history li").count(), 0);
-          for (const entry of playScenario(scenario)) {
-            await session.execute(entry);
-            if (entry.kind !== "client-view-check") continue;
-            if (entry.viewId === "live-map") {
-              const p = entry.expected.position as {
-                sequence: number;
-                latitude: number;
-                longitude: number;
-              };
-              assert.equal(
-                await browser.page.locator("#current-sequence").textContent(),
-                String(p.sequence),
-              );
-              assert.equal(
-                await browser.page
-                  .locator("#current-coordinates")
-                  .textContent(),
-                `${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`,
-              );
-              const marker = browser.page.locator("#vehicle-marker");
-              assert.equal(await marker.getAttribute("visibility"), "visible");
-              assert.ok(
-                Math.abs(
-                  Number(await marker.getAttribute("cx")) -
-                    (60 + ((p.longitude + 0.35) / 0.4) * 480),
-                ) < 0.001,
-              );
-              assert.ok(
-                Math.abs(
-                  Number(await marker.getAttribute("cy")) -
-                    (270 - ((p.latitude - 50.95) / 0.4) * 220),
-                ) < 0.001,
-              );
-            } else {
-              const positions = entry.expected.positions as {
-                sequence: number;
-                latitude: number;
-                longitude: number;
-              }[];
-              assert.deepEqual(
-                await browser.page.locator("#history li").allTextContents(),
-                positions.map(
-                  (p) =>
-                    `Position ${p.sequence} · ${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`,
-                ),
-              );
-              assert.equal(
-                (
+          const session = await openScenarioSession(scenario, service.baseUrl, {
+            signal: browser.signal,
+            createClientExecutor: () => browser.host.executor,
+          });
+          try {
+            assert.equal(
+              await browser.page.locator("#current-sequence").textContent(),
+              "—",
+            );
+            assert.equal(await browser.page.locator("#history li").count(), 0);
+            for (const entry of playScenario(scenario)) {
+              await session.execute(entry);
+              if (entry.kind !== "client-view-check") continue;
+              if (entry.viewId === "live-map") {
+                const p = entry.expected.position as {
+                  sequence: number;
+                  latitude: number;
+                  longitude: number;
+                };
+                assert.equal(
+                  await browser.page.locator("#current-sequence").textContent(),
+                  String(p.sequence),
+                );
+                assert.equal(
                   await browser.page
-                    .locator("#route-line")
-                    .getAttribute("points")
-                )?.split(" ").length,
-                positions.length,
-              );
+                    .locator("#current-coordinates")
+                    .textContent(),
+                  `${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`,
+                );
+                const marker = browser.page.locator("#vehicle-marker");
+                assert.equal(
+                  await marker.getAttribute("visibility"),
+                  "visible",
+                );
+                assert.ok(
+                  Math.abs(
+                    Number(await marker.getAttribute("cx")) -
+                      (60 + ((p.longitude + 0.35) / 0.4) * 480),
+                  ) < 0.001,
+                );
+                assert.ok(
+                  Math.abs(
+                    Number(await marker.getAttribute("cy")) -
+                      (270 - ((p.latitude - 50.95) / 0.4) * 220),
+                  ) < 0.001,
+                );
+              } else {
+                const positions = entry.expected.positions as {
+                  sequence: number;
+                  latitude: number;
+                  longitude: number;
+                }[];
+                if (variant === "journey" && positions.length === 3) {
+                  // History receipt proves delayed 41 was processed; latest must remain 42.
+                  assert.equal(
+                    await browser.page
+                      .locator("#current-sequence")
+                      .textContent(),
+                    "42",
+                  );
+                  assert.ok(
+                    Math.abs(
+                      Number(
+                        await browser.page
+                          .locator("#vehicle-marker")
+                          .getAttribute("cx"),
+                      ) - 180,
+                    ) < 0.001,
+                  );
+                }
+                assert.deepEqual(
+                  await browser.page.locator("#history li").allTextContents(),
+                  positions.map(
+                    (p) =>
+                      `Position ${p.sequence} · ${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`,
+                  ),
+                );
+                assert.equal(
+                  (
+                    await browser.page
+                      .locator("#route-line")
+                      .getAttribute("points")
+                  )?.split(" ").length,
+                  positions.length,
+                );
+              }
             }
-          }
-          await browser.page.screenshot({
-            path: "/tmp/zooglass-vehicle-desktop.png",
-            fullPage: true,
-          });
-          await browser.page.setViewportSize({ width: 390, height: 844 });
-          await browser.page.screenshot({
-            path: "/tmp/zooglass-vehicle-mobile.png",
-            fullPage: true,
-          });
-          assert.equal(
-            await browser.page.evaluate(() => {
-              const page = globalThis as unknown as {
-                document: { documentElement: { scrollWidth: number } };
-                innerWidth: number;
-              };
-              return (
-                page.document.documentElement.scrollWidth <= page.innerWidth
-              );
-            }),
-            true,
-          );
-          // Resubscribing receives the same full snapshots. History must be replaced, not appended.
-          const subscriptions = scenario.timeline.filter(
-            (entry) => entry.kind === "client-subscription",
-          );
-          for (const entry of subscriptions) {
-            await session.execute({
-              ...entry,
-              clientName: "Vehicle viewer",
-              action: "unsubscribe",
+            await browser.page.screenshot({
+              path: `/tmp/zooglass-vehicle-${variant}-desktop.png`,
+              fullPage: true,
             });
-            await session.execute({ ...entry, clientName: "Vehicle viewer" });
+            await browser.page.setViewportSize({ width: 390, height: 844 });
+            await browser.page.screenshot({
+              path: `/tmp/zooglass-vehicle-${variant}-mobile.png`,
+              fullPage: true,
+            });
+            assert.equal(
+              await browser.page.evaluate(() => {
+                const page = globalThis as unknown as {
+                  document: { documentElement: { scrollWidth: number } };
+                  innerWidth: number;
+                };
+                return (
+                  page.document.documentElement.scrollWidth <= page.innerWidth
+                );
+              }),
+              true,
+            );
+            // Resubscribing receives the same full snapshots. History must be replaced, not appended.
+            const subscriptions = scenario.timeline.filter(
+              (entry) => entry.kind === "client-subscription",
+            );
+            for (const entry of subscriptions) {
+              await session.execute({
+                ...entry,
+                clientName: "Vehicle viewer",
+                action: "unsubscribe",
+              });
+              await session.execute({ ...entry, clientName: "Vehicle viewer" });
+            }
+            const finalChecks = scenario.timeline.filter(
+              (entry) =>
+                entry.kind === "client-view-check" &&
+                entry.simulationTime ===
+                  Math.max(
+                    ...scenario.timeline.map((item) => item.simulationTime),
+                  ),
+            );
+            for (const entry of finalChecks)
+              await session.execute({ ...entry, clientName: "Vehicle viewer" });
+            assert.equal(
+              await browser.page.locator("#history li").count(),
+              variant === "basic" ? 2 : 20,
+            );
+          } finally {
+            await session.close();
           }
-          const finalChecks = scenario.timeline.filter(
-            (entry) =>
-              entry.kind === "client-view-check" &&
-              entry.simulationTime === 2000,
-          );
-          for (const entry of finalChecks)
-            await session.execute({ ...entry, clientName: "Vehicle viewer" });
-          assert.equal(await browser.page.locator("#history li").count(), 2);
         } finally {
-          await session.close();
+          await browser.close();
         }
       } finally {
-        await browser.close();
+        await service.close();
       }
-    } finally {
-      await service.close();
-    }
-  },
-);
+    },
+  );
+}

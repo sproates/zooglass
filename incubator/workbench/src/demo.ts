@@ -10,9 +10,11 @@ async function main() {
   const args = process.argv.slice(2);
   if (
     args[0] !== "vehicle-tracker" ||
-    args.slice(1).some((arg) => arg !== "--headless")
+    args.slice(1).some((arg) => !["--headless", "--basic"].includes(arg))
   ) {
-    throw new Error("Usage: npm run demo -- vehicle-tracker [--headless]");
+    throw new Error(
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic]",
+    );
   }
   const controller = new AbortController();
   const stop = () => controller.abort(new Error("Demo interrupted."));
@@ -21,7 +23,12 @@ async function main() {
   try {
     const scenario = await loadScenario(
       fileURLToPath(
-        new URL("../scenarios/vehicle-browser-basic.json", import.meta.url),
+        new URL(
+          args.includes("--basic")
+            ? "../scenarios/vehicle-browser-basic.json"
+            : "../scenarios/vehicle-browser-journey.json",
+          import.meta.url,
+        ),
       ),
     );
     const service = await startZooGlassSession({
@@ -32,6 +39,7 @@ async function main() {
       const browser = await startBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: args.includes("--headless"),
+        keepOpenOnFailure: !args.includes("--headless"),
       });
       try {
         console.log(`Browser host ready at ${browser.host.origin}`);
@@ -53,7 +61,7 @@ async function main() {
             previousTime = entry.simulationTime;
           }
           console.log(
-            "Basic fixture received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.",
+            "Journey received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.",
           );
           if (!browser.signal.aborted)
             await new Promise<void>((resolve) =>
@@ -65,6 +73,26 @@ async function main() {
         } finally {
           await session.close();
         }
+      } catch (error) {
+        if (
+          !args.includes("--headless") &&
+          !controller.signal.aborted &&
+          !browser.page.isClosed()
+        ) {
+          process.exitCode = 1;
+          console.error(
+            `Run failed; playback stopped. Inspect the browser, then close it or press Ctrl+C. ${error instanceof Error ? error.message : String(error)}`,
+          );
+          await Promise.race([
+            browser.page.waitForEvent("close", { timeout: 0 }),
+            new Promise<void>((resolve) =>
+              controller.signal.addEventListener("abort", () => resolve(), {
+                once: true,
+              }),
+            ),
+          ]);
+        }
+        throw error;
       } finally {
         await browser.close();
       }

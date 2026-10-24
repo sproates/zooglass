@@ -1,4 +1,4 @@
-import { receiveView, connectionStatus } from "./view.js";
+import { receiveView, setConnection, subscriptionState } from "./view.js";
 export type Command = {
   action: "connect" | "disconnect" | "subscribe" | "unsubscribe";
   viewId?: string;
@@ -13,6 +13,17 @@ export function createVehicleClient(
   let generation = 0;
   let observationIndex = 0;
   let deliberateClose = false;
+  let failure: string | undefined;
+  const markFailure = (reason: string, notify = true) => {
+    if (failure) return;
+    failure = reason;
+    deliberateClose = true;
+    setConnection("error", reason);
+    acknowledgement?.reject(new Error(reason));
+    acknowledgement = undefined;
+    socket?.close();
+    if (notify) fail(reason);
+  };
   const subscriptions = new Set<string>();
   const key = (viewId: string, entityId: string) =>
     JSON.stringify([viewId, entityId]);
@@ -34,6 +45,7 @@ export function createVehicleClient(
       ...detail,
     });
   async function execute(command: Command) {
+    if (failure) throw new Error(failure);
     if (command.action === "connect") {
       if (socket?.readyState === WebSocket.OPEN) return generation;
       const current = new WebSocket(`ws://${location.host}${dataPath}`);
@@ -41,9 +53,9 @@ export function createVehicleClient(
       generation++;
       deliberateClose = false;
       subscriptions.clear();
-      connectionStatus("Connecting to ZooGlass…");
+      setConnection("connecting");
       current.addEventListener("message", (event) => {
-        if (socket !== current) return;
+        if (socket !== current || failure) return;
         try {
           const message = JSON.parse(event.data);
           const pair = key(message.viewId, message.entityId);
@@ -62,6 +74,7 @@ export function createVehicleClient(
             if (message.type === "subscribed") subscriptions.add(pair);
             else subscriptions.delete(pair);
             acknowledgement = undefined;
+            subscriptionState(message.viewId, message.type);
             observe(message.type, {
               viewId: message.viewId,
               entityId: message.entityId,
@@ -81,7 +94,7 @@ export function createVehicleClient(
             throw new Error("Unexpected ZooGlass message.");
           }
         } catch (error) {
-          fail(
+          markFailure(
             error instanceof Error
               ? error.message
               : "Invalid ZooGlass response.",
@@ -95,15 +108,21 @@ export function createVehicleClient(
           new Error("Connection closed before acknowledgement."),
         );
         acknowledgement = undefined;
-        connectionStatus("Disconnected · any displayed data is last received");
+        if (!failure) {
+          if (deliberateClose) setConnection("disconnected");
+          else
+            markFailure(
+              "Connection lost. Stop and restart the demo to try again.",
+            );
+        }
         observe("closed");
-        if (!deliberateClose) fail("Unexpected ZooGlass connection loss.");
       });
       await new Promise<void>((resolve, reject) => {
         current.addEventListener(
           "open",
           () => {
-            connectionStatus("Connected to ZooGlass");
+            if (socket !== current || failure) return;
+            setConnection("connected");
             observe("opened");
             resolve();
           },
@@ -111,7 +130,12 @@ export function createVehicleClient(
         );
         current.addEventListener(
           "error",
-          () => reject(new Error("Could not connect to ZooGlass.")),
+          () => {
+            if (socket !== current) return;
+            const reason = "Could not connect to ZooGlass.";
+            markFailure(reason);
+            reject(new Error(reason));
+          },
           { once: true },
         );
       });
@@ -134,6 +158,7 @@ export function createVehicleClient(
       )
         throw new Error("Unknown vehicle view.");
       const { viewId, entityId } = command;
+      if (command.action === "subscribe") subscriptionState(viewId, "pending");
       await new Promise<void>((resolve, reject) => {
         acknowledgement = {
           action: command.action,
@@ -151,6 +176,9 @@ export function createVehicleClient(
   }
   return {
     execute,
+    fail(reason: string) {
+      markFailure(reason, false);
+    },
     close() {
       deliberateClose = true;
       socket?.close();

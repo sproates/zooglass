@@ -1,8 +1,9 @@
 # Vehicle tracker demo
 
 Status: accepted design baseline, partly implemented. The basic browser app
-now renders the 40/42 fixture through real ZooGlass subscriptions. Interactive
-controls, reset and late/recovery scenarios remain outstanding.
+now renders short 40/42 and twenty-position journey fixtures through real
+ZooGlass subscriptions, with waiting, empty and retained/error states. The journey
+includes delayed 41. Interactive controls, reset, duplicates and recovery remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -234,8 +235,11 @@ npm run integrate -- --fast scenarios/vehicle-browser-basic.json
 
 This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../incubator/workbench/README.md#browser-host-preview)
 now launches and registers Chromium and binds `rider-app` to the browser
-executor. The demo command plays this basic fixture once and keeps the received
+executor. The demo command plays the twenty-position journey once (`--basic` selects the short fixture) and keeps the received
 result open for inspection. Interactive step/reset controls remain planned.
 The browser observer must derive rendered expectations from this same fixture;
 source events and expected values must never supply the app's displayed state.
-Late events, duplicate delivery and recovery will extend the demo in later work.
+The journey delivers 40, 42, delayed 41, then 43–59 in order. Position 41 is the
+only deliberate gap. Duplicate delivery and recovery remain later work. Visible
+failures stop playback but retain the failed page until closed or Ctrl+C;
+headless failures clean up immediately.

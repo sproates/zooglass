@@ -44,3 +44,25 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
+
+  browser-host:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: incubator/workbench
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: incubator/workbench/.nvmrc
+          cache: npm
+          cache-dependency-path: incubator/workbench/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: incubator/zooglass/pom.xml
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

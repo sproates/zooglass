@@ -281,6 +281,46 @@ receive.
 For a comparison of possible source progress signals and their trade-offs, see
 the [source progress exploration](../zooglass/source-progress-signals.md).
 
+## Browser host preview
+
+The local browser host can launch an owned Chromium session and register its
+bootstrap page over a separate control connection:
+
+```sh
+npm ci
+npx playwright install chromium
+npm run demo -- vehicle-tracker
+```
+
+Use `npx playwright install --with-deps chromium` on a Linux machine that also
+needs browser system packages. Playwright is pinned in the package manifest;
+install its matching Chromium after changing that dependency. Java 25 and
+Node 26 remain prerequisites. Add `--headless` to the demo command for an
+invisible browser session. Ctrl+C stops the owned browser, host and ZooGlass.
+Closing the owned page or losing its control connection fails the session and
+also triggers cleanup.
+
+The page currently shows registration status. It does not yet play the vehicle
+fixture, render vehicle data or provide step/reset controls. The command starts
+ZooGlass with the fixture's view definitions; source playback and the browser
+client executor come with the subsequent app work.
+
+Both services bind to loopback. The host serves only its two bootstrap assets,
+validates HTTP Host and WebSocket Origin, accepts one registered `rider-app`
+for its run, and provides a token-scoped `/views/live` proxy route. The bootstrap
+registration token is passed in the owned page's URL fragment and then removed.
+Opening the printed URL independently does not attach another client. The
+proxy uses ZooGlass's own origin upstream, leaving service origin checks intact.
+This is a local demo boundary, not production authorisation.
+
+`npm run test:browser` runs the separate Chromium transport checks against real
+ZooGlass: registration, subscription and snapshot delivery, independent control
+and data connections, page-exit cleanup, a fresh run and cancelled startup.
+It requires the Chromium installation above. The standard `npm test` also
+checks rejected origins, invalid registrations, duplicate clients and timeout
+cleanup. Both suites run in Workbench CI. These transport checks do not claim
+vehicle rendering or complete browser scenario verification.
+
 ## Where we're heading
 
 ![Planned browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)
@@ -298,8 +338,9 @@ populate the app. Specialist tools can provide individual capabilities beneath
 Workbench without introducing a competing timeline or outcome.
 
 The shared session and client-executor boundary already provide a starting
-point. Browser launch, the bridge, step/play/reset controls, fault injection and
-rendered checks remain planned. Their detailed contracts are in the
+point. Owned browser launch, registration and the data proxy now exist.
+Scenario command execution in the bridge, step/play/reset controls, fault
+injection and rendered checks remain planned. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session

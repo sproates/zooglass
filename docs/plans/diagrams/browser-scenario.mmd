@@ -1,0 +1,24 @@
+sequenceDiagram
+  participant W as Workbench
+  participant B as Real browser
+  participant Z as ZooGlass
+  participant P as Playwright
+  W->>B: Launch, register and await page ready
+  W->>B: Connect and subscribe to both views
+  B->>Z: Open data socket and send subscriptions
+  Z-->>B: Subscription acknowledgements
+  B-->>W: Actions completed
+  Note over W,B: Empty views need no initial snapshot
+  W->>Z: Send position 40, then position 42
+  Z-->>B: Real view updates
+  B-->>W: Receipt observations
+  W->>P: Check marker 42 and history [40,42]
+  P->>B: Inspect DOM and SVG
+  P-->>W: Rendered checks passed
+  W->>Z: Send delayed position 41
+  W->>Z: Await history [40,41,42], then check latest 42
+  Z-->>B: Updated history snapshot
+  B-->>W: History receipt observation
+  W->>P: Check history filled in and marker still 42
+  P->>B: Inspect DOM and SVG
+  P-->>W: Rendered checks passed

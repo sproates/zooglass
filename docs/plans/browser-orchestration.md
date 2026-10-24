@@ -39,6 +39,15 @@ for defined capabilities and keep scheduling, retry and outcome ownership clear.
 Existing unit tests, lint and build checks remain separate focused developer
 checks; this design unifies scenario verification rather than replacing them.
 
+## Architecture at a glance
+
+![Workbench controls the browser separately from the ZooGlass data path. Playwright checks the rendered view.](diagrams/browser-architecture.svg)
+
+The control path and the vehicle-data path are separate. Breaking the data proxy
+leaves Workbench able to observe and control the browser, while the source keeps
+sending events to ZooGlass. Playwright checks the display rather than supplying
+its data.
+
 ## Ownership and connections
 
 | Component | Owns |
@@ -150,6 +159,14 @@ then view received. An empty view sends no snapshot, so startup waits for the
 subscription acknowledgements, not nonexistent data. The first source event
 follows these acknowledgements in the fixture.
 
+## Normal scenario flow
+
+![Sequence from browser registration through real subscriptions, late position delivery and independent rendered checks.](diagrams/browser-scenario.svg)
+
+The diagram separates source sends, browser receipts and rendered checks. The
+HTTP check after late position 41 is a processing barrier; it prevents an early
+check of unchanged position 42 from giving false confidence.
+
 ## Checks and the demonstration
 
 Use one shared fixture containing source events, browser-client actions and
@@ -231,6 +248,14 @@ Never log registration tokens. CI failures attach the trace and a screenshot;
 long-term recording/replay is out of scope.
 
 ## Required unexpected-connection-loss scenario
+
+![The proxy breaks the browser data connection while control and source stay live. The browser automatically reconnects after restoration.](diagrams/browser-recovery.svg)
+
+This is a transport interruption, not an instruction to the app to disconnect.
+Restoring the route permits the next automatic attempt; it doesn't reconnect the
+browser on its behalf. The independent rendered check at the end is performed
+by the Playwright observer shown in the architecture diagram.
+
 
 In addition to deliberate disconnect/reconnect, the demo must prove recovery
 from an unexpected interruption of the browser's data path. Workbench breaks
@@ -320,3 +345,11 @@ Manual browser attachment, additional browser engines, multiple simultaneous
 clients and arbitrary application adapters remain deferred. The architecture
 leaves an explicit client boundary for later work without implementing those
 features now.
+
+## Diagram sources
+
+The diagrams are committed as SVG images so the Markdown doesn't need Mermaid
+rendering support. Editable Mermaid sources are beside them in `diagrams/`:
+[browser architecture](diagrams/browser-architecture.mmd),
+[normal scenario](diagrams/browser-scenario.mmd) and
+[connection recovery](diagrams/browser-recovery.mmd).

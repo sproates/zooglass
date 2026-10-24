@@ -4,6 +4,10 @@ A real browser receives two ZooGlass views for one vehicle: its latest position
 and the history received so far. Workbench drives the basic fixture through the
 same service and browser connections used by the app.
 
+![Latest position 42 and received history 40, 42 in the browser.](docs/basic-views.png)
+
+### Watch the demo
+
 https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 
 [Download the demo recording (MP4)](docs/basic-run.mp4).

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="960" viewBox="0 0 960 960" role="img" aria-labelledby="title desc">
+<title id="title">Workbench Scenario Simulator: current connected CLI</title>
+<desc id="desc">Workbench loads a JSON scenario and controls source sockets, a real ZooGlass service and Node viewer sockets. Events flow up from sources through ZooGlass to subscribed viewers. Workbench checks HTTP service state separately from received WebSocket messages. It owns startup, ordered actions and cleanup. This is current CLI behaviour, without browser rendering or a fault proxy.</desc>
+<defs>
+<marker id="data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#286552"/></marker>
+<marker id="control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#496aaf"/></marker>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182c40}.heading{font-size:26px;font-weight:700}.label{font-size:21px;font-weight:700}.body{font-size:18px}.detail{font-size:17px;fill:#40566d}.flow{stroke:#286552;stroke-width:3;fill:none;marker-end:url(#data)}.link{stroke:#496aaf;stroke-width:2;fill:none;marker-end:url(#control)}</style>
+</defs>
+<rect width="960" height="960" fill="#fff"/>
+<text x="40" y="44" class="heading">Workbench: the connected CLI today</text>
+<text x="40" y="75" class="body">One scenario controls real connections and checks the resulting views.</text>
+<rect x="40" y="112" width="280" height="704" rx="16" fill="#edf2fc" stroke="#496aaf" stroke-width="2"/>
+<text x="62" y="153" class="heading">Workbench</text>
+<rect x="60" y="175" width="240" height="90" rx="10" fill="#fff" stroke="#b4c5e5"/>
+<text x="78" y="209" class="label">JSON scenario</text>
+<text x="78" y="239" class="detail">Inputs • actions • checks</text>
+<text x="62" y="310" class="label">Client actions</text>
+<text x="62" y="360" class="label">Receipt checks</text>
+<text x="62" y="495" class="label">Service lifecycle</text>
+<text x="62" y="545" class="label">HTTP view checks</text>
+<text x="62" y="729" class="label">Source actions</text>
+<text x="62" y="780" class="detail">Ordered execution</text>
+<rect x="585" y="265" width="335" height="125" rx="12" fill="#f0f8f4" stroke="#43866e" stroke-width="2"/>
+<text x="607" y="303" class="label">Node viewer clients</text>
+<text x="607" y="335" class="body">Real /views/live sockets</text>
+<text x="607" y="365" class="detail">Receive and check snapshots</text>
+<rect x="585" y="450" width="335" height="150" rx="12" fill="#f0f8f4" stroke="#43866e" stroke-width="2"/>
+<text x="607" y="490" class="heading">ZooGlass</text>
+<text x="607" y="523" class="body">Real local service</text>
+<text x="607" y="553" class="detail">Maintains in-memory views</text>
+<text x="607" y="579" class="detail">HTTP reads and live delivery</text>
+<rect x="585" y="680" width="335" height="136" rx="12" fill="#f0f8f4" stroke="#43866e" stroke-width="2"/>
+<text x="607" y="721" class="label">Scenario sources</text>
+<text x="607" y="754" class="body">Separate /events sockets</text>
+<text x="607" y="785" class="detail">Send the fixture's events</text>
+<path d="M320 305H585" class="link"/><text x="339" y="291" class="detail">Connect / subscribe</text>
+<path d="M585 355H320" class="link"/><text x="339" y="342" class="detail">Observe view messages</text>
+<path d="M320 490H585" class="link"/><text x="339" y="477" class="detail">Start / health / stop</text>
+<path d="M320 540H585" class="link" marker-start="url(#control)"/><text x="339" y="527" class="detail">Define / query views</text>
+<path d="M320 725H585" class="link"/><text x="339" y="712" class="detail">Send scheduled events</text>
+<path d="M753 680V600" class="flow"/><text x="770" y="646" class="detail">Events</text>
+<path d="M753 450V390" class="flow"/><text x="770" y="426" class="detail">Snapshots</text>
+<text x="40" y="861" class="body">Blue: Workbench control and checks. Green: real service and data connections.</text>
+<text x="40" y="895" class="detail">Subscriptions travel down the viewer connection. Source delivery is independent.</text>
+<text x="40" y="929" class="detail">The CLI checks server state and client receipt; it does not check a rendered browser UI.</text>
+</svg>

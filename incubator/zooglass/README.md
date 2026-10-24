@@ -128,7 +128,7 @@ Run the tests with:
   `ZooGlassFunctionalTests` checks the health endpoint, and
   `ViewFunctionalTests` sends events over WebSocket and queries the view over
   HTTP.
-- The [Scenario Simulator](../workbench/README.md) is intended to carry most
+- The [Workbench Scenario Simulator](../workbench/README.md) is intended to carry most
   scenario testing. It drives different event and client behaviors through
   ZooGlass and checks the resulting views.
 - **Integration tests** check behavior across a boundary between ZooGlass and

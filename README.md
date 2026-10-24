@@ -17,8 +17,9 @@ verify them. Separate diagrams show ZooGlass's intended production role and the
 Workbench environment used to build and test it.
 
 ZooGlass is an early prototype with a working in-memory service and scenario
-runner. The next milestone is a real browser demonstration of live views,
-followed by late delivery and connection recovery.
+runner. A [basic browser demo](incubator/vehicle-tracker/README.md) now shows
+vehicle position and received history from real live views. Interactive controls,
+late delivery and connection recovery are the next parts of that demonstration.
 
 The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
 which capabilities remain longer-term work, with links to the delivery evidence.

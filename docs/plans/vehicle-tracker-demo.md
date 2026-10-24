@@ -1,7 +1,8 @@
 # Vehicle tracker demo
 
-Status: implementation plan, with browser orchestration proposed for review.
-The demo is not implemented yet.
+Status: accepted design baseline, partly implemented. The basic browser app
+now renders the 40/42 fixture through real ZooGlass subscriptions. Interactive
+controls, reset and late/recovery scenarios remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -232,8 +233,9 @@ npm run integrate -- --fast scenarios/vehicle-browser-basic.json
 ```
 
 This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../incubator/workbench/README.md#browser-host-preview)
-now launches and registers Chromium. Scenario execution still requires binding
-`rider-app` to the future browser executor.
+now launches and registers Chromium and binds `rider-app` to the browser
+executor. The demo command plays this basic fixture once and keeps the received
+result open for inspection. Interactive step/reset controls remain planned.
 The browser observer must derive rendered expectations from this same fixture;
 source events and expected values must never supply the app's displayed state.
 Late events, duplicate delivery and recovery will extend the demo in later work.

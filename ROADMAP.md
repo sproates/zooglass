@@ -27,14 +27,15 @@ demonstrates their specific cases, not production readiness.
 
 ## Next: a working browser view
 
-The next implementation milestone is a vehicle app receiving actual ZooGlass
-views under Workbench control. Session extraction is merged; the browser
-fixture now defines connection, subscriptions and positions 40 and 42, with
-service and Node-client receipt checks. A local host now launches Chromium,
-registers its bootstrap page and proxies real ZooGlass traffic. The vehicle app
-and browser scenario execution remain planned. The [host preview](incubator/workbench/README.md#browser-host-preview)
-is a transport foundation, not yet the working vehicle demo.
-See the [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
+The [basic vehicle app](incubator/vehicle-tracker/README.md) now receives actual
+ZooGlass views under Workbench control. The shared fixture connects and
+subscribes its browser, then sends positions 40 and 42. Service and browser
+receipt checks pass, and Chromium tests inspect the rendered coordinates,
+marker and history. The local command plays once and leaves the result open.
+
+The milestone remains incomplete: step/reset controls, fuller waiting/failure
+states and the complete repeat-run acceptance are still ahead. See the
+[fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The first slice will provide:
 

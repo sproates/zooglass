@@ -284,7 +284,7 @@ the [source progress exploration](../zooglass/source-progress-signals.md).
 ## Browser host preview
 
 The local browser host can launch an owned Chromium session and register its
-bootstrap page over a separate control connection:
+vehicle page over a separate control connection and play the basic fixture:
 
 ```sh
 npm ci
@@ -300,12 +300,14 @@ invisible browser session. Ctrl+C stops the owned browser, host and ZooGlass.
 Closing the owned page or losing its control connection fails the session and
 also triggers cleanup.
 
-The page currently shows registration status. It does not yet play the vehicle
-fixture, render vehicle data or provide step/reset controls. The command starts
-ZooGlass with the fixture's view definitions; source playback and the browser
-client executor come with the subsequent app work.
+The command compiles the TypeScript vehicle app and runs the existing 40/42
+fixture through the shared scenario session and browser executor. It waits for
+actual socket and subscription acknowledgements, then checks service state and
+browser receipts. The [vehicle display](../vehicle-tracker/README.md) renders
+latest position, a schematic route and received history from those snapshots.
+It stays open after playback; step/reset controls remain planned.
 
-Both services bind to loopback. The host serves only its two bootstrap assets,
+Both services bind to loopback. The host serves only its explicitly listed app and bridge assets,
 validates HTTP Host and WebSocket Origin, accepts one registered `rider-app`
 for its run, and provides a token-scoped `/views/live` proxy route. The bootstrap
 registration token is passed in the owned page's URL fragment and then removed.
@@ -318,8 +320,9 @@ ZooGlass: registration, subscription and snapshot delivery, independent control
 and data connections, page-exit cleanup, a fresh run and cancelled startup.
 It requires the Chromium installation above. The standard `npm test` also
 checks rejected origins, invalid registrations, duplicate clients and timeout
-cleanup. Both suites run in Workbench CI. These transport checks do not claim
-vehicle rendering or complete browser scenario verification.
+cleanup. The browser suite also checks both rendered views at positions 40 and
+42, full-snapshot replacement on resubscription and a narrow layout. Both suites
+run in Workbench CI. Full interactive demo acceptance remains outstanding.
 
 ## Where we're heading
 
@@ -339,8 +342,9 @@ Workbench without introducing a competing timeline or outcome.
 
 The shared session and client-executor boundary already provide a starting
 point. Owned browser launch, registration and the data proxy now exist.
-Scenario command execution in the bridge, step/play/reset controls, fault
-injection and rendered checks remain planned. Their detailed contracts are in the
+The bridge now executes browser actions and reports actual receipts, and the
+basic display has rendered tests. Step/play/reset controls, fault injection and
+rendered checks within interactive action completion remain planned. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session

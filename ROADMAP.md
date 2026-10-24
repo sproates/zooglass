@@ -32,12 +32,14 @@ ZooGlass views under Workbench control. The default journey connects and
 subscribes its browser, then sends twenty positions (40–59), with 41 delayed
 until after 42. The short 40/42 fixture remains available with `--basic`. Service and browser
 receipt checks pass, and Chromium tests inspect the rendered coordinates,
-marker and history. The local command plays once and leaves the result open.
+marker and history. The local command now starts ready for Step, with Reset
+creating a fresh service and browser. `--auto` retains timed playback.
 
 Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
-The milestone remains incomplete: step/reset controls and complete repeat-run
-acceptance are still ahead. See the
+Step/reset and repeat-run lifecycle tests are implemented. The milestone remains
+incomplete: independent rendered checks must be integrated into interactive
+action completion, followed by the final usability and acceptance walkthrough. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The first slice will provide:

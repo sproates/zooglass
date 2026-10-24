@@ -6,7 +6,12 @@ import type { Socket } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
 
 /** Local transport host. Command execution and scenario scheduling are separate. */
-export async function startBrowserHost(baseUrl: string) {
+export async function startBrowserHost(
+  baseUrl: string,
+  options: {
+    onControl?: (action: "step" | "reset", runId: string) => Promise<void>;
+  } = {},
+) {
   const runId = randomUUID();
   const clientId = "rider-app";
   const registrationToken = randomUUID();
@@ -162,7 +167,21 @@ export async function startBrowserHost(baseUrl: string) {
         ) {
           ready = true;
         } else if (registered === socket && ready) {
-          if (!controller.signal.aborted) client.receive(message);
+          if (message.type === "control-request" && options.onControl) {
+            if (!["step", "reset"].includes(message.action)) throw new Error();
+            void options.onControl(message.action, runId).catch((error) => {
+              if (socket.readyState === WebSocket.OPEN)
+                socket.send(
+                  JSON.stringify({
+                    type: "control-rejected",
+                    runId,
+                    clientId,
+                    reason:
+                      error instanceof Error ? error.message : String(error),
+                  }),
+                );
+            });
+          } else if (!controller.signal.aborted) client.receive(message);
         } else {
           throw new Error();
         }
@@ -269,6 +288,12 @@ export async function startBrowserHost(baseUrl: string) {
     clientId,
     signal: controller.signal,
     executor: client.executor,
+    publish(state: unknown) {
+      if (registered?.readyState === WebSocket.OPEN)
+        registered.send(
+          JSON.stringify({ type: "run-state", runId, clientId, state }),
+        );
+    },
     pageUrl: `${origin}/#${new URLSearchParams({ runId, clientId, token: registrationToken })}`,
     async waitForReady(signal: AbortSignal, timeoutMs = 15_000) {
       const combined = AbortSignal.any([

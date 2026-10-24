@@ -287,7 +287,7 @@ the [source progress exploration](../zooglass/source-progress-signals.md).
 ## Browser host preview
 
 The local browser host can launch an owned Chromium session and register its
-vehicle page over a separate control connection and play the twenty-position journey:
+vehicle page over a separate control connection and step through the twenty-position journey:
 
 ```sh
 npm ci
@@ -300,16 +300,26 @@ needs browser system packages. Playwright is pinned in the package manifest;
 install its matching Chromium after changing that dependency. Java 25 and
 Node 26 remain prerequisites. Add `--headless` to the demo command for an
 invisible browser session. Ctrl+C stops the owned browser, host and ZooGlass.
-Closing the owned page triggers cleanup. A failed visible run stops playback
-and retains its page for inspection until closed or Ctrl+C. Headless failures
-clean up immediately. Control loss is a failure, not a recovery instruction.
+Closing the owned page fails the run and closes its browser host. Type `reset`
+in the terminal to replace it, or `quit` to close all owned resources. Failed
+interactive runs remain stopped until reset or exit. Control loss is a failure,
+not a recovery instruction.
 
 The command compiles the TypeScript vehicle app and runs the 40–59 journey
 fixture (or the short 40/42 fixture with `--basic`) through the shared scenario session and browser executor. It waits for
 actual socket and subscription acknowledgements, then checks service state and
 browser receipts. The [vehicle display](../vehicle-tracker/README.md) renders
 latest position, a schematic route and received history from those snapshots.
-It stays open after playback; step/reset controls remain planned.
+Step sends one position and awaits its following service and receipt checks.
+Reset cancels the old run and waits for its browser, sockets and ZooGlass to
+close before creating an empty replacement with a new run identity. It replaces
+the window. Overlapping step/reset requests are rejected, and failed cleanup
+prevents a replacement from starting. Terminal `step`, `reset` and `quit` provide
+the same lifecycle controls if the page is unavailable.
+
+Use `--auto` for the previous timed, single-run demonstration without interactive
+controls. Its headed failures retain the page for inspection; headless failures
+clean up immediately. Play/pause controls remain planned.
 
 Both services bind to loopback. The host serves only its explicitly listed app and bridge assets,
 validates HTTP Host and WebSocket Origin, accepts one registered `rider-app`
@@ -349,7 +359,7 @@ Workbench without introducing a competing timeline or outcome.
 The shared session and client-executor boundary already provide a starting
 point. Owned browser launch, registration and the data proxy now exist.
 The bridge now executes browser actions and reports actual receipts, and the
-basic display has rendered tests. Step/play/reset controls, fault injection and
+display has rendered tests and serialised step/reset controls. Play/pause controls, fault injection and
 rendered checks within interactive action completion remain planned. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 

@@ -4,9 +4,12 @@ Status: design baseline. Shared Workbench service and scenario sessions are
 implemented, along with an owned Chromium bootstrap, registration connection
 and local data proxy. Basic browser commands and snapshot rendering now run
 short 40/42 and twenty-position journey fixtures, with visible waiting and
-retained/error states. A failed headed demo stops playback and keeps its page
-for inspection until closed or Ctrl+C; headless sessions clean up immediately.
-Interactive controls, reset, fault injection and full
+retained/error states. Step and reset are implemented: startup connects and
+subscribes, each step sends one position and awaits its following service/receipt
+checks, and reset replaces the service and browser with fresh state. Terminal
+reset remains available after page loss. `--auto` retains timed playback and its
+previous cleanup behaviour. Independent rendered checks in interactive action
+completion, play/pause, fault injection and full
 acceptance described here remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision

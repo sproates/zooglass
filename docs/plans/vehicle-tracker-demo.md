@@ -3,7 +3,9 @@
 Status: accepted design baseline, partly implemented. The basic browser app
 now renders short 40/42 and twenty-position journey fixtures through real
 ZooGlass subscriptions, with waiting, empty and retained/error states. The journey
-includes delayed 41. Interactive controls, reset, duplicates and recovery remain outstanding.
+includes delayed 41. Step and reset now use the shared scenario session, with
+fresh service/browser ownership on reset. Play/pause, duplicates, recovery and
+independent rendered checks within interactive completion remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -222,7 +224,7 @@ and subscribe to both views before the first event is sent.
 
 Positions 40 and 42 each have HTTP checks and client receipt checks for both
 views. Checks share their source event's simulation time and follow it in
-fixture order, so a future step controller can complete the checks before
+fixture order, so the step controller completes the checks before
 advancing. An empty view does not send a snapshot; subscription acknowledgements
 are the barrier before source delivery. The finite trace leaves the client
 connected for inspection until session cleanup.
@@ -235,11 +237,14 @@ npm run integrate -- --fast scenarios/vehicle-browser-basic.json
 
 This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../incubator/workbench/README.md#browser-host-preview)
 now launches and registers Chromium and binds `rider-app` to the browser
-executor. The demo command plays the twenty-position journey once (`--basic` selects the short fixture) and keeps the received
-result open for inspection. Interactive step/reset controls remain planned.
+executor. The demo command starts ready for Step (`--basic` selects the short
+fixture). Each step sends one position and awaits its following checks. Reset
+restarts the service and browser with empty state; terminal controls remain
+available after page loss. `--auto` retains the timed, single-run demonstration.
 The browser observer must derive rendered expectations from this same fixture;
 source events and expected values must never supply the app's displayed state.
 The journey delivers 40, 42, delayed 41, then 43–59 in order. Position 41 is the
 only deliberate gap. Duplicate delivery and recovery remain later work. Visible
-failures stop playback but retain the failed page until closed or Ctrl+C;
-headless failures clean up immediately.
+failures stop dispatch. Interactive runs can be reset from the browser or
+terminal. Automatic mode retains failed headed pages for inspection and cleans
+up headless failures immediately.

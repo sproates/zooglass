@@ -8,9 +8,12 @@ export async function startBrowserSession(
     signal: AbortSignal;
     headless?: boolean;
     keepOpenOnFailure?: boolean;
+    onControl?: (action: "step" | "reset", runId: string) => Promise<void>;
   },
 ) {
-  const host = await startBrowserHost(baseUrl);
+  const host = await startBrowserHost(baseUrl, {
+    onControl: options.onControl,
+  });
   const controller = new AbortController();
   const signal = AbortSignal.any([
     options.signal,

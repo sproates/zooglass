@@ -209,3 +209,30 @@ replay, authentication, multi-vehicle operations and external feed adapters are
 separate runtime or product work. This demo should make current behaviour easier
 to inspect without implying those capabilities exist. A street map and richer
 visual design can follow once the interaction is useful.
+
+## Basic scenario fixture
+
+The [basic vehicle fixture](../../incubator/workbench/scenarios/vehicle-browser-basic.json)
+contains the first two position steps. Startup definitions create `live-map`
+with latest-by-sequence ordering and `trip-history` with history-by-sequence
+ordering. The client starts disconnected; explicit timeline actions connect it
+and subscribe to both views before the first event is sent.
+
+Positions 40 and 42 each have HTTP checks and client receipt checks for both
+views. Checks share their source event's simulation time and follow it in
+fixture order, so a future step controller can complete the checks before
+advancing. An empty view does not send a snapshot; subscription acknowledgements
+are the barrier before source delivery. The finite trace leaves the client
+connected for inspection until session cleanup.
+
+Run the fixture through the existing Node executor from `incubator/workbench`:
+
+```sh
+npm run integrate -- --fast scenarios/vehicle-browser-basic.json
+```
+
+This verifies real ZooGlass processing and WebSocket receipt. Browser execution
+still requires the planned host to bind `rider-app` to its browser executor.
+The browser observer must derive rendered expectations from this same fixture;
+source events and expected values must never supply the app's displayed state.
+Late events, duplicate delivery and recovery will extend the demo in later work.

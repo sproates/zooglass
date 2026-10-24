@@ -1,0 +1,226 @@
+{
+  "name": "Vehicle browser demo: first positions",
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "name": "Vehicle location feed"
+    }
+  ],
+  "clients": [
+    {
+      "id": "rider-app",
+      "name": "Vehicle viewer",
+      "initialState": "disconnected"
+    }
+  ],
+  "views": [
+    {
+      "id": "live-map",
+      "fields": {
+        "position": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "position": {
+          "mode": "latestBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    },
+    {
+      "id": "trip-history",
+      "fields": {
+        "positions": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "positions": {
+          "mode": "historyBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-state",
+      "simulationTime": 0,
+      "clientId": "rider-app",
+      "state": "connected"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 1,
+      "clientId": "rider-app",
+      "action": "subscribe",
+      "viewId": "live-map",
+      "entityId": "car-17"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 2,
+      "clientId": "rider-app",
+      "action": "subscribe",
+      "viewId": "trip-history",
+      "entityId": "car-17"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1000,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 40,
+        "latitude": 51.0,
+        "longitude": -0.3
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1000,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 51.0,
+          "longitude": -0.3
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1000,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          }
+        ]
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1000,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 51.0,
+          "longitude": -0.3
+        }
+      },
+      "clientId": "rider-app"
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 1000,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          }
+        ]
+      },
+      "clientId": "rider-app"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 2000,
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "entityId": "car-17",
+      "payload": {
+        "sequence": 42,
+        "latitude": 51.2,
+        "longitude": -0.1
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 2000,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 51.2,
+          "longitude": -0.1
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 2000,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 2000,
+      "viewId": "live-map",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 51.2,
+          "longitude": -0.1
+        }
+      },
+      "clientId": "rider-app"
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 2000,
+      "viewId": "trip-history",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 51.0,
+            "longitude": -0.3
+          },
+          {
+            "sequence": 42,
+            "latitude": 51.2,
+            "longitude": -0.1
+          }
+        ]
+      },
+      "clientId": "rider-app"
+    }
+  ]
+}

@@ -61,7 +61,7 @@ async function main() {
             previousTime = entry.simulationTime;
           }
           console.log(
-            "Journey received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.",
+            `${args.includes("--basic") ? "Basic fixture" : "Journey"} received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.`,
           );
           if (!browser.signal.aborted)
             await new Promise<void>((resolve) =>

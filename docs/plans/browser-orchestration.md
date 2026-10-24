@@ -17,8 +17,8 @@ explicit scenario actions and browser-level evidence.
 
 Keep this bounded to one vehicle and one browser client. Existing Node clients
 remain available for the headless scenario suite. There is no new general
-adapter framework, arbitrary-site automation or network-fault simulator in this
-slice.
+adapter framework, arbitrary-site automation or general network-fault simulator in this
+slice. One required fault is a proxy-controlled data-connection break and recovery.
 
 ## Ownership and connections
 
@@ -112,7 +112,7 @@ owned page; it must not silently omit client entries.
 | Entry | Browser execution and completion |
 | --- | --- |
 | Initial/client state `connecting` or `connected` | Ensure a real data socket exists; complete on its `open` event. If already open, complete without another socket. These names retain the current runner's ensure-connected semantics. |
-| Initial/client state `disconnecting` or `disconnected` | Close the actual data socket; complete on `close`, or immediately if already closed. Clear that connection's subscriptions and cancel any automatic reconnect. |
+| Initial/client state `disconnecting` or `disconnected` | Close the actual data socket; complete on `close`, or immediately if already closed. Clear that connection's subscriptions and cancel automatic reconnect for this deliberate closure. |
 | `client-subscription` | Send the real protocol action and complete on the matching ZooGlass `subscribed` or `unsubscribed` response for this generation. Missing/closed socket is a failure. |
 | `client-view-check` | Await an observation from the actual browser matching the expected view, entity and data. Never substitute an HTTP check or Node viewer. |
 | Source event, view definition or HTTP view check | Use Workbench's existing shared execution path. |
@@ -186,10 +186,11 @@ browser registration/readiness, 10 seconds per connect/disconnect action, and
 are initial demo defaults, not performance promises. Include the action and last
 observed state in a timeout report; don't turn timeout into successful completion.
 
-A deliberately closed data socket is a scenario action. An unexpected data
-closure, control loss, browser/tab exit or ZooGlass exit fails the current run,
-stops further dispatch, cancels waits and preserves the diagnostic trace.
-Automatic browser reconnection is disabled in this controlled demo. Cleanup or
+A deliberately closed data socket is a scenario action. A data closure during
+a declared connection-loss scenario enters the recovery state below. Outside
+that declared fault, an unexpected data closure fails the run. Control loss,
+browser/tab exit or ZooGlass exit also fails the run, stops dispatch, cancels
+waits and preserves the diagnostic trace. Cleanup or
 reset remains available from the host/CLI even if the page is gone. No automatic
 resumption after an uncertain action.
 
@@ -210,9 +211,70 @@ rendered assertions, correlated by run/client/step and command IDs where relevan
 Never log registration tokens. CI failures attach the trace and a screenshot;
 long-term recording/replay is out of scope.
 
-The first disconnection case is a deliberate socket close. It doesn't claim to
-test packet loss, network partitions or a suspended browser. Those need explicit
-fault mechanisms and different completion rules later.
+## Required unexpected-connection-loss scenario
+
+In addition to deliberate disconnect/reconnect, the demo must prove recovery
+from an unexpected interruption of the browser's data path. Workbench breaks
+the active proxy connection without instructing the app to disconnect. The
+browser control connection and source feed remain live throughout.
+
+Add a `data-connection-fault` timeline entry with a scenario `clientId` and an
+`action` of `break` or `restore`. This is a narrowly scoped browser-demo action.
+The parser validates the referenced client. Node-only execution must reject this
+unsupported capability before starting processes, rather than skip the fault.
+Keep the fault fixture separate from the existing all-Node scenario set; the
+browser CI suite executes it through the shared scheduler and real browser.
+
+The host binds a data proxy route to the registered run and client, using an
+opaque per-run route token. Every reconnect attempt uses the same route. A
+`break` action first marks the route unavailable, then abruptly terminates both
+sides of the active proxied connection without a normal WebSocket close
+handshake. Reject subsequent upgrades on that route with HTTP 503. Completion
+means the gate is closed and the active transports have closed, not merely that
+a fault command was queued. Apply the gate before closing to avoid a reconnect
+race. Discard pending relay buffers; don't replay them after restoration.
+
+The browser must detect the closure through its real socket event, retain its
+last received values with an interrupted/reconnecting label, and retry using its
+normal connection controller. Do not send it a synthetic disconnected event.
+Use one reconnect attempt at a time with delays of 250ms, 500ms, 1s, then 2s
+capped, without jitter for this bounded demo. Each attempt has a 10-second open
+timeout. Retry only for unexpected data loss; an explicit disconnect command,
+reset or shutdown cancels the retry timer and closes any pending attempt.
+
+Workbench declares the expected-fault interval before breaking the transport,
+so the observed closure does not fail this scenario. Recovery expectations have
+a 30-second wall-clock deadline from fault activation, including the outage;
+pausing doesn't suspend this failure deadline. The scripted outage must fit
+within it. Every attempt uses a new connection generation, and stale events
+cannot update the UI or complete a newer attempt.
+
+The fixture establishes position 42, activates the fault, waits for the browser
+to report interruption and at least one refused reconnect attempt, and sends
+position 43 while the gate remains closed. HTTP checks confirm both server views
+contain 43. `restore` reopens the upgrade gate; it does not reconnect the browser
+or flush old data. The app's next automatic attempt opens a new connection and
+resubscribes to its desired view/entity pairs. Keep desired subscriptions across
+unexpected loss, but clear acknowledged subscriptions per generation.
+
+On automatic resubscription, require real acknowledgements and both first
+snapshots through 43 before declaring recovery. Observe the first update for
+each subscription with the same strict semantics as `firstAfterSubscribe`;
+add no explicit reconnect or subscribe commands that could mask a broken client
+recovery path. Playwright verifies the interruption label during the outage,
+the marker/history after recovery, and that history has no duplicate entries.
+No further vehicle event is sent until these checks finish. An open socket alone
+is not a successful recovery. Preserve the separate waiting state of each view.
+
+Record fault activation, refused attempts, restoration and recovery in the trace.
+Reset removes the gate and invalidates its route token as part of destroying the
+old run. Test that a stale restore command cannot affect a new run. Fault actions
+and manual controls use the same serialised controller; manual fault intervention
+marks the run exploratory under the existing rules.
+
+This proves recovery from a real abrupt connection break at the local proxy.
+It does not establish detection of a silent blackhole, packet loss, asymmetric
+network partition or suspended browser. Those fault types remain deferred.
 
 ## Delivery and acceptance
 
@@ -224,11 +286,11 @@ Deliver in three implementation PRs, each independently reviewable:
 2. Add the owned Chromium session, control bridge and basic vehicle UI. Drive
    connect/subscribe, positions 40 and 42, real receipt/render checks and reset
    through Workbench. Add the browser CI job and relevant path filters.
-3. Complete late/duplicate events, independent disconnect/reconnect, play/pause,
+3. Complete late/duplicate events, deliberate and proxy-induced disconnect/recovery, play/pause,
    manual-intervention rules, trace and failure checks. Prove initial reconnect
    snapshots and finish the six-step demo.
 
-Acceptance includes an end-to-end run without manual viewer actions; a closed
+Acceptance includes both scripted demo and connection-loss runs without manual viewer actions; a closed
 data connection while control and source remain live; timeout/control-loss
 failures; stale-report rejection after reset; repeat runs; and browser-visible
 late insertion without the marker moving backwards. Check the existing headless

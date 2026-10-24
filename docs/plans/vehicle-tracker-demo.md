@@ -134,6 +134,18 @@ production reset endpoint or accumulating runtime view definitions. Keep the
 fixture finite because history retention is currently unbounded. Stop owned
 processes and sockets when the demo command exits.
 
+## Required connection-loss run
+
+Also demonstrate an unexpected data-path interruption. Workbench must break the
+browser's real proxied ZooGlass connection, refuse reconnect attempts while the
+source advances to position 43, then restore the route. The browser detects the
+failure, labels retained data and automatically reconnects and resubscribes.
+Verify initial snapshots and rendered state through 43 without duplicate history.
+The Workbench control path remains usable throughout. This is additional to the
+six deliberate-action steps above; it must not be implemented by sending the app
+a disconnect command. See the [orchestration design](browser-orchestration.md)
+for fault, retry, timeout and reset semantics.
+
 ## Delivery in three PRs
 
 ### PR 1: shared Workbench sessions
@@ -156,12 +168,13 @@ works. The existing Workbench commands and scenario suite still pass.
 
 ### PR 3: late delivery and recovery
 
-Complete the sequence above, add play/pause and independent viewer connection
+Complete the sequence and required connection-loss run above, add play/pause and independent viewer connection
 controls, and add the bounded activity trace and explanations. Keep the fixture
 and automated expected results together in Workbench. Cover disconnect/reconnect,
 delayed processing and repeated resets through the browser path.
 
-Acceptance: every row in the demonstration sequence is observable and checked.
+Acceptance: every row in the demonstration sequence and the unexpected
+connection-loss recovery are observable and checked.
 The late event fills in history without moving the marker backwards; reconnect
 gets current snapshots while the source has continued running.
 

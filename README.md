@@ -2,6 +2,9 @@
 
 ### Event-driven live views
 
+[![ZooGlass CI](https://github.com/sproates/zooglass/actions/workflows/zooglass.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/zooglass.yml)
+[![Workbench CI](https://github.com/sproates/zooglass/actions/workflows/workbench.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/workbench.yml)
+
 Applications often need a live view built from updates owned by several independent systems.
 
 Keeping that view useful gets harder when updates arrive late, out of order, are corrected, or when a client disconnects and reconnects.
@@ -13,7 +16,12 @@ product, the promises its views should make, and how Workbench will help us
 verify them. Separate diagrams show ZooGlass's intended production role and the
 Workbench environment used to build and test it.
 
-At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won't find much interesting code yet.
+ZooGlass is an early prototype with a working in-memory service and scenario
+runner. The next milestone is a real browser demonstration of live views,
+followed by late delivery and connection recovery.
+
+The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
+which capabilities remain longer-term work, with links to the delivery evidence.
 
 The service uses Java 25 and Spring Boot.
 

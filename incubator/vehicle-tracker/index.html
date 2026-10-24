@@ -49,13 +49,13 @@
           </p>
           <div class="current">
             <div>
-              <p class="eyebrow">Current position</p>
+              <p id="position-label" class="eyebrow">Current position</p>
               <strong id="current-sequence">—</strong>
             </div>
             <div>
               <p id="current-coordinates">No position received</p>
               <p id="latest-status" class="caption">
-                Waiting for latest-position view
+                Not subscribed · no snapshot received
               </p>
             </div>
           </div>
@@ -63,8 +63,10 @@
         <section class="history-panel" aria-labelledby="history-title">
           <p class="eyebrow">History view</p>
           <h2 id="history-title">Received so far</h2>
-          <p id="history-status" class="caption">Waiting for history view</p>
-          <ol id="history"></ol>
+          <p id="history-status" class="caption">
+            Not subscribed · no snapshot received
+          </p>
+          <ol id="history" tabindex="0" aria-label="Received positions"></ol>
           <p class="note">
             A gap in sequence numbers does not establish missing data. These are
             the positions ZooGlass has received.

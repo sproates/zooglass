@@ -1,8 +1,14 @@
 # Vehicle tracker demo
 
 A real browser receives two ZooGlass views for one vehicle: its latest position
-and the history received so far. Workbench drives the basic fixture through the
+and the history received so far. Workbench drives a twenty-position journey through the
 same service and browser connections used by the app.
+
+![Twenty received positions and the latest position 59.](docs/journey-views.png)
+
+The route includes turns and one deliberately delayed position: 41 arrives after 42. Positions 43–59 then arrive in order.
+
+### Short fixture
 
 ![Latest position 42 and received history 40, 42 in the browser.](docs/basic-views.png)
 
@@ -11,7 +17,7 @@ same service and browser connections used by the app.
 https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 
 [Download the demo recording (MP4)](docs/basic-run.mp4).
-The 11-second recording uses real ZooGlass snapshots, with longer pauses between
+The 11-second recording shows the short `--basic` fixture using real ZooGlass snapshots, with longer pauses between
 positions 40 and 42 so the changes are easy to follow.
 
 ## Run it
@@ -26,12 +32,13 @@ npm run demo -- vehicle-tracker
 
 The command compiles the app's TypeScript, starts ZooGlass and an owned Chromium
 session, connects the viewer and subscribes to both views. It sends positions
-40 and 42 from the [basic fixture](../workbench/scenarios/vehicle-browser-basic.json),
+40–59 from the [journey fixture](../workbench/scenarios/vehicle-browser-journey.json),
 awaiting the HTTP and browser receipt checks after each send. The page stays
-open at position 42 with history `[40, 42]`. Ctrl+C closes the owned resources.
+open at position 59 with twenty history entries. Add `--basic` to use the short
+40/42 fixture. Ctrl+C closes the owned resources.
 
-The current preview plays once automatically. Step/reset controls, detailed
-failure states, late delivery and recovery remain planned. To run again, stop
+The current preview plays once automatically. Step/reset controls, duplicate
+delivery and automatic recovery remain planned. To run again, stop
 and restart the command. `--headless` runs without a visible window. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
@@ -54,16 +61,31 @@ vehicle data. The app owns its ZooGlass socket and renders only validated
 snapshots received on that socket. Receipt observations go back to Workbench
 for checks; expected results stay outside the app.
 
+## Connection and view states
+
+Each view distinguishes waiting for its first snapshot from receiving an explicit
+empty snapshot. ZooGlass currently sends no snapshot for an uninitialised view,
+so a subscription acknowledgement alone leaves that view waiting.
+
+After disconnect or unsubscribe, previously received values remain visible and
+are labelled **Last received**. Reconnecting does not make them current: each
+view must receive its own fresh snapshot. A connection failure stops playback
+and shows an error. In a visible demo, the failed page remains open for
+inspection until closed or Ctrl+C; headless runs clean up immediately. Restart
+the command to try again. Automatic reconnection is not implemented.
+
 ## Checks and current limits
 
-From Workbench, `npm run test:browser` drives the fixture in Chromium and checks
-the visible sequence, coordinates, marker position and history at both
-checkpoints. It also checks that resubscription does not duplicate the history
+From Workbench, `npm run test:browser` drives both fixtures in Chromium and checks
+the visible sequence, coordinates, marker position and history at their
+checkpoints, including late 41 leaving the current position at 42. It also checks that resubscription does not duplicate the history
 and that the phone-width layout has no horizontal overflow. `npm run build`,
 `npm run lint` and `npm run format:check` include this app.
 
-These checks cover the basic rendering slice. The full demo still needs
-interactive lifecycle controls, repeat/reset acceptance, complete failure-state
-behaviour and rendered checks integrated into interactive action completion.
+Separate controlled protocol tests cover explicit empty snapshots, waiting,
+unsubscribe, reconnect and connection failure. They do not establish service
+recovery behaviour. These checks cover rendering and visible connection states. The full demo still needs
+interactive lifecycle controls, repeat/reset acceptance, automatic recovery
+and rendered checks integrated into interactive action completion.
 The local host registration is not production authorisation. See the
 [demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

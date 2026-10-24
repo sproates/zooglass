@@ -100,7 +100,19 @@ export async function startBrowserHost(baseUrl: string) {
     socket.on("error", () => socket.destroy());
     socket.on("close", () => sockets.delete(socket));
   });
-  const fail = (message: string) => controller.abort(new Error(message));
+  const fail = (message: string) => {
+    if (controller.signal.aborted) return;
+    if (ready && registered?.readyState === WebSocket.OPEN)
+      registered.send(
+        JSON.stringify({
+          type: "run-failed",
+          runId,
+          clientId,
+          reason: message,
+        }),
+      );
+    controller.abort(new Error(message));
+  };
   const client = createBrowserClientExecutor(
     clientId,
     controller.signal,
@@ -150,7 +162,7 @@ export async function startBrowserHost(baseUrl: string) {
         ) {
           ready = true;
         } else if (registered === socket && ready) {
-          client.receive(message);
+          if (!controller.signal.aborted) client.receive(message);
         } else {
           throw new Error();
         }

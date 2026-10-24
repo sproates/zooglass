@@ -28,13 +28,16 @@ demonstrates their specific cases, not production readiness.
 ## Next: a working browser view
 
 The [basic vehicle app](incubator/vehicle-tracker/README.md) now receives actual
-ZooGlass views under Workbench control. The shared fixture connects and
-subscribes its browser, then sends positions 40 and 42. Service and browser
+ZooGlass views under Workbench control. The default journey connects and
+subscribes its browser, then sends twenty positions (40–59), with 41 delayed
+until after 42. The short 40/42 fixture remains available with `--basic`. Service and browser
 receipt checks pass, and Chromium tests inspect the rendered coordinates,
 marker and history. The local command plays once and leaves the result open.
 
-The milestone remains incomplete: step/reset controls, fuller waiting/failure
-states and the complete repeat-run acceptance are still ahead. See the
+Waiting, explicit empty snapshots and retained/error states are visible. A
+failed visible run stops and keeps its page available for inspection.
+The milestone remains incomplete: step/reset controls and complete repeat-run
+acceptance are still ahead. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The first slice will provide:
@@ -53,9 +56,9 @@ acceptance criteria.
 
 ## Following: late delivery and recovery
 
-Extend that browser slice to show delayed position 41 filling history without
-moving the current marker back from 42, and duplicate delivery adding no extra
-history entry. Then keep the source running while the viewer is disconnected
+The journey already shows delayed position 41 filling history without moving
+the current marker back from 42. Extend it to verify duplicate delivery adding
+no extra history entry. Then keep the source running while the viewer is disconnected
 and verify that resubscription receives current snapshots.
 
 A separate fault scenario will interrupt the actual browser data path. The app

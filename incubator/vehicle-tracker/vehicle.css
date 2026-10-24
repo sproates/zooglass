@@ -146,3 +146,13 @@ footer {
     padding: 20px;
   }
 }
+
+#latest-status[data-state="retained"],
+#history-status[data-state="retained"] {
+  font-weight: 650;
+  color: #70411b;
+}
+#history {
+  max-height: 430px;
+  overflow-y: auto;
+}

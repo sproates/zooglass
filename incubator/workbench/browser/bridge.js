@@ -36,6 +36,11 @@ if (!runId || !clientId || !registration.get("token")) {
         status.textContent = "Connected to Workbench";
         return;
       }
+      if (message.type === "run-failed" && client) {
+        client.fail(message.reason);
+        status.textContent = "Workbench run failed · playback stopped";
+        return;
+      }
       if (
         message.type !== "command" ||
         !client ||
@@ -85,8 +90,9 @@ if (!runId || !clientId || !registration.get("token")) {
     }
   });
   control.addEventListener("close", () => {
+    client?.fail("Workbench control connection lost.");
     client?.close();
-    status.textContent = "Workbench disconnected.";
+    status.textContent = "Workbench disconnected · playback stopped";
   });
   control.addEventListener("error", () => {
     status.textContent = "Could not connect to Workbench.";

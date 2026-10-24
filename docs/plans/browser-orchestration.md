@@ -349,7 +349,10 @@ features now.
 ## Diagram sources
 
 The diagrams are committed as SVG images so the Markdown doesn't need Mermaid
-rendering support. Editable Mermaid sources are beside them in `diagrams/`:
-[browser architecture](diagrams/browser-architecture.mmd),
+rendering support. The [architecture SVG](diagrams/browser-architecture.svg) is
+hand-laid out: edit it directly to preserve the vertical stack and horizontal
+orchestration connections. Its earlier Mermaid sketch remains as
+[browser architecture sketch](diagrams/browser-architecture.mmd), not the source
+for regenerating the SVG. The sequence diagrams retain editable Mermaid sources:
 [normal scenario](diagrams/browser-scenario.mmd) and
 [connection recovery](diagrams/browser-recovery.mmd).

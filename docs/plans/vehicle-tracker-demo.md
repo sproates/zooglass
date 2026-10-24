@@ -231,8 +231,9 @@ Run the fixture through the existing Node executor from `incubator/workbench`:
 npm run integrate -- --fast scenarios/vehicle-browser-basic.json
 ```
 
-This verifies real ZooGlass processing and WebSocket receipt. Browser execution
-still requires the planned host to bind `rider-app` to its browser executor.
+This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../incubator/workbench/README.md#browser-host-preview)
+now launches and registers Chromium. Scenario execution still requires binding
+`rider-app` to the future browser executor.
 The browser observer must derive rendered expectations from this same fixture;
 source events and expected values must never supply the app's displayed state.
 Late events, duplicate delivery and recovery will extend the demo in later work.

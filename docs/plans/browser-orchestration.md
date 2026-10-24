@@ -1,8 +1,9 @@
 # Browser orchestration for the vehicle demo
 
 Status: design baseline. Shared Workbench service and scenario sessions are
-implemented; the browser host, control bridge and fault injection described here
-remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
+implemented, along with an owned Chromium bootstrap, registration connection
+and local data proxy. Browser scenario commands, the vehicle UI and fault
+injection described here remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision
 

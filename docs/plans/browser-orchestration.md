@@ -20,6 +20,25 @@ remain available for the headless scenario suite. There is no new general
 adapter framework, arbitrary-site automation or general network-fault simulator in this
 slice. One required fault is a proxy-controlled data-connection break and recovery.
 
+## One verification workflow
+
+Workbench is the entry point for defining, running and inspecting an end-to-end
+scenario. Specialist tools provide capabilities underneath it; the user should
+not have to coordinate separate browser scripts, proxy commands and reports.
+
+Use one scenario timeline and one run identity. Workbench owns startup,
+readiness, scheduling, fault control, checks and cleanup. Browser assertions may
+add presentation-specific expectations, but must not duplicate the event script.
+Present one overall outcome with failures attributed to the relevant action,
+client and check; retain tool-specific logs and screenshots as supporting detail.
+A failed required assertion or orchestration failure makes the run fail, even if
+another tool reports success. An interrupted or exploratory run is not a pass.
+
+Interactive execution and CI use the same orchestration semantics. Choose tools
+for defined capabilities and keep scheduling, retry and outcome ownership clear.
+Existing unit tests, lint and build checks remain separate focused developer
+checks; this design unifies scenario verification rather than replacing them.
+
 ## Ownership and connections
 
 | Component | Owns |

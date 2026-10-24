@@ -8,6 +8,11 @@ Keeping that view useful gets harder when updates arrive late, out of order, are
 
 ZooGlass aims to help keep event-driven views current, and clarify what data they reflect.
 
+[What we're trying to build](docs/what-is-zooglass.md) explains the intended
+product, the promises its views should make, and how Workbench will help us
+verify them. It uses a vertical architecture diagram to connect source events,
+ZooGlass and the application people actually see.
+
 At the moment ZooGlass is a very early prototype, I'm trying out ideas. You won't find much interesting code yet.
 
 The service uses Java 25 and Spring Boot.

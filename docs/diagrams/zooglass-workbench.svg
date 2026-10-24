@@ -1,13 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="950" viewBox="0 0 960 950" role="img" aria-labelledby="title desc">
-<title id="title">Workbench alongside the vehicle demo stack</title>
-<desc id="desc">The real browser, data proxy, ZooGlass and simulated source form a vertical stack on the right. Workbench runs alongside on the left, with horizontal connections to launch and inspect the browser, command its control bridge, break or restore the data proxy, check ZooGlass processing and advance source events. Vehicle data flows up the stack independently of orchestration.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="980" viewBox="0 0 960 980" role="img" aria-labelledby="title desc">
+<title id="title">ZooGlass and Workbench: intended vehicle architecture</title>
+<desc id="desc">Target design, including planned browser orchestration and fault injection. The real browser, data proxy, ZooGlass and simulated source form a vertical stack on the right. Workbench runs alongside on the left, with horizontal connections to launch and inspect the browser, command its control bridge, break or restore the data proxy, check ZooGlass processing and advance source events. Vehicle data flows up the stack independently of orchestration. Yellow identifies the test fault gate, not an active failure.</desc>
 <defs>
  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#286552"/></marker>
  <marker id="control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#496aaf"/></marker>
  <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182c40}.heading{font-size:25px;font-weight:700}.label{font-size:19px;font-weight:700}.small{font-size:17px}.detail{font-size:16px;fill:#40566d}.flow{stroke:#286552;stroke-width:3;fill:none;marker-end:url(#arrow)}.link{stroke:#496aaf;stroke-width:2;fill:none;marker-end:url(#control)}</style>
 </defs>
-<rect width="960" height="950" fill="#fff"/>
-<text x="42" y="44" class="heading">One scenario. Real components. Visible outcomes.</text>
+<rect width="960" height="980" fill="#fff"/>
+<text x="42" y="44" class="heading">Intended architecture: the vehicle example</text>
+<text x="42" y="67" class="detail">Target design; browser orchestration and fault injection are planned.</text>
 <rect x="40" y="80" width="270" height="770" rx="16" fill="#edf2fc" stroke="#496aaf" stroke-width="2"/>
 <text x="65" y="122" class="heading">Workbench</text>
 <text x="65" y="154" class="small">Coordinates the run</text>
@@ -42,6 +43,7 @@
 <path d="M758 760V700" class="flow"/><text x="775" y="737" class="detail">Events</text>
 <path d="M758 610V550" class="flow"/><text x="775" y="588" class="detail">Snapshots</text>
 <path d="M758 465V420" class="flow"/><text x="775" y="449" class="detail">Snapshots</text>
-<text x="42" y="894" class="small">Blue: orchestration and evidence. Green: data flowing up the stack.</text>
-<text x="42" y="925" class="detail">Subscriptions travel down the data path. Control stays available when that path breaks.</text>
+<text x="42" y="894" class="small">Blue: orchestration and evidence. Green: application data path.</text>
+<text x="42" y="923" class="small">Yellow: test fault injection, not a live warning or failure state.</text>
+<text x="42" y="955" class="detail">Subscriptions travel down the data path. Control stays available when that path breaks.</text>
 </svg>

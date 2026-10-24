@@ -1,7 +1,8 @@
 # Browser orchestration for the vehicle demo
 
-Status: proposed design for review. None of the orchestration described here is
-implemented yet. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
+Status: design baseline. Shared Workbench service and scenario sessions are
+implemented; the browser host, control bridge and fault injection described here
+remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision
 
@@ -41,7 +42,11 @@ checks; this design unifies scenario verification rather than replacing them.
 
 ## Architecture at a glance
 
-![Workbench controls the browser separately from the ZooGlass data path. Playwright checks the rendered view.](diagrams/browser-architecture.svg)
+![Workbench controls the browser separately from the ZooGlass data path. Playwright checks the rendered view.](../diagrams/zooglass-workbench.svg)
+
+This is the shared diagram used in the project-level
+[ZooGlass explanation](../what-is-zooglass.md). Yellow marks the test fault gate,
+not an active failure.
 
 The control path and the vehicle-data path are separate. Breaking the data proxy
 leaves Workbench able to observe and control the browser, while the source keeps
@@ -349,7 +354,7 @@ features now.
 ## Diagram sources
 
 The diagrams are committed as SVG images so the Markdown doesn't need Mermaid
-rendering support. The [architecture SVG](diagrams/browser-architecture.svg) is
+rendering support. The [architecture SVG](../diagrams/zooglass-workbench.svg) is
 hand-laid out: edit it directly to preserve the vertical stack and horizontal
 orchestration connections. Its earlier Mermaid sketch remains as
 [browser architecture sketch](diagrams/browser-architecture.mmd), not the source

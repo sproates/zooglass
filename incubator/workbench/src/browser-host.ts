@@ -1,3 +1,4 @@
+import { createBrowserClientExecutor } from "./browser-client-executor.js";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -25,12 +26,14 @@ export async function startBrowserHost(baseUrl: string) {
   let ready = false;
   let closing: Promise<void> | undefined;
   let origin = "";
-  const assets = new Map([
+  const assets = new Map<string, readonly [string, Buffer]>([
     [
       "/",
       [
         "text/html; charset=utf-8",
-        await readFile(new URL("../browser/index.html", import.meta.url)),
+        await readFile(
+          new URL("../../vehicle-tracker/index.html", import.meta.url),
+        ),
       ],
     ],
     [
@@ -40,13 +43,43 @@ export async function startBrowserHost(baseUrl: string) {
         await readFile(new URL("../browser/bridge.js", import.meta.url)),
       ],
     ],
+    [
+      "/vehicle-client.js",
+      [
+        "text/javascript; charset=utf-8",
+        await readFile(
+          new URL(
+            "../../vehicle-tracker/dist/vehicle-client.js",
+            import.meta.url,
+          ),
+        ),
+      ],
+    ],
+    [
+      "/view.js",
+      [
+        "text/javascript; charset=utf-8",
+        await readFile(
+          new URL("../../vehicle-tracker/dist/view.js", import.meta.url),
+        ),
+      ],
+    ],
+    [
+      "/vehicle.css",
+      [
+        "text/css; charset=utf-8",
+        await readFile(
+          new URL("../../vehicle-tracker/vehicle.css", import.meta.url),
+        ),
+      ],
+    ],
   ] as const);
   const server = createServer((request, response) => {
     if (request.headers.host !== new URL(origin).host) {
       response.writeHead(403).end();
       return;
     }
-    const asset = assets.get(request.url as "/" | "/bridge.js");
+    const asset = assets.get(request.url ?? "");
     if (request.method !== "GET" || !asset) {
       response.writeHead(404).end();
       return;
@@ -57,7 +90,7 @@ export async function startBrowserHost(baseUrl: string) {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "Content-Security-Policy":
-          "default-src 'none'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+          "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'",
         "X-Content-Type-Options": "nosniff",
       })
       .end(asset[1]);
@@ -68,6 +101,16 @@ export async function startBrowserHost(baseUrl: string) {
     socket.on("close", () => sockets.delete(socket));
   });
   const fail = (message: string) => controller.abort(new Error(message));
+  const client = createBrowserClientExecutor(
+    clientId,
+    controller.signal,
+    (message) => {
+      if (!ready || registered?.readyState !== WebSocket.OPEN)
+        throw new Error("Browser is not ready.");
+      registered.send(JSON.stringify({ ...message, runId, clientId }));
+    },
+    fail,
+  );
   controlServer.on("connection", (socket) => {
     const deadline = setTimeout(() => socket.terminate(), 5_000);
     socket.on("error", () => socket.terminate());
@@ -80,8 +123,10 @@ export async function startBrowserHost(baseUrl: string) {
       try {
         if (binary) throw new Error();
         const message = JSON.parse(data.toString());
-        if (message.runId !== runId || message.clientId !== clientId)
+        if (message.runId !== runId || message.clientId !== clientId) {
+          if (registered === socket && ready) return;
           throw new Error();
+        }
         if (
           !registered &&
           message.type === "register" &&
@@ -104,6 +149,8 @@ export async function startBrowserHost(baseUrl: string) {
           !ready
         ) {
           ready = true;
+        } else if (registered === socket && ready) {
+          client.receive(message);
         } else {
           throw new Error();
         }
@@ -209,6 +256,7 @@ export async function startBrowserHost(baseUrl: string) {
     runId,
     clientId,
     signal: controller.signal,
+    executor: client.executor,
     pageUrl: `${origin}/#${new URLSearchParams({ runId, clientId, token: registrationToken })}`,
     async waitForReady(signal: AbortSignal, timeoutMs = 15_000) {
       const combined = AbortSignal.any([
@@ -226,6 +274,7 @@ export async function startBrowserHost(baseUrl: string) {
       if (closing) return closing;
       closing = Promise.resolve().then(async () => {
         controller.abort(new Error("Browser host closed."));
+        await client.executor.close();
         for (const client of controlServer.clients) client.terminate();
         for (const client of dataServer.clients) client.terminate();
         for (const upstream of upstreams) upstream.terminate();

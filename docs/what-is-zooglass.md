@@ -200,7 +200,7 @@ The distinction between that foundation and the intended product matters:
 | View maintenance | Source/type matching, entity-scoped fields, runtime view definitions, and optional latest/history ordering by numeric sequence. |
 | Client delivery | HTTP view reads and WebSocket subscriptions with full snapshots. A reconnecting client can resubscribe for current state. |
 | Workbench | JSON scenarios, real service/source/Node-client connections, checks, and reusable service and scenario sessions. |
-| Browser verification | An owned Chromium bootstrap, registration connection and local proxy have transport checks against ZooGlass. The vehicle app, scenario commands, rendered-state checks and fault gate remain planned. |
+| Browser verification | The basic vehicle app receives real snapshots through an owned Chromium session and local proxy. Its 40/42 fixture has receipt and rendered checks. Interactive controls, reset, recovery and the fault gate remain planned. |
 | Data lifecycle | State is in memory. Durable recovery, replay and a bounded history-retention policy remain future work. |
 | Permissions | [Authorisation over time](requirements/authorisation.md) is required: scope checks on reads and subscriptions, plus bounded cessation after revocation or expiry. Design and enforcement remain outstanding. |
 | Broader view contracts | General source relationships, correction revisions, freshness/provenance metadata, and completeness signals remain design and implementation work. |

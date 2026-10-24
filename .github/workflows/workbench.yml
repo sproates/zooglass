@@ -6,12 +6,14 @@ on:
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
+      - "incubator/vehicle-tracker/**"
       - "incubator/zooglass/**"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
+      - "incubator/vehicle-tracker/**"
       - "incubator/zooglass/**"
 
 permissions:

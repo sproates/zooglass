@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZooGlass · Vehicle tracker</title>
+    <link rel="stylesheet" href="/vehicle.css" />
+    <script type="module" src="/bridge.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">ZooGlass / live views</p>
+        <h1>Follow the received facts.</h1>
+        <p class="intro">One vehicle. Two independent views of its journey.</p>
+      </header>
+      <div class="connection">
+        <span id="status" role="status">Connecting to Workbench…</span
+        ><span id="connection-status" role="status">ZooGlass disconnected</span>
+      </div>
+      <div class="layout">
+        <section class="route-panel" aria-labelledby="route-title">
+          <div class="panel-heading">
+            <h2 id="route-title">Vehicle car-17</h2>
+            <span class="tag">Schematic route</span>
+          </div>
+          <svg
+            viewBox="0 0 600 320"
+            role="img"
+            aria-labelledby="route-title route-description"
+          >
+            <path
+              class="grid"
+              d="M60 50H540 M60 105H540 M60 160H540 M60 215H540 M60 270H540 M60 50V270 M180 50V270 M300 50V270 M420 50V270 M540 50V270"
+            />
+            <polyline id="route-line" points="" />
+            <circle
+              id="vehicle-marker"
+              cx="0"
+              cy="0"
+              r="9"
+              visibility="hidden"
+            />
+            <text x="60" y="303">Longitude →</text>
+            <text x="60" y="30">Latitude ↑</text>
+          </svg>
+          <p id="route-description" class="caption">
+            Waiting for received coordinates.
+          </p>
+          <div class="current">
+            <div>
+              <p class="eyebrow">Current position</p>
+              <strong id="current-sequence">—</strong>
+            </div>
+            <div>
+              <p id="current-coordinates">No position received</p>
+              <p id="latest-status" class="caption">
+                Waiting for latest-position view
+              </p>
+            </div>
+          </div>
+        </section>
+        <section class="history-panel" aria-labelledby="history-title">
+          <p class="eyebrow">History view</p>
+          <h2 id="history-title">Received so far</h2>
+          <p id="history-status" class="caption">Waiting for history view</p>
+          <ol id="history"></ol>
+          <p class="note">
+            A gap in sequence numbers does not establish missing data. These are
+            the positions ZooGlass has received.
+          </p>
+        </section>
+      </div>
+      <footer>
+        Snapshots arrive independently. Connecting points is a visual aid, not
+        proof of the route travelled. Step and reset controls are still being
+        built.
+      </footer>
+    </main>
+  </body>
+</html>

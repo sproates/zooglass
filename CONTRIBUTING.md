@@ -30,7 +30,8 @@ The [prototype guide](incubator/zooglass/README.md) describes the service and
 protocol. The [Workbench guide](incubator/workbench/README.md) covers scenarios,
 CLI commands and shared sessions. Source and tests live under their respective
 `incubator/zooglass` and `incubator/workbench` directories; project explanations
-and designs live under `docs/`.
+and designs live under `docs/`. The browser app lives in `incubator/vehicle-tracker`
+and uses Workbench's build and check commands.
 
 ## Make a focused change
 
@@ -73,6 +74,16 @@ npm run format:check
 npm test
 npm run build
 ```
+
+For browser-host or vehicle-app changes, also run from Workbench:
+
+```sh
+npx playwright install chromium
+npm run test:browser
+```
+
+On Linux, use `npx playwright install --with-deps chromium` if browser system
+packages are needed. These tests launch an owned Chromium session.
 
 The Workbench suite starts real ZooGlass processes, so it also needs JDK 25.
 Use `npm run format` in that directory to apply formatting, then inspect the diff

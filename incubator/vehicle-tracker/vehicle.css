@@ -1,0 +1,148 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #18342f;
+  background: #f3f5ef;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1120px;
+  margin: auto;
+  padding: 44px 24px;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #516c61;
+  margin: 0 0 12px;
+}
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.045em;
+  margin: 0;
+  font-weight: 650;
+}
+.intro {
+  color: #516c61;
+  font-size: 1.1rem;
+  margin: 14px 0 28px;
+}
+.connection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  border-top: 1px solid #cbd6cb;
+  padding: 16px 0 24px;
+  font-size: 0.85rem;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 20px;
+}
+section {
+  background: #fff;
+  border: 1px solid #d7dfd3;
+  border-radius: 14px;
+  padding: 26px;
+}
+h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tag {
+  font-size: 0.72rem;
+  padding: 6px 10px;
+  background: #edf2e8;
+  border-radius: 20px;
+}
+svg {
+  width: 100%;
+  height: auto;
+  margin-top: 18px;
+  overflow: visible;
+}
+.grid {
+  stroke: #e3e9df;
+  fill: none;
+}
+#route-line {
+  fill: none;
+  stroke: #87a891;
+  stroke-width: 4;
+}
+#vehicle-marker {
+  fill: #146b52;
+  stroke: white;
+  stroke-width: 3;
+}
+svg text {
+  fill: #597269;
+  font-size: 12px;
+}
+.caption,
+.note,
+footer {
+  font-size: 0.8rem;
+  color: #536a60;
+  line-height: 1.6;
+}
+.current {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  border-top: 1px solid #e2e8dd;
+  margin-top: 20px;
+  padding-top: 22px;
+}
+#current-sequence {
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+}
+#current-coordinates {
+  font-variant-numeric: tabular-nums;
+}
+#history {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+}
+#history li {
+  padding: 15px 0;
+  border-bottom: 1px solid #e2e8dd;
+  font-size: 0.87rem;
+  font-variant-numeric: tabular-nums;
+}
+.note {
+  margin-top: 30px;
+}
+footer {
+  max-width: 720px;
+  margin-top: 24px;
+}
+@media (max-width: 700px) {
+  main {
+    padding: 28px 16px;
+  }
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  section {
+    padding: 20px;
+  }
+}

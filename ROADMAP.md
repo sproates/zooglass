@@ -73,10 +73,24 @@ After the browser work, the product still needs decisions and evidence around:
   records options without selecting a policy.
 - Durable state, retention and recovery contracts, including when replay is
   needed rather than a fresh snapshot.
-- Access rules and integration with independently operated sources.
+- Integration with independently operated sources.
 
 These are areas to develop, not a committed delivery sequence. Each needs a
 specific contract and a way to test it before we can describe it as supported.
+
+## Required: authorisation over time
+
+ZooGlass must enforce permissions on snapshots, live subscriptions and recovery,
+and stop active delivery within a specified bound when access is revoked or
+expires. Resource and tenant boundaries must hold throughout those paths.
+Reconnecting must not bypass a permission change.
+
+This is a product requirement, with design and implementation still outstanding.
+The [authorisation requirement](docs/requirements/authorisation.md) sets out the
+expected behaviour, acceptance scenarios and decisions needed before delivery.
+Workbench must verify access loss while real updates continue, as well as
+allowed access and denied requests. This work has no delivery date or committed
+position in the sequence yet; the current browser milestone remains the focus.
 
 ## Follow the work
 

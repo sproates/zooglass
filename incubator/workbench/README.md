@@ -201,6 +201,12 @@ business rules of a sportsbook, order system, or ride service.
 - `client-reconnect-snapshot.json` disconnects a subscribed client while two
   updates arrive, then reconnects and checks that a new subscription receives
   the latest snapshot.
+- `vehicle-browser-basic.json` is the finite first slice for the planned browser
+  demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
+  positions 40 and 42 for `car-17`. Each send is followed by HTTP and client
+  receipt checks for both views. The current CLI and test suite execute it with
+  a real Node WebSocket client; browser execution and rendered checks remain
+  planned.
 - `vehicle-event-ordering.json` sends vehicle positions out of sequence and
   checks a latest-position view and an ordered trip history view.
 - `sequence-gap.json` shows a history view before and after a missing vehicle

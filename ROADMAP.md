@@ -29,7 +29,9 @@ demonstrates their specific cases, not production readiness.
 
 The next implementation milestone is a vehicle app receiving actual ZooGlass
 views under Workbench control. Session extraction is merged; the browser
-fixture, host and app have not started.
+fixture now defines connection, subscriptions and positions 40 and 42, with
+service and Node-client receipt checks. The browser host and app remain planned.
+See the [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The first slice will provide:
 

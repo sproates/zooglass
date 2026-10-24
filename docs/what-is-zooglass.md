@@ -202,7 +202,8 @@ The distinction between that foundation and the intended product matters:
 | Workbench | JSON scenarios, real service/source/Node-client connections, checks, and reusable service and scenario sessions. |
 | Browser verification | The browser app, orchestration bridge, rendered-state checks and fault gate in the diagram are planned. |
 | Data lifecycle | State is in memory. Durable recovery, replay and a bounded history-retention policy remain future work. |
-| Broader view contracts | General source relationships, correction revisions, freshness/provenance metadata, completeness signals and access controls remain design and implementation work. |
+| Permissions | [Authorisation over time](requirements/authorisation.md) is required: scope checks on reads and subscriptions, plus bounded cessation after revocation or expiry. Design and enforcement remain outstanding. |
+| Broader view contracts | General source relationships, correction revisions, freshness/provenance metadata, and completeness signals remain design and implementation work. |
 
 The [prototype guide](../incubator/zooglass/README.md) describes the behaviour
 available to try now, and the [Workbench guide](../incubator/workbench/README.md)

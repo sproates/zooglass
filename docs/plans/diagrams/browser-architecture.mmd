@@ -1,0 +1,23 @@
+flowchart TB
+  W[Workbench scenario controller]
+  C[Browser control bridge]
+  A[Vehicle app and rendered view]
+  P[Data proxy and fault gate]
+  Z[ZooGlass views]
+  F[Simulated vehicle feed]
+  T[Playwright observer]
+  W <-->|Commands and observations| C
+  C -->|Operate real socket| A
+  A <-->|Subscriptions and snapshots| P
+  P <-->|Real data path| Z
+  W -->|Break or restore| P
+  W -->|Advance source| F
+  F -->|Events| Z
+  W -->|Launch and check| T
+  T -.->|Inspect DOM and SVG| A
+  classDef control fill:#e8eefc,stroke:#4464a1,color:#172747
+  classDef data fill:#e5f4ed,stroke:#347957,color:#163b29
+  classDef fault fill:#fff0d6,stroke:#b17c24,color:#593c0d
+  class W,C,T control
+  class A,Z,F data
+  class P fault

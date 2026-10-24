@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant W as Workbench
+  participant B as Real browser
+  participant G as Data proxy gate
+  participant Z as ZooGlass
+  W->>W: Declare expected-fault interval
+  W->>G: Break client data path
+  G->>G: Reject new upgrades and discard queued relay data
+  G--xB: Abruptly terminate active transport
+  G--xZ: Close upstream transport
+  B->>B: Observe closure, label last data, start retry
+  B-->>W: Report interruption over live control path
+  B->>G: Automatic reconnect attempt
+  G-->>B: Refused while gate is closed
+  W->>Z: Source sends position 43
+  W->>Z: Check both server views contain 43
+  W->>G: Restore route
+  Note over W,B: No reconnect command is sent to the app
+  B->>G: Next automatic reconnect attempt
+  G->>Z: Establish upstream connection
+  B->>Z: Resubscribe through proxy
+  Z-->>B: Acknowledgements and initial snapshots through 43
+  B-->>W: Report receipts for new connection generation
+  W->>W: Check first snapshots and independent rendered result
+  Note over W,Z: Source and browser control remain live throughout

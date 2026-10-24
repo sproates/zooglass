@@ -1,6 +1,11 @@
 # Vehicle tracker demo
 
-Status: implementation plan. The demo is not implemented yet.
+Status: implementation plan, with browser orchestration proposed for review.
+The demo is not implemented yet.
+
+The [browser orchestration design](browser-orchestration.md) defines client
+ownership, scenario actions, acknowledgements, checks and failure behaviour.
+It governs the orchestration details summarised here.
 
 ## Purpose
 
@@ -41,7 +46,8 @@ The intended local command is `npm run demo -- vehicle-tracker` from Workbench.
 This is a proposed command to implement, not one available today. After the
 normal dependency installation, it should build the browser assets, start the
 session, wait for ZooGlass health and print the browser URL. Keep the existing
-Node 26 and JDK 25 requirements.
+Node 26 and JDK 25 requirements. The command will launch an owned Chromium
+session through Playwright; browser installation becomes a documented setup step.
 
 ## What the user sees
 
@@ -106,7 +112,9 @@ from an old socket overwriting the new connection's state.
 | 5 | Disconnect the viewer and send position 43 | Browser retains its last received data with a disconnected label; ZooGlass advances to 43. |
 | 6 | Reconnect and resubscribe | Initial snapshots show current position 43 and history `[40, 41, 42, 43]`. |
 
-The source connection belongs to Workbench, independently of the viewer socket.
+Workbench launches the browser and commands its actual connection controller
+through a separate control connection. The source connection belongs to
+Workbench, independently of the viewer socket.
 Disconnecting the viewer must not interrupt delivery or pause the scenario.
 Pause stops future scheduled actions; it doesn't cancel an event already sent.
 Serialise step/play commands so repeated clicks cannot create overlapping runs.
@@ -126,9 +134,27 @@ production reset endpoint or accumulating runtime view definitions. Keep the
 fixture finite because history retention is currently unbounded. Stop owned
 processes and sockets when the demo command exits.
 
-## Delivery in two PRs
+## Required connection-loss run
 
-### PR 1: a working browser view
+Also demonstrate an unexpected data-path interruption. Workbench must break the
+browser's real proxied ZooGlass connection, refuse reconnect attempts while the
+source advances to position 43, then restore the route. The browser detects the
+failure, labels retained data and automatically reconnects and resubscribes.
+Verify initial snapshots and rendered state through 43 without duplicate history.
+The Workbench control path remains usable throughout. This is additional to the
+six deliberate-action steps above; it must not be implemented by sending the app
+a disconnect command. See the [orchestration design](browser-orchestration.md)
+for fault, retry, timeout and reset semantics.
+
+## Delivery in three PRs
+
+### PR 1: shared Workbench sessions
+
+Extract process and connected-session ownership and the client execution boundary.
+Keep existing CLI scenarios working with Node clients. Check startup failure,
+repeated close and clean shutdown before introducing the browser host.
+
+### PR 2: a working browser view
 
 Add the browser app and the smallest Workbench interactive session needed to
 serve it. Reuse process startup, health checking and source delivery. Provide
@@ -140,28 +166,28 @@ Acceptance: from a fresh session, a browser displays both views after source
 events pass through ZooGlass. Reset returns to an empty session and another run
 works. The existing Workbench commands and scenario suite still pass.
 
-### PR 2: late delivery and recovery
+### PR 3: late delivery and recovery
 
-Complete the sequence above, add play/pause and independent viewer connection
+Complete the sequence and required connection-loss run above, add play/pause and independent viewer connection
 controls, and add the bounded activity trace and explanations. Keep the fixture
 and automated expected results together in Workbench. Cover disconnect/reconnect,
 delayed processing and repeated resets through the browser path.
 
-Acceptance: every row in the demonstration sequence is observable and checked.
+Acceptance: every row in the demonstration sequence and the unexpected
+connection-loss recovery are observable and checked.
 The late event fills in history without moving the marker backwards; reconnect
 gets current snapshots while the source has continued running.
 
-The two-PR estimate assumes a small browser app and focused reuse of Workbench
-internals. If extracting lifecycle code becomes substantial, split that into a
-preparatory PR with unchanged existing command behaviour.
+The three-PR split separates session extraction from the browser control
+connection and UI. All scenario client actions in this demo target the real
+browser. The existing Node executor remains available for headless scenarios.
 
 ## Verification and completion
 
 - Keep the existing Workbench suite green, including real ZooGlass scenario runs.
 - Add browser automation for initial subscriptions, late insertion, duplicate
-  handling, reconnect, reset and visible connection failures. A browser test tool
-  such as Playwright can be added for this purpose; select and pin it during
-  implementation.
+  handling, reconnect, reset and visible connection failures. Use Playwright with Chromium for
+  launch and independent rendered-state checks; pin tooling during implementation.
 - Check duplicate handling after a later processing barrier, since an unchanged
   view can satisfy a check before the duplicate has reached ZooGlass.
 - Test reconnect snapshots before sending another source event, so a later live

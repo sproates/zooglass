@@ -137,6 +137,34 @@ subscribe again, and check the current snapshot it receives.
 The format and runner are an initial experiment and can change as the workbench
 grows.
 
+## Reusing a connected session
+
+`startZooGlassSession({ views, signal })` owns one local service, its readiness
+check and temporary view configuration. It returns `baseUrl`, a lifetime
+`signal` and an asynchronous, idempotent `close()`. The service binds to
+loopback; its directory is resolved relative to the module, independently of
+the caller's working directory. Startup failure cleans up before rejecting.
+
+`openScenarioSession(scenario, baseUrl, { signal })` owns source sockets and
+client executors. Call `execute(entry)` for each entry from `playScenario`.
+Execution waits for the action's existing completion condition, but does not
+apply `simulationTime` delays. The caller owns scheduling. Concurrent actions
+are rejected. Closing cancels the active action, waits for it to settle, then
+closes all connections and executors. Always close the scenario session before
+the service in `finally` blocks, including after an action fails.
+
+The optional `createClientExecutor(client, liveUrl)` factory binds each declared
+client to an executor with `execute(entry, signal)` and `close()` methods. The
+session owns every returned executor. Each must honour cancellation and finish
+its cleanup before `close()` resolves. The default uses Node WebSockets; a
+browser executor can implement the same boundary. Source events, runtime view
+definitions and HTTP checks continue through the shared session.
+
+The CLI retains timed and `--fast` playback and batch namespacing. Interrupting
+it cancels pending waits and closes its sessions. WebSocket close waits are
+bounded and report failure; service shutdown terminates the owned process tree
+and waits for its output streams to close before removing configuration.
+
 ## Scenarios
 
 ZooGlass has unit and functional tests for its components and core running

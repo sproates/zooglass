@@ -71,9 +71,11 @@ export async function startZooGlassSession(
               await new Promise<void>((resolve, reject) => {
                 execFile(
                   "taskkill",
-                  ["/PID", String(pid), "/T", "/F"],
+                  ["/PID", String(pid), "/T", ...(force ? ["/F"] : [])],
                   (error) => {
-                    if (error && !finished) reject(error);
+                    // Some console processes refuse non-forced taskkill.
+                    // Still allow the grace period and forced fallback.
+                    if (error && force && !finished) reject(error);
                     else resolve();
                   },
                 );

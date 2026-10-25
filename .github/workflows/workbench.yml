@@ -44,8 +44,14 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run build
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: workbench-standard-coverage
+          path: incubator/workbench/coverage/standard/
+          if-no-files-found: warn
 
   browser-host:
     runs-on: ubuntu-latest
@@ -67,10 +73,16 @@ jobs:
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
+      - run: npm run test:browser:coverage
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: browser-check-failures
           path: incubator/workbench/test-results/
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: workbench-browser-host-coverage
+          path: incubator/workbench/coverage/browser-host/
+          if-no-files-found: warn

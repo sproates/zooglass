@@ -134,3 +134,8 @@ Run the tests with:
 - **Integration tests** check behavior across a boundary between ZooGlass and
   another system, such as Kafka delivering events to ZooGlass. We don't have
   these yet.
+
+## Test coverage
+
+See the [verification map](../../docs/testing.md) for coverage commands, report
+boundaries and the remaining behavioural gaps.

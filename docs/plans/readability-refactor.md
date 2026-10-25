@@ -127,12 +127,23 @@ for host-only checks and a real browser for the bridge integration check. This
 fixture proves composition at the existing boundary; it does not promise support
 for every consumer UI.
 
-Run `test:core` with an empty `PLAYWRIGHT_BROWSERS_PATH` and no generated
-vehicle-tracker output in an isolated checkout. Installing the npm development
-dependencies, including the Playwright package, is allowed. The browser suites
-separately build their assets and use installed engines. Preserve real transport
-checks as the primary evidence for service behaviour, and keep demo rendering
-checks labelled and separately runnable.
+In an isolated checkout with no generated vehicle-tracker output, create a fresh
+temporary directory and confirm it is empty. Set `PLAYWRIGHT_BROWSERS_PATH` to
+that directory's absolute path for the `test:core` process and its children.
+Do not leave the value unset or empty: Playwright then falls back to its default
+user cache. Do not use `0`, which selects package-local browser installations.
+
+Run `test:core` without installing browsers, then confirm the temporary directory
+is still empty and no vehicle build output was created. Record the command,
+exit status and both directory checks as acceptance evidence. Review the core
+execution path for explicit executable paths or branded browser channels that
+could bypass this directory; it must not launch a browser. This recipe is a
+planned check, not evidence that the core command has already been implemented.
+
+Installing the npm development dependencies, including the Playwright package,
+is allowed. The browser suites separately build their assets and use installed
+engines. Preserve real transport checks as the primary evidence for service
+behaviour, and keep demo rendering checks labelled and separately runnable.
 
 ## Acceptance criteria
 

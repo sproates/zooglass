@@ -182,7 +182,7 @@ that extracting modules implements those capabilities.
 
 ## Client presentation extraction
 
-The client boundary is implemented pending review and merge. The existing
+The client boundary merged in PR #54. The existing
 browser build now contains a DOM-free `subscription-client.ts` and a small
 `vehicle-client.ts` binding. The protocol module owns socket generations,
 subscriptions, acknowledgement completion and receipt reporting. The binding
@@ -192,5 +192,22 @@ message. No scenario expectations enter either module.
 Eight focused checks use an inventory binding without a DOM. Existing browser
 protocol, reconnection and rendered checks protect the vehicle binding. The
 module stays in the current browser build; packaging a general client library
-is outside this extraction. Shared interactive/automatic run assembly remains
-outstanding, including protecting automatic failure paths before moving them.
+is outside this extraction. Shared interactive/automatic run assembly is implemented pending review and merge,
+with automatic failure paths protected before extraction.
+
+
+## Shared vehicle-run extraction
+
+`vehicle-run.ts` owns service/browser acquisition, one scenario binding and
+ordered cleanup. Scenario closure is separate from full closure so visible
+automatic failures retain their inspection window. The interactive controller
+and automatic playback keep their existing policies and cancellation ownership.
+Pending scenario setup is cancelled before cleanup waits for it to settle.
+
+Eight controlled automatic-flow cases passed before and after the extraction.
+Four ownership cases cover repeated calls, closing without a scenario, aggregated
+cleanup failures and cancellation during setup. Automatic cleanup now reports all
+resource cleanup errors through the same DemoCleanupError used by the interactive
+controller; this is an intentional diagnostic improvement over nested finally
+blocks replacing earlier cleanup errors. Real browser/CLI integration checks
+remain the evidence for actual process, transport and rendering behaviour.

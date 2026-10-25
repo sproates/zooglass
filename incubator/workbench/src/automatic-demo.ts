@@ -1,11 +1,8 @@
-import { observeVehicleSession } from "./vehicle-observer.js";
 import { fileURLToPath } from "node:url";
-import { openScenarioSession } from "./scenario-session.js";
 import { playScenario } from "./playback.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { loadScenario } from "./scenario.js";
-import { startZooGlassSession } from "./zooglass-session.js";
-import { startVehicleBrowserSession } from "./vehicle-browser.js";
+import { startVehicleRun } from "./vehicle-run.js";
 
 export async function runAutomaticDemo(args: string[]) {
   if (
@@ -31,31 +28,16 @@ export async function runAutomaticDemo(args: string[]) {
         ),
       ),
     );
-    const service = await startZooGlassSession({
-      views: scenario.views,
+    const run = await startVehicleRun(scenario, {
       signal: controller.signal,
+      headless: args.includes("--headless"),
+      keepOpenOnFailure: !args.includes("--headless"),
     });
+    const browser = run.browser;
     try {
-      const browser = await startVehicleBrowserSession(service.baseUrl, {
-        signal: service.signal,
-        headless: args.includes("--headless"),
-        keepOpenOnFailure: !args.includes("--headless"),
-      });
       try {
         console.log(`Browser host ready at ${browser.host.origin}`);
-        const session = await openScenarioSession(scenario, service.baseUrl, {
-          signal: browser.signal,
-          createClientExecutor: (client) => {
-            if (client.id !== browser.host.clientId)
-              throw new Error("Unbound browser client.");
-            return browser.host.executor;
-          },
-        });
-        const observed = observeVehicleSession(
-          session,
-          browser.page,
-          browser.signal,
-        );
+        const observed = await run.openScenario();
         try {
           let previousTime = 0;
           for (const entry of playScenario(scenario)) {
@@ -76,7 +58,7 @@ export async function runAutomaticDemo(args: string[]) {
             );
           if (!controller.signal.aborted) throw browser.signal.reason;
         } finally {
-          await session.close();
+          await run.closeScenario();
         }
       } catch (error) {
         if (
@@ -98,11 +80,9 @@ export async function runAutomaticDemo(args: string[]) {
           ]);
         }
         throw error;
-      } finally {
-        await browser.close();
       }
     } finally {
-      await service.close();
+      await run.close();
     }
   } catch (error) {
     if (!controller.signal.aborted) throw error;

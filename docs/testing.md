@@ -432,3 +432,20 @@ These focused checks are protocol boundary evidence, not a substitute for those
 integration checks. The browser module remains outside the current c8
 `src/**/*.ts` coverage scope and requires the existing browser TypeScript build.
 The independent core verification command remains planned.
+
+
+## Shared demo ownership checks
+
+`test/automatic-demo.test.ts` protects browser/scenario startup failure, execution
+failure, visible inspection before teardown, interruption during delay or the
+completion wait, and cleanup after scenario closure fails. These eight cases
+passed against the original automatic path before the shared run extraction.
+`test/vehicle-run.test.ts` adds four checks for repeated open/close, closure without
+a scenario, aggregation of cleanup errors and cancellation of pending setup.
+
+The small fixture in `test/support/automatic-demo.ts` transpiles the real entry
+point and run owner with controlled service/browser/session boundaries. It tests
+control flow without starting a second orchestration system. These VM checks do
+not contribute source coverage to c8. Existing real-browser tests, including
+interactive and automatic CLI interruption, retain process and transport evidence;
+the controlled cases are not substitutes for those integration checks.

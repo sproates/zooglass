@@ -137,3 +137,55 @@ test("browser receipt overflow fails rather than discarding evidence", async () 
   assert.deepEqual(failures, ["Browser receipt buffer exhausted."]);
   await control.executor.close();
 });
+
+test(
+  "reconnect discards buffered receipts and ignores late old-generation observations",
+  { timeout: 3000 },
+  async () => {
+    const control = createBrowserClientExecutor(
+      "rider-app",
+      new AbortController().signal,
+      () => {},
+      () => {},
+    );
+    const observation = (event: string, generation: number, index: number) =>
+      control.receive({
+        type: "observation",
+        event,
+        connectionGeneration: generation,
+        observationIndex: index,
+        viewId: check.viewId,
+        entityId: check.entityId,
+        data: check.expected,
+      });
+    try {
+      observation("opened", 1, 1);
+      observation("view-update", 1, 2);
+      observation("opened", 2, 3);
+      observation("view-update", 1, 100);
+      let completed = false;
+      const waiting = control.executor.execute(
+        check,
+        new AbortController().signal,
+      );
+      void waiting.then(() => {
+        completed = true;
+      });
+      await Promise.resolve();
+      assert.equal(
+        completed,
+        false,
+        "neither the buffered nor late old receipt satisfies the new check",
+      );
+      observation("view-update", 2, 4);
+      await waiting;
+      assert.equal(
+        completed,
+        true,
+        "a stale high index must not suppress current observations",
+      );
+    } finally {
+      await control.executor.close();
+    }
+  },
+);

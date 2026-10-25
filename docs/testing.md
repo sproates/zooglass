@@ -91,9 +91,9 @@ for review, not a claim of exhaustive coverage.
 | --- | --- | --- |
 | Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation now have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport delivery remains separate work. |
 | Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
-| Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Subscription/update races, stale callbacks, delayed or absent snapshots and cancellation at each boundary. |
-| Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | More arrival permutations and old-generation events during replacement. Browser behaviour is tested but not instrumented for coverage. |
-| Controller and executor lifecycle | `test/demo-controller.test.ts`, `sessions.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | A systematic transition/failure matrix; current examples don't establish every interleaving. |
+| Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. Automatic retry and real fault-gate recovery remain future work. |
+| Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
+| Controller and executor lifecycle | `test/demo-controller.test.ts`, `sessions.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
 | Slow-client protection | `LiveViewBroadcasterTests.java` uses blocked mock writes to exercise bounded queues and event processing. | Real multi-client transport isolation under sustained load, including a healthy client beside a slow one. |
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | A contract-based invalid-message matrix, duplicate/unexpected acknowledgements and partial protocol failures. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
@@ -127,6 +127,38 @@ removes the irrelevant suffix, but there is no automatic minimal-case shrinker.
 These are sequential store tests, not proof of concurrent socket behaviour or
 complete coverage of every numeric value and event combination. Existing real
 HTTP/WebSocket and Workbench tests continue to cover transport integration.
+
+## Reconnection and lifecycle boundaries
+
+The controlled peer in `test/browser/support/view-peer.ts` supplies real WebSocket
+messages and can hold an acknowledgement until a test releases it. The browser
+reconnection tests cover:
+
+- Latest-first and history-first snapshots after reconnect, with the other view
+  retaining its old value and freshness label until its own snapshot arrives.
+- Late message, open, error and close callbacks dispatched explicitly on the old
+  real socket. Fresh data must still arrive through the replacement socket.
+- A missing snapshot remaining pending until session closure cancels its check.
+- An update arriving before unsubscribe acknowledgement, followed by a new
+  subscription that requires a fresh snapshot.
+- Connection loss while subscribe or unsubscribe acknowledgement is pending:
+  reject the operation, fail the run and retain the failed page for inspection.
+
+A separate executor check proves that reconnect clears buffered old receipts and
+that a late old-generation observation with a high index cannot suppress a valid
+current receipt. These checks don't rely on a sleep to establish event ordering.
+
+`test/demo-controller-races.test.ts` pauses a fake owned run at six explicit
+boundaries: source delivery, HTTP check, client receipt check, disconnect,
+reconnect and resubscribe. At each boundary, both Reset and Close must cancel the
+run, drain the active action, then clean up. Reset can acquire its replacement
+only afterwards, and the replacement starts with zero progress and can advance.
+Existing tests cover acquisition cancellation and cleanup failure. The matrix
+checks controller ownership independently of browser scheduling; existing
+real-service/browser reset and recovery tests remain integration evidence.
+
+These are bounded cases, not a claim that every possible interleaving has been
+explored. They don't implement automatic retries or a proxy fault gate.
 
 ## Work that follows
 

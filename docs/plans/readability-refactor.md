@@ -189,7 +189,7 @@ subscriptions, acknowledgement completion and receipt reporting. The binding
 owns allowed vehicle IDs, presentation calls and the user-facing disconnect
 message. No scenario expectations enter either module.
 
-Five focused checks use an inventory binding without a DOM. Existing browser
+Eight focused checks use an inventory binding without a DOM. Existing browser
 protocol, reconnection and rendered checks protect the vehicle binding. The
 module stays in the current browser build; packaging a general client library
 is outside this extraction. Shared interactive/automatic run assembly remains

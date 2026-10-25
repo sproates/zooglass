@@ -38,9 +38,14 @@ export function createSubscriptionClient(
     if (failure) return;
     failure = reason;
     deliberateClose = true;
-    binding.onConnection("error", reason);
     acknowledgement?.reject(new Error(reason));
     acknowledgement = undefined;
+    // Rendering an error must not prevent cleanup or hide the original failure.
+    try {
+      binding.onConnection("error", reason);
+    } catch {
+      // The client is already failed; continue closing and notifying Workbench.
+    }
     socket?.close();
     if (notify) fail(reason);
   };
@@ -93,7 +98,6 @@ export function createSubscriptionClient(
               throw new Error("Unexpected subscription response.");
             if (message.type === "subscribed") subscriptions.add(pair);
             else subscriptions.delete(pair);
-            acknowledgement = undefined;
             binding.onSubscription(
               message.viewId,
               message.entityId,
@@ -103,6 +107,7 @@ export function createSubscriptionClient(
               viewId: message.viewId,
               entityId: message.entityId,
             });
+            acknowledgement = undefined;
             waiting.resolve();
           } else if (
             message.type === "view-update" &&
@@ -143,9 +148,18 @@ export function createSubscriptionClient(
           "open",
           () => {
             if (socket !== current || failure) return;
-            binding.onConnection("connected");
-            observe("opened");
-            resolve();
+            try {
+              binding.onConnection("connected");
+              observe("opened");
+              resolve();
+            } catch (error) {
+              const reason =
+                error instanceof Error
+                  ? error.message
+                  : "Could not present connection state.";
+              reject(new Error(reason));
+              markFailure(reason);
+            }
           },
           { once: true },
         );

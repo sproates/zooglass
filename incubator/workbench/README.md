@@ -540,7 +540,10 @@ extraction does not introduce a separately packaged client SDK.
 `vehicle-client.ts` binds that protocol to `car-17`, `live-map`, `trip-history`
 and the existing view renderer. Snapshot handling still precedes receipt reporting:
 a rejected vehicle snapshot fails the run without reporting a successful receipt.
-Presentation callbacks are synchronous. Workbench expectations remain outside
+Presentation callbacks are synchronous. A failure while presenting a connected
+state or subscription acknowledgement rejects the command and fails the client.
+Failure to render the error state must not prevent cleanup or hide the original
+failure. Workbench expectations remain outside
 the client, and rendered checks remain in the demo-specific observer.
 
 Interactive and automatic demo resource assembly is still separate. Sharing that

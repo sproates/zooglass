@@ -228,3 +228,64 @@ test("unexpected closure rejects pending acknowledgement and reports the binding
     ),
   );
 });
+
+test(
+  "a connected presentation failure rejects connect and closes the socket",
+  { timeout: 1000 },
+  async () => {
+    const f = await fixture({
+      onConnection(state) {
+        if (state === "connected")
+          throw new Error("Cannot render connected state.");
+      },
+    });
+    await assert.rejects(f.connect(), /Cannot render connected state/);
+    assert.deepEqual(f.failures, ["Cannot render connected state."]);
+    assert.equal(
+      f.observations.some((e) => e.event === "opened"),
+      false,
+    );
+    assert.equal(f.observations.at(-1)!.event, "closed");
+    await assert.rejects(
+      f.client.execute({ action: "connect" }),
+      /Cannot render connected state/,
+    );
+  },
+);
+
+test(
+  "an error presentation failure cannot prevent command rejection or socket cleanup",
+  { timeout: 1000 },
+  async () => {
+    const f = await fixture({
+      onConnection(state) {
+        if (state === "connected" || state === "error")
+          throw new Error(`Cannot render ${state}.`);
+      },
+    });
+    await assert.rejects(f.connect(), /Cannot render connected/);
+    assert.deepEqual(f.failures, ["Cannot render connected."]);
+    assert.equal(f.observations.at(-1)!.event, "closed");
+  },
+);
+
+test(
+  "a subscription presentation failure rejects the pending acknowledgement",
+  { timeout: 1000 },
+  async () => {
+    const f = await fixture({
+      onSubscription(_view, _entity, state) {
+        if (state === "subscribed")
+          throw new Error("Cannot render subscription.");
+      },
+    });
+    const socket = await f.connect();
+    await assert.rejects(f.subscribe(socket), /Cannot render subscription/);
+    assert.deepEqual(f.failures, ["Cannot render subscription."]);
+    assert.equal(socket.readyState, 3);
+    assert.equal(
+      f.observations.some((e) => e.event === "subscribed"),
+      false,
+    );
+  },
+);

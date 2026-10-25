@@ -121,6 +121,14 @@ Subscriptions belong to a WebSocket connection. After reconnecting, a client
 must subscribe again; ZooGlass sends the current snapshot if one exists. It does
 not replay the updates missed while the client was disconnected.
 
+`LiveViewBroadcaster` coordinates projection, subscription changes and queue
+insertion under one monitor. `SubscriptionIndex` owns both directions of
+subscription membership and uses that same monitor. Each `OutboundWriter` owns
+one bounded queue and writer task; socket writes and closes run outside the
+coordinator monitor. A writer reports its identity on failure so a late failure
+cannot remove a replacement writer. Removing a session clears its subscriptions,
+cancels its writer and releases queued messages.
+
 Run the tests with:
 
 ```sh

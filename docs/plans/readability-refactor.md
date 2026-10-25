@@ -7,8 +7,10 @@ ownership and control flow need to remain understandable as the project grows.
 
 Reviewed at `0b72ce1` on 25 October 2026. This is a proposed extraction plan;
 the initial inventory below describes that baseline. The service projection
-extraction is now implemented on this branch, pending review and merge; the other
-structural changes remain ahead. The accepted
+extraction merged in [PR #48](https://github.com/sproates/zooglass/pull/48).
+Subscription indexing and outbound writer ownership are now extracted on this
+branch, pending review and merge; Workbench/client and test organisation changes
+remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 

@@ -79,8 +79,10 @@ The [responsibility review and extraction plan](docs/plans/readability-refactor.
 was accepted in [PR #47](https://github.com/sproates/zooglass/pull/47), including
 explicit separation of Workbench and demo code. The first service projection
 extraction separates validation and field policies from state ownership; it is
-implemented pending review and merge. Delivery, Workbench/client and test
-organisation changes remain ahead.
+merged in [PR #48](https://github.com/sproates/zooglass/pull/48). The delivery
+extraction separates subscription indexing and per-client writer ownership while
+preserving coordinator locking and queue order; it is implemented pending review
+and merge. Workbench/client and test organisation changes remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

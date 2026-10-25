@@ -109,6 +109,8 @@ class ResourceBehaviourTests {
     // White-box ownership evidence: aggregate heap alone cannot identify which
     // queues or subscriptions remain reachable after their session has gone.
     private static Map<?, ?> registry(LiveViewBroadcaster broadcaster, String field) {
-        return (Map<?, ?>) ReflectionTestUtils.getField(broadcaster, field);
+        Object owner = field.equals("writersBySession") ? broadcaster
+                : ReflectionTestUtils.getField(broadcaster, "subscriptions");
+        return (Map<?, ?>) ReflectionTestUtils.getField(owner, field);
     }
 }

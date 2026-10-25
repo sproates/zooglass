@@ -201,6 +201,14 @@ The tests close all owned sockets and services even on assertion failure. The
 network cases establish bounded-run cleanup and isolation; extended memory and
 resource behaviour is still separate work.
 
+`DeliveryFailureTests.java` protects serialisation failure, write failure followed
+by close failure, and a late failure from a replaced writer. The tests first passed
+against the original broadcaster, then against the extracted subscription index
+and outbound writer. They check removal, healthy-peer delivery, re-registration
+and replacement-writer survival through the broadcaster interface. Resource tests
+still inspect both membership maps inside the subscription index and the writer
+registry, checking queue release and cancellation as before.
+
 ## Invalid protocol and partial failure
 
 `test/protocol-validation.test.ts` exercises the real service over HTTP and

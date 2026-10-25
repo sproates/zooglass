@@ -94,7 +94,7 @@ for review, not a claim of exhaustive coverage.
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. Automatic retry and real fault-gate recovery remain future work. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
 | Controller and executor lifecycle | `test/demo-controller.test.ts`, `sessions.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
-| Slow-client protection | `LiveViewBroadcasterTests.java` uses blocked mock writes to exercise bounded queues and event processing. | Real multi-client transport isolation under sustained load, including a healthy client beside a slow one. |
+| Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | A contract-based invalid-message matrix, duplicate/unexpected acknowledgements and partial protocol failures. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
 | Resource and platform behaviour | Session cleanup and repeated browser resets; simulated Windows shutdown outcomes. CI uses Ubuntu and Chromium. | Sustained history/memory measurement, longer repeated lifecycle runs, native platform and additional browser-engine evidence. |
@@ -159,6 +159,36 @@ real-service/browser reset and recovery tests remain integration evidence.
 
 These are bounded cases, not a claim that every possible interleaving has been
 explored. They don't implement automatic retries or a proxy fault gate.
+
+## Concurrent clients and backpressure
+
+`test/concurrent-clients.test.ts` starts real ZooGlass processes and WebSocket
+clients. Two source connections deliver 50 updates each to different entities
+while another viewer disconnects. Each healthy viewer must receive every update
+in its stream and no other entity. The replacement viewer receives the current
+snapshot. An unsubscribe check uses a later update on another subscribed entity
+as a processing/delivery barrier, rather than a sleep to infer absence.
+
+A second case pauses one receiver after subscription and sends 2,048 updates with
+4 KiB of padding each, awaiting the healthy subscriber's receipt after every send.
+Compression is disabled so the padding creates actual transport pressure. The
+slow receiver must disconnect within the bounded test; the healthy subscriber
+continues, and a replacement receives the current snapshot and subsequent update.
+HTTP state is checked too. This is about 8 MiB of payload plus protocol overhead,
+not a throughput benchmark. It depends on the tested transport/platform buffers;
+it does not establish a universal eviction time or byte threshold.
+
+The service requests close status `1013` on queue overflow. A blocked real socket
+can instead observe `1006` if the close frame cannot reach it after a write is
+cancelled. The network test accepts either outcome; it does not promise delivery
+of the close frame. `LiveViewIsolationTests` deterministically checks the server
+requesting `1013`, the exact 128-message queue limit while the writer is blocked,
+continued healthy delivery, and interruption of writers during removal. These
+are complementary forms of evidence, not interchangeable measurements.
+
+The tests close all owned sockets and services even on assertion failure. The
+network cases establish bounded-run cleanup and isolation; extended memory and
+resource behaviour is still separate work.
 
 ## Work that follows
 

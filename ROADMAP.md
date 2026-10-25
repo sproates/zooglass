@@ -25,7 +25,7 @@ The service remains in memory. Durable recovery, replay of missed messages and
 a production retention policy are not implemented. Passing the current scenarios
 demonstrates their specific cases, not production readiness.
 
-## Next: a working browser view
+## Delivered: a working browser view
 
 The [basic vehicle app](incubator/vehicle-tracker/README.md) now receives actual
 ZooGlass views under Workbench control. The default journey connects and
@@ -37,10 +37,10 @@ creating a fresh service and browser. `--auto` retains timed playback.
 
 Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
-Step/reset and repeat-run lifecycle tests are implemented. The milestone remains
-open pending review and merge of the installation and usability walkthrough.
-That work checks keyboard controls, history scrolling and narrow layouts; the
-complete recovery demo will still need final acceptance.
+Step/reset, repeat-run lifecycle tests and the installation/usability walkthrough
+are complete, including keyboard controls, history scrolling and narrow layouts
+([PR #35](https://github.com/sproates/zooglass/pull/35)). The complete recovery
+demo will still need final acceptance.
 Independent rendered checks now gate interactive and automatic completion,
 including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
@@ -59,12 +59,14 @@ a fresh session, and another run passes the same checks. See the
 [vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for the design and
 acceptance criteria.
 
-## Following: late delivery and recovery
+## Next: late delivery and recovery
 
 The journey already shows delayed position 41 filling history without moving
-the current marker back from 42. Extend it to verify duplicate delivery adding
-no extra history entry. Then keep the source running while the viewer is disconnected
-and verify that resubscription receives current snapshots.
+the current marker back from 42. A separate recovery fixture checks duplicate
+delivery after a processing barrier, then sends 43 while the viewer is
+disconnected and verifies current snapshots after explicit reconnection.
+It runs through both Node and browser clients. Bringing this sequence into the
+interactive demo, with viewer controls and rendered recovery checks, remains ahead.
 
 A separate fault scenario will interrupt the actual browser data path. The app
 must detect the loss, label retained data and recover after the route is

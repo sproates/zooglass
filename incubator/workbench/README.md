@@ -205,6 +205,15 @@ business rules of a sportsbook, order system, or ride service.
 - `vehicle-browser-journey.json` sends twenty positions, 40–59, along a route
   with turns. Position 41 alone is delayed until after 42; later positions arrive
   in order. HTTP and browser checks verify received history and latest position.
+- `vehicle-browser-recovery.json` adds late 41, an identical duplicate, and 43
+  while the viewer is deliberately disconnected. A separate entity on the same
+  source connection supplies a processing barrier before the unchanged-state
+  checks. Both server views must contain 43 before reconnect; the initial
+  subscription snapshots are checked without sending another vehicle event.
+  Run it with `npm run integrate -- --fast scenarios/vehicle-browser-recovery.json`
+  using the Node client. The Chromium suite also runs its receipt checks through
+  the real browser. It is not yet selectable in the interactive demo, and does
+  not simulate an unexpected network failure.
 - `vehicle-browser-basic.json` is the finite first slice for the planned browser
   demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
   positions 40 and 42 for `car-17`. Each send is followed by HTTP and client

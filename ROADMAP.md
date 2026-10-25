@@ -73,7 +73,9 @@ checks, alongside exact queue-limit tests. Invalid protocol and partial-failure 
 processing and fresh-session recovery. Bounded reconnect/reset workloads and queue/writer cleanup checks now cover
 resource ownership, with history-size and heap observations recorded separately.
 Native macOS/Windows lifecycle jobs and Chromium/Firefox/WebKit recovery probes now
-make the checked platform scope explicit. Final verification acceptance remains ahead.
+make the checked platform scope explicit. The [verification review](docs/verification/2026-10-25.md) now records fresh-checkout
+results, coverage comparisons and deliberate regression checks. Acceptance is
+pending review; the recommended next step is a responsibility and complexity review.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

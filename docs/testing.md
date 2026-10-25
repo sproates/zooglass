@@ -89,7 +89,7 @@ for review, not a claim of exhaustive coverage.
 
 | Behaviour | Existing evidence | Remaining gap |
 | --- | --- | --- |
-| Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation now have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport delivery remains separate work. |
+| Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
 | Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. Automatic retry and real fault-gate recovery remain future work. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
@@ -101,7 +101,7 @@ for review, not a claim of exhaustive coverage.
 
 ## Generated ordering checks
 
-`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across
+`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 146 deliveries across
 two entities and two matching sources, with exact duplicates, equal-sequence
 conflicting payloads, invalid sequences and unmatched source/type combinations.
 Every delivery prefix is checked, including changed-view notifications and the
@@ -312,8 +312,9 @@ trace to capture. Open a downloaded trace with `npx playwright show-trace <file>
 
 ## Work that follows
 
-Review the accumulated verification evidence, coverage changes and remaining
-gaps before readability refactoring. Real data-path fault injection, automatic
+The [verification review](verification/2026-10-25.md) records fresh-checkout
+results, coverage changes, deliberate regression checks and remaining gaps. It
+recommends proceeding to readability refactoring, subject to maintainer acceptance. Real data-path fault injection, automatic
 retry and permissions remain feature work; tests must not imply these are
 already implemented.
 

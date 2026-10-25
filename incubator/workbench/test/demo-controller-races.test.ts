@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { deferred } from "./support/controller.js";
 import { fileURLToPath } from "node:url";
 import { createDemoController } from "../src/demo-controller.js";
 import { loadScenario } from "../src/scenario.js";
@@ -10,13 +11,6 @@ const scenario = await loadScenario(
     new URL("../scenarios/vehicle-browser-recovery.json", import.meta.url),
   ),
 );
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-};
 const boundaries: [string, (entry: TraceEntry) => boolean][] = [
   ["source delivery", (entry) => entry.kind === "source-event"],
   ["HTTP check", (entry) => entry.kind === "view-check"],

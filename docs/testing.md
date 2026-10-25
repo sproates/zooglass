@@ -93,7 +93,7 @@ for review, not a claim of exhaustive coverage.
 | Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. Automatic retry and real fault-gate recovery remain future work. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
-| Controller and executor lifecycle | `test/demo-controller.test.ts`, `sessions.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
+| Controller and executor lifecycle | `test/controller-*.test.ts`, `scenario-session.test.ts`, `zooglass-session.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
 | Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | The service and browser protocol matrices below cover rejection, continued processing, acknowledgements and timeouts. Broader schema fuzzing, resource limits and permissions remain separate work. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
@@ -232,9 +232,9 @@ command completed; that does not make the run successful.
 These tests preserve the current contract. Service source validation does not
 send error acknowledgements; the browser demo deliberately fails on unexpected
 protocol traffic. They do not introduce automatic recovery from malformed data.
-Existing `test/sessions.test.ts` cases still cover partial client/source setup,
+Existing `test/scenario-session.test.ts` and `test/zooglass-session.test.ts` cases still cover partial client/source setup,
 cleanup continuing when one executor close fails, startup failure and cancellation;
-`test/demo-controller.test.ts` checks that failed cleanup prevents replacement.
+`test/controller-lifecycle.test.ts` checks that failed cleanup prevents replacement.
 
 ## Sustained activity and resource ownership
 
@@ -480,3 +480,32 @@ and sports betting) through real ZooGlass. The inventory browser fixture uses th
 shared host, bridge, executor and ScenarioSession with its own assets and identity;
 it verifies receipts and cleanup, not a second showcase UI. These establish the
 planned dependency/reuse boundaries without introducing a plugin system.
+
+
+## Test organisation
+
+The core tests remain selected by `test/*.test.ts` and `test/scenarios/*.test.ts`.
+The former mixed controller and session files are grouped by responsibility:
+
+| File | Behaviour under test |
+| --- | --- |
+| `controller-lifecycle.test.ts` | Step completion, replacement, startup cancellation and cleanup failure |
+| `controller-playback.test.ts` | Play/pause timing, ordering and failure |
+| `controller-interventions.test.ts` | Manual actions, exploratory state and reset |
+| `demo-controller-races.test.ts` | Reset/close at the six execution boundaries |
+| `scenario-session.test.ts` | Client/source binding, cancellation and session cleanup |
+| `zooglass-session.test.ts` | Child-process health, termination and configuration cleanup |
+| `module-imports.test.ts` | Importing reusable modules has no startup side effects |
+
+Small helpers in `test/support/` supply explicit gates, a local HTTP/WebSocket
+peer and a process fixture. The process itself is readable JavaScript under
+`test/fixtures/process/`, rather than code embedded in a string. Tests still own
+the action sequence and expected results; helpers do not calculate expected view
+state or introduce another scenario runner. Cleanup hooks release gates and close
+sessions even when an assertion fails.
+
+The existing browser reconnection group and Java functional tests retain their
+cohesive protocol scenarios. They have bounded setup/cleanup and independent
+assertions; splitting them solely to reduce line counts would scatter related
+behaviour. Pause timing checks retain real elapsed-time assertions because elapsed
+time is the behaviour being tested.

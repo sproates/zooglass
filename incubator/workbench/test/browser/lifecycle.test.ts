@@ -103,7 +103,7 @@ test(
       const step = demo.step();
       const rejected = assert.rejects(step);
       await old.page.waitForFunction(
-        "document.querySelector('#current-sequence').textContent === '40'",
+        () => document.querySelector("#current-sequence")!.textContent === "40",
         undefined,
         { timeout: 5000 },
       );

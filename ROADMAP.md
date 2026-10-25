@@ -38,7 +38,9 @@ creating a fresh service and browser. `--auto` retains timed playback.
 Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
 Step/reset and repeat-run lifecycle tests are implemented. The milestone remains
-incomplete: the final installation, usability and acceptance walkthrough remains.
+open pending review and merge of the installation and usability walkthrough.
+That work checks keyboard controls, history scrolling and narrow layouts; the
+complete recovery demo will still need final acceptance.
 Independent rendered checks now gate interactive and automatic completion,
 including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).

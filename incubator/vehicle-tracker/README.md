@@ -22,13 +22,30 @@ positions 40 and 42 so the changes are easy to follow.
 
 ## Run it
 
-From `incubator/workbench`, with Node 26 and Java 25 installed:
+Install Git, Node 26 and a Java 25 JDK, with `node`, `npm` and `java` available
+in your terminal. Check `node --version` and `java --version` before starting.
+The repository includes the Maven wrapper; no separate Maven installation is needed.
+The first run needs internet access to download JavaScript, Chromium and Maven dependencies.
+
+From a new terminal:
+
+```sh
+git clone https://github.com/sproates/zooglass.git
+cd zooglass/incubator/workbench
+```
+
+Then install and run:
 
 ```sh
 npm ci
 npx playwright install chromium
 npm run demo -- vehicle-tracker
 ```
+
+On Linux, use `npx playwright install --with-deps chromium` if browser system
+packages are missing. A visible run needs a desktop session; use `--headless`
+with terminal controls on a machine without a display. The browser runs on the
+machine where you start Workbench. The loopback URL is not a remotely hosted demo.
 
 The command compiles the app's TypeScript, starts ZooGlass and an owned Chromium
 session, connects the viewer and subscribes to both views. **Step** sends one position at a time, using positions
@@ -54,6 +71,45 @@ planned. See the
 and host details.
 
 ![Step and Reset controls after completing the short fixture.](docs/step-reset.png)
+
+## First walkthrough
+
+1. Wait for Step to become available. Both views initially say they are waiting
+   for their first snapshot. An empty history at this point does not mean an
+   empty snapshot has been received.
+2. Use Step once: position 40 appears in the current view and history.
+3. Step again: the marker moves to 42 and history contains 40 and 42.
+4. Step once more: delayed 41 fills the history between them, while the current
+   position stays at 42. Continue to position 59 for the full twenty-point journey.
+5. Use Reset. The window is replaced and both views return to waiting. Step
+   again to check that the new run starts at 40.
+6. Use Ctrl+C in the terminal, or enter `quit`, to close the owned resources.
+
+For a quick two-step run, add `--basic`; it has no delayed 41. Each completed
+step includes service, browser receipt and demo rendering checks. The counter
+advances only when those checks pass.
+
+### Keyboard and narrow screens
+
+Tab moves through Step, Reset and the history list; Shift+Tab moves backwards.
+Activate a button with Enter or Space. When Step is disabled it is skipped in
+the tab order. With the history list focused, use the arrow keys or End to scroll
+through received positions. Reset opens a new window, so focus starts afresh.
+
+At narrow widths the history sits below the route. Scroll the page to reach it,
+then scroll within the history list to read later positions. Status text explains
+waiting, received and retained data without relying on colour alone.
+
+### If startup fails
+
+- A Node version error means the active terminal is not using Node 26.
+- Java compilation failures should first be checked against `java --version` and
+  `JAVA_HOME`; the service needs a Java 25 JDK.
+- If Chromium is missing, rerun `npx playwright install chromium` from Workbench,
+  particularly after updating Playwright. On Linux, check system dependencies too.
+- Keep the terminal output when reporting a startup or check failure. If the page
+  closes, type `reset` in the terminal; reopening its URL does not register a new
+  viewer. If startup never succeeds, quit and rerun after fixing the reported cause.
 
 ## Reading the display
 
@@ -108,6 +164,9 @@ advancing its counter. Reset cancels pending rendered checks. Tests deliberately
 break the marker while real snapshots arrive, verify that the step fails, and
 check both fixtures again after reset. Lifecycle tests also cover fresh state,
 old host/service closure and reset after page loss. Play/pause, automatic
-recovery and the final usability walkthrough remain outstanding.
+recovery and final acceptance of the complete recovery demo remain outstanding.
+Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
+pixels are covered by the browser suite. This is a focused demo usability check,
+not a full accessibility audit or a check of native mobile browsers.
 The local host registration is not production authorisation. See the
 [demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

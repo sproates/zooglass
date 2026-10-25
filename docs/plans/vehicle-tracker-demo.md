@@ -6,7 +6,8 @@ ZooGlass subscriptions, with waiting, empty and retained/error states. The journ
 includes delayed 41. Step and reset now use the shared scenario session, with
 fresh service/browser ownership on reset. Independent rendered checks now gate
 interactive and automatic completion. Installation and keyboard/narrow-layout
-verification are complete. A separate recovery fixture now covers duplicate
+verification are complete. Play/Pause now share the Step cursor, preserve remaining
+delays and finish in-flight checkpoints before pausing. A separate recovery fixture now covers duplicate
 processing and explicit reconnect receipts in Node and Chromium; interactive
 recovery controls, transport faults, automatic recovery and final acceptance
 remain outstanding.

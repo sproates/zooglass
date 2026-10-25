@@ -9,7 +9,10 @@ import { WebSocket, WebSocketServer } from "ws";
 export async function startBrowserHost(
   baseUrl: string,
   options: {
-    onControl?: (action: "step" | "reset", runId: string) => Promise<void>;
+    onControl?: (
+      action: "step" | "reset" | "play" | "pause",
+      runId: string,
+    ) => Promise<void>;
   } = {},
 ) {
   const runId = randomUUID();
@@ -168,7 +171,8 @@ export async function startBrowserHost(
           ready = true;
         } else if (registered === socket && ready) {
           if (message.type === "control-request" && options.onControl) {
-            if (!["step", "reset"].includes(message.action)) throw new Error();
+            if (!["step", "reset", "play", "pause"].includes(message.action))
+              throw new Error();
             void options.onControl(message.action, runId).catch((error) => {
               if (socket.readyState === WebSocket.OPEN)
                 socket.send(

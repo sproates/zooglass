@@ -13,10 +13,14 @@ if (!runId || !clientId || !registration.get("token")) {
       control.send(JSON.stringify({ ...message, runId, clientId }));
   };
   const step = document.querySelector("#step");
+  const play = document.querySelector("#play");
+  const pause = document.querySelector("#pause");
   const reset = document.querySelector("#reset");
   const controlError = document.querySelector("#control-error");
   for (const [button, action] of [
     [step, "step"],
+    [play, "play"],
+    [pause, "pause"],
     [reset, "reset"],
   ]) {
     button.addEventListener("click", () => {
@@ -53,7 +57,9 @@ if (!runId || !clientId || !registration.get("token")) {
         document.querySelector("#workbench-controls").hidden = false;
         const state = message.state;
         if (state.phase === "failed") client?.fail(state.detail);
-        step.disabled = state.phase !== "ready";
+        step.disabled = state.phase !== "ready" || state.playing;
+        play.disabled = state.phase !== "ready" || state.playing;
+        pause.disabled = !state.playing;
         reset.disabled = ["starting", "resetting", "closed"].includes(
           state.phase,
         );
@@ -122,6 +128,8 @@ if (!runId || !clientId || !registration.get("token")) {
   control.addEventListener("close", () => {
     step.disabled = true;
     reset.disabled = true;
+    play.disabled = true;
+    pause.disabled = true;
     controlError.textContent =
       "Control connection lost. Type reset in the terminal to start again.";
     client?.fail("Workbench control connection lost.");

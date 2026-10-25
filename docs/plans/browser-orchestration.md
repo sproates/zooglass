@@ -8,8 +8,8 @@ retained/error states. Step and reset are implemented: startup connects and
 subscribes, each step sends one position and awaits its following service, receipt
 and independent rendered checks, and reset replaces the service and browser with fresh state. Terminal
 reset remains available after page loss. `--auto` retains timed playback and its
-previous cleanup behaviour and uses the same rendered observer. Play/pause,
-fault injection and full
+previous cleanup behaviour and uses the same rendered observer. Interactive
+Play/Pause now share the Step cursor and freeze remaining delays. Fault injection and full
 acceptance described here remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision

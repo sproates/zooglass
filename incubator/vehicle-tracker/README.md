@@ -59,18 +59,32 @@ fresh session with empty views. It waits for cleanup before starting the
 replacement. The window closes and reopens during reset. Step is disabled while
 an action is running; Reset can interrupt it. Failed steps stop further advance.
 
-You can also type `step`, `reset` or `quit` in the terminal. Terminal reset
+**Play** advances the same scenario cursor as Step. **Pause** stops future
+steps and freezes the remaining delay. An in-flight send and its checks finish,
+and incoming snapshots can still render. Wait for the paused status before
+using Step or Play again. Resume keeps the remaining delay, so time spent
+paused does not produce a catch-up burst.
+
+The gaps between steps come from scenario time and start after the preceding
+checkpoint completes. Slow checks can extend a run. Step bypasses the next delay
+and advances once; Play continues from there. Reset cancels playback and its timer.
+Play stops on completion or a failed check. Step and repeated Play are unavailable
+during playback; Pause is available while a checkpoint is running.
+
+You can also type `step`, `play`, `pause`, `reset` or `quit` in the terminal. Terminal reset
 remains available after the browser page closes. `--headless` uses the same
 controls through the terminal without showing a window.
 
 Add `--auto` for the previous timed demonstration. That mode plays once and
 keeps the result open; it has no interactive controls. The recording above shows
-this automatic mode. Play/pause, duplicate delivery and automatic recovery remain
+this automatic mode. Interactive duplicate delivery and automatic recovery remain
 planned. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
 
 ![Step and Reset controls after completing the short fixture.](docs/step-reset.png)
+
+![Step, Play, Pause and Reset controls at a narrow viewport.](docs/play-pause.png)
 
 ## First walkthrough
 
@@ -91,7 +105,7 @@ advances only when those checks pass.
 
 ### Keyboard and narrow screens
 
-Tab moves through Step, Reset and the history list; Shift+Tab moves backwards.
+Tab moves through the enabled Step, Play, Pause and Reset controls, then the history list; Shift+Tab moves backwards.
 Activate a button with Enter or Space. When Step is disabled it is skipped in
 the tab order. With the history list focused, use the arrow keys or End to scroll
 through received positions. Reset opens a new window, so focus starts afresh.
@@ -163,7 +177,7 @@ A rendered mismatch fails the step after a five-second deadline, without
 advancing its counter. Reset cancels pending rendered checks. Tests deliberately
 break the marker while real snapshots arrive, verify that the step fails, and
 check both fixtures again after reset. Lifecycle tests also cover fresh state,
-old host/service closure and reset after page loss. Play/pause, automatic
+old host/service closure and reset after page loss. Automatic
 recovery and final acceptance of the complete recovery demo remain outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,

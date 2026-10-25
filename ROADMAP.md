@@ -33,7 +33,8 @@ subscribes its browser, then sends twenty positions (40–59), with 41 delayed
 until after 42. The short 40/42 fixture remains available with `--basic`. Service and browser
 receipt checks pass, and Chromium tests inspect the rendered coordinates,
 marker and history. The local command now starts ready for Step, with Reset
-creating a fresh service and browser. `--auto` retains timed playback.
+creating a fresh service and browser. Play/Pause continue the same cursor and
+freeze the remaining delay while paused. `--auto` retains its single-run playback.
 
 Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.

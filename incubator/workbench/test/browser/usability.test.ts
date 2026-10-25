@@ -66,7 +66,10 @@ test(
       await page.keyboard.press("Shift+Tab");
       assert.equal(await page.evaluate("document.activeElement.id"), "reset");
       const old = demo.browser;
-      await page.keyboard.press("Space");
+      // Reset closes this page before the input promise necessarily settles.
+      await page.keyboard.press("Space").catch((error: unknown) => {
+        if (!page.isClosed()) throw error;
+      });
       await wait(() => demo.browser !== old && demo.state.phase === "ready");
       assert.equal(await demo.browser!.page.locator("#history li").count(), 0);
       await demo.browser!.page.keyboard.press("Tab");

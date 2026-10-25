@@ -4,8 +4,9 @@ Status: accepted design baseline, partly implemented. The basic browser app
 now renders short 40/42 and twenty-position journey fixtures through real
 ZooGlass subscriptions, with waiting, empty and retained/error states. The journey
 includes delayed 41. Step and reset now use the shared scenario session, with
-fresh service/browser ownership on reset. Play/pause, duplicates, recovery and
-independent rendered checks within interactive completion remain outstanding.
+fresh service/browser ownership on reset. Independent rendered checks now gate
+interactive and automatic completion. Play/pause, duplicates, recovery and final
+acceptance remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

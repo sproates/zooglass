@@ -68,3 +68,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: browser-check-failures
+          path: incubator/workbench/test-results/
+          if-no-files-found: ignore

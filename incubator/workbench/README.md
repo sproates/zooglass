@@ -122,8 +122,9 @@ must subscribe again before it can receive a current snapshot.
 
 The existing client view check can match an earlier queued update. It does not
 prove that the matching update was the first snapshot after a subscription, nor
-that a browser rendered it. Stronger first-snapshot checks and independent
-rendered-state checks belong to the planned browser work.
+that a browser rendered it. The vehicle demo adds an independent rendered
+observer after receipt checkpoints; the generic Node client check retains its
+existing meaning. Stronger first-snapshot checks remain planned.
 
 ### Timeline order and real time
 
@@ -207,9 +208,9 @@ business rules of a sportsbook, order system, or ride service.
 - `vehicle-browser-basic.json` is the finite first slice for the planned browser
   demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
   positions 40 and 42 for `car-17`. Each send is followed by HTTP and client
-  receipt checks for both views. The current CLI and test suite execute it with
-  a real Node WebSocket client; browser execution and rendered checks remain
-  planned.
+  receipt checks for both views. The CLI uses a real Node WebSocket client;
+  the vehicle demo and Chromium suite use the browser executor and an
+  independent rendered observer.
 - `vehicle-event-ordering.json` sends vehicle positions out of sequence and
   checks a latest-position view and an ordered trip history view.
 - `sequence-gap.json` shows a history view before and after a missing vehicle
@@ -310,7 +311,10 @@ fixture (or the short 40/42 fixture with `--basic`) through the shared scenario 
 actual socket and subscription acknowledgements, then checks service state and
 browser receipts. The [vehicle display](../vehicle-tracker/README.md) renders
 latest position, a schematic route and received history from those snapshots.
-Step sends one position and awaits its following service and receipt checks.
+Step sends one position and awaits its following service, receipt and rendered
+checks. The same observer runs in automatic mode. It reads DOM/SVG output
+without supplying expected data to the page; a mismatch fails the step within
+five seconds. Reset cancels a pending rendered wait.
 Reset cancels the old run and waits for its browser, sockets and ZooGlass to
 close before creating an empty replacement with a new run identity. It replaces
 the window. Overlapping step/reset requests are rejected, and failed cleanup
@@ -359,8 +363,8 @@ Workbench without introducing a competing timeline or outcome.
 The shared session and client-executor boundary already provide a starting
 point. Owned browser launch, registration and the data proxy now exist.
 The bridge now executes browser actions and reports actual receipts, and the
-display has rendered tests and serialised step/reset controls. Play/pause controls, fault injection and
-rendered checks within interactive action completion remain planned. Their detailed contracts are in the
+display has rendered checks within interactive and automatic action completion,
+plus serialised step/reset controls. Play/pause and fault injection remain planned. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session

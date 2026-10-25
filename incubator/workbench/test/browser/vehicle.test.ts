@@ -1,3 +1,4 @@
+import { observeVehicleSession } from "../../src/vehicle-observer.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -28,6 +29,11 @@ for (const variant of ["basic", "journey"]) {
             signal: browser.signal,
             createClientExecutor: () => browser.host.executor,
           });
+          const observed = observeVehicleSession(
+            session,
+            browser.page,
+            browser.signal,
+          );
           try {
             assert.equal(
               await browser.page.locator("#current-sequence").textContent(),
@@ -35,7 +41,7 @@ for (const variant of ["basic", "journey"]) {
             );
             assert.equal(await browser.page.locator("#history li").count(), 0);
             for (const entry of playScenario(scenario)) {
-              await session.execute(entry);
+              await observed.execute(entry);
               if (entry.kind !== "client-view-check") continue;
               if (entry.viewId === "live-map") {
                 const p = entry.expected.position as {

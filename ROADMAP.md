@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 24 October 2026.
+Last reviewed: 25 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
@@ -18,7 +18,7 @@ are intended outcomes, not release dates or claims of existing capability. The
 | Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](incubator/zooglass/README.md) |
 | Ordering scenarios | Latest-position and received-history views can respond differently to the same out-of-order events. Scenarios explore duplicates and the limits of sequence-based completeness assumptions. | [Workbench ordering support, PR #18](https://github.com/sproates/zooglass/pull/18), [sequence guarantees, PR #20](https://github.com/sproates/zooglass/pull/20) |
 | Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with an executor boundary for future browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
-| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. Browser implementation is still ahead. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
+| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation is underway; fault injection remains ahead. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
 | Project guides | Separate production-intent and testing diagrams explain ZooGlass's direction. The Workbench guide distinguishes today's CLI from planned browser orchestration. | [Project explanation, PR #24](https://github.com/sproates/zooglass/pull/24), [Workbench guide, PR #25](https://github.com/sproates/zooglass/pull/25) |
 
 The service remains in memory. Durable recovery, replay of missed messages and
@@ -38,8 +38,9 @@ creating a fresh service and browser. `--auto` retains timed playback.
 Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
 Step/reset and repeat-run lifecycle tests are implemented. The milestone remains
-incomplete: independent rendered checks must be integrated into interactive
-action completion, followed by the final usability and acceptance walkthrough. See the
+incomplete: the final installation, usability and acceptance walkthrough remains.
+Independent rendered checks now gate interactive and automatic completion,
+including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The first slice will provide:

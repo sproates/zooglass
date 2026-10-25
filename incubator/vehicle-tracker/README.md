@@ -33,7 +33,7 @@ npm run demo -- vehicle-tracker
 The command compiles the app's TypeScript, starts ZooGlass and an owned Chromium
 session, connects the viewer and subscribes to both views. **Step** sends one position at a time, using positions
 40–59 from the [journey fixture](../workbench/scenarios/vehicle-browser-journey.json),
-awaiting the HTTP and browser receipt checks after each send. The page stays
+awaiting HTTP, browser receipt and independent rendered checks after each send. The page stays
 open at position 59 with twenty history entries. Add `--basic` to use the short
 40/42 fixture. Ctrl+C closes the owned resources.
 
@@ -98,11 +98,16 @@ and that the phone-width layout has no horizontal overflow. `npm run build`,
 
 Separate controlled protocol tests cover explicit empty snapshots, waiting,
 unsubscribe, reconnect and connection failure. They do not establish service
-recovery behaviour. These checks cover rendering and visible connection states. The full demo still needs
-automatic recovery and independent rendered checks integrated into interactive
-action completion. Lifecycle tests verify two runs separated by reset, reset
-during a pending check, fresh view state, old host/service closure and reset
-after page loss. The step counter reports completed service and browser receipt
-checks; it does not yet certify the independently rendered result.
+recovery behaviour. Interactive steps and automatic playback now wait for the
+same independent Playwright observer. It reads the displayed sequence,
+coordinates, marker, ordered history, route points and received-state labels.
+Expectations stay outside the app and come from the fixture.
+
+A rendered mismatch fails the step after a five-second deadline, without
+advancing its counter. Reset cancels pending rendered checks. Tests deliberately
+break the marker while real snapshots arrive, verify that the step fails, and
+check both fixtures again after reset. Lifecycle tests also cover fresh state,
+old host/service closure and reset after page loss. Play/pause, automatic
+recovery and the final usability walkthrough remain outstanding.
 The local host registration is not production authorisation. See the
 [demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

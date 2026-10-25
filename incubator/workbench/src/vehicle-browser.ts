@@ -22,6 +22,15 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       ],
     ],
     [
+      "/vehicle-bootstrap.js",
+      [
+        "text/javascript; charset=utf-8",
+        await readFile(
+          new URL("../browser/vehicle-bootstrap.js", import.meta.url),
+        ),
+      ],
+    ],
+    [
       "/vehicle-client.js",
       [
         "text/javascript; charset=utf-8",

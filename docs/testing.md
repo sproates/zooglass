@@ -393,9 +393,24 @@ that the supplied page is served and an unsupplied vehicle script returns 404.
 to the owned browser session. A local WebSocket upstream sends an inventory
 receipt; the existing browser executor and scenario session verify it. The test
 checks registration, cleared URL credentials and host/page cleanup. The fixture
-implements only the protocol subset needed for this check. It does not establish
-shared-bridge reuse or ZooGlass projection correctness; existing real-service
-scenario suites continue to cover those service interactions.
+now imports the shared browser bridge, supplying only a small data client. This
+establishes shared-bridge composition but not ZooGlass projection correctness;
+existing real-service scenario suites continue to cover those service interactions.
 
 Vehicle browser checks retain their assertions and now explicitly select the
 vehicle composition module. The independent core test command remains planned.
+
+
+## Shared bridge protocol checks
+
+`test/browser-bridge.test.ts` drives registration and commands with a fake control
+socket and injected client. Six cases protect cached completion replay, mismatched
+ID reuse, stale identities, invalid commands, overlapping actions, failure/retry,
+the 256-command bound and client cleanup on control loss. These wire-contract
+checks passed against the original bridge before extraction and against the
+shared function afterwards. The final fixture needs no DOM or vehicle module.
+
+The inventory browser composition test now uses the shared bridge. Existing
+vehicle browser tests continue to exercise controls, rendered state, recovery
+and cleanup through the vehicle bootstrap. Bridge code is behaviourally checked
+but remains outside the c8 `src/**/*.ts` coverage scope.

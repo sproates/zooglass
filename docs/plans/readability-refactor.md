@@ -13,10 +13,11 @@ Subscription indexing and outbound writer ownership merged in
 HTTP view operations and pure step planning merged in
 [PR #51](https://github.com/sproates/zooglass/pull/51). The controller retains
 playback timing and lifecycle ownership. Host/session asset and identity
-configuration is implemented on this branch, pending review and merge. Vehicle
-bindings live in `vehicle-browser.ts`; a non-vehicle page exercises the same host
-and session. Shared bridge extraction, client protocol/presentation separation,
-independent core verification and test organisation remain ahead. The accepted
+configuration merged in [PR #52](https://github.com/sproates/zooglass/pull/52).
+The shared control bridge is extracted on this branch, pending review and merge;
+both vehicle and inventory pages use it. Vehicle controls live in a separate
+bootstrap module. Client protocol/presentation separation, remaining demo
+composition, independent core verification and test organisation remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 

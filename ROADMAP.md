@@ -91,10 +91,10 @@ Host/session composition takes explicit assets and client identity, merged in
 [PR #52](https://github.com/sproates/zooglass/pull/52). The shared control bridge
 has a separate vehicle UI bootstrap, merged in
 [PR #53](https://github.com/sproates/zooglass/pull/53); the inventory fixture uses
-that same bridge. Client protocol/presentation separation is implemented pending
-review and merge: socket state stays in a protocol module, with vehicle rules and
-rendering supplied by a small binding. Shared demo assembly, independent core
-verification and test organisation remain ahead.
+that same bridge. Client protocol/presentation separation merged in
+[PR #54](https://github.com/sproates/zooglass/pull/54): socket state stays in a protocol module, with vehicle rules and
+rendering supplied by a small binding. Shared demo assembly is now implemented pending review and merge. Independent
+core verification, reuse acceptance and test organisation remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

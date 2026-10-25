@@ -546,5 +546,20 @@ Failure to render the error state must not prevent cleanup or hide the original
 failure. Workbench expectations remain outside
 the client, and rendered checks remain in the demo-specific observer.
 
-Interactive and automatic demo resource assembly is still separate. Sharing that
-assembly is a later extraction with its own failure and interruption checks.
+### Vehicle run ownership
+
+`vehicle-run.ts` owns the service, browser and scenario for both interactive and
+automatic demos. It supplies the vehicle client binding and rendered observer;
+core scenario execution does not import either demo path.
+
+`startVehicleRun` acquires the service and browser. `openScenario` then binds the
+scenario once, so the automatic caller can retain the page if scenario setup
+fails. `closeScenario` cancels pending scenario setup and closes the scenario
+without explicitly closing the browser. This preserves inspection of a failed
+visible run. `close` attempts scenario, browser and service cleanup in order,
+retains all cleanup errors and reuses its completion promise on repeated calls.
+
+The controller still owns interactive replacement and cancellation. The automatic
+entry point still owns playback delays, process signal handlers and the decision
+to keep a failed page available for inspection. The shared owner adds no generic
+resource framework.

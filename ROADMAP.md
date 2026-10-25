@@ -65,7 +65,10 @@ acceptance criteria.
 Before extending the demo, strengthen evidence for event ordering, reconnect
 races, concurrent clients, invalid traffic and sustained activity. The
 [verification map](docs/testing.md) records the current tests and measurement
-boundaries. Coverage reporting is the first step, not completion of this work.
+boundaries. Coverage reporting is the first step, not completion of this work. Seeded
+ordering tests now compare every delivery prefix with an independent reference
+model, including duplicates and source/entity isolation. Concurrent transport and
+recovery failure coverage remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

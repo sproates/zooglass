@@ -76,6 +76,13 @@ position view and a trip history view. The sequence must be numeric and
 monotonically describe measurement order for an entity; events without a
 numeric sequence are ignored by these strategies. This prototype does not wait
 for missing sequence numbers, detect gaps, or know when a history is complete.
+An equal numeric sequence is a duplicate even if its payload differs: the first
+accepted payload is retained, not treated as a correction. Values such as `1`
+and `1.0` compare equally. Sequence state belongs to each view field and entity.
+If two sources match the same field, they share that sequence space; they aren't
+independently deduplicated by source. Use separate fields for independent sequence
+domains. This is the prototype's current behaviour, not a general conflict policy.
+
 Trip history is held entirely in memory and grows without a bound, so it is an
 exploration of the view behavior rather than a production retention policy.
 

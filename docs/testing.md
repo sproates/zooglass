@@ -89,7 +89,7 @@ for review, not a claim of exhaustive coverage.
 
 | Behaviour | Existing evidence | Remaining gap |
 | --- | --- | --- |
-| Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Generated permutations, interleaved sources/entities and explicit conflicting equal-sequence semantics. |
+| Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation now have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport delivery remains separate work. |
 | Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Subscription/update races, stale callbacks, delayed or absent snapshots and cancellation at each boundary. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | More arrival permutations and old-generation events during replacement. Browser behaviour is tested but not instrumented for coverage. |
@@ -98,6 +98,35 @@ for review, not a claim of exhaustive coverage.
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | A contract-based invalid-message matrix, duplicate/unexpected acknowledgements and partial protocol failures. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
 | Resource and platform behaviour | Session cleanup and repeated browser resets; simulated Windows shutdown outcomes. CI uses Ubuntu and Chromium. | Sustained history/memory measurement, longer repeated lifecycle runs, native platform and additional browser-engine evidence. |
+
+## Generated ordering checks
+
+`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across
+two entities and two matching sources, with exact duplicates, equal-sequence
+conflicting payloads, invalid sequences and unmatched source/type combinations.
+Every delivery prefix is checked, including changed-view notifications and the
+absence of state for an untouched entity. Separate fields isolate each source;
+a shared field explicitly exercises their common sequence space.
+
+The independent `OrderingReference` recomputes expected state from the received
+prefix using numeric keys and first-arrival values. It doesn't call production
+ordering helpers or inspect the store's internal state. Sequences include negative
+and fractional values and adjacent integers beyond double precision. A separate
+check enumerates all 24 index permutations of three positions and one duplicate;
+a focused conflict example makes the first-accepted-payload rule visible.
+
+A failing generated case reports its seed and the first failing prefix. Reproduce
+one seed from `incubator/zooglass`:
+
+```sh
+./mvnw --batch-mode -Dtest=ViewStoreOrderingTests -Dordering.seed=17 test
+```
+
+The seed selects the generated case; the two fixed checks still run. The prefix
+removes the irrelevant suffix, but there is no automatic minimal-case shrinker.
+These are sequential store tests, not proof of concurrent socket behaviour or
+complete coverage of every numeric value and event combination. Existing real
+HTTP/WebSocket and Workbench tests continue to cover transport integration.
 
 ## Work that follows
 

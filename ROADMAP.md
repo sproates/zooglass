@@ -74,8 +74,10 @@ processing and fresh-session recovery. Bounded reconnect/reset workloads and que
 resource ownership, with history-size and heap observations recorded separately.
 Native macOS/Windows lifecycle jobs and Chromium/Firefox/WebKit recovery probes now
 make the checked platform scope explicit. The [verification review](docs/verification/2026-10-25.md) now records fresh-checkout
-results, coverage comparisons and deliberate regression checks. Acceptance is
-pending review; the recommended next step is a responsibility and complexity review.
+results, coverage comparisons and deliberate regression checks. Verification acceptance is merged in [PR #46](https://github.com/sproates/zooglass/pull/46).
+The [responsibility review and extraction plan](docs/plans/readability-refactor.md)
+is now proposed for review, including explicit separation of Workbench and demo
+code. Implementation of the refactor remains ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

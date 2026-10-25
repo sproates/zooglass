@@ -314,7 +314,9 @@ trace to capture. Open a downloaded trace with `npx playwright show-trace <file>
 
 The [verification review](verification/2026-10-25.md) records fresh-checkout
 results, coverage changes, deliberate regression checks and remaining gaps. It
-recommends proceeding to readability refactoring, subject to maintainer acceptance. Real data-path fault injection, automatic
+was accepted in [PR #46](https://github.com/sproates/zooglass/pull/46). The
+[readability plan](plans/readability-refactor.md) maps proposed extractions to
+protecting tests and keeps core protocol verification independent of demo UI checks. Real data-path fault injection, automatic
 retry and permissions remain feature work; tests must not imply these are
 already implemented.
 

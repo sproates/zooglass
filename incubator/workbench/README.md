@@ -327,12 +327,16 @@ five seconds. Reset cancels a pending rendered wait.
 Reset cancels the old run and waits for its browser, sockets and ZooGlass to
 close before creating an empty replacement with a new run identity. It replaces
 the window. Overlapping step/reset requests are rejected, and failed cleanup
-prevents a replacement from starting. Terminal `step`, `reset` and `quit` provide
+prevents a replacement from starting. Terminal `step`, `play`, `pause`, `reset` and `quit` provide
 the same lifecycle controls if the page is unavailable.
 
 Use `--auto` for the previous timed, single-run demonstration without interactive
 controls. Its headed failures retain the page for inspection; headless failures
-clean up immediately. Play/pause controls remain planned.
+clean up immediately. Interactive Play uses the same cursor and checks as Step.
+Pause freezes the remaining delay and lets the active checkpoint finish. Resume
+uses that remaining delay, without catching up for time spent paused. Each gap
+starts after the preceding checkpoint completes; slow checks extend the run.
+Step is available only while paused and idle. Reset and exit cancel playback.
 
 Both services bind to loopback. The host serves only its explicitly listed app and bridge assets,
 validates HTTP Host and WebSocket Origin, accepts one registered `rider-app`
@@ -375,7 +379,7 @@ The shared session and client-executor boundary already provide a starting
 point. Owned browser launch, registration and the data proxy now exist.
 The bridge now executes browser actions and reports actual receipts, and the
 display has rendered checks within interactive and automatic action completion,
-plus serialised step/reset controls. Play/pause and fault injection remain planned. Their detailed contracts are in the
+plus serialised Step/Play/Pause/Reset controls. Fault injection remains planned. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session

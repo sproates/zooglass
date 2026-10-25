@@ -8,7 +8,10 @@ export async function startBrowserSession(
     signal: AbortSignal;
     headless?: boolean;
     keepOpenOnFailure?: boolean;
-    onControl?: (action: "step" | "reset", runId: string) => Promise<void>;
+    onControl?: (
+      action: "step" | "reset" | "play" | "pause",
+      runId: string,
+    ) => Promise<void>;
   },
 ) {
   const host = await startBrowserHost(baseUrl, {

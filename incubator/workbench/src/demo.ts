@@ -46,11 +46,11 @@ async function main() {
   input.on("line", (line) => {
     const action = line.trim().toLowerCase();
     if (action === "quit" || action === "q") return stop();
-    if (action !== "step" && action !== "reset") {
-      console.log("Commands: step, reset, quit.");
+    if (!["step", "reset", "play", "pause"].includes(action)) {
+      console.log("Commands: step, play, pause, reset, quit.");
       return;
     }
-    void demo[action]()
+    void demo[action as "step" | "reset" | "play" | "pause"]()
       .then(() => console.log(demo.state.detail))
       .catch((error: unknown) =>
         console.error(error instanceof Error ? error.message : error),
@@ -58,7 +58,7 @@ async function main() {
   });
   try {
     console.log(
-      "Use Step and Reset in the browser, or type step, reset or quit here. Reset remains available if the page closes.",
+      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, reset or quit here. Reset remains available if the page closes.",
     );
     await demo.reset();
     console.log(demo.state.detail);

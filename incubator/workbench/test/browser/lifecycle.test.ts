@@ -43,7 +43,13 @@ test(
         await old.page.locator("#current-sequence").textContent(),
         "42",
       );
-      await old.page.locator("#reset").click();
+      // Reset deliberately destroys its own page, possibly before click settles.
+      await old.page
+        .locator("#reset")
+        .click()
+        .catch((error: unknown) => {
+          if (!old.page.isClosed()) throw error;
+        });
       await wait(() => demo.browser !== old && demo.state.phase === "ready");
       const fresh = demo.browser!;
       assert.ok(old.page.isClosed());
@@ -113,6 +119,77 @@ test(
       assert.ok(old.page.isClosed());
       assert.equal(demo.state.phase, "ready");
       assert.equal(demo.state.completed, 0);
+      assert.equal(await demo.browser!.page.locator("#history li").count(), 0);
+    } finally {
+      await demo.close();
+    }
+  },
+);
+
+test(
+  "browser Play/Pause share Step's cursor and Reset cancels playback",
+  { timeout: 90_000 },
+  async () => {
+    const scenario = await loadScenario(
+      fileURLToPath(
+        new URL("../../scenarios/vehicle-browser-basic.json", import.meta.url),
+      ),
+    );
+    const demo = createVehicleDemo(scenario, { headless: true });
+    const wait = async (condition: () => boolean) => {
+      const deadline = Date.now() + 30_000;
+      while (!condition()) {
+        assert.ok(Date.now() < deadline, JSON.stringify(demo.state));
+        await delay(20);
+      }
+    };
+    try {
+      await demo.reset();
+      const page = demo.browser!.page;
+      await page.locator("#play").click();
+      await wait(() => demo.state.playing);
+      await page.waitForFunction(
+        () => (document.querySelector("#step") as HTMLButtonElement).disabled,
+      );
+      await page.locator("#pause").click();
+      await wait(
+        () => !demo.state.playing && demo.state.detail.startsWith("Paused."),
+      );
+      const completed = demo.state.completed;
+      await delay(1100);
+      assert.equal(demo.state.completed, completed);
+      await page.locator("#step").click();
+      await wait(() => demo.state.completed === completed + 1);
+      if (demo.state.phase !== "complete") {
+        await page.locator("#play").click();
+        await wait(() => demo.state.phase === "complete");
+      }
+      assert.equal(await page.locator("#current-sequence").textContent(), "42");
+      await page.setViewportSize({ width: 320, height: 844 });
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        true,
+      );
+      await page.screenshot({
+        path: "/tmp/zooglass-play-controls.png",
+        fullPage: true,
+      });
+      await demo.reset();
+      await demo.browser!.page.locator("#play").click();
+      await wait(() => demo.state.playing);
+      const old = demo.browser;
+      await old!.page
+        .locator("#reset")
+        .click()
+        .catch((error: unknown) => {
+          if (!old!.page.isClosed()) throw error;
+        });
+      await wait(() => demo.browser !== old && demo.state.phase === "ready");
+      await delay(1100);
+      assert.equal(demo.state.completed, 0);
+      assert.equal(demo.state.playing, false);
       assert.equal(await demo.browser!.page.locator("#history li").count(), 0);
     } finally {
       await demo.close();

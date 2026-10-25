@@ -1,3 +1,4 @@
+import { resetThroughBrowser } from "./support/reset.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -43,14 +44,7 @@ test(
         await old.page.locator("#current-sequence").textContent(),
         "42",
       );
-      // Reset deliberately destroys its own page, possibly before click settles.
-      await old.page
-        .locator("#reset")
-        .click()
-        .catch((error: unknown) => {
-          if (!old.page.isClosed()) throw error;
-        });
-      await wait(() => demo.browser !== old && demo.state.phase === "ready");
+      await resetThroughBrowser(demo, () => old.page.locator("#reset").click());
       const fresh = demo.browser!;
       assert.ok(old.page.isClosed());
       assert.notEqual(fresh.host.runId, old.host.runId);
@@ -179,14 +173,8 @@ test(
       await demo.reset();
       await demo.browser!.page.locator("#play").click();
       await wait(() => demo.state.playing);
-      const old = demo.browser;
-      await old!.page
-        .locator("#reset")
-        .click()
-        .catch((error: unknown) => {
-          if (!old!.page.isClosed()) throw error;
-        });
-      await wait(() => demo.browser !== old && demo.state.phase === "ready");
+      const old = demo.browser!;
+      await resetThroughBrowser(demo, () => old.page.locator("#reset").click());
       await delay(1100);
       assert.equal(demo.state.completed, 0);
       assert.equal(demo.state.playing, false);

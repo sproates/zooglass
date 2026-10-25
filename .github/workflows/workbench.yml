@@ -87,3 +87,71 @@ jobs:
           name: workbench-browser-host-coverage
           path: incubator/workbench/coverage/browser-host/
           if-no-files-found: warn
+
+  native-lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: incubator/workbench
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: incubator/workbench/.nvmrc
+          cache: npm
+          cache-dependency-path: incubator/workbench/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: incubator/zooglass/pom.xml
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run test:resources
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: lifecycle-failure-${{ matrix.os }}
+          path: incubator/workbench/test-results/
+          if-no-files-found: ignore
+
+  browser-engines:
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: incubator/workbench
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: incubator/workbench/.nvmrc
+          cache: npm
+          cache-dependency-path: incubator/workbench/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: incubator/zooglass/pom.xml
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - run: npm run test:engines
+        env:
+          WORKBENCH_TEST_ENGINE: ${{ matrix.engine }}
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: engine-failure-${{ matrix.engine }}
+          path: incubator/workbench/test-results/
+          if-no-files-found: ignore

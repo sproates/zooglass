@@ -72,7 +72,8 @@ snapshots and reset/close boundaries. Concurrent clients now have real-transport
 checks, alongside exact queue-limit tests. Invalid protocol and partial-failure tests now verify rejection, continued service
 processing and fresh-session recovery. Bounded reconnect/reset workloads and queue/writer cleanup checks now cover
 resource ownership, with history-size and heap observations recorded separately.
-Platform reliability and final verification acceptance remain ahead.
+Native macOS/Windows lifecycle jobs and Chromium/Firefox/WebKit recovery probes now
+make the checked platform scope explicit. Final verification acceptance remains ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

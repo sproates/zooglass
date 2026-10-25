@@ -1,3 +1,5 @@
+import { resetThroughBrowser } from "../browser/support/reset.js";
+import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -21,7 +23,16 @@ test(
       assert.rejects(fetch(url, { signal: AbortSignal.timeout(1000) }));
     try {
       for (let cycle = 0; cycle < 5; cycle++) {
-        await demo.reset();
+        if (!previous) await demo.reset();
+        else {
+          const page = previous.browser.page;
+          await page.locator("#reset").focus();
+          await resetThroughBrowser(demo, () =>
+            cycle % 2 === 0
+              ? page.keyboard.press("Space")
+              : page.locator("#reset").click(),
+          );
+        }
         if (previous) {
           assert.equal(previous.browser.page.isClosed(), true);
           assert.equal(
@@ -49,6 +60,18 @@ test(
           2,
         );
       }
+    } catch (error) {
+      await mkdir("test-results", { recursive: true });
+      await Promise.allSettled([
+        writeFile(
+          "test-results/reset-state.json",
+          JSON.stringify(demo.state, null, 2),
+        ),
+        demo.browser?.page.screenshot({
+          path: "test-results/reset-failure.png",
+        }),
+      ]);
+      throw error;
     } finally {
       await demo.close();
     }

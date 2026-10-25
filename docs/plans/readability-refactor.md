@@ -9,10 +9,11 @@ Reviewed at `0b72ce1` on 25 October 2026. This is a proposed extraction plan;
 the initial inventory below describes that baseline. The service projection
 extraction merged in [PR #48](https://github.com/sproates/zooglass/pull/48).
 Subscription indexing and outbound writer ownership merged in
-[PR #49](https://github.com/sproates/zooglass/pull/49). Scenario parsing is now
-separated into model, view and timeline modules on this branch, pending review
-and merge. Run coordination, browser/demo composition, independent core
-verification and test organisation remain ahead. The accepted
+[PR #49](https://github.com/sproates/zooglass/pull/49). Scenario parsing merged in [PR #50](https://github.com/sproates/zooglass/pull/50).
+HTTP view operations and pure step planning are now extracted on this branch,
+pending review and merge. The controller retains playback timing and lifecycle
+ownership. Browser/demo composition, independent core verification and test
+organisation remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 

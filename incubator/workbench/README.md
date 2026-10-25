@@ -467,3 +467,22 @@ ownership remain with the existing sessions and controller. Validation order and
 error messages are protected by `test/scenario-validation.test.ts`, including
 cases with several invalid fields and the distinction between HTTP checks that
 allow null and client checks that require an object.
+
+## Run coordination code
+
+The session and controller remain the owners of running work. Stateless helpers
+make the protocol operations and step boundaries easier to read without
+introducing another lifecycle manager.
+
+| Module                | Responsibility                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scenario-session.ts` | Own source sockets and client executors, dispatch one action at a time, cancel active work before disposing resources.                            |
+| `view-http.ts`        | Poll HTTP view checks and post runtime view definitions using the session's cancellation signal and the existing timeouts.                        |
+| `demo-steps.ts`       | Group an ordered trace into setup and steps. Source events and subsequent connection changes begin steps; following checks stay with that action. |
+| `demo-controller.ts`  | Own the step cursor, active tasks, playback timer, pause/resume, reset and close.                                                                 |
+
+A step's delay is measured from the preceding checkpoint's final entry, preserving
+the existing playback behaviour. Pause freezes the remaining delay; Reset and
+Close cancel playback and wait for active work before releasing the run. Timer
+ownership stays beside those lifecycle decisions. The step planner owns no timer
+or resources.

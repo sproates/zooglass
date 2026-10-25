@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { playScenario, type TraceEntry } from "./playback.js";
 import type { Scenario } from "./scenario.js";
+import { planDemoSteps } from "./demo-steps.js";
 
 export type DemoState = {
   phase:
@@ -35,12 +36,8 @@ export function createDemoController(
   scenario: Scenario,
   openRun: (signal: AbortSignal) => Promise<DemoRun>,
 ) {
-  const trace = playScenario(scenario);
-  const first = trace.findIndex((entry) => entry.kind === "source-event");
-  if (first < 0) throw new Error("The demo needs at least one source event.");
-  const beginsStep = (entry: TraceEntry) =>
-    entry.kind === "source-event" || entry.kind === "client-state";
-  const total = trace.slice(first).filter(beginsStep).length;
+  const { setup, steps } = planDemoSteps(playScenario(scenario));
+  const total = steps.length;
   let state: DemoState = {
     phase: "starting",
     exploratory: false,
@@ -54,7 +51,7 @@ export function createDemoController(
   };
   let run: DemoRun | undefined;
   let controller = new AbortController();
-  let cursor = first;
+  let cursor = 0;
   let interventionTask: Promise<void> | undefined;
   let stepTask: Promise<void> | undefined;
   let resetTask: Promise<void> | undefined;
@@ -112,11 +109,8 @@ export function createDemoController(
         lastIntervention: "",
         skippedChecks: 0,
       };
-      cursor = first;
-      remaining = Math.max(
-        0,
-        trace[first].simulationTime - (trace[first - 1]?.simulationTime ?? 0),
-      );
+      cursor = 0;
+      remaining = steps[0].delayBefore;
       run = await openRun(current.signal);
       current.signal.throwIfAborted();
       const failed = () => {
@@ -129,7 +123,7 @@ export function createDemoController(
       };
       run.signal.addEventListener("abort", failed, { once: true });
       run.signal.throwIfAborted();
-      for (const entry of trace.slice(0, first)) await run.execute(entry);
+      for (const entry of setup) await run.execute(entry);
       current.signal.throwIfAborted();
       update(
         "ready",
@@ -165,9 +159,7 @@ export function createDemoController(
     const activeRun = run;
     update("stepping", `Running step ${state.completed + 1} of ${total}…`);
     stepTask = (async () => {
-      let end = cursor + 1;
-      while (end < trace.length && !beginsStep(trace[end])) end++;
-      for (const entry of trace.slice(cursor, end)) {
+      for (const entry of steps[cursor].entries) {
         current.signal.throwIfAborted();
         if (state.exploratory && entry.kind === "client-view-check") {
           state = { ...state, skippedChecks: state.skippedChecks + 1 };
@@ -177,19 +169,13 @@ export function createDemoController(
       }
       current.signal.throwIfAborted();
       activeRun.signal.throwIfAborted();
-      remaining =
-        end < trace.length
-          ? Math.max(
-              0,
-              trace[end].simulationTime - trace[end - 1].simulationTime,
-            )
-          : 0;
-      cursor = end;
+      cursor++;
+      remaining = steps[cursor]?.delayBefore ?? 0;
       state = { ...state, completed: state.completed + 1 };
-      if (cursor === trace.length) stopPlayback();
+      if (cursor === steps.length) stopPlayback();
       update(
-        cursor === trace.length ? "complete" : "ready",
-        cursor === trace.length
+        cursor === steps.length ? "complete" : "ready",
+        cursor === steps.length
           ? state.exploratory
             ? "Finished for inspection; not a scripted pass. Reset to verify again."
             : "All steps checked. Reset to run again."

@@ -217,6 +217,54 @@ Existing `test/sessions.test.ts` cases still cover partial client/source setup,
 cleanup continuing when one executor close fails, startup failure and cancellation;
 `test/demo-controller.test.ts` checks that failed cleanup prevents replacement.
 
+## Sustained activity and resource ownership
+
+Run the additional bounded lifecycle workload from Workbench:
+
+```sh
+npm run test:resources
+```
+
+It uses JDK 25 and installed Chromium, runs serially, and is separate from both
+coverage suites. CI runs it after the browser suite. These two cases perform:
+
+- Fifty real client connections/reconnections, each consuming a burst of 25
+  updates. Every new subscription after the first must receive current state.
+  Each close leaves a closed socket, an empty consumed receipt buffer and no
+  connection-acquisition listener on the shared caller cancellation signal.
+- Five complete browser demo runs through Reset, each with an empty service
+  baseline and two checked steps. Old browser connections and pages close; old
+  host/service addresses stop responding. Final shutdown is checked too.
+
+Java `ResourceBehaviourTests` runs with normal Maven verification. Across 100
+blocked-writer sessions, each with 25 queued updates, removal must interrupt the
+writer and empty its queue plus all three subscription/writer registries. The
+executor must terminate after broadcaster shutdown. This uses white-box checks
+of resource ownership: they will need updating if those internals are refactored,
+but should retain the same cleanup guarantees.
+
+A separate history workload grows to 100, 500 and 1,000 positions and replays all
+received positions at each checkpoint. It checks exact ordered contents, unchanged
+state after duplicates, and serialized size below `64 × positions + 256` bytes
+for this deliberately small sequence-only fixture. That generous linear bound is
+a regression check for this fixture, not a limit on application payload sizes.
+
+Maven writes `target/resource-observations.json`, included in the
+`zooglass-coverage` CI artefact alongside `site/jacoco/`. It contains position
+counts, serialized state size and JVM heap-used observations. In the initial local
+run on JDK 25.0.5.0.2, serialized snapshots were 1,652, 8,452 and 16,953 bytes;
+heap-used observations were approximately 90, 75 and 134 MB respectively.
+Heap observations include temporary allocations, other tests and garbage
+collection timing. There is deliberately no flat-heap assertion or arbitrary
+heap tolerance; the decreasing middle sample illustrates why that would mislead.
+
+These tests distinguish intended retained history from reachable queues and
+subscriptions that should disappear. They do not measure retained object size,
+prove an absence of every memory leak, or establish long-running throughput.
+History still grows without a production retention policy. Resource workloads
+are bounded and reproducible; extended soak/profiling remains a separate diagnostic
+if later evidence calls for it.
+
 ## Work that follows
 
 First strengthen ordering, recovery and failure tests at service and protocol

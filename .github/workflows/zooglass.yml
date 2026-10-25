@@ -36,5 +36,7 @@ jobs:
         if: always()
         with:
           name: zooglass-coverage
-          path: incubator/zooglass/target/site/jacoco/
+          path: |
+            incubator/zooglass/target/site/jacoco/
+            incubator/zooglass/target/resource-observations.json
           if-no-files-found: warn

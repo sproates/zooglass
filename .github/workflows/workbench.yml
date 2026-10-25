@@ -74,6 +74,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser:coverage
+      - run: npm run test:resources
       - uses: actions/upload-artifact@v6
         if: failure()
         with:

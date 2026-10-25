@@ -31,7 +31,9 @@
     "test:browser": "tsx --test test/browser/*.test.ts",
     "build:browser": "tsc -p ../vehicle-tracker/tsconfig.json",
     "test:coverage": "c8 --reports-dir=coverage/standard npm test",
-    "test:browser:coverage": "c8 --reports-dir=coverage/browser-host npm run test:browser"
+    "test:browser:coverage": "c8 --reports-dir=coverage/browser-host npm run test:browser",
+    "pretest:resources": "node scripts/check-node-version.js && npm run build:browser",
+    "test:resources": "tsx --test --test-concurrency=1 test/resources/*.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -103,6 +103,10 @@ and `npm run test:browser:coverage` produce separate reports in
 `coverage/standard/` and `coverage/browser-host/`. Both commands run their tests;
 there's no need to run the equivalent uninstrumented suite again.
 
+For sustained lifecycle and cleanup changes, also run `npm run test:resources`
+from Workbench. It requires Chromium and runs bounded reconnect/reset workloads
+separately from the coverage suites.
+
 See the [verification map](docs/testing.md) for report boundaries, the measured
 baseline and gaps. Coverage reports show execution, not whether assertions are
 strong enough. Keep tests readable and expected results independent of the

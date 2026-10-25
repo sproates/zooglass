@@ -74,6 +74,9 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
+    env:
+      # Maven's Java home must match the home used by setup-java's cache.
+      MAVEN_OPTS: -Duser.home=/github/home
     defaults:
       run:
         working-directory: incubator/workbench
@@ -148,6 +151,9 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
+    env:
+      # Maven's Java home must match the home used by setup-java's cache.
+      MAVEN_OPTS: -Duser.home=/github/home
     timeout-minutes: 15
     defaults:
       run:

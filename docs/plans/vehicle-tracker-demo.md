@@ -9,8 +9,9 @@ interactive and automatic completion. Installation and keyboard/narrow-layout
 verification are complete. Play/Pause now share the Step cursor, preserve remaining
 delays and finish in-flight checkpoints before pausing. A separate recovery fixture now covers duplicate
 processing and explicit reconnect receipts in Node and Chromium; interactive
-recovery controls, transport faults, automatic recovery and final acceptance
-remain outstanding.
+recovery is selectable with `--recovery`, and manual viewer controls mark runs
+exploratory. Transport faults, automatic recovery and final acceptance remain
+outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -273,6 +274,6 @@ cross-source ordering guarantee. No new vehicle receipt is required for a no-op.
 The fixture then disconnects the viewer, sends 43 and checks both server views
 before reconnecting. It subscribes to both views again and checks their initial
 snapshots before any further source event can hide a stale result. The browser
-receipt test runs these exact actions through the existing executor. It does
-not yet add manual reconnect controls or independent rendering assertions for
-this fixture, and it does not exercise the planned proxy fault gate.
+receipt test runs these exact actions through the existing executor. The interactive `--recovery` mode now adds independent rendering assertions
+and separate connection checkpoints. Manual viewer controls are available for
+exploration. Neither mode exercises the planned proxy fault gate.

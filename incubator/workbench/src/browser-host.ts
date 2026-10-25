@@ -10,7 +10,7 @@ export async function startBrowserHost(
   baseUrl: string,
   options: {
     onControl?: (
-      action: "step" | "reset" | "play" | "pause",
+      action: "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect",
       runId: string,
     ) => Promise<void>;
   } = {},
@@ -171,7 +171,16 @@ export async function startBrowserHost(
           ready = true;
         } else if (registered === socket && ready) {
           if (message.type === "control-request" && options.onControl) {
-            if (!["step", "reset", "play", "pause"].includes(message.action))
+            if (
+              ![
+                "step",
+                "reset",
+                "play",
+                "pause",
+                "disconnect",
+                "reconnect",
+              ].includes(message.action)
+            )
               throw new Error();
             void options.onControl(message.action, runId).catch((error) => {
               if (socket.readyState === WebSocket.OPEN)

@@ -212,8 +212,8 @@ business rules of a sportsbook, order system, or ride service.
   subscription snapshots are checked without sending another vehicle event.
   Run it with `npm run integrate -- --fast scenarios/vehicle-browser-recovery.json`
   using the Node client. The Chromium suite also runs its receipt checks through
-  the real browser. It is not yet selectable in the interactive demo, and does
-  not simulate an unexpected network failure.
+  the real browser. Select it in the interactive demo with `npm run demo -- vehicle-tracker --recovery`.
+  This is deliberate disconnection, not an unexpected network failure.
 - `vehicle-browser-basic.json` is the finite first slice for the planned browser
   demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
   positions 40 and 42 for `car-17`. Each send is followed by HTTP and client
@@ -327,8 +327,20 @@ five seconds. Reset cancels a pending rendered wait.
 Reset cancels the old run and waits for its browser, sockets and ZooGlass to
 close before creating an empty replacement with a new run identity. It replaces
 the window. Overlapping step/reset requests are rejected, and failed cleanup
-prevents a replacement from starting. Terminal `step`, `play`, `pause`, `reset` and `quit` provide
+prevents a replacement from starting. Terminal `step`, `play`, `pause`, `disconnect`, `reconnect`, `reset` and `quit` provide
 the same lifecycle controls if the page is unavailable.
+
+Manual Disconnect viewer and Reconnect viewer commands are allowed while paused
+and idle. They use the same executor as scenario commands and leave the source
+connection running. They record an intervention and mark the run exploratory
+until Reset. Server checks continue; fixture client/DOM checks are skipped and
+counted visibly. Exploratory completion is never reported as a scripted pass.
+See the [viewer walkthrough](../vehicle-tracker/README.md#viewer-controls-and-recovery-fixture).
+
+`--recovery` selects the late/duplicate/disconnected-viewer fixture. Connection
+changes form their own checkpoints after startup; Step stops at disconnect,
+source delivery while disconnected, and reconnect. It cannot be combined with
+`--basic` or `--auto`. The basic and journey defaults are unchanged.
 
 Use `--auto` for the previous timed, single-run demonstration without interactive
 controls. Its headed failures retain the page for inspection; headless failures

@@ -71,14 +71,15 @@ and advances once; Play continues from there. Reset cancels playback and its tim
 Play stops on completion or a failed check. Step and repeated Play are unavailable
 during playback; Pause is available while a checkpoint is running.
 
-You can also type `step`, `play`, `pause`, `reset` or `quit` in the terminal. Terminal reset
+You can also type `step`, `play`, `pause`, `disconnect`, `reconnect`, `reset` or `quit` in the terminal. Terminal reset
 remains available after the browser page closes. `--headless` uses the same
 controls through the terminal without showing a window.
 
 Add `--auto` for the previous timed demonstration. That mode plays once and
 keeps the result open; it has no interactive controls. The recording above shows
-this automatic mode. Interactive duplicate delivery and automatic recovery remain
-planned. See the
+this automatic mode. Use the interactive recovery fixture below for deliberate
+disconnection and duplicate delivery. Unexpected faults and automatic recovery
+remain planned. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
 
@@ -105,7 +106,7 @@ advances only when those checks pass.
 
 ### Keyboard and narrow screens
 
-Tab moves through the enabled Step, Play, Pause and Reset controls, then the history list; Shift+Tab moves backwards.
+Tab moves through the enabled playback, viewer and Reset controls, then the history list; Shift+Tab moves backwards.
 Activate a button with Enter or Space. When Step is disabled it is skipped in
 the tab order. With the history list focused, use the arrow keys or End to scroll
 through received positions. Reset opens a new window, so focus starts afresh.
@@ -124,6 +125,47 @@ waiting, received and retained data without relying on colour alone.
 - Keep the terminal output when reporting a startup or check failure. If the page
   closes, type `reset` in the terminal; reopening its URL does not register a new
   viewer. If startup never succeeds, quit and rerun after fixing the reported cause.
+
+## Viewer controls and recovery fixture
+
+Disconnect viewer closes only the app's ZooGlass data socket. Workbench's control
+connection and the source remain live. Previously received values stay visible
+and are labelled **Last received**. Reconnect viewer opens the data connection
+and subscribes to both views again. Each view becomes current when its own
+snapshot arrives; the pair is not an atomic result.
+
+Manual viewer controls require a paused, idle run, including a completed run.
+They don't advance the scenario cursor. Disconnecting an already disconnected
+viewer is safe. Every accepted manual request marks the run **Exploratory**, with
+an intervention count and the latest action shown on the page. That label stays
+until Reset, even if you reconnect immediately.
+
+In an exploratory run, Step and Play still send source events and perform server
+checks, but skip fixture client-receipt and rendering checks. The manual change
+may have invalidated their subscription assumptions. The page counts those
+skipped checks and reports steps executed, never a passing scripted run. This
+allows you to send positions while disconnected and inspect current snapshots
+after reconnecting. Server errors still fail the run. Reset restores all checks.
+
+For the scripted version, start a fresh run:
+
+```sh
+npm run demo -- vehicle-tracker --recovery
+```
+
+This fixture uses eight checkpoints: 40, 42, late 41, duplicate 41, the duplicate
+processing barrier, viewer disconnect, 43 while disconnected, then reconnect.
+The duplicate is verified at the following barrier, not by expecting a new
+message for unchanged state. Step stops separately at the connection changes,
+so you can inspect the retained display before and after sending 43. Play runs
+the same sequence. Both server views must contain 43 before reconnect, and the
+initial snapshots and rendered views are checked without another vehicle event.
+
+Use the scripted Step/Play actions to keep this a verification run; pressing a
+manual viewer button makes it exploratory. `--recovery` cannot be combined with
+`--basic` or `--auto`. Deliberate disconnect is not an unexpected network fault.
+
+![Manual viewer controls and the exploratory-run label.](docs/viewer-controls.png)
 
 ## Reading the display
 

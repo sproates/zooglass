@@ -15,6 +15,8 @@ if (!runId || !clientId || !registration.get("token")) {
   const step = document.querySelector("#step");
   const play = document.querySelector("#play");
   const pause = document.querySelector("#pause");
+  const disconnect = document.querySelector("#disconnect");
+  const reconnect = document.querySelector("#reconnect");
   const reset = document.querySelector("#reset");
   const controlError = document.querySelector("#control-error");
   for (const [button, action] of [
@@ -22,6 +24,8 @@ if (!runId || !clientId || !registration.get("token")) {
     [play, "play"],
     [pause, "pause"],
     [reset, "reset"],
+    [disconnect, "disconnect"],
+    [reconnect, "reconnect"],
   ]) {
     button.addEventListener("click", () => {
       controlError.textContent = "";
@@ -60,11 +64,16 @@ if (!runId || !clientId || !registration.get("token")) {
         step.disabled = state.phase !== "ready" || state.playing;
         play.disabled = state.phase !== "ready" || state.playing;
         pause.disabled = !state.playing;
+        disconnect.disabled = reconnect.disabled =
+          state.playing || !["ready", "complete"].includes(state.phase);
+        document.querySelector("#run-mode").textContent = state.exploratory
+          ? `Exploratory · ${state.interventions} manual intervention(s) · Last: ${state.lastIntervention} · ${state.skippedChecks} client checks skipped. Reset for a scripted run.`
+          : "Scripted run";
         reset.disabled = ["starting", "resetting", "closed"].includes(
           state.phase,
         );
         document.querySelector("#run-progress").textContent =
-          `${state.completed}/${state.total} steps checked · ${state.detail}`;
+          `${state.completed}/${state.total} ${state.exploratory ? "steps executed" : "steps checked"} · ${state.detail}`;
         controlError.textContent = "";
         return;
       }
@@ -130,6 +139,8 @@ if (!runId || !clientId || !registration.get("token")) {
     reset.disabled = true;
     play.disabled = true;
     pause.disabled = true;
+    disconnect.disabled = true;
+    reconnect.disabled = true;
     controlError.textContent =
       "Control connection lost. Type reset in the terminal to start again.";
     client?.fail("Workbench control connection lost.");

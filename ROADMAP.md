@@ -66,8 +66,11 @@ The journey already shows delayed position 41 filling history without moving
 the current marker back from 42. A separate recovery fixture checks duplicate
 delivery after a processing barrier, then sends 43 while the viewer is
 disconnected and verifies current snapshots after explicit reconnection.
-It runs through both Node and browser clients. Bringing this sequence into the
-interactive demo, with viewer controls and rendered recovery checks, remains ahead.
+It runs through both Node and browser clients. The interactive `--recovery` demo now runs this sequence with rendered checks
+and separate connection checkpoints. Manual viewer controls leave the source
+running and mark the run exploratory until Reset; client checks skipped during
+exploration are explicitly counted. Unexpected faults and automatic recovery
+remain ahead.
 
 A separate fault scenario will interrupt the actual browser data path. The app
 must detect the loss, label retained data and recover after the route is

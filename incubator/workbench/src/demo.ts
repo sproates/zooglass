@@ -10,19 +10,29 @@ async function main() {
     args[0] !== "vehicle-tracker" ||
     args
       .slice(1)
-      .some((arg) => !["--headless", "--basic", "--auto"].includes(arg))
+      .some(
+        (arg) =>
+          !["--headless", "--basic", "--auto", "--recovery"].includes(arg),
+      )
   )
     throw new Error(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic] [--auto]",
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery] [--auto]",
     );
+  if (
+    args.includes("--recovery") &&
+    (args.includes("--basic") || args.includes("--auto"))
+  )
+    throw new Error("--recovery cannot be combined with --basic or --auto.");
   if (args.includes("--auto"))
     return runAutomaticDemo(args.filter((arg) => arg !== "--auto"));
   const scenario = await loadScenario(
     fileURLToPath(
       new URL(
-        args.includes("--basic")
-          ? "../scenarios/vehicle-browser-basic.json"
-          : "../scenarios/vehicle-browser-journey.json",
+        args.includes("--recovery")
+          ? "../scenarios/vehicle-browser-recovery.json"
+          : args.includes("--basic")
+            ? "../scenarios/vehicle-browser-basic.json"
+            : "../scenarios/vehicle-browser-journey.json",
         import.meta.url,
       ),
     ),
@@ -46,11 +56,19 @@ async function main() {
   input.on("line", (line) => {
     const action = line.trim().toLowerCase();
     if (action === "quit" || action === "q") return stop();
-    if (!["step", "reset", "play", "pause"].includes(action)) {
-      console.log("Commands: step, play, pause, reset, quit.");
+    if (
+      !["step", "reset", "play", "pause", "disconnect", "reconnect"].includes(
+        action,
+      )
+    ) {
+      console.log(
+        "Commands: step, play, pause, disconnect, reconnect, reset, quit.",
+      );
       return;
     }
-    void demo[action as "step" | "reset" | "play" | "pause"]()
+    void demo[
+      action as "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect"
+    ]()
       .then(() => console.log(demo.state.detail))
       .catch((error: unknown) =>
         console.error(error instanceof Error ? error.message : error),
@@ -58,7 +76,7 @@ async function main() {
   });
   try {
     console.log(
-      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, reset or quit here. Reset remains available if the page closes.",
+      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, disconnect, reconnect, reset or quit here. Reset remains available if the page closes.",
     );
     await demo.reset();
     console.log(demo.state.detail);

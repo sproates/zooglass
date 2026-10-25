@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadScenario } from "../../src/scenario.js";
 import { playScenario } from "../../src/playback.js";
 import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startBrowserSession } from "../../src/browser-session.js";
+import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
 import { openScenarioSession } from "../../src/scenario-session.js";
 
 test(
@@ -21,7 +21,7 @@ test(
     );
     const service = await startZooGlassSession({ views: scenario.views });
     try {
-      const browser = await startBrowserSession(service.baseUrl, {
+      const browser = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: true,
       });

@@ -5,7 +5,7 @@ import {
   type DemoRun,
 } from "./demo-controller.js";
 import { startZooGlassSession } from "./zooglass-session.js";
-import { startBrowserSession } from "./browser-session.js";
+import { startVehicleBrowserSession } from "./vehicle-browser.js";
 import { openScenarioSession } from "./scenario-session.js";
 import type { TraceEntry } from "./playback.js";
 import type { Scenario } from "./scenario.js";
@@ -14,14 +14,15 @@ export function createVehicleDemo(
   scenario: Scenario,
   options: { headless?: boolean } = {},
 ) {
-  let browser: Awaited<ReturnType<typeof startBrowserSession>> | undefined;
+  let browser:
+    Awaited<ReturnType<typeof startVehicleBrowserSession>> | undefined;
   let baseUrl: string | undefined;
   const controller = createDemoController(
     scenario,
     async (signal): Promise<DemoRun> => {
       let service: Awaited<ReturnType<typeof startZooGlassSession>> | undefined;
       let ownedBrowser:
-        Awaited<ReturnType<typeof startBrowserSession>> | undefined;
+        Awaited<ReturnType<typeof startVehicleBrowserSession>> | undefined;
       let session: Awaited<ReturnType<typeof openScenarioSession>> | undefined;
       let closing: Promise<void> | undefined;
       const close = () =>
@@ -43,7 +44,7 @@ export function createVehicleDemo(
       try {
         service = await startZooGlassSession({ views: scenario.views, signal });
         baseUrl = service.baseUrl;
-        ownedBrowser = await startBrowserSession(service.baseUrl, {
+        ownedBrowser = await startVehicleBrowserSession(service.baseUrl, {
           signal: service.signal,
           headless: options.headless,
           keepOpenOnFailure: true,

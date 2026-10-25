@@ -10,10 +10,13 @@ the initial inventory below describes that baseline. The service projection
 extraction merged in [PR #48](https://github.com/sproates/zooglass/pull/48).
 Subscription indexing and outbound writer ownership merged in
 [PR #49](https://github.com/sproates/zooglass/pull/49). Scenario parsing merged in [PR #50](https://github.com/sproates/zooglass/pull/50).
-HTTP view operations and pure step planning are now extracted on this branch,
-pending review and merge. The controller retains playback timing and lifecycle
-ownership. Browser/demo composition, independent core verification and test
-organisation remain ahead. The accepted
+HTTP view operations and pure step planning merged in
+[PR #51](https://github.com/sproates/zooglass/pull/51). The controller retains
+playback timing and lifecycle ownership. Host/session asset and identity
+configuration is implemented on this branch, pending review and merge. Vehicle
+bindings live in `vehicle-browser.ts`; a non-vehicle page exercises the same host
+and session. Shared bridge extraction, client protocol/presentation separation,
+independent core verification and test organisation remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 

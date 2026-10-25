@@ -5,7 +5,7 @@ import { playScenario } from "./playback.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { loadScenario } from "./scenario.js";
 import { startZooGlassSession } from "./zooglass-session.js";
-import { startBrowserSession } from "./browser-session.js";
+import { startVehicleBrowserSession } from "./vehicle-browser.js";
 
 export async function runAutomaticDemo(args: string[]) {
   if (
@@ -36,7 +36,7 @@ export async function runAutomaticDemo(args: string[]) {
       signal: controller.signal,
     });
     try {
-      const browser = await startBrowserSession(service.baseUrl, {
+      const browser = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: args.includes("--headless"),
         keepOpenOnFailure: !args.includes("--headless"),

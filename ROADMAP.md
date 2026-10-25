@@ -85,9 +85,12 @@ preserving coordinator locking and queue order; it merged in
 [PR #49](https://github.com/sproates/zooglass/pull/49). Scenario parsing has
 separate model, view and timeline modules, merged in
 [PR #50](https://github.com/sproates/zooglass/pull/50). HTTP view operations and
-step planning are extracted, pending review and merge, while sessions and the
-controller retain resource and lifecycle ownership. Browser/demo separation,
-independent core verification and test organisation remain ahead.
+step planning merged in [PR #51](https://github.com/sproates/zooglass/pull/51),
+while sessions and the controller retain resource and lifecycle ownership.
+Host/session composition now takes explicit assets and client identity, pending
+review and merge, with a non-vehicle browser fixture exercising the shared path.
+Bridge/UI and client protocol/presentation separation, independent core
+verification and test organisation remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

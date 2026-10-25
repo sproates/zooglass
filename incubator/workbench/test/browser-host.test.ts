@@ -5,6 +5,19 @@ import { once } from "node:events";
 import { WebSocket } from "ws";
 import { startBrowserHost } from "../src/browser-host.js";
 
+const application = {
+  clientId: "inventory-reader",
+  assets: new Map<string, readonly [string, Buffer]>([
+    [
+      "/",
+      [
+        "text/html; charset=utf-8",
+        Buffer.from("<title>Inventory fixture</title>"),
+      ],
+    ],
+  ]),
+};
+
 async function rejected(url: string, origin?: string) {
   const socket = new WebSocket(url, { origin });
   const result = new Promise<number>((resolve) =>
@@ -19,8 +32,14 @@ async function rejected(url: string, origin?: string) {
 }
 
 test("host rejects foreign/missing origins and invalid routes; timeout and close release its port", async () => {
-  const host = await startBrowserHost("http://127.0.0.1:1");
+  const host = await startBrowserHost("http://127.0.0.1:1", { application });
   try {
+    assert.equal(host.clientId, "inventory-reader");
+    assert.equal(
+      await (await fetch(host.origin)).text(),
+      "<title>Inventory fixture</title>",
+    );
+    assert.equal((await fetch(host.origin + "/vehicle-client.js")).status, 404);
     const control = host.origin.replace("http:", "ws:") + "/control";
     assert.equal(await rejected(control, "http://foreign.invalid"), 403);
     assert.equal(await rejected(control), 403);
@@ -57,7 +76,7 @@ test("host rejects foreign/missing origins and invalid routes; timeout and close
 });
 
 test("registration validates run identity and token, rejects duplicate clients, and reports control loss", async () => {
-  const host = await startBrowserHost("http://127.0.0.1:1");
+  const host = await startBrowserHost("http://127.0.0.1:1", { application });
   const parameters = new URLSearchParams(new URL(host.pageUrl).hash.slice(1));
   const url = host.origin.replace("http:", "ws:") + "/control";
   const register = {

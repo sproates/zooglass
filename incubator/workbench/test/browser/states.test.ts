@@ -7,7 +7,7 @@ import {
   subscription,
   position,
 } from "./support/view-peer.js";
-import { startBrowserSession } from "../../src/browser-session.js";
+import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
 
 test(
   "independent waiting and empty states, retained data, and fresh snapshots after resubscription",
@@ -15,7 +15,7 @@ test(
   async () => {
     const upstream = await peer();
     try {
-      const browser = await startBrowserSession(upstream.url, {
+      const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
         keepOpenOnFailure: true,
@@ -135,7 +135,7 @@ test(
   async () => {
     const upstream = await peer(true);
     try {
-      const browser = await startBrowserSession(upstream.url, {
+      const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
         keepOpenOnFailure: true,

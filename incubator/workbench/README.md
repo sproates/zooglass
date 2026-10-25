@@ -486,3 +486,25 @@ the existing playback behaviour. Pause freezes the remaining delay; Reset and
 Close cancel playback and wait for active work before releasing the run. Timer
 ownership stays beside those lifecycle decisions. The step planner owns no timer
 or resources.
+
+## Browser application composition
+
+`startBrowserHost` and `startBrowserSession` require an `application` containing
+`clientId` and an exact-path asset map. Each asset supplies its content type and
+bytes. The host serves only those entries; it does not choose a demo, read
+vehicle files or provide a default client identity. The supplied page must
+implement the Workbench registration and command protocol.
+
+`vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
+`rider-app` identity. Interactive and automatic vehicle demos use
+`startVehicleBrowserSession`; the browser-engine probes use the same vehicle
+composition. The existing bridge still contains vehicle UI wiring, and the
+vehicle client still calls presentation functions. Separating those is subsequent
+work, so this change establishes the host boundary rather than completing all
+browser/demo separation.
+
+Host-only tests supply their own assets without reading a vehicle build.
+`test/browser/composition.test.ts` starts a minimal inventory page in a real
+browser, registers a different identity and checks receipts through the same
+proxy, executor and scenario session. Its small protocol fixture proves host
+composition; it is not another reusable client implementation or a second demo.

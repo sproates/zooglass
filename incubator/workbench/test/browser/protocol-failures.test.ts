@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { startBrowserSession } from "../../src/browser-session.js";
+import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
 import {
   peer,
   signal,
@@ -56,7 +56,7 @@ for (const [name, responses, expected] of cases) {
         else acknowledge();
       });
       t.after(() => upstream.close());
-      const browser = await startBrowserSession(upstream.url, {
+      const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
         keepOpenOnFailure: true,
@@ -85,7 +85,7 @@ for (const [name, responses, expected] of cases) {
         await browser.close();
       }
       bad = false;
-      const fresh = await startBrowserSession(upstream.url, {
+      const fresh = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
       });
@@ -120,7 +120,7 @@ test(
     const upstream = await peer(false, () => {});
     t.after(() => upstream.close());
     const lifetime = new AbortController();
-    const browser = await startBrowserSession(upstream.url, {
+    const browser = await startVehicleBrowserSession(upstream.url, {
       signal: lifetime.signal,
       headless: true,
       keepOpenOnFailure: true,

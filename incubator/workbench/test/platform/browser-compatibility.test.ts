@@ -3,7 +3,7 @@ import test from "node:test";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium, firefox, webkit } from "playwright";
-import { startBrowserHost } from "../../src/browser-host.js";
+import { startVehicleBrowserHost } from "../../src/vehicle-browser.js";
 import { startZooGlassSession } from "../../src/zooglass-session.js";
 import { loadScenario } from "../../src/scenario.js";
 import { openScenarioSession } from "../../src/scenario-session.js";
@@ -41,7 +41,7 @@ test(
       if (errors.length)
         throw new AggregateError(errors, "Compatibility test cleanup failed");
     });
-    const host = await startBrowserHost(service.baseUrl);
+    const host = await startVehicleBrowserHost(service.baseUrl);
     resources.unshift(host);
     const browser = await engine.launch({ headless: true });
     resources.unshift(browser);

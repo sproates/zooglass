@@ -101,7 +101,7 @@ for review, not a claim of exhaustive coverage.
 
 ## Generated ordering checks
 
-`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 146 deliveries across
+`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across
 two entities and two matching sources, with exact duplicates, equal-sequence
 conflicting payloads, invalid sequences and unmatched source/type combinations.
 Every delivery prefix is checked, including changed-view notifications and the

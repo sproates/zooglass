@@ -146,3 +146,18 @@ Run the tests with:
 
 See the [verification map](../../docs/testing.md) for coverage commands, report
 boundaries and the remaining behavioural gaps.
+
+
+## Projection code responsibilities
+
+`ViewStore` owns matcher registration, entity state and the synchronised access
+boundary. `ViewDefinitions` loads configuration and validates startup/runtime
+definitions without owning registered state. `FieldUpdates` applies arrival,
+latest-sequence and history-sequence policies to a field while the store holds
+its lock; it has no independent state or lifecycle.
+
+Startup definitions are validated before registration. Runtime definitions still
+validate before checking for a duplicate ID. Ordering, first-accepted equal
+sequences, changed-view notifications and defensive snapshot copies retain their
+existing behaviour. Configuration and snapshot-ownership tests exercise these
+boundaries through the store, alongside the independent ordering reference tests.

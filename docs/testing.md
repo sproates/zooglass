@@ -99,6 +99,17 @@ for review, not a claim of exhaustive coverage.
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
 | Resource and platform behaviour | Bounded reconnect/reset workloads, Java queue/writer cleanup and history observations; native lifecycle jobs and browser-engine recovery probes described below. | Extended soak/profiling, every OS/engine combination and mobile devices remain unverified. |
 
+## Projection extraction checks
+
+`ViewConfigurationTests` exercises missing/malformed resources, invalid startup
+configuration, duplicate startup IDs and malformed runtime definitions through
+`ViewStore`. Rejected definitions leave their IDs available and register no
+matching state. `ViewSnapshotOwnershipTests` mutates source payloads, returned
+change notifications and queried snapshots for all three field policies; none
+may alter the store's nested values. The new cases pass against both the original
+store and its extracted collaborators. Existing ordering/reference and real
+transport checks continue to protect projection behaviour.
+
 ## Generated ordering checks
 
 `ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across

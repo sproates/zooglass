@@ -15,8 +15,8 @@ HTTP view operations and pure step planning merged in
 playback timing and lifecycle ownership. Host/session asset and identity
 configuration merged in [PR #52](https://github.com/sproates/zooglass/pull/52).
 The shared bridge, client presentation boundary and shared demo assembly merged
-in PRs #53–#55. Independent core verification and the dependency/reuse review are
-implemented pending review and merge. Test organisation and final acceptance remain ahead. The accepted
+in PRs #53–#55. Independent core verification and the dependency/reuse review merged in PR #56.
+Test organisation is implemented pending review and merge; final acceptance remains ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 
@@ -211,3 +211,20 @@ resource cleanup errors through the same DemoCleanupError used by the interactiv
 controller; this is an intentional diagnostic improvement over nested finally
 blocks replacing earlier cleanup errors. Real browser/CLI integration checks
 remain the evidence for actual process, transport and rendering behaviour.
+
+
+## Test clarity extraction
+
+The mixed controller and session files now have separate lifecycle, playback,
+intervention, scenario ownership, process ownership and import-side-effect groups.
+Small fixture helpers hold setup mechanics; expected outcomes remain at each test
+site. The six-boundary race matrix shares only the explicit gate helper. Process
+fixture code is a separate JavaScript file, and failure cleanup hooks prevent
+assertion failures from leaving blocked gates or sessions behind.
+
+The original 95 core / 119 standard / 33 browser test counts are retained. The
+core path remains independent of vehicle builds and browser binaries. No production
+code, projection oracle or protocol expectations changed. The larger but cohesive
+Java functional and browser reconnection groups remain intact. Final acceptance
+will review the overall structure, coverage and fresh-checkout behaviour, including
+the previously observed concurrent Maven compilation risk.

@@ -81,8 +81,11 @@ explicit separation of Workbench and demo code. The first service projection
 extraction separates validation and field policies from state ownership; it is
 merged in [PR #48](https://github.com/sproates/zooglass/pull/48). The delivery
 extraction separates subscription indexing and per-client writer ownership while
-preserving coordinator locking and queue order; it is implemented pending review
-and merge. Workbench/client and test organisation changes remain ahead.
+preserving coordinator locking and queue order; it merged in
+[PR #49](https://github.com/sproates/zooglass/pull/49). Scenario parsing now has
+separate model, view and timeline modules, pending review and merge. Run
+coordination, browser/demo separation, independent core verification and test
+organisation remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

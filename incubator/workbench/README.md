@@ -446,3 +446,24 @@ on native macOS and Windows, and a focused recovery fixture through Playwright
 Chromium, Firefox and WebKit on Ubuntu. These probes do not make every OS/browser
 combination a supported demo target. See the [verification guide](../../docs/testing.md#platform-and-browser-scope)
 for commands, exact scope, limitations and failure artefacts.
+
+## Scenario parsing code
+
+`src/scenario.ts` remains the entry point for `parseScenario`, `loadScenario`
+and the exported scenario types. It validates the top-level declarations and
+passes view and timeline rules to cohesive modules:
+
+- `scenario-model.ts` defines the data model without runtime dependencies.
+- `scenario-view.ts` validates field matchers and ordering for both startup and
+  runtime views.
+- `scenario-timeline.ts` validates references and dispatches each entry kind to
+  its own parser. Runtime view IDs are collected first, allowing forward
+  references; parsing preserves input order and does not schedule actions.
+- `scenario-validation.ts` contains the shared record, string and client-state
+  checks.
+
+These modules know nothing about the vehicle UI. Run execution and resource
+ownership remain with the existing sessions and controller. Validation order and
+error messages are protected by `test/scenario-validation.test.ts`, including
+cases with several invalid fields and the distinction between HTTP checks that
+allow null and client checks that require an object.

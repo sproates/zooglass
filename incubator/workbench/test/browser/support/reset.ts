@@ -14,7 +14,9 @@ export async function resetThroughBrowser(
     if (
       !old.page.isClosed() ||
       !(error instanceof Error) ||
-      !/Target page, context or browser has been closed/.test(error.message)
+      !/Target page, context or browser has been closed|^locator\.click: Browser closed$/.test(
+        error.message,
+      )
     )
       throw error;
   });

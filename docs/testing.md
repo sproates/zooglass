@@ -317,7 +317,11 @@ headed desktop interactions and other OS/version combinations are not verified
 by these jobs. Playwright WebKit on Ubuntu is not proof of Safari behaviour.
 
 Reset checks register for page closure before input, tolerate only the recognised
-closed-target input error after closure, and wait for a different ready run.
+closed-target input errors after closure, and wait for a different ready run.
+These include the Windows `locator.click: Browser closed` message.
+`test/reset-input.test.ts` checks both recognised forms, rejection while the old
+page is open, continued waiting for replacement readiness and propagation of
+unrelated input errors.
 Other input failures still fail. Readiness polling has a deadline and reports
 controller state; it does not guess a startup delay. The five-run workload repeats
 both mouse and keyboard Reset twice and verifies old endpoints are unavailable.
@@ -343,3 +347,17 @@ Use the stronger suite to protect subsequent readability refactoring. Production
 and test modules both need clear responsibilities, explicit lifecycle ownership
 and manageable complexity. Keep refactors reviewable and preserve behaviour;
 coverage percentages alone aren't the acceptance criterion.
+
+
+## Scenario parser refactor checks
+
+`test/scenario-validation.test.ts` protects validation order, duplicate runtime
+view declarations, forward references and input timeline order. It also preserves
+the different null rules for HTTP and client view checks. These tests passed
+against the original parser before extraction and exercise the public
+`parseScenario` entry point. The existing every-scenario integration tests still
+execute fixtures through Workbench and the real service.
+
+This extraction does not yet introduce the independent core verification command
+or separate browser/demo composition. Those remain in the
+[readability plan](plans/readability-refactor.md).

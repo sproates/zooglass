@@ -87,10 +87,11 @@ separate model, view and timeline modules, merged in
 [PR #50](https://github.com/sproates/zooglass/pull/50). HTTP view operations and
 step planning merged in [PR #51](https://github.com/sproates/zooglass/pull/51),
 while sessions and the controller retain resource and lifecycle ownership.
-Host/session composition now takes explicit assets and client identity, pending
-review and merge, with a non-vehicle browser fixture exercising the shared path.
-Bridge/UI and client protocol/presentation separation, independent core
-verification and test organisation remain ahead.
+Host/session composition takes explicit assets and client identity, merged in
+[PR #52](https://github.com/sproates/zooglass/pull/52). The shared control bridge
+now has a separate vehicle UI bootstrap, pending review and merge; the inventory
+fixture uses that same bridge. Client protocol/presentation separation, remaining
+demo composition, independent core verification and test organisation remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

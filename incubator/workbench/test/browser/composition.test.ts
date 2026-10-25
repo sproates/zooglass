@@ -46,6 +46,15 @@ test(
               ],
             ],
             [
+              "/bridge.js",
+              [
+                "text/javascript; charset=utf-8",
+                await readFile(
+                  new URL("../../browser/bridge.js", import.meta.url),
+                ),
+              ],
+            ],
+            [
               "/inventory.js",
               [
                 "text/javascript; charset=utf-8",

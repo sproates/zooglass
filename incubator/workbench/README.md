@@ -498,13 +498,32 @@ implement the Workbench registration and command protocol.
 `vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
 `rider-app` identity. Interactive and automatic vehicle demos use
 `startVehicleBrowserSession`; the browser-engine probes use the same vehicle
-composition. The existing bridge still contains vehicle UI wiring, and the
-vehicle client still calls presentation functions. Separating those is subsequent
-work, so this change establishes the host boundary rather than completing all
-browser/demo separation.
+composition. The shared `browser/bridge.js` owns registration, command identity and completion,
+and control-connection failure handling. `browser/vehicle-bootstrap.js` binds it
+to vehicle buttons and labels. The vehicle client still calls presentation
+functions; separating that boundary remains subsequent work.
 
 Host-only tests supply their own assets without reading a vehicle build.
 `test/browser/composition.test.ts` starts a minimal inventory page in a real
 browser, registers a different identity and checks receipts through the same
-proxy, executor and scenario session. Its small protocol fixture proves host
-composition; it is not another reusable client implementation or a second demo.
+proxy, executor and scenario session. It imports the same control bridge as the vehicle page and supplies a small
+data-client fixture. It is not another reusable client implementation or a second demo.
+
+### Shared browser bridge
+
+`startBrowserBridge` reads the registration credentials from the URL fragment,
+clears that fragment and registers with the local host. The application supplies
+`createClient(dataPath, report, fail)`, returning a client with `execute`, `fail`
+and `close` methods. `execute` returns the connection generation after its action
+completes. `report` sends observations; `fail` reports a fatal client error.
+
+Optional `onStatus`, `onRunState` and `onControlRejected` callbacks let the
+application update its UI. Status values are `unregistered`, `ready`, `failed`,
+`closed` and `error`; run state is passed through with the current client. The
+returned `requestControl(action)` sends a control request such as Step or Reset.
+The vehicle bootstrap supplies these callbacks; the inventory fixture needs none.
+
+The bridge keeps the existing 256-command completion cache, rejects overlapping
+actions and mismatched command-ID reuse, and ignores messages for another run or
+client. Scenario expectations remain in Workbench. The bridge has no vehicle
+imports or DOM selectors, and importing the module does not start a connection.

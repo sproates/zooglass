@@ -1,38 +1,23 @@
-import { createVehicleClient } from "/vehicle-client.js";
-const registration = new URLSearchParams(location.hash.slice(1));
-history.replaceState(null, "", "/");
-const runId = registration.get("runId");
-const clientId = registration.get("clientId");
-const status = document.querySelector("#status");
-if (!runId || !clientId || !registration.get("token")) {
-  status.textContent = "Open this demo through Workbench.";
-} else {
+/** Control protocol only. The application supplies its client and presentation hooks. */
+export function startBrowserBridge({
+  createClient,
+  onStatus = () => {},
+  onRunState = () => {},
+  onControlRejected = () => {},
+}) {
+  const registration = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, "", "/");
+  const runId = registration.get("runId");
+  const clientId = registration.get("clientId");
+  if (!runId || !clientId || !registration.get("token")) {
+    onStatus("unregistered");
+    return { requestControl() {} };
+  }
   const control = new WebSocket(`ws://${location.host}/control`);
   const send = (message) => {
     if (control.readyState === WebSocket.OPEN)
       control.send(JSON.stringify({ ...message, runId, clientId }));
   };
-  const step = document.querySelector("#step");
-  const play = document.querySelector("#play");
-  const pause = document.querySelector("#pause");
-  const disconnect = document.querySelector("#disconnect");
-  const reconnect = document.querySelector("#reconnect");
-  const reset = document.querySelector("#reset");
-  const controlError = document.querySelector("#control-error");
-  for (const [button, action] of [
-    [step, "step"],
-    [play, "play"],
-    [pause, "pause"],
-    [reset, "reset"],
-    [disconnect, "disconnect"],
-    [reconnect, "reconnect"],
-  ]) {
-    button.addEventListener("click", () => {
-      controlError.textContent = "";
-      button.disabled = true;
-      send({ type: "control-request", action });
-    });
-  }
   let client;
   let busy = false;
   const completed = new Map();
@@ -49,41 +34,24 @@ if (!runId || !clientId || !registration.get("token")) {
       const message = JSON.parse(event.data);
       if (message.runId !== runId || message.clientId !== clientId) return;
       if (message.type === "registered" && !client) {
-        document.body.dataset.dataPath = message.dataPath;
-        client = createVehicleClient(message.dataPath, send, (reason) =>
+        client = createClient(message.dataPath, send, (reason) =>
           send({ type: "fatal", reason }),
         );
         send({ type: "ready" });
-        status.textContent = "Connected to Workbench";
+        onStatus("ready");
         return;
       }
       if (message.type === "run-state") {
-        document.querySelector("#workbench-controls").hidden = false;
-        const state = message.state;
-        if (state.phase === "failed") client?.fail(state.detail);
-        step.disabled = state.phase !== "ready" || state.playing;
-        play.disabled = state.phase !== "ready" || state.playing;
-        pause.disabled = !state.playing;
-        disconnect.disabled = reconnect.disabled =
-          state.playing || !["ready", "complete"].includes(state.phase);
-        document.querySelector("#run-mode").textContent = state.exploratory
-          ? `Exploratory · ${state.interventions} manual intervention(s) · Last: ${state.lastIntervention} · ${state.skippedChecks} client checks skipped. Reset for a scripted run.`
-          : "Scripted run";
-        reset.disabled = ["starting", "resetting", "closed"].includes(
-          state.phase,
-        );
-        document.querySelector("#run-progress").textContent =
-          `${state.completed}/${state.total} ${state.exploratory ? "steps executed" : "steps checked"} · ${state.detail}`;
-        controlError.textContent = "";
+        onRunState(message.state, client);
         return;
       }
       if (message.type === "control-rejected") {
-        controlError.textContent = message.reason;
+        onControlRejected(message.reason);
         return;
       }
       if (message.type === "run-failed" && client) {
         client.fail(message.reason);
-        status.textContent = "Workbench run failed · playback stopped";
+        onStatus("failed");
         return;
       }
       if (
@@ -135,19 +103,16 @@ if (!runId || !clientId || !registration.get("token")) {
     }
   });
   control.addEventListener("close", () => {
-    step.disabled = true;
-    reset.disabled = true;
-    play.disabled = true;
-    pause.disabled = true;
-    disconnect.disabled = true;
-    reconnect.disabled = true;
-    controlError.textContent =
-      "Control connection lost. Type reset in the terminal to start again.";
     client?.fail("Workbench control connection lost.");
     client?.close();
-    status.textContent = "Workbench disconnected · playback stopped";
+    onStatus("closed");
   });
   control.addEventListener("error", () => {
-    status.textContent = "Could not connect to Workbench.";
+    onStatus("error");
   });
+  return {
+    requestControl(action) {
+      send({ type: "control-request", action });
+    },
+  };
 }

@@ -95,7 +95,7 @@ for review, not a claim of exhaustive coverage.
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
 | Controller and executor lifecycle | `test/demo-controller.test.ts`, `sessions.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
 | Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
-| Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | A contract-based invalid-message matrix, duplicate/unexpected acknowledgements and partial protocol failures. |
+| Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | The service and browser protocol matrices below cover rejection, continued processing, acknowledgements and timeouts. Broader schema fuzzing, resource limits and permissions remain separate work. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
 | Resource and platform behaviour | Session cleanup and repeated browser resets; simulated Windows shutdown outcomes. CI uses Ubuntu and Chromium. | Sustained history/memory measurement, longer repeated lifecycle runs, native platform and additional browser-engine evidence. |
 
@@ -189,6 +189,33 @@ are complementary forms of evidence, not interchangeable measurements.
 The tests close all owned sockets and services even on assertion failure. The
 network cases establish bounded-run cleanup and isolation; extended memory and
 resource behaviour is still separate work.
+
+## Invalid protocol and partial failure
+
+`test/protocol-validation.test.ts` exercises the real service over HTTP and
+WebSocket connections. Its cases distinguish three existing behaviours:
+
+| Boundary | Rejection rule checked | Continuation evidence |
+| --- | --- | --- |
+| Live-view requests | Malformed JSON, non-object requests, missing/non-text/blank required fields, unknown action and unknown view return an error. | A separate subscriber receives an update after every rejection; the rejected connection can later subscribe, receive snapshots and unsubscribe. Repeated subscribe must not duplicate fanout; repeated unsubscribe remains usable. |
+| Source events | Malformed JSON/envelopes, missing/non-text/blank identifiers, non-object payloads and missing/non-numeric sequences do not change the ordered target view. | A valid barrier event follows each invalid message on the same source socket. Its receipt establishes that processing continued before HTTP state is checked. Later valid data changes the target. |
+| Runtime view definitions | Invalid fields, matchers and ordering return HTTP 400 without reserving the view ID or registering part of the definition. | A same-source barrier precedes the absence check; a corrected definition with the same ID returns 201, a duplicate returns 409, and later events reach its subscriber. |
+
+`test/browser/protocol-failures.test.ts` supplies malformed JSON, acknowledgements
+with the wrong entity/view/action, duplicate acknowledgements and a snapshot
+before acknowledgement through the controlled peer. Each must fail the browser
+run, refuse further actions and retain the failed page for inspection. A fresh
+session then receives a valid snapshot. A separate case withholds acknowledgement
+to exercise the actual five-second deadline, then verifies that caller cancellation
+closes the retained page. A duplicate acknowledgement may arrive after the first
+command completed; that does not make the run successful.
+
+These tests preserve the current contract. Service source validation does not
+send error acknowledgements; the browser demo deliberately fails on unexpected
+protocol traffic. They do not introduce automatic recovery from malformed data.
+Existing `test/sessions.test.ts` cases still cover partial client/source setup,
+cleanup continuing when one executor close fails, startup failure and cancellation;
+`test/demo-controller.test.ts` checks that failed cleanup prevents replacement.
 
 ## Work that follows
 

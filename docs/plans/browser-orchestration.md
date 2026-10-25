@@ -9,7 +9,9 @@ subscribes, each step sends one position and awaits its following service, recei
 and independent rendered checks, and reset replaces the service and browser with fresh state. Terminal
 reset remains available after page loss. `--auto` retains timed playback and its
 previous cleanup behaviour and uses the same rendered observer. Interactive
-Play/Pause now share the Step cursor and freeze remaining delays. Fault injection and full
+Play/Pause now share the Step cursor and freeze remaining delays. Scripted and
+manual viewer connection controls are implemented, with persistent exploratory
+labelling after manual intervention. Fault injection and full
 acceptance described here remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision
@@ -224,7 +226,10 @@ or overlapping execution requests with a visible reason.
 Manual viewer controls are allowed only while paused and idle and use the same
 command path. Record the intervention and mark the run as exploratory. It may
 continue for inspection but cannot be reported as a passing scripted run; reset
-restores the scripted baseline. An already-closed connection may be disconnected
+restores the scripted baseline. In exploratory mode, source delivery and HTTP
+checks continue, but fixture client-receipt/rendering checks are skipped and
+counted visibly. The UI records intervention count and last action; the fuller
+activity trace remains future work. An already-closed connection may be disconnected
 again safely, but manual actions never silently advance the scenario cursor.
 
 ## Failures, reset and limits

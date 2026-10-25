@@ -6,11 +6,16 @@ export type DemoState = {
   phase:
     | "starting"
     | "ready"
+    | "intervening"
     | "stepping"
     | "complete"
     | "failed"
     | "resetting"
     | "closed";
+  exploratory: boolean;
+  interventions: number;
+  lastIntervention: string;
+  skippedChecks: number;
   playing: boolean;
   completed: number;
   total: number;
@@ -33,9 +38,15 @@ export function createDemoController(
   const trace = playScenario(scenario);
   const first = trace.findIndex((entry) => entry.kind === "source-event");
   if (first < 0) throw new Error("The demo needs at least one source event.");
-  const total = trace.filter((entry) => entry.kind === "source-event").length;
+  const beginsStep = (entry: TraceEntry) =>
+    entry.kind === "source-event" || entry.kind === "client-state";
+  const total = trace.slice(first).filter(beginsStep).length;
   let state: DemoState = {
     phase: "starting",
+    exploratory: false,
+    interventions: 0,
+    lastIntervention: "",
+    skippedChecks: 0,
     playing: false,
     completed: 0,
     total,
@@ -44,6 +55,7 @@ export function createDemoController(
   let run: DemoRun | undefined;
   let controller = new AbortController();
   let cursor = first;
+  let interventionTask: Promise<void> | undefined;
   let stepTask: Promise<void> | undefined;
   let resetTask: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
@@ -56,7 +68,11 @@ export function createDemoController(
     timer?.abort();
   };
   const update = (phase: DemoState["phase"], detail: string) => {
-    state = { ...state, phase, detail };
+    state = {
+      ...state,
+      phase,
+      detail: state.exploratory ? `Exploratory run · ${detail}` : detail,
+    };
     run?.publish(state);
   };
   const reason = (error: unknown) =>
@@ -74,6 +90,7 @@ export function createDemoController(
     controller.abort(new Error("Run replaced by reset."));
     resetTask = (async () => {
       await playbackTask;
+      await interventionTask?.catch(() => {});
       await stepTask?.catch(() => {});
       if (run) {
         try {
@@ -87,7 +104,14 @@ export function createDemoController(
       if (closing) return;
       controller = new AbortController();
       const current = controller;
-      state = { ...state, completed: 0 };
+      state = {
+        ...state,
+        completed: 0,
+        exploratory: false,
+        interventions: 0,
+        lastIntervention: "",
+        skippedChecks: 0,
+      };
       cursor = first;
       remaining = Math.max(
         0,
@@ -109,7 +133,7 @@ export function createDemoController(
       current.signal.throwIfAborted();
       update(
         "ready",
-        "Ready. Step sends the next position and awaits its checks.",
+        "Ready. Step runs the next action and awaits its checks.",
       );
     })()
       .catch((error) => {
@@ -131,6 +155,7 @@ export function createDemoController(
       closing ||
       resetTask ||
       stepTask ||
+      interventionTask ||
       (!automatic && playbackTask) ||
       state.phase !== "ready" ||
       !run
@@ -141,9 +166,13 @@ export function createDemoController(
     update("stepping", `Running step ${state.completed + 1} of ${total}…`);
     stepTask = (async () => {
       let end = cursor + 1;
-      while (end < trace.length && trace[end].kind !== "source-event") end++;
+      while (end < trace.length && !beginsStep(trace[end])) end++;
       for (const entry of trace.slice(cursor, end)) {
         current.signal.throwIfAborted();
+        if (state.exploratory && entry.kind === "client-view-check") {
+          state = { ...state, skippedChecks: state.skippedChecks + 1 };
+          continue;
+        }
         await activeRun.execute(entry);
       }
       current.signal.throwIfAborted();
@@ -161,8 +190,10 @@ export function createDemoController(
       update(
         cursor === trace.length ? "complete" : "ready",
         cursor === trace.length
-          ? "All steps checked. Reset to run again."
-          : "Step checked. Ready for the next position.",
+          ? state.exploratory
+            ? "Finished for inspection; not a scripted pass. Reset to verify again."
+            : "All steps checked. Reset to run again."
+          : "Step finished. Ready for the next action.",
       );
     })()
       .catch((error) => {
@@ -185,11 +216,60 @@ export function createDemoController(
     },
     reset,
     step: () => step(),
+    intervene(label: string, entries: TraceEntry[]): Promise<void> {
+      if (
+        closing ||
+        resetTask ||
+        stepTask ||
+        playbackTask ||
+        interventionTask ||
+        !run ||
+        !["ready", "complete"].includes(state.phase)
+      )
+        return Promise.reject(
+          new Error("Viewer controls require a paused, idle run."),
+        );
+      const phase = state.phase;
+      const current = controller;
+      const activeRun = run;
+      state = {
+        ...state,
+        exploratory: true,
+        interventions: state.interventions + 1,
+        lastIntervention: label,
+      };
+      update("intervening", `${label}…`);
+      interventionTask = (async () => {
+        for (const entry of entries) {
+          current.signal.throwIfAborted();
+          await activeRun.execute(entry);
+        }
+        current.signal.throwIfAborted();
+        activeRun.signal.throwIfAborted();
+        update(
+          phase,
+          `${label} completed. Client checks are skipped until Reset; this is not a scripted pass.`,
+        );
+      })()
+        .catch((error) => {
+          if (!current.signal.aborted)
+            update(
+              "failed",
+              `${label} failed: ${reason(error)}. Reset to try again.`,
+            );
+          throw error;
+        })
+        .finally(() => {
+          interventionTask = undefined;
+        });
+      return interventionTask;
+    },
     play(): Promise<void> {
       if (
         closing ||
         resetTask ||
         stepTask ||
+        interventionTask ||
         playbackTask ||
         state.phase !== "ready" ||
         !run
@@ -263,6 +343,7 @@ export function createDemoController(
       closing = (async () => {
         await resetTask?.catch(() => {});
         await playbackTask;
+        await interventionTask?.catch(() => {});
         await stepTask?.catch(() => {});
         await run?.close();
         update("closed", "Demo closed.");

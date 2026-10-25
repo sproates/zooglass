@@ -7,6 +7,7 @@ import {
 import { startZooGlassSession } from "./zooglass-session.js";
 import { startBrowserSession } from "./browser-session.js";
 import { openScenarioSession } from "./scenario-session.js";
+import type { TraceEntry } from "./playback.js";
 import type { Scenario } from "./scenario.js";
 
 export function createVehicleDemo(
@@ -49,7 +50,9 @@ export function createVehicleDemo(
           onControl: async (action, runId) => {
             if (browser?.host.runId !== runId)
               throw new Error("This run has been replaced.");
-            await controller[action]();
+            if (action === "disconnect" || action === "reconnect")
+              await viewer(action);
+            else await controller[action]();
           },
         });
         browser = ownedBrowser;
@@ -78,8 +81,40 @@ export function createVehicleDemo(
       }
     },
   );
+  const viewer = (action: "disconnect" | "reconnect") => {
+    const client = scenario.clients.find((item) => item.id === "rider-app");
+    if (!client)
+      return Promise.reject(new Error("No vehicle viewer configured."));
+    const entries: TraceEntry[] = [
+      {
+        kind: "client-state",
+        simulationTime: 0,
+        clientId: client.id,
+        clientName: client.name,
+        state: action === "disconnect" ? "disconnected" : "connected",
+      },
+    ];
+    if (action === "reconnect") {
+      for (const viewId of ["live-map", "trip-history"])
+        entries.push({
+          kind: "client-subscription",
+          simulationTime: 0,
+          clientId: client.id,
+          clientName: client.name,
+          action: "subscribe",
+          viewId,
+          entityId: "car-17",
+        });
+    }
+    return controller.intervene(
+      action === "disconnect" ? "Disconnect viewer" : "Reconnect viewer",
+      entries,
+    );
+  };
   return {
     ...controller,
+    disconnect: () => viewer("disconnect"),
+    reconnect: () => viewer("reconnect"),
     get state() {
       return controller.state;
     },

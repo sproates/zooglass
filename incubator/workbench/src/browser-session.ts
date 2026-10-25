@@ -9,7 +9,7 @@ export async function startBrowserSession(
     headless?: boolean;
     keepOpenOnFailure?: boolean;
     onControl?: (
-      action: "step" | "reset" | "play" | "pause",
+      action: "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect",
       runId: string,
     ) => Promise<void>;
   },

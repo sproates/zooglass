@@ -343,3 +343,17 @@ Use the stronger suite to protect subsequent readability refactoring. Production
 and test modules both need clear responsibilities, explicit lifecycle ownership
 and manageable complexity. Keep refactors reviewable and preserve behaviour;
 coverage percentages alone aren't the acceptance criterion.
+
+
+## Scenario parser refactor checks
+
+`test/scenario-validation.test.ts` protects validation order, duplicate runtime
+view declarations, forward references and input timeline order. It also preserves
+the different null rules for HTTP and client view checks. These tests passed
+against the original parser before extraction and exercise the public
+`parseScenario` entry point. The existing every-scenario integration tests still
+execute fixtures through Workbench and the real service.
+
+This extraction does not yet introduce the independent core verification command
+or separate browser/demo composition. Those remain in the
+[readability plan](plans/readability-refactor.md).

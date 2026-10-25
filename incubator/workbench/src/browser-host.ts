@@ -1,22 +1,28 @@
 import { createBrowserClientExecutor } from "./browser-client-executor.js";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
+
+export interface BrowserApplication {
+  clientId: string;
+  /** Exact URL paths mapped to content type and bytes; no filesystem routing. */
+  assets: ReadonlyMap<string, readonly [string, Buffer]>;
+}
 
 /** Local transport host. Command execution and scenario scheduling are separate. */
 export async function startBrowserHost(
   baseUrl: string,
   options: {
+    application: BrowserApplication;
     onControl?: (
       action: "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect",
       runId: string,
     ) => Promise<void>;
-  } = {},
+  },
 ) {
   const runId = randomUUID();
-  const clientId = "rider-app";
+  const { clientId, assets } = options.application;
   const registrationToken = randomUUID();
   const routeToken = randomUUID();
   const controller = new AbortController();
@@ -34,54 +40,6 @@ export async function startBrowserHost(
   let ready = false;
   let closing: Promise<void> | undefined;
   let origin = "";
-  const assets = new Map<string, readonly [string, Buffer]>([
-    [
-      "/",
-      [
-        "text/html; charset=utf-8",
-        await readFile(
-          new URL("../../vehicle-tracker/index.html", import.meta.url),
-        ),
-      ],
-    ],
-    [
-      "/bridge.js",
-      [
-        "text/javascript; charset=utf-8",
-        await readFile(new URL("../browser/bridge.js", import.meta.url)),
-      ],
-    ],
-    [
-      "/vehicle-client.js",
-      [
-        "text/javascript; charset=utf-8",
-        await readFile(
-          new URL(
-            "../../vehicle-tracker/dist/vehicle-client.js",
-            import.meta.url,
-          ),
-        ),
-      ],
-    ],
-    [
-      "/view.js",
-      [
-        "text/javascript; charset=utf-8",
-        await readFile(
-          new URL("../../vehicle-tracker/dist/view.js", import.meta.url),
-        ),
-      ],
-    ],
-    [
-      "/vehicle.css",
-      [
-        "text/css; charset=utf-8",
-        await readFile(
-          new URL("../../vehicle-tracker/vehicle.css", import.meta.url),
-        ),
-      ],
-    ],
-  ] as const);
   const server = createServer((request, response) => {
     if (request.headers.host !== new URL(origin).host) {
       response.writeHead(403).end();

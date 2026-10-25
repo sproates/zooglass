@@ -380,3 +380,22 @@ equal-time boundaries and the first delay when there is no setup.
 Existing controller tests retain pause/resume timing, overlap rejection, failure
 handling and the six-boundary reset/close matrix. The extraction does not change
 timer ownership or replace Workbench's orchestration.
+
+
+## Browser composition checks
+
+`test/browser-host.test.ts` supplies an inventory identity and in-memory HTML.
+Existing origin, route-token, registration, duplicate-client and control-loss
+checks therefore exercise the host without vehicle assets. It also verifies
+that the supplied page is served and an unsupplied vehicle script returns 404.
+
+`test/browser/composition.test.ts` supplies a minimal non-vehicle page and script
+to the owned browser session. A local WebSocket upstream sends an inventory
+receipt; the existing browser executor and scenario session verify it. The test
+checks registration, cleared URL credentials and host/page cleanup. The fixture
+implements only the protocol subset needed for this check. It does not establish
+shared-bridge reuse or ZooGlass projection correctness; existing real-service
+scenario suites continue to cover those service interactions.
+
+Vehicle browser checks retain their assertions and now explicitly select the
+vehicle composition module. The independent core test command remains planned.

@@ -1,10 +1,11 @@
 import { chromium, type BrowserServer, type Browser } from "playwright";
-import { startBrowserHost } from "./browser-host.js";
+import { startBrowserHost, type BrowserApplication } from "./browser-host.js";
 
 /** Own a fresh Chromium process/context and its local host, but not ZooGlass. */
 export async function startBrowserSession(
   baseUrl: string,
   options: {
+    application: BrowserApplication;
     signal: AbortSignal;
     headless?: boolean;
     keepOpenOnFailure?: boolean;
@@ -15,6 +16,7 @@ export async function startBrowserSession(
   },
 ) {
   const host = await startBrowserHost(baseUrl, {
+    application: options.application,
     onControl: options.onControl,
   });
   const controller = new AbortController();

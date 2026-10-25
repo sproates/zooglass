@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { startBrowserSession } from "../../src/browser-session.js";
+import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
 import {
   peer,
   signal,
@@ -12,7 +12,7 @@ import {
 // Keep actual sockets and dispatch late callbacks explicitly: a closed network
 // connection alone cannot reliably reproduce a callback already queued by an old socket.
 async function retainDataSockets(
-  page: Awaited<ReturnType<typeof startBrowserSession>>["page"],
+  page: Awaited<ReturnType<typeof startVehicleBrowserSession>>["page"],
 ) {
   await page.evaluate(() => {
     const sockets: WebSocket[] = [];
@@ -34,7 +34,7 @@ for (const firstView of ["live-map", "trip-history"]) {
     async (t) => {
       const upstream = await peer();
       t.after(() => upstream.close());
-      const browser = await startBrowserSession(upstream.url, {
+      const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
       });
@@ -132,7 +132,7 @@ test(
   async (t) => {
     const upstream = await peer();
     t.after(() => upstream.close());
-    const browser = await startBrowserSession(upstream.url, {
+    const browser = await startVehicleBrowserSession(upstream.url, {
       signal: signal(),
       headless: true,
     });
@@ -184,7 +184,7 @@ test(
       } else acknowledge();
     });
     t.after(() => upstream.close());
-    const browser = await startBrowserSession(upstream.url, {
+    const browser = await startVehicleBrowserSession(upstream.url, {
       signal: signal(),
       headless: true,
     });
@@ -250,7 +250,7 @@ for (const action of ["subscribe", "unsubscribe"] as const) {
         else acknowledge();
       });
       t.after(() => upstream.close());
-      const browser = await startBrowserSession(upstream.url, {
+      const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
         keepOpenOnFailure: true,

@@ -5,7 +5,7 @@ import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import { WebSocket } from "ws";
 import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startBrowserSession } from "../../src/browser-session.js";
+import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
 import { loadScenario } from "../../src/scenario.js";
 
 const fixture = fileURLToPath(
@@ -19,7 +19,7 @@ test(
     const scenario = await loadScenario(fixture);
     const service = await startZooGlassSession({ views: scenario.views });
     try {
-      const browser = await startBrowserSession(service.baseUrl, {
+      const browser = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: true,
       });
@@ -94,7 +94,7 @@ test(
       }
       await assert.rejects(fetch(origin));
       // A subsequent launch gets a new run and context, without stale registrations.
-      const next = await startBrowserSession(service.baseUrl, {
+      const next = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: true,
       });
@@ -116,7 +116,7 @@ test(
     const controller = new AbortController();
     controller.abort(new Error("Cancelled before launch"));
     await assert.rejects(
-      startBrowserSession("http://127.0.0.1:1", {
+      startVehicleBrowserSession("http://127.0.0.1:1", {
         signal: controller.signal,
         headless: true,
       }),

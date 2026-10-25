@@ -1,3 +1,4 @@
+import { observeVehicleSession } from "./vehicle-observer.js";
 import {
   createDemoController,
   DemoCleanupError,
@@ -63,7 +64,11 @@ export function createVehicleDemo(
         console.log(`Browser host ready at ${ownedBrowser.host.origin}`);
         return {
           signal: ownedBrowser.signal,
-          execute: session.execute,
+          execute: observeVehicleSession(
+            session,
+            ownedBrowser.page,
+            ownedBrowser.signal,
+          ).execute,
           close,
           publish: ownedBrowser.host.publish,
         };

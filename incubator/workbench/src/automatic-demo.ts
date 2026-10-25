@@ -1,3 +1,4 @@
+import { observeVehicleSession } from "./vehicle-observer.js";
 import { fileURLToPath } from "node:url";
 import { openScenarioSession } from "./scenario-session.js";
 import { playScenario } from "./playback.js";
@@ -50,13 +51,18 @@ export async function runAutomaticDemo(args: string[]) {
             return browser.host.executor;
           },
         });
+        const observed = observeVehicleSession(
+          session,
+          browser.page,
+          browser.signal,
+        );
         try {
           let previousTime = 0;
           for (const entry of playScenario(scenario)) {
             const wait = entry.simulationTime - previousTime;
             if (wait > 0)
               await delay(wait, undefined, { signal: browser.signal });
-            await session.execute(entry);
+            await observed.execute(entry);
             previousTime = entry.simulationTime;
           }
           console.log(

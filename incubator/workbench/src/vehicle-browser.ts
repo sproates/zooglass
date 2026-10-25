@@ -43,6 +43,18 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       ],
     ],
     [
+      "/subscription-client.js",
+      [
+        "text/javascript; charset=utf-8",
+        await readFile(
+          new URL(
+            "../../vehicle-tracker/dist/subscription-client.js",
+            import.meta.url,
+          ),
+        ),
+      ],
+    ],
+    [
       "/view.js",
       [
         "text/javascript; charset=utf-8",

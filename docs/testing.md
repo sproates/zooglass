@@ -414,3 +414,21 @@ The inventory browser composition test now uses the shared bridge. Existing
 vehicle browser tests continue to exercise controls, rendered state, recovery
 and cleanup through the vehicle bootstrap. Bridge code is behaviourally checked
 but remains outside the c8 `src/**/*.ts` coverage scope.
+
+
+## Client binding checks
+
+`test/subscription-client.test.ts` loads the compiled protocol module with a
+controlled socket and an inventory binding, without a DOM. Eight cases cover
+non-vehicle subscriptions and callback-before-receipt ordering, application
+policy rejection without a socket write, snapshot callback failure, stale socket
+callbacks after reconnect, and pending acknowledgement rejection on connection
+loss. Review regressions also cover a throwing connected-state callback, a
+throwing error-state callback during cleanup, and a throwing subscription callback
+while its acknowledgement is pending. Each command must reject and the socket
+must close rather than leaving the command pending. Existing browser tests still
+check real transport and the vehicle renderer.
+These focused checks are protocol boundary evidence, not a substitute for those
+integration checks. The browser module remains outside the current c8
+`src/**/*.ts` coverage scope and requires the existing browser TypeScript build.
+The independent core verification command remains planned.

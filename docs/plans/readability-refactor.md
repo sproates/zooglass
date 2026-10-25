@@ -178,3 +178,19 @@ behaviour, and keep demo rendering checks labelled and separately runnable.
 Future fault injection, automatic recovery, permissions, persistence and retention
 remain separate feature work. This plan preserves space for them without claiming
 that extracting modules implements those capabilities.
+
+
+## Client presentation extraction
+
+The client boundary is implemented pending review and merge. The existing
+browser build now contains a DOM-free `subscription-client.ts` and a small
+`vehicle-client.ts` binding. The protocol module owns socket generations,
+subscriptions, acknowledgement completion and receipt reporting. The binding
+owns allowed vehicle IDs, presentation calls and the user-facing disconnect
+message. No scenario expectations enter either module.
+
+Eight focused checks use an inventory binding without a DOM. Existing browser
+protocol, reconnection and rendered checks protect the vehicle binding. The
+module stays in the current browser build; packaging a general client library
+is outside this extraction. Shared interactive/automatic run assembly remains
+outstanding, including protecting automatic failure paths before moving them.

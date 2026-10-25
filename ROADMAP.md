@@ -89,9 +89,12 @@ step planning merged in [PR #51](https://github.com/sproates/zooglass/pull/51),
 while sessions and the controller retain resource and lifecycle ownership.
 Host/session composition takes explicit assets and client identity, merged in
 [PR #52](https://github.com/sproates/zooglass/pull/52). The shared control bridge
-now has a separate vehicle UI bootstrap, pending review and merge; the inventory
-fixture uses that same bridge. Client protocol/presentation separation, remaining
-demo composition, independent core verification and test organisation remain ahead.
+has a separate vehicle UI bootstrap, merged in
+[PR #53](https://github.com/sproates/zooglass/pull/53); the inventory fixture uses
+that same bridge. Client protocol/presentation separation is implemented pending
+review and merge: socket state stays in a protocol module, with vehicle rules and
+rendering supplied by a small binding. Shared demo assembly, independent core
+verification and test organisation remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

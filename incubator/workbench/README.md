@@ -438,3 +438,11 @@ Apply formatting with `npm run format`.
 
 See the [verification map](../../docs/testing.md) for coverage commands, report
 boundaries and the remaining behavioural gaps.
+
+### Platform verification
+
+The interactive launcher uses Chromium. CI also runs bounded lifecycle workloads
+on native macOS and Windows, and a focused recovery fixture through Playwright
+Chromium, Firefox and WebKit on Ubuntu. These probes do not make every OS/browser
+combination a supported demo target. See the [verification guide](../../docs/testing.md#platform-and-browser-scope)
+for commands, exact scope, limitations and failure artefacts.

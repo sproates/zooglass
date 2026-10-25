@@ -97,7 +97,7 @@ for review, not a claim of exhaustive coverage.
 | Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | The service and browser protocol matrices below cover rejection, continued processing, acknowledgements and timeouts. Broader schema fuzzing, resource limits and permissions remain separate work. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
-| Resource and platform behaviour | Session cleanup and repeated browser resets; simulated Windows shutdown outcomes. CI uses Ubuntu and Chromium. | Sustained history/memory measurement, longer repeated lifecycle runs, native platform and additional browser-engine evidence. |
+| Resource and platform behaviour | Bounded reconnect/reset workloads, Java queue/writer cleanup and history observations; native lifecycle jobs and browser-engine recovery probes described below. | Extended soak/profiling, every OS/engine combination and mobile devices remain unverified. |
 
 ## Generated ordering checks
 
@@ -232,7 +232,7 @@ coverage suites. CI runs it after the browser suite. These two cases perform:
   updates. Every new subscription after the first must receive current state.
   Each close leaves a closed socket, an empty consumed receipt buffer and no
   connection-acquisition listener on the shared caller cancellation signal.
-- Five complete browser demo runs through Reset, each with an empty service
+- Five complete browser demo runs, alternating mouse and keyboard Reset after the initial host-side start, each with an empty service
   baseline and two checked steps. Old browser connections and pages close; old
   host/service addresses stop responding. Final shutdown is checked too.
 
@@ -265,14 +265,57 @@ History still grows without a production retention policy. Resource workloads
 are bounded and reproducible; extended soak/profiling remains a separate diagnostic
 if later evidence calls for it.
 
+## Platform and browser scope
+
+The normal demo launcher owns a Playwright Chromium process. It has no browser
+selection option. CI uses the pinned Playwright version and current GitHub-hosted
+runner images, with Node 26 and JDK 25:
+
+| Environment | Checks |
+| --- | --- |
+| Ubuntu / Chromium | Full standard and browser suites, plus bounded resource workloads. |
+| macOS / Chromium | Fifty real reconnects and five complete demo runs, including mouse/keyboard Reset and shutdown. |
+| Windows / Chromium | The same native lifecycle workload, including real Maven/JVM process-tree termination. Simulated Windows shutdown tests remain separate unit evidence. |
+| Ubuntu / Chromium, Firefox, WebKit | Focused real-service recovery fixture: late and duplicate delivery, disconnect, updates while offline and current snapshots after reconnection, with independent rendered checks. |
+
+The engine probe uses the existing browser host and executor directly; it does
+not add another production launcher. From Workbench, install the desired engine
+and run the probe (Chromium is the default):
+
+```sh
+npx playwright install --with-deps firefox
+WORKBENCH_TEST_ENGINE=firefox npm run test:engines
+```
+
+In PowerShell, set `$env:WORKBENCH_TEST_ENGINE = "firefox"` before
+`npm run test:engines`. Use `webkit` or `chromium` for the other engines.
+`npm run test:resources` reproduces the native lifecycle workload.
+
+These are specific CI scopes, not a complete OS/browser support matrix. Firefox
+and WebKit are compatibility probes, not supported choices in the interactive
+launcher. Branded Chrome/Edge, installed Safari, mobile Safari/iOS, Android,
+headed desktop interactions and other OS/version combinations are not verified
+by these jobs. Playwright WebKit on Ubuntu is not proof of Safari behaviour.
+
+Reset checks register for page closure before input, tolerate only the recognised
+closed-target input error after closure, and wait for a different ready run.
+Other input failures still fail. Readiness polling has a deadline and reports
+controller state; it does not guess a startup delay. The five-run workload repeats
+both mouse and keyboard Reset twice and verifies old endpoints are unavailable.
+There are no automatic test retries. Independent matrix jobs continue after a
+failure so one platform cannot hide results from another.
+
+Failures retain test output. Reset failures additionally attempt to save controller
+state and a screenshot; recovery-probe failures attempt a screenshot and Playwright
+trace under `test-results/`, uploaded by CI. Launch failures may have no page or
+trace to capture. Open a downloaded trace with `npx playwright show-trace <file>`.
+
 ## Work that follows
 
-First strengthen ordering, recovery and failure tests at service and protocol
-boundaries, keeping generated cases reproducible and expected results independent
-of production algorithms. Add multi-client and sustained-run evidence, then
-review platform scope and harness reliability. Real data-path fault injection,
-automatic retry and permissions remain feature work; tests must not imply these
-are already implemented.
+Review the accumulated verification evidence, coverage changes and remaining
+gaps before readability refactoring. Real data-path fault injection, automatic
+retry and permissions remain feature work; tests must not imply these are
+already implemented.
 
 Use the stronger suite to protect subsequent readability refactoring. Production
 and test modules both need clear responsibilities, explicit lifecycle ownership

@@ -500,8 +500,8 @@ implement the Workbench registration and command protocol.
 `startVehicleBrowserSession`; the browser-engine probes use the same vehicle
 composition. The shared `browser/bridge.js` owns registration, command identity and completion,
 and control-connection failure handling. `browser/vehicle-bootstrap.js` binds it
-to vehicle buttons and labels. The vehicle client still calls presentation
-functions; separating that boundary remains subsequent work.
+to vehicle buttons and labels. The vehicle binding supplies subscription restrictions and presentation callbacks
+to a DOM-free subscription client; socket state does not import the renderer.
 
 Host-only tests supply their own assets without reading a vehicle build.
 `test/browser/composition.test.ts` starts a minimal inventory page in a real
@@ -527,3 +527,21 @@ The bridge keeps the existing 256-command completion cache, rejects overlapping
 actions and mismatched command-ID reuse, and ignores messages for another run or
 client. Scenario expectations remain in Workbench. The bridge has no vehicle
 imports or DOM selectors, and importing the module does not start a connection.
+
+### Vehicle client binding
+
+`vehicle-tracker/src/subscription-client.ts` owns the data socket, connection
+generations, subscription acknowledgements and receipt reporting. Its explicit
+`ClientBinding` supplies subscription validation, connection/subscription state
+callbacks, snapshot handling and the connection-loss message. It has no DOM
+imports or vehicle IDs. The module remains in the existing browser build; this
+extraction does not introduce a separately packaged client SDK.
+
+`vehicle-client.ts` binds that protocol to `car-17`, `live-map`, `trip-history`
+and the existing view renderer. Snapshot handling still precedes receipt reporting:
+a rejected vehicle snapshot fails the run without reporting a successful receipt.
+Presentation callbacks are synchronous. Workbench expectations remain outside
+the client, and rendered checks remain in the demo-specific observer.
+
+Interactive and automatic demo resource assembly is still separate. Sharing that
+assembly is a later extraction with its own failure and interruption checks.

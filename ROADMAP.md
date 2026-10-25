@@ -69,7 +69,8 @@ boundaries. Coverage reporting is the first step, not completion of this work. S
 ordering tests now compare every delivery prefix with an independent reference
 model, including duplicates and source/entity isolation. Deterministic reconnect and lifecycle checks now cover stale callbacks, independent
 snapshots and reset/close boundaries. Concurrent clients now have real-transport isolation and bounded slow-receiver
-checks, alongside exact queue-limit tests. Extended sustained-load and resource
+checks, alongside exact queue-limit tests. Invalid protocol and partial-failure tests now verify rejection, continued service
+processing and fresh-session recovery. Extended sustained-load and resource
 coverage remain ahead.
 
 Once that protection is in place, refactor production and test code for human

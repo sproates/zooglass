@@ -43,6 +43,10 @@ export async function peer(
   assert.ok(address && typeof address !== "string");
   return {
     url: `http://127.0.0.1:${address.port}`,
+    raw(message: string) {
+      assert.ok(socket);
+      socket.send(message);
+    },
     snapshot(viewId: string, data: unknown) {
       assert.ok(socket);
       socket.send(

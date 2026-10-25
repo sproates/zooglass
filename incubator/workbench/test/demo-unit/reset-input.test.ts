@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
-import { resetThroughBrowser } from "./browser/support/reset.js";
+import { resetThroughBrowser } from "../browser/support/reset.js";
 
 function resetFixture() {
   let pageClosed = false;

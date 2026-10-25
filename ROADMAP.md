@@ -93,8 +93,11 @@ has a separate vehicle UI bootstrap, merged in
 [PR #53](https://github.com/sproates/zooglass/pull/53); the inventory fixture uses
 that same bridge. Client protocol/presentation separation merged in
 [PR #54](https://github.com/sproates/zooglass/pull/54): socket state stays in a protocol module, with vehicle rules and
-rendering supplied by a small binding. Shared demo assembly is now implemented pending review and merge. Independent
-core verification, reuse acceptance and test organisation remain ahead.
+rendering supplied by a small binding. Shared demo assembly merged in [PR #55](https://github.com/sproates/zooglass/pull/55).
+The independent core verification command and dependency/reuse review are now
+implemented pending review and merge. Core checks run without building the vehicle
+UI or installing browsers; the full test suite remains available. Test organisation
+and final refactor acceptance remain ahead.
 
 Once that protection is in place, refactor production and test code for human
 readability, cohesive responsibilities and manageable complexity. Deliver the

@@ -5,7 +5,7 @@ import { runInNewContext } from "node:vm";
 import type {
   ClientBinding,
   Command,
-} from "../../vehicle-tracker/src/subscription-client.js";
+} from "../../../vehicle-tracker/src/subscription-client.js";
 
 type Message = Record<string, unknown>;
 async function fixture(overrides: Partial<ClientBinding> = {}) {
@@ -62,7 +62,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
   const source = (
     await readFile(
       new URL(
-        "../../vehicle-tracker/dist/subscription-client.js",
+        "../../../vehicle-tracker/dist/subscription-client.js",
         import.meta.url,
       ),
       "utf8",

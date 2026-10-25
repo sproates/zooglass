@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { automaticFixture } from "./support/automatic-demo.js";
+import { automaticFixture } from "../support/automatic-demo.js";
 
 test("vehicle run opens its scenario once and closes each resource once", async () => {
   const f = automaticFixture();

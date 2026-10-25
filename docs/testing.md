@@ -319,7 +319,7 @@ by these jobs. Playwright WebKit on Ubuntu is not proof of Safari behaviour.
 Reset checks register for page closure before input, tolerate only the recognised
 closed-target input errors after closure, and wait for a different ready run.
 These include the Windows `locator.click: Browser closed` message.
-`test/reset-input.test.ts` checks both recognised forms, rejection while the old
+`test/demo-unit/reset-input.test.ts` checks both recognised forms, rejection while the old
 page is open, continued waiting for replacement readiness and propagation of
 unrelated input errors.
 Other input failures still fail. Readiness polling has a deadline and reports
@@ -358,9 +358,8 @@ against the original parser before extraction and exercise the public
 `parseScenario` entry point. The existing every-scenario integration tests still
 execute fixtures through Workbench and the real service.
 
-This extraction does not yet introduce the independent core verification command
-or separate browser/demo composition. Those remain in the
-[readability plan](plans/readability-refactor.md).
+The later composition extractions and independent core command are described in
+the [readability plan](plans/readability-refactor.md).
 
 
 ## Run coordination refactor checks
@@ -398,7 +397,7 @@ establishes shared-bridge composition but not ZooGlass projection correctness;
 existing real-service scenario suites continue to cover those service interactions.
 
 Vehicle browser checks retain their assertions and now explicitly select the
-vehicle composition module. The independent core test command remains planned.
+vehicle composition module. The independent core command is described below.
 
 
 ## Shared bridge protocol checks
@@ -418,7 +417,7 @@ but remains outside the c8 `src/**/*.ts` coverage scope.
 
 ## Client binding checks
 
-`test/subscription-client.test.ts` loads the compiled protocol module with a
+`test/demo-unit/subscription-client.test.ts` loads the compiled protocol module with a
 controlled socket and an inventory binding, without a DOM. Eight cases cover
 non-vehicle subscriptions and callback-before-receipt ordering, application
 policy rejection without a socket write, snapshot callback failure, stale socket
@@ -431,16 +430,16 @@ check real transport and the vehicle renderer.
 These focused checks are protocol boundary evidence, not a substitute for those
 integration checks. The browser module remains outside the current c8
 `src/**/*.ts` coverage scope and requires the existing browser TypeScript build.
-The independent core verification command remains planned.
+The independent core command is described below.
 
 
 ## Shared demo ownership checks
 
-`test/automatic-demo.test.ts` protects browser/scenario startup failure, execution
+`test/demo-unit/automatic-demo.test.ts` protects browser/scenario startup failure, execution
 failure, visible inspection before teardown, interruption during delay or the
 completion wait, and cleanup after scenario closure fails. These eight cases
 passed against the original automatic path before the shared run extraction.
-`test/vehicle-run.test.ts` adds four checks for repeated open/close, closure without
+`test/demo-unit/vehicle-run.test.ts` adds four checks for repeated open/close, closure without
 a scenario, aggregation of cleanup errors and cancellation of pending setup.
 
 The small fixture in `test/support/automatic-demo.ts` transpiles the real entry
@@ -449,3 +448,35 @@ control flow without starting a second orchestration system. These VM checks do
 not contribute source coverage to c8. Existing real-browser tests, including
 interactive and automatic CLI interruption, retain process and transport evidence;
 the controlled cases are not substitutes for those integration checks.
+
+
+## Independent verification and reuse evidence
+
+| Command | Scope | Vehicle build | Browser engine |
+| --- | --- | --- | --- |
+| `npm run test:core` | Scenario, real service/protocol, controller, Node host and controlled bridge checks | No | No |
+| `npm run test:demo-unit` | Demo assembly, reset helper and browser subscription client unit checks | Yes | No |
+| `npm test` / `npm run test:coverage` | Both groups above, preserving the standard suite/report | Yes | No |
+| `npm run test:browser` | Real browser transport and demo rendering integration | Yes | Chromium |
+
+Verified on 25 October 2026 in a fresh checkout before any vehicle build:
+`npm ci`, then `PLAYWRIGHT_BROWSERS_PATH=<fresh-absolute-directory> npm run test:core`.
+All 95 core tests passed. The temporary browser directory was empty before and
+after the run, and `incubator/vehicle-tracker/dist` did not exist before or after.
+No browser executable path or branded channel bypass occurs in the core execution
+path. The Playwright npm package can remain installed as a development dependency;
+the core command neither installs nor launches its engines.
+
+The 24 relocated demo-unit tests remain in the full 119-test standard suite.
+The same assertions are retained; only their relative imports and suite selection
+changed. CI repeats the empty-cache/no-build check before the combined coverage
+run, preventing a previous build from masking a new core dependency.
+
+Dependency review finds concrete vehicle assets/IDs and rendered observers in
+the vehicle composition modules and demo entry points. The scenario, transport,
+host, bridge and controller modules do not import those bindings. The existing
+all-scenario test still executes non-vehicle scenarios (including order fulfilment
+and sports betting) through real ZooGlass. The inventory browser fixture uses the
+shared host, bridge, executor and ScenarioSession with its own assets and identity;
+it verifies receipts and cleanup, not a second showcase UI. These establish the
+planned dependency/reuse boundaries without introducing a plugin system.

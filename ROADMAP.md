@@ -60,7 +60,19 @@ a fresh session, and another run passes the same checks. See the
 [vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for the design and
 acceptance criteria.
 
-## Next: late delivery and recovery
+## Next: stronger verification and code readability
+
+Before extending the demo, strengthen evidence for event ordering, reconnect
+races, concurrent clients, invalid traffic and sustained activity. The
+[verification map](docs/testing.md) records the current tests and measurement
+boundaries. Coverage reporting is the first step, not completion of this work.
+
+Once that protection is in place, refactor production and test code for human
+readability, cohesive responsibilities and manageable complexity. Deliver the
+changes in focused increments, preserving observable behaviour. Further demo
+features follow this work.
+
+## Following: late delivery and recovery
 
 The journey already shows delayed position 41 filling history without moving
 the current marker back from 42. A separate recovery fixture checks duplicate
@@ -110,7 +122,7 @@ The [authorisation requirement](docs/requirements/authorisation.md) sets out the
 expected behaviour, acceptance scenarios and decisions needed before delivery.
 Workbench must verify access loss while real updates continue, as well as
 allowed access and denied requests. This work has no delivery date or committed
-position in the sequence yet; the current browser milestone remains the focus.
+position in the sequence yet; verification and readability work comes first.
 
 ## Follow the work
 

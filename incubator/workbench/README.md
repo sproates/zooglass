@@ -433,3 +433,8 @@ npm run format:check
 ```
 
 Apply formatting with `npm run format`.
+
+## Test coverage
+
+See the [verification map](../../docs/testing.md) for coverage commands, report
+boundaries and the remaining behavioural gaps.

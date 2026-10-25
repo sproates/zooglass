@@ -32,3 +32,9 @@ jobs:
           cache-dependency-path: incubator/zooglass/pom.xml
 
       - run: ./mvnw --batch-mode verify
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: zooglass-coverage
+          path: incubator/zooglass/target/site/jacoco/
+          if-no-files-found: warn

@@ -95,6 +95,19 @@ is no single root-level test command. CI runs the component checks selected by
 the workflow path filters; no reported check is not evidence that tests passed.
 If a check cannot run, say what remains unverified and why.
 
+## Inspect coverage and verification gaps
+
+`./mvnw --batch-mode clean verify` in `incubator/zooglass` produces the JaCoCo
+report at `target/site/jacoco/index.html`. In Workbench, `npm run test:coverage`
+and `npm run test:browser:coverage` produce separate reports in
+`coverage/standard/` and `coverage/browser-host/`. Both commands run their tests;
+there's no need to run the equivalent uninstrumented suite again.
+
+See the [verification map](docs/testing.md) for report boundaries, the measured
+baseline and gaps. Coverage reports show execution, not whether assertions are
+strong enough. Keep tests readable and expected results independent of the
+implementation they check.
+
 ## Open the pull request
 
 Explain the problem and resulting behaviour, with a concrete example where it

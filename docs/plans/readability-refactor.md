@@ -6,7 +6,9 @@ presentation out of them. It also reviews the Java service and test code, where
 ownership and control flow need to remain understandable as the project grows.
 
 Reviewed at `0b72ce1` on 25 October 2026. This is a proposed extraction plan;
-none of the structural changes below has been implemented. The accepted
+the initial inventory below describes that baseline. The service projection
+extraction is now implemented on this branch, pending review and merge; the other
+structural changes remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 

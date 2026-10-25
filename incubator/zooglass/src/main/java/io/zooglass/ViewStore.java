@@ -2,19 +2,13 @@ package io.zooglass;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.JsonNodeFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/** Owns registered matchers and entity state; all reads and updates use this monitor. */
 @Component
 public class ViewStore {
 
@@ -33,33 +28,18 @@ public class ViewStore {
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
             @Value("${zooglass.views.config:classpath:views.json}") String configLocation) {
-        this(loadConfiguration(objectMapper, resourceLoader, configLocation));
+        this(ViewDefinitions.load(objectMapper, resourceLoader, configLocation));
     }
 
     ViewStore(ViewConfiguration configuration) {
-        if (configuration == null || configuration.views() == null) {
-            throw new IllegalStateException("View configuration must contain a views array.");
-        }
-
-        Set<String> viewIds = new HashSet<>();
+        ViewDefinitions.validateConfiguration(configuration);
         for (ViewConfiguration.ViewDefinition view : configuration.views()) {
-            if (view == null) {
-                throw new IllegalStateException("View configuration contains an empty view definition.");
-            }
-            try {
-                validate(view);
-            } catch (IllegalArgumentException exception) {
-                throw new IllegalStateException(exception.getMessage(), exception);
-            }
-            if (!viewIds.add(view.id())) {
-                throw new IllegalStateException("View id is configured more than once: " + view.id());
-            }
             register(view);
         }
     }
 
     public synchronized boolean define(ViewConfiguration.ViewDefinition view) {
-        validate(view);
+        ViewDefinitions.validate(view);
         if (dataByView.containsKey(view.id())) {
             return false;
         }
@@ -87,66 +67,6 @@ public class ViewStore {
         }
     }
 
-    private static void validate(ViewConfiguration.ViewDefinition view) {
-        if (view == null) {
-            throw new IllegalArgumentException("View definition must be a JSON object.");
-        }
-        validateName(view.id(), "view id");
-        if (view.fields() == null || view.fields().isEmpty()) {
-            throw new IllegalArgumentException("View " + view.id() + " must define at least one field.");
-        }
-
-        for (Map.Entry<String, List<ViewConfiguration.EventMatcher>> field : view.fields().entrySet()) {
-            validateName(field.getKey(), "field name in view " + view.id());
-            if (field.getValue() == null || field.getValue().isEmpty()) {
-                throw new IllegalArgumentException("View field " + field.getKey() + " must define at least one event matcher.");
-            }
-            for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
-                if (matcher == null) {
-                    throw new IllegalArgumentException("View field " + field.getKey() + " has an empty event matcher.");
-                }
-                validateName(matcher.sourceId(), "sourceId for " + view.id() + "." + field.getKey());
-                validateName(matcher.type(), "type for " + view.id() + "." + field.getKey());
-            }
-        }
-
-        if (view.ordering() != null) {
-            for (Map.Entry<String, ViewConfiguration.Ordering> entry : view.ordering().entrySet()) {
-                if (!view.fields().containsKey(entry.getKey())) {
-                    throw new IllegalArgumentException("Ordering is configured for unknown view field "
-                            + entry.getKey() + " in view " + view.id() + ".");
-                }
-                ViewConfiguration.Ordering ordering = entry.getValue();
-                if (ordering == null || !("latestBySequence".equals(ordering.mode())
-                        || "historyBySequence".equals(ordering.mode()))) {
-                    throw new IllegalArgumentException("View " + view.id() + " has an unsupported ordering mode.");
-                }
-                validateName(ordering.sequenceField(), "sequenceField for " + view.id() + "." + entry.getKey());
-            }
-        }
-    }
-
-    private static ViewConfiguration loadConfiguration(
-            ObjectMapper objectMapper,
-            ResourceLoader resourceLoader,
-            String configLocation) {
-        Resource resource = resourceLoader.getResource(configLocation);
-        ViewConfiguration configuration;
-        try (var input = resource.getInputStream()) {
-            configuration = objectMapper.readValue(input, ViewConfiguration.class);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Could not load view configuration from " + configLocation, exception);
-        }
-
-        return configuration;
-    }
-
-    private static void validateName(String value, String label) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("View configuration requires a non-empty " + label + ".");
-        }
-    }
-
     public synchronized List<ViewSnapshot> apply(String sourceId, String type, String entityId, JsonNode payload) {
         List<FieldTarget> targets = targetsByEvent.getOrDefault(new EventKey(sourceId, type), List.of());
         Set<String> changedViews = new LinkedHashSet<>();
@@ -157,14 +77,7 @@ public class ViewStore {
             if (newEntity) {
                 viewData = new LinkedHashMap<>();
             }
-            boolean changed = switch (target.ordering() == null ? "arrival" : target.ordering().mode()) {
-                case "latestBySequence" -> applyLatestBySequence(viewData, target, payload);
-                case "historyBySequence" -> applyHistoryBySequence(viewData, target, payload);
-                default -> {
-                    viewData.put(target.fieldName(), payload.deepCopy());
-                    yield true;
-                }
-            };
+            boolean changed = FieldUpdates.apply(viewData, target.fieldName(), target.ordering(), payload);
             if (changed) {
                 if (newEntity) {
                     entities.put(entityId, viewData);
@@ -193,62 +106,6 @@ public class ViewStore {
     }
 
     private record EventKey(String sourceId, String type) {
-    }
-
-    private static boolean applyLatestBySequence(
-            Map<String, JsonNode> viewData,
-            FieldTarget target,
-            JsonNode payload) {
-        JsonNode sequence = sequence(payload, target.ordering().sequenceField());
-        if (sequence == null) {
-            return false;
-        }
-
-        JsonNode current = viewData.get(target.fieldName());
-        if (current != null && sequence(current, target.ordering().sequenceField()) != null
-                && compareSequences(sequence, sequence(current, target.ordering().sequenceField())) <= 0) {
-            return false;
-        }
-
-        viewData.put(target.fieldName(), payload.deepCopy());
-        return true;
-    }
-
-    private static boolean applyHistoryBySequence(
-            Map<String, JsonNode> viewData,
-            FieldTarget target,
-            JsonNode payload) {
-        JsonNode newSequence = sequence(payload, target.ordering().sequenceField());
-        if (newSequence == null) {
-            return false;
-        }
-
-        List<JsonNode> events = new ArrayList<>();
-        JsonNode current = viewData.get(target.fieldName());
-        if (current != null && current.isArray()) {
-            current.forEach(event -> events.add(event.deepCopy()));
-        }
-        if (events.stream().anyMatch(event -> compareSequences(
-                sequence(event, target.ordering().sequenceField()), newSequence) == 0)) {
-            return false;
-        }
-        events.add(payload.deepCopy());
-        events.sort(Comparator.comparing(
-                event -> sequence(event, target.ordering().sequenceField()),
-                ViewStore::compareSequences));
-        ArrayNode history = JsonNodeFactory.instance.arrayNode();
-        events.forEach(history::add);
-        viewData.put(target.fieldName(), history);
-        return true;
-    }
-
-    private static JsonNode sequence(JsonNode payload, String fieldName) {
-        JsonNode sequence = payload.get(fieldName);
-        return sequence != null && sequence.isNumber() ? sequence : null;
-    }
-
-    private static int compareSequences(JsonNode left, JsonNode right) {
-        return left.decimalValue().compareTo(right.decimalValue());
     }
 
     private record FieldTarget(String viewId, String fieldName, ViewConfiguration.Ordering ordering) {

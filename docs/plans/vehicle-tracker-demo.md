@@ -5,8 +5,11 @@ now renders short 40/42 and twenty-position journey fixtures through real
 ZooGlass subscriptions, with waiting, empty and retained/error states. The journey
 includes delayed 41. Step and reset now use the shared scenario session, with
 fresh service/browser ownership on reset. Independent rendered checks now gate
-interactive and automatic completion. Play/pause, duplicates, recovery and final
-acceptance remain outstanding.
+interactive and automatic completion. Installation and keyboard/narrow-layout
+verification are complete. A separate recovery fixture now covers duplicate
+processing and explicit reconnect receipts in Node and Chromium; interactive
+recovery controls, transport faults, automatic recovery and final acceptance
+remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -249,3 +252,26 @@ only deliberate gap. Duplicate delivery and recovery remain later work. Visible
 failures stop dispatch. Interactive runs can be reset from the browser or
 terminal. Automatic mode retains failed headed pages for inspection and cleans
 up headless failures immediately.
+
+
+## Late delivery and reconnect fixture
+
+[`vehicle-browser-recovery.json`](../../incubator/workbench/scenarios/vehicle-browser-recovery.json)
+is the focused fixture for the six deliberate-action steps above. The existing
+short fixture and twenty-position journey remain unchanged.
+
+After 40 and 42, delayed 41 changes history to `[40, 41, 42]`. Only history needs
+a new client receipt at that point; an HTTP check confirms that latest remains
+42 after history proves processing has reached 41. The identical duplicate 41
+is followed by an event for `processing-barrier` on the same source socket.
+Waiting for that entity's history proves the preceding source messages have
+been processed by the current service before checking unchanged vehicle state.
+This uses the prototype's sequential source handling; it is not a general
+cross-source ordering guarantee. No new vehicle receipt is required for a no-op.
+
+The fixture then disconnects the viewer, sends 43 and checks both server views
+before reconnecting. It subscribes to both views again and checks their initial
+snapshots before any further source event can hide a stale result. The browser
+receipt test runs these exact actions through the existing executor. It does
+not yet add manual reconnect controls or independent rendering assertions for
+this fixture, and it does not exercise the planned proxy fault gate.

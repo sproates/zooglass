@@ -43,7 +43,13 @@ test(
         await old.page.locator("#current-sequence").textContent(),
         "42",
       );
-      await old.page.locator("#reset").click();
+      // Reset deliberately destroys its own page, possibly before click settles.
+      await old.page
+        .locator("#reset")
+        .click()
+        .catch((error: unknown) => {
+          if (!old.page.isClosed()) throw error;
+        });
       await wait(() => demo.browser !== old && demo.state.phase === "ready");
       const fresh = demo.browser!;
       assert.ok(old.page.isClosed());
@@ -174,7 +180,12 @@ test(
       await demo.browser!.page.locator("#play").click();
       await wait(() => demo.state.playing);
       const old = demo.browser;
-      await demo.browser!.page.locator("#reset").click();
+      await old!.page
+        .locator("#reset")
+        .click()
+        .catch((error: unknown) => {
+          if (!old!.page.isClosed()) throw error;
+        });
       await wait(() => demo.browser !== old && demo.state.phase === "ready");
       await delay(1100);
       assert.equal(demo.state.completed, 0);

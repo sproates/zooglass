@@ -317,7 +317,11 @@ headed desktop interactions and other OS/version combinations are not verified
 by these jobs. Playwright WebKit on Ubuntu is not proof of Safari behaviour.
 
 Reset checks register for page closure before input, tolerate only the recognised
-closed-target input error after closure, and wait for a different ready run.
+closed-target input errors after closure, and wait for a different ready run.
+These include the Windows `locator.click: Browser closed` message.
+`test/reset-input.test.ts` checks both recognised forms, rejection while the old
+page is open, continued waiting for replacement readiness and propagation of
+unrelated input errors.
 Other input failures still fail. Readiness polling has a deadline and reports
 controller state; it does not guess a startup delay. The five-run workload repeats
 both mouse and keyboard Reset twice and verifies old endpoints are unavailable.

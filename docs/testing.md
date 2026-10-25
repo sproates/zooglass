@@ -482,7 +482,10 @@ aligned with the pinned Playwright package when upgrading. This removes the
 per-job system package installation; pulling the image still depends on the
 network. Container Maven runs use GitHub's mounted home directory so dependency
 and wrapper downloads use the repository restored by `setup-java`. macOS and
-Windows lifecycle jobs continue to run natively.
+Windows lifecycle jobs continue to run natively. Each job initialises the Maven
+wrapper once before starting service tests, so parallel clients cannot race to
+unpack a missing distribution on a cold cache. This does not serialise the tests
+or claim to resolve concurrent Maven compilation of the shared service target.
 
 New PR revisions cancel obsolete runs for that PR. Main-branch runs are not
 cancelled. The seven verification jobs and their test scopes remain unchanged.

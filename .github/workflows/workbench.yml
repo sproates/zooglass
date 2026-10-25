@@ -47,6 +47,10 @@ jobs:
           cache-dependency-path: incubator/zooglass/pom.xml
 
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npm run lint
       - run: npm run format:check
       - name: Verify core checks without a vehicle build or browser binaries
@@ -75,7 +79,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
     env:
-      # Maven's Java home must match the home used by setup-java's cache.
+      # Maven's user home must match the home used by setup-java's cache.
       MAVEN_OPTS: -Duser.home=/github/home
     defaults:
       run:
@@ -94,6 +98,10 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npm run test:browser:coverage
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
@@ -133,6 +141,10 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npx playwright install chromium
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
@@ -152,7 +164,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
     env:
-      # Maven's Java home must match the home used by setup-java's cache.
+      # Maven's user home must match the home used by setup-java's cache.
       MAVEN_OPTS: -Duser.home=/github/home
     timeout-minutes: 15
     defaults:
@@ -172,6 +184,10 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - name: Align container home ownership for Firefox
         if: matrix.engine == 'firefox'
         run: chown "$(id -u):$(id -g)" "$HOME"

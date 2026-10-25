@@ -14,10 +14,9 @@ HTTP view operations and pure step planning merged in
 [PR #51](https://github.com/sproates/zooglass/pull/51). The controller retains
 playback timing and lifecycle ownership. Host/session asset and identity
 configuration merged in [PR #52](https://github.com/sproates/zooglass/pull/52).
-The shared control bridge is extracted on this branch, pending review and merge;
-both vehicle and inventory pages use it. Vehicle controls live in a separate
-bootstrap module. Client protocol/presentation separation, remaining demo
-composition, independent core verification and test organisation remain ahead. The accepted
+The shared bridge, client presentation boundary and shared demo assembly merged
+in PRs #53–#55. Independent core verification and the dependency/reuse review are
+implemented pending review and merge. Test organisation and final acceptance remain ahead. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 
@@ -120,11 +119,11 @@ lock order through new helpers.
 
 ## Verification commands and reuse evidence
 
-Introduce an explicit `npm run test:core` route for scenario, service and protocol
-checks. It must not run `build:browser` or launch Playwright. This cannot be achieved
-by only removing the current pretest hook: existing host tests read built vehicle
-assets, so they need supplied fixture assets or placement in an explicit additional
-suite. Keep the full suite discoverable and make CI run each intended group.
+`npm run test:core` now runs scenario, service and protocol checks without
+`build:browser` or a browser engine. Host tests supply fixture assets, and the
+four demo-specific test files live in `test/demo-unit/` with a separate command.
+The full standard suite still includes both groups. CI proves the isolated core
+path before building any assets, then retains the combined coverage report.
 
 The Node integration CLI should continue to run the existing order-fulfilment,
 sports-betting and other non-vehicle fixtures through the same session/executor
@@ -148,8 +147,9 @@ Run `test:core` without installing browsers, then confirm the temporary director
 is still empty and no vehicle build output was created. Record the command,
 exit status and both directory checks as acceptance evidence. Review the core
 execution path for explicit executable paths or branded browser channels that
-could bypass this directory; it must not launch a browser. This recipe is a
-planned check, not evidence that the core command has already been implemented.
+could bypass this directory; it must not launch a browser. This recipe passed with 95 core tests on 25 October 2026; both directory checks
+passed. The [verification guide](../testing.md#independent-verification-and-reuse-evidence)
+records the scope and reuse review.
 
 Installing the npm development dependencies, including the Playwright package,
 is allowed. The browser suites separately build their assets and use installed
@@ -192,7 +192,7 @@ message. No scenario expectations enter either module.
 Eight focused checks use an inventory binding without a DOM. Existing browser
 protocol, reconnection and rendered checks protect the vehicle binding. The
 module stays in the current browser build; packaging a general client library
-is outside this extraction. Shared interactive/automatic run assembly is implemented pending review and merge,
+is outside this extraction. Shared interactive/automatic run assembly merged in PR #55,
 with automatic failure paths protected before extraction.
 
 

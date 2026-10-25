@@ -22,7 +22,7 @@
     "prestart": "node scripts/check-node-version.js",
     "start": "node dist/index.js",
     "pretest": "node scripts/check-node-version.js && npm run build:browser",
-    "test": "tsx --test test/*.test.ts test/scenarios/*.test.ts",
+    "test": "tsx --test test/*.test.ts test/scenarios/*.test.ts test/demo-unit/*.test.ts",
     "pretypecheck": "node scripts/check-node-version.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p ../vehicle-tracker/tsconfig.json",
     "predemo": "node scripts/check-node-version.js && npm run build:browser",
@@ -35,7 +35,11 @@
     "pretest:resources": "node scripts/check-node-version.js && npm run build:browser",
     "test:resources": "tsx --test --test-concurrency=1 test/resources/*.test.ts",
     "pretest:engines": "node scripts/check-node-version.js && npm run build:browser",
-    "test:engines": "tsx --test test/platform/*.test.ts"
+    "test:engines": "tsx --test test/platform/*.test.ts",
+    "pretest:core": "node scripts/check-node-version.js",
+    "test:core": "tsx --test test/*.test.ts test/scenarios/*.test.ts",
+    "pretest:demo-unit": "node scripts/check-node-version.js && npm run build:browser",
+    "test:demo-unit": "tsx --test test/demo-unit/*.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

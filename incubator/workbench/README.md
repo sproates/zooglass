@@ -25,12 +25,14 @@ test suite also need JDK 25; Workbench starts the adjacent ZooGlass project with
 its Maven Wrapper. Maven dependencies may need downloading on the first run.
 Run the commands below from `incubator/workbench`.
 
-| Command                                                 | What it does                                                                                          |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `npm run simulate -- scenarios/live-match.json`         | Validates the fixture and prints its ordered trace. It doesn't start ZooGlass or verify view results. |
-| `npm run integrate -- scenarios/live-match.json`        | Starts ZooGlass, executes the scenario through real connections and checks the expected views.        |
-| `npm run integrate -- --fast scenarios/live-match.json` | Executes the same actions and checks without the scheduled timeline delays.                           |
-| `npm test`                                              | Runs the Workbench tests, including the scenario fixtures through a real ZooGlass process.            |
+| Command                                                 | What it does                                                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `npm run simulate -- scenarios/live-match.json`         | Validates the fixture and prints its ordered trace. It doesn't start ZooGlass or verify view results.         |
+| `npm run integrate -- scenarios/live-match.json`        | Starts ZooGlass, executes the scenario through real connections and checks the expected views.                |
+| `npm run integrate -- --fast scenarios/live-match.json` | Executes the same actions and checks without the scheduled timeline delays.                                   |
+| `npm run test:core`                                     | Runs scenario, service, protocol and controller checks without building the vehicle UI or launching browsers. |
+| `npm run test:demo-unit`                                | Builds the vehicle client and runs the isolated demo/client checks, without launching browsers.               |
+| `npm test`                                              | Runs the Workbench tests, including the scenario fixtures through a real ZooGlass process.                    |
 
 From this directory, run the example with:
 
@@ -563,3 +565,23 @@ The controller still owns interactive replacement and cancellation. The automati
 entry point still owns playback delays, process signal handlers and the decision
 to keep a failed page available for inspection. The shared owner adds no generic
 resource framework.
+
+## Independent core verification
+
+With Node 26 and JDK 25, run `npm ci` then `npm run test:core`. This command has
+no browser build hook and needs no installed browser engines. It includes real
+ZooGlass scenarios, protocol/concurrency checks, controller lifecycle checks,
+and host/bridge checks using Node sockets or controlled clients. Vehicle scenario
+JSON remains valid input to the core runner; it does not require the vehicle UI.
+
+`test/demo-unit/` contains the demo assembly, reset helper and browser client
+unit checks. `npm run test:demo-unit` builds their assets but launches no browser.
+`npm test` and `npm run test:coverage` still run both groups. Real-browser transport
+and rendered-demo checks remain in `npm run test:browser`; resource and engine
+commands are unchanged.
+
+CI verifies the core group in a fresh checkout with an explicitly empty
+`PLAYWRIGHT_BROWSERS_PATH`, before any vehicle build. It checks that no vehicle
+output or browser binaries appeared, then runs the full standard coverage suite.
+The repeated core checks preserve the existing combined coverage report while
+also proving the clean-checkout contract.

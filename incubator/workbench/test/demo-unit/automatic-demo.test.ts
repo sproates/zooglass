@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { automaticFixture } from "./support/automatic-demo.js";
+import { automaticFixture } from "../support/automatic-demo.js";
 
 for (const failAt of ["browser", "scenario", "execute"] as const) {
   test(`automatic ${failAt} failure closes acquired resources and removes signal handlers`, async () => {

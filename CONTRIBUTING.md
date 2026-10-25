@@ -75,6 +75,12 @@ npm test
 npm run build
 ```
 
+For service/protocol work without a vehicle build or installed browsers, use
+`npm run test:core`. Demo-specific unit checks are separately available through
+`npm run test:demo-unit`; they build vehicle assets but launch no browser.
+`npm test` retains both groups and the standard coverage command retains its
+combined report.
+
 For browser-host or vehicle-app changes, also run from Workbench:
 
 ```sh

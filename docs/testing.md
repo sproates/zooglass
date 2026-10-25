@@ -361,3 +361,22 @@ execute fixtures through Workbench and the real service.
 This extraction does not yet introduce the independent core verification command
 or separate browser/demo composition. Those remain in the
 [readability plan](plans/readability-refactor.md).
+
+
+## Run coordination refactor checks
+
+`test/session-http.test.ts` exercises the session through a local HTTP server.
+It checks encoded view/entity paths, polling through unavailable or stale results,
+absence checks, malformed JSON followed by a successful action, and definition
+request bodies and status handling. These cases passed before moving the HTTP
+operations to `view-http.ts`.
+
+`test/demo-step-groups.test.ts` checks setup, source and connection checkpoints
+through the controller, including reset to the first step and rejection of a demo
+with no source event. These cases also passed before extraction. Pure planner
+checks then protect the delay from the previous checkpoint's final timestamp,
+equal-time boundaries and the first delay when there is no setup.
+
+Existing controller tests retain pause/resume timing, overlap rejection, failure
+handling and the six-boundary reset/close matrix. The extraction does not change
+timer ownership or replace Workbench's orchestration.

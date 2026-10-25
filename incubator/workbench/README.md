@@ -342,7 +342,9 @@ cleanup. The browser suite checks both rendered views for both fixtures,
 full-snapshot replacement on resubscription and a narrow layout. Controlled
 protocol peers additionally check waiting, explicit empty snapshots, retained
 values and visible failures. Both suites
-run in Workbench CI. Full interactive demo acceptance remains outstanding.
+run in Workbench CI. The [first walkthrough](../vehicle-tracker/README.md#first-walkthrough)
+covers installation, keyboard controls, reset and narrow-screen use. Final acceptance
+of the complete recovery demo remains outstanding.
 
 ## Where we're heading
 

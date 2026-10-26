@@ -16,10 +16,12 @@ refused retry, checks source progress during the outage, restores only the route
 and verifies the first recovery snapshots and rendering against real ZooGlass.
 Node-only execution rejects the fixture before service launch. The
 [recovery acceptance review](../verification/2026-10-26-recovery.md) records the
-requirement-by-requirement evidence and recommends accepting this increment.
+requirement-by-requirement evidence accepted in PR #69.
 Final acceptance of the whole demo remains outstanding. The
 [fresh-checkout walkthrough](../verification/2026-10-26-fresh-checkout.md)
-verifies setup and scenario completion, pending review.
+verifies setup and scenario completion, accepted in PR #70. The
+[cleanup review](../verification/2026-10-26-cleanup.md) records shutdown, Reset
+and restart evidence, pending acceptance.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

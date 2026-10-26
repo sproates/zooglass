@@ -469,8 +469,37 @@ the core command neither installs nor launches its engines.
 
 The 24 relocated demo-unit tests remain in the full 119-test standard suite.
 The same assertions are retained; only their relative imports and suite selection
-changed. CI repeats the empty-cache/no-build check before the combined coverage
-run, preventing a previous build from masking a new core dependency.
+changed. CI collects coverage during the empty-cache/no-build core check, then
+adds demo-unit coverage with c8's `--clean=false`. Each group runs once; the
+second report combines both groups. The core check still precedes any vehicle
+build, preventing a previous build from masking a new core dependency.
+
+### CI turnaround
+
+Linux browser jobs use the official Playwright image, with browsers and system
+libraries already installed. Keep its version in `.github/workflows/workbench.yml`
+aligned with the pinned Playwright package when upgrading. This removes the
+per-job system package installation; pulling the image still depends on the
+network. Container Maven runs use GitHub's mounted home directory so dependency
+and wrapper downloads use the repository restored by `setup-java`. macOS and
+Windows lifecycle jobs continue to run natively. Each job initialises the Maven
+wrapper once before starting service tests, so parallel clients cannot race to
+unpack a missing distribution on a cold cache. This does not serialise the tests
+or claim to resolve concurrent Maven compilation of the shared service target.
+
+New PR revisions share a concurrency group and cancel obsolete runs for that PR.
+Each main-branch push uses its unique run ID, so neither running nor pending
+main runs are superseded by this concurrency policy. The seven verification
+jobs and their test scopes remain unchanged.
+Existing path filters exclude changes confined to root documentation, but changes
+under the three component directories still run the full Workbench workflow.
+
+Compare job setup time and test time separately when changing CI. Do not remove
+behavioural checks to improve a timing number. The PR #57 reference run took
+3 minutes 34 seconds for standard verification, including a redundant 93-second
+core run. Its WebKit dependency download stalled for over 14 minutes; retrying
+the job took 1 minute 19 seconds. These are individual observations, not a timing
+guarantee or an agreed performance budget.
 
 Dependency review finds concrete vehicle assets/IDs and rendered observers in
 the vehicle composition modules and demo entry points. The scenario, transport,

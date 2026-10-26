@@ -16,6 +16,11 @@ on:
       - "incubator/vehicle-tracker/**"
       - "incubator/zooglass/**"
 
+# PR revisions share a group; each main push gets its own independent group.
+concurrency:
+  group: workbench-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -42,6 +47,10 @@ jobs:
           cache-dependency-path: incubator/zooglass/pom.xml
 
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npm run lint
       - run: npm run format:check
       - name: Verify core checks without a vehicle build or browser binaries
@@ -50,10 +59,11 @@ jobs:
           test ! -d ../vehicle-tracker/dist
           core_browser_cache="$(mktemp -d)"
           test -z "$(ls -A "$core_browser_cache")"
-          PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npm run test:core
+          PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npx c8 --reports-dir=coverage/standard npm run test:core
           test ! -d ../vehicle-tracker/dist
           test -z "$(ls -A "$core_browser_cache")"
-      - run: npm run test:coverage
+      - name: Add demo-unit coverage without repeating core tests
+        run: npx c8 --clean=false --reports-dir=coverage/standard npm run test:demo-unit
       - run: npm run build
       - uses: actions/upload-artifact@v6
         if: always()
@@ -64,6 +74,13 @@ jobs:
 
   browser-host:
     runs-on: ubuntu-latest
+    # Keep the image version aligned with package-lock.json's Playwright version.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --init --ipc=host
+    env:
+      # Maven's user home must match the home used by setup-java's cache.
+      MAVEN_OPTS: -Duser.home=/github/home
     defaults:
       run:
         working-directory: incubator/workbench
@@ -81,7 +98,10 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npm run test:browser:coverage
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
@@ -121,6 +141,10 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
       - run: npx playwright install chromium
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
@@ -136,6 +160,12 @@ jobs:
       matrix:
         engine: [chromium, firefox, webkit]
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --init --ipc=host
+    env:
+      # Maven's user home must match the home used by setup-java's cache.
+      MAVEN_OPTS: -Duser.home=/github/home
     timeout-minutes: 15
     defaults:
       run:
@@ -154,7 +184,13 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Initialise Maven wrapper before service tests
+        shell: bash
+        working-directory: incubator/zooglass
+        run: ./mvnw --version
+      - name: Align container home ownership for Firefox
+        if: matrix.engine == 'firefox'
+        run: chown "$(id -u):$(id -g)" "$HOME"
       - run: npm run test:engines
         env:
           WORKBENCH_TEST_ENGINE: ${{ matrix.engine }}

@@ -72,6 +72,38 @@ test(
           fullPage: true,
         });
       }
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "200%";
+      });
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        true,
+        "enlarged text must reflow without horizontal scrolling",
+      );
+      const contained = await page
+        .locator(".control-buttons")
+        .evaluate((container) => {
+          const bounds = container.getBoundingClientRect();
+          return [...container.querySelectorAll("button")].every((button) => {
+            const rect = button.getBoundingClientRect();
+            return rect.left >= bounds.left && rect.right <= bounds.right;
+          });
+        });
+      assert.equal(
+        contained,
+        true,
+        "enlarged controls stay inside their panel",
+      );
+      await page.screenshot({
+        path: "test-results/text-200.png",
+        fullPage: true,
+      });
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "";
+      });
       await page.keyboard.press("Shift+Tab");
 
       assert.equal(await page.evaluate("document.activeElement.id"), "reset");

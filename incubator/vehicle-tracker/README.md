@@ -260,6 +260,9 @@ checks source continuity and the first recovery snapshots. Final acceptance
 remains outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
-not a full accessibility audit or a check of native mobile browsers.
+not a full accessibility audit or a check of native mobile browsers. The
+[keyboard and layout review](../../docs/verification/2026-10-26-usability.md)
+also checks Play/Pause, viewer and fault controls through the keyboard, and
+200% text reflow at 320 CSS pixels.
 The local host registration is not production authorisation. See the
 [demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

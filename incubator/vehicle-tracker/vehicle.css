@@ -103,6 +103,7 @@ footer {
 }
 .current {
   display: flex;
+  flex-wrap: wrap;
   gap: 28px;
   align-items: center;
   border-top: 1px solid #e2e8dd;
@@ -170,6 +171,8 @@ footer {
   gap: 0.75rem;
 }
 button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font: inherit;
   border: 1px solid #16664f;
   border-radius: 7px;

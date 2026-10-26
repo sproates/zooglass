@@ -1,3 +1,8 @@
+/**
+ * Connected scenario CLI (`npm run integrate`): start ZooGlass, execute fixtures
+ * through Node clients, verify their expected views and close owned resources.
+ * See ../docs/source-map.md for the module relationships.
+ */
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { formatTraceEntry, playScenario } from "./playback.js";

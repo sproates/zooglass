@@ -1,3 +1,8 @@
+/**
+ * Vehicle demo CLI (`npm run demo`): select interactive browser/terminal controls
+ * or automatic playback, and own command-line shutdown.
+ * See ../docs/source-map.md for the module relationships.
+ */
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { loadScenario } from "./scenario.js";

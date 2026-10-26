@@ -1,3 +1,8 @@
+/**
+ * Print-only scenario CLI (`npm run simulate`): validate a fixture and print its
+ * ordered trace without starting ZooGlass.
+ * See ../docs/source-map.md for the module relationships.
+ */
 import { resolve } from "node:path";
 import { formatTraceEntry, playScenario } from "./playback.js";
 import { loadScenario } from "./scenario.js";

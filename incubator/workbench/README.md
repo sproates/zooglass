@@ -12,11 +12,19 @@ check both the latest position and received history, then disconnect a viewer
 while the source continues. The service's response is the evidence; the scenario's
 expected values are only used to check it.
 
-Today Workbench is a CLI with Node WebSocket clients. Browser orchestration,
-interactive controls and fault injection are planned. See
+Today Workbench supports connected CLI runs with Node WebSocket clients and a
+vehicle browser demo with interactive controls. Transport fault injection remains
+planned. See
 [where we're heading](#where-were-heading) for that separate view, and
 [what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
 product explanation.
+
+## Find your way around the source
+
+The [source map](docs/source-map.md) shows the TypeScript modules as boxes with
+labelled dependencies. It explains the CLI entry points, scenario execution and
+browser demo composition, including which parts are shared and which belong to
+the vehicle demo. Start there when reading `src/`.
 
 ## Run a scenario
 

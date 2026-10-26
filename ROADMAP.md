@@ -122,12 +122,15 @@ verify the first recovery snapshots and rendered result. Node-only execution
 rejects this browser fixture before service launch. Reset during an outage and
 deadline expiry while paused also have real-service browser coverage. The
 [acceptance record](docs/verification/2026-10-26-recovery.md) brings together the
-evidence and recommends closing this increment, pending review and merge.
+evidence; this increment was accepted in [PR #69](https://github.com/sproates/zooglass/pull/69).
 
 The [browser orchestration design](docs/plans/browser-orchestration.md) defines
 the boundaries and checks. Final demo acceptance is next and includes a fresh-checkout walkthrough,
 process cleanup, keyboard and narrow-screen checks, and documentation that
-matches the demonstrated behaviour.
+matches the demonstrated behaviour. The
+[fresh-checkout walkthrough](docs/verification/2026-10-26-fresh-checkout.md)
+passed setup and the journey/recovery scenarios, pending review. Cleanup,
+usability, capability claims and the lasting diagram remain to be accepted.
 
 ## Longer-term direction
 

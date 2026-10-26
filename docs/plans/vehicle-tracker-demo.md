@@ -17,7 +17,9 @@ and verifies the first recovery snapshots and rendering against real ZooGlass.
 Node-only execution rejects the fixture before service launch. The
 [recovery acceptance review](../verification/2026-10-26-recovery.md) records the
 requirement-by-requirement evidence and recommends accepting this increment.
-Final acceptance of the whole demo remains outstanding.
+Final acceptance of the whole demo remains outstanding. The
+[fresh-checkout walkthrough](../verification/2026-10-26-fresh-checkout.md)
+verifies setup and scenario completion, pending review.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

@@ -43,6 +43,8 @@ for (const variant of ["basic", "journey"]) {
               "—",
             );
             assert.equal(await browser.page.locator("#history li").count(), 0);
+            let checkedLatePosition = false;
+
             for (const entry of playScenario(scenario)) {
               await observed.execute(entry);
 
@@ -98,15 +100,25 @@ for (const variant of ["basic", "journey"]) {
                       .textContent(),
                     "42",
                   );
-                  assert.ok(
-                    Math.abs(
-                      Number(
-                        await browser.page
-                          .locator("#vehicle-marker")
-                          .getAttribute("cx"),
-                      ) - 180,
-                    ) < 0.001,
+                  assert.equal(
+                    await browser.page
+                      .locator("#current-coordinates")
+                      .textContent(),
+                    "51.100, -0.250",
                   );
+
+                  const marker = browser.page.locator("#vehicle-marker");
+
+                  // Independent expected screen coordinates for position 42.
+                  assert.ok(
+                    Math.abs(Number(await marker.getAttribute("cx")) - 180) <
+                      0.001,
+                  );
+                  assert.ok(
+                    Math.abs(Number(await marker.getAttribute("cy")) - 187.5) <
+                      0.001,
+                  );
+                  checkedLatePosition = true;
                 }
 
                 assert.deepEqual(
@@ -126,6 +138,12 @@ for (const variant of ["basic", "journey"]) {
                 );
               }
             }
+            if (variant === "journey")
+              assert.ok(
+                checkedLatePosition,
+                "the late-41 checkpoint must be exercised",
+              );
+
             await browser.page.screenshot({
               path: `/tmp/zooglass-vehicle-${variant}-desktop.png`,
               fullPage: true,

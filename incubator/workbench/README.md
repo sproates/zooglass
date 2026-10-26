@@ -164,6 +164,12 @@ check that the current position remains 42. Duplicate suppression needs similar
 care: another matching snapshot alone doesn't prove the duplicate was handled.
 Use an observable processing barrier when the scenario requires that evidence.
 
+The journey case in [the browser view tests](test/browser/vehicle.test.ts)
+waits for the received and rendered history containing 40, 41 and 42 before
+checking that the current sequence, displayed location and both marker
+coordinates still represent 42. It also requires that checkpoint to be reached,
+so a fixture change cannot silently remove this verification.
+
 Checks have finite waits and fail if their condition isn't observed. A passing
 scenario supports its stated expectations and conditions; it doesn't establish
 unmeasured performance, general completeness or every possible failure outcome.

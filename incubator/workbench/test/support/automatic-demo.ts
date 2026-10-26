@@ -14,6 +14,7 @@ interface AutomaticDemoFixtureOptions {
 /** Controlled resource boundaries around the real automatic-demo control flow. */
 export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
   const calls: string[] = [];
+  const published: unknown[] = [];
   const events = new EventEmitter();
   const process = Object.assign(new EventEmitter(), { exitCode: 0 });
   const stopped = new AbortController();
@@ -28,7 +29,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
       origin: "http://browser",
       clientId: "rider-app",
       executor: {},
-      publish() {},
+      publish(message: unknown) {
+        published.push(message);
+      },
     },
     async close() {
       calls.push("close browser");
@@ -181,6 +184,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
     process,
     events,
     page,
+    published,
     startRun: () => {
       const { startVehicleRun } = load(
         "vehicle-run",

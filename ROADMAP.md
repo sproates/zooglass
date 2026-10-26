@@ -98,6 +98,10 @@ verification retained. The final review is the acceptance record; it does not
 declare the prototype production-ready or close the remaining demo programme.
 Further delivery decisions follow project review.
 
+The vehicle demo also provides bounded run activity and current/next-step
+explanations, distinguishing source sends from actual browser receipts. See the
+[vehicle guide](incubator/vehicle-tracker/README.md#follow-the-run).
+
 ## Following: late delivery and recovery
 
 The journey already shows delayed position 41 filling history without moving

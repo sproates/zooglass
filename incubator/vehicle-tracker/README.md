@@ -23,6 +23,20 @@ https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 The 11-second recording shows the short `--basic` fixture using real ZooGlass snapshots, with longer pauses between
 positions 40 and 42 so the changes are easy to follow.
 
+## Follow the run
+
+Interactive controls explain the next scripted action, including late or duplicate
+positions. While a step is running, the explanation labels it as the current step.
+Exploratory runs explicitly say browser receipt checks are skipped.
+
+The **Run activity** panel keeps the latest 100 entries. It distinguishes source
+sends, actual browser view receipts, subscription acknowledgements and connection
+changes. A source send is not confirmation that ZooGlass processed it. Entries
+appear in the order the page learns about them across the data and control
+connections, not a global event order. Reset creates a fresh page and trace.
+The panel is keyboard-scrollable and also records activity during automatic runs;
+next-step explanations belong to interactive runs.
+
 ## Run it
 
 Install Git, Node 26 and a Java 25 JDK, with `node`, `npm` and `java` available

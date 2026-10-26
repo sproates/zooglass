@@ -149,6 +149,10 @@ flowchart TB
   browser["demos/vehicle/vehicle-browser.ts<br/>Supply vehicle assets and identity"]
   session["execution/scenario-session.ts<br/>Execute scenario actions"]
   observer["demos/vehicle/vehicle-observer.ts<br/>Check the rendered vehicle page"]
+  descriptions["demos/vehicle/vehicle-step-description.ts<br/>Explain planned actions and progress"]
+  vehicle -->|describes the current or next step| descriptions
+  descriptions -->|reads ordered actions| playback
+  descriptions -->|uses checkpoint boundaries| steps
   vehicle -->|creates interactive controller| controller
   vehicle -->|opens replacement runs| run
   automatic -->|opens an automatic run| run
@@ -165,6 +169,10 @@ flowchart TB
 The arrow back to `control/demo-controller.ts` is a real import of `DemoCleanupError`.
 The map shows the code as it exists, including small dependencies that are easy
 to miss when reading a directory listing.
+
+`vehicle-step-description.ts` describes planned actions without inferring results.
+`vehicle-run.ts` publishes a demo activity notification only after a source-send
+action succeeds. Neither changes the shared execution or control contracts.
 
 The observer is optional demo verification assembled by `vehicle-run.ts`.
 It reads the rendered page independently of the vehicle app's rendering code.
@@ -202,6 +210,8 @@ flowchart TB
   client["vehicle-tracker/src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
   subscription["vehicle-tracker/src/subscription-client.ts<br/>Socket, subscriptions and acknowledgements"]
   view["vehicle-tracker/src/view.ts<br/>Render vehicle data and status"]
+  activity["vehicle-tracker/src/activity.ts<br/>Render bounded run diagnostics"]
+  bootstrap -->|forwards actual observations and source-send notices| activity
   bootstrap -->|starts control bridge with client factory| bridge
   bootstrap -->|creates vehicle client| client
   client -->|creates subscription client with callbacks| subscription

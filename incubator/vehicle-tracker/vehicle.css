@@ -193,3 +193,19 @@ button:focus-visible {
 #control-error {
   color: #70411b;
 }
+
+.activity-panel {
+  margin-top: 1.5rem;
+}
+#activity {
+  max-height: 18rem;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding-left: 1.5rem;
+}
+#activity li {
+  margin-block: 0.5rem;
+}
+#next-step {
+  font-weight: 600;
+}

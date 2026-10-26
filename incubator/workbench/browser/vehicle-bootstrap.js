@@ -1,5 +1,6 @@
 import { startBrowserBridge } from "/bridge.js";
 import { createVehicleClient } from "/vehicle-client.js";
+import { recordObservation, recordSourceSend } from "/activity.js";
 
 const status = document.querySelector("#status");
 const step = document.querySelector("#step");
@@ -27,7 +28,14 @@ for (const [button, action] of [
 const bridge = startBrowserBridge({
   createClient(dataPath, report, fail) {
     document.body.dataset.dataPath = dataPath;
-    return createVehicleClient(dataPath, report, fail);
+    return createVehicleClient(
+      dataPath,
+      (message) => {
+        report(message);
+        recordObservation(message);
+      },
+      fail,
+    );
   },
   onStatus(state) {
     const messages = {
@@ -46,6 +54,12 @@ const bridge = startBrowserBridge({
     }
   },
   onRunState(state, client) {
+    if (state.kind === "vehicle-source-sent") {
+      recordSourceSend(state);
+      return;
+    }
+
+    document.querySelector("#next-step").textContent = state.nextStep ?? "";
     document.querySelector("#workbench-controls").hidden = false;
     if (state.phase === "failed") client?.fail(state.detail);
     step.disabled = state.phase !== "ready" || state.playing;

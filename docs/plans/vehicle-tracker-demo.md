@@ -277,3 +277,13 @@ snapshots before any further source event can hide a stale result. The browser
 receipt test runs these exact actions through the existing executor. The interactive `--recovery` mode now adds independent rendering assertions
 and separate connection checkpoints. Manual viewer controls are available for
 exploration. Neither mode exercises the planned proxy fault gate.
+
+### Activity and step explanation delivery
+
+The vehicle demo now shows the current or next scripted action and retains the
+latest 100 activity entries. Labels distinguish successful source sends, actual
+browser view receipts, subscription acknowledgements and connection changes.
+Entries are page-observation order across separate connections, not a global
+causal timeline. The display never treats a send as processing confirmation.
+Reset creates a new page and trace. Automatic runs have activity diagnostics;
+interactive runs additionally have cursor-based step explanations.

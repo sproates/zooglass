@@ -91,11 +91,26 @@ export async function startVehicleRun(
               return ownedBrowser.host.executor;
             },
           });
-          return observeVehicleSession(
+          const observed = observeVehicleSession(
             session,
             ownedBrowser.page,
             ownedBrowser.signal,
           );
+
+          return {
+            ...observed,
+            async execute(entry) {
+              await observed.execute(entry);
+
+              if (entry.kind === "source-event")
+                ownedBrowser.host.publish({
+                  kind: "vehicle-source-sent",
+                  sourceName: entry.sourceName,
+                  sequence: entry.payload.sequence,
+                  simulationTime: entry.simulationTime,
+                });
+            },
+          } satisfies ScenarioSession;
         })());
       },
       closeScenario,

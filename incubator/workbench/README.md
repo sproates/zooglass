@@ -24,7 +24,9 @@ product explanation.
 The [source map](docs/source-map.md) shows the TypeScript modules as boxes with
 labelled dependencies. It explains the CLI entry points, scenario execution and
 browser demo composition, including which parts are shared and which belong to
-the vehicle demo. Start there when reading `src/`.
+the vehicle demo. Start there when reading `src/`. Vehicle-specific composition
+lives in `src/vehicle/`; shared execution, transport and playback controls remain
+in `src/`.
 
 ## Run a scenario
 
@@ -505,7 +507,7 @@ bytes. The host serves only those entries; it does not choose a demo, read
 vehicle files or provide a default client identity. The supplied page must
 implement the Workbench registration and command protocol.
 
-`vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
+`vehicle/vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
 `rider-app` identity. Interactive and automatic vehicle demos use
 `startVehicleBrowserSession`; the browser-engine probes use the same vehicle
 composition. The shared `browser/bridge.js` owns registration, command identity and completion,
@@ -558,7 +560,7 @@ the client, and rendered checks remain in the demo-specific observer.
 
 ### Vehicle run ownership
 
-`vehicle-run.ts` owns the service, browser and scenario for both interactive and
+`vehicle/vehicle-run.ts` owns the service, browser and scenario for both interactive and
 automatic demos. It supplies the vehicle client binding and rendered observer;
 core scenario execution does not import either demo path.
 

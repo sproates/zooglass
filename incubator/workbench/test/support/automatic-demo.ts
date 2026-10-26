@@ -39,8 +39,10 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
   };
   const mocks: Record<string, unknown> = {
     "node:url": { fileURLToPath: () => "fixture" },
-    "./scenario.js": { loadScenario: async () => ({ views: [], clients: [] }) },
-    "./playback.js": {
+    "../scenario.js": {
+      loadScenario: async () => ({ views: [], clients: [] }),
+    },
+    "../playback.js": {
       playScenario: () => [{ simulationTime: options.delayed ? 100 : 0 }],
     },
     "node:timers/promises": {
@@ -56,7 +58,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
           events.emit("delay");
         }),
     },
-    "./zooglass-session.js": {
+    "../zooglass-session.js": {
       startZooGlassSession: async ({ signal }: { signal: AbortSignal }) => {
         calls.push("start service");
         signal.addEventListener("abort", () => stopped.abort(signal.reason), {
@@ -82,7 +84,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
         return browser;
       },
     },
-    "./scenario-session.js": {
+    "../scenario-session.js": {
       openScenarioSession: async (
         _scenario: unknown,
         _url: string,
@@ -120,7 +122,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
         },
       }),
     },
-    "./demo-controller.js": { DemoCleanupError: class extends Error {} },
+    "../demo-controller.js": { DemoCleanupError: class extends Error {} },
   };
 
   function load(name: string): unknown {
@@ -129,7 +131,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
       throw new Error(`Unexpected module: ${name}`);
 
     const source = readFileSync(
-      new URL(`../../src/${name}.ts`, import.meta.url),
+      new URL(`../../src/vehicle/${name}.ts`, import.meta.url),
       "utf8",
     ).replaceAll("import.meta.url", JSON.stringify(import.meta.url));
     const exports = {};
@@ -180,7 +182,7 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
     startRun: () => {
       const { startVehicleRun } = load(
         "vehicle-run",
-      ) as typeof import("../../src/vehicle-run.js");
+      ) as typeof import("../../src/vehicle/vehicle-run.js");
       return startVehicleRun(
         {
           name: "Ownership",

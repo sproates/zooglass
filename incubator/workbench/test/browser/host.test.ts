@@ -5,7 +5,7 @@ import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import { WebSocket } from "ws";
 import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
+import { startVehicleBrowserSession } from "../../src/vehicle/vehicle-browser.js";
 import { loadScenario } from "../../src/scenario.js";
 
 const fixture = fileURLToPath(
@@ -154,7 +154,7 @@ for (const automatic of [false, true]) {
         [
           "--import",
           "tsx",
-          "src/demo.ts",
+          "src/vehicle/demo.ts",
           "vehicle-tracker",
           "--headless",
           ...(automatic ? ["--auto"] : []),

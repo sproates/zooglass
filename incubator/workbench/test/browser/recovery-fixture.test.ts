@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadScenario } from "../../src/scenario.js";
 import { playScenario } from "../../src/playback.js";
 import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
+import { startVehicleBrowserSession } from "../../src/vehicle/vehicle-browser.js";
 import { openScenarioSession } from "../../src/scenario-session.js";
 
 test(

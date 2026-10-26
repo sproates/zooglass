@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
-import { createVehicleDemo } from "../../src/vehicle-demo.js";
+import { createVehicleDemo } from "../../src/vehicle/vehicle-demo.js";
 import { loadScenario } from "../../src/scenario.js";
 
 test(

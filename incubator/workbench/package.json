@@ -26,7 +26,7 @@
     "pretypecheck": "node scripts/check-node-version.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p ../vehicle-tracker/tsconfig.json",
     "predemo": "node scripts/check-node-version.js && npm run build:browser",
-    "demo": "tsx src/demo.ts",
+    "demo": "tsx src/vehicle/demo.ts",
     "pretest:browser": "node scripts/check-node-version.js && npm run build:browser",
     "test:browser": "tsx --test test/browser/*.test.ts",
     "build:browser": "tsc -p ../vehicle-tracker/tsconfig.json",

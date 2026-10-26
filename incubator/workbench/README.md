@@ -170,6 +170,14 @@ checking that the current sequence, displayed location and both marker
 coordinates still represent 42. It also requires that checkpoint to be reached,
 so a fixture change cannot silently remove this verification.
 
+The recovery case in [the viewer-control tests](test/browser/viewer-controls.test.ts)
+checks exact server history after a separate entity's barrier event has been
+processed on the same source connection. It then checks the displayed history
+still contains 40, 41 and 42 once each, before disconnecting. This does not
+require an unchanged view to emit another message. A
+[fixture check](test/scenarios/vehicle-browser-recovery.test.ts) protects the
+duplicate payload, shared source and ordering of the barrier and history checks.
+
 Checks have finite waits and fail if their condition isn't observed. A passing
 scenario supports its stated expectations and conditions; it doesn't establish
 unmeasured performance, general completeness or every possible failure outcome.

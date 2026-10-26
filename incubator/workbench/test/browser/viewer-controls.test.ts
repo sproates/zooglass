@@ -94,7 +94,7 @@ test(
 );
 
 test(
-  "scripted recovery pauses at disconnect and verifies fresh snapshots on reconnect",
+  "scripted recovery checks duplicate history after processing and fresh snapshots on reconnect",
   { timeout: 90_000 },
   async () => {
     const scenario = await loadScenario(
@@ -109,8 +109,27 @@ test(
 
     try {
       await demo.reset();
-      // 40, 42, late 41, duplicate 41, processing barrier, disconnect.
-      for (let i = 0; i < 6; i++) await demo.step();
+      // 40, 42, late 41, duplicate 41, then the same-source processing barrier.
+      for (let i = 0; i < 5; i++) await demo.step();
+
+      // The barrier has been observed by the scenario's HTTP check. An old
+      // browser snapshot alone would not prove the duplicate was processed.
+      const response = await fetch(demo.baseUrl + "/views/trip-history/car-17");
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).data.positions, [
+        { sequence: 40, latitude: 51, longitude: -0.3 },
+        { sequence: 41, latitude: 51.06, longitude: -0.29 },
+        { sequence: 42, latitude: 51.1, longitude: -0.25 },
+      ]);
+      assert.deepEqual(
+        await demo.browser!.page.locator("#history li").allTextContents(),
+        [
+          "Position 40 · 51.000, -0.300",
+          "Position 41 · 51.060, -0.290",
+          "Position 42 · 51.100, -0.250",
+        ],
+      );
+      await demo.step(); // disconnect only after checking duplicate suppression
 
       assert.match(
         await demo.browser!.page.locator("#connection-status").innerText(),

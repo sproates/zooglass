@@ -11,8 +11,9 @@ reset remains available after page loss. `--auto` retains timed playback and its
 previous cleanup behaviour and uses the same rendered observer. Interactive
 Play/Pause now share the Step cursor and freeze remaining delays. Scripted and
 manual viewer connection controls are implemented, with persistent exploratory
-labelling after manual intervention. Fault injection and full
-acceptance described here remain planned. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
+labelling after manual intervention. Data-route interruption and bounded automatic
+recovery are implemented. The [recovery acceptance review](../verification/2026-10-26-recovery.md)
+records the evidence; final demo acceptance remains outstanding. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
 
 ## Decision
 

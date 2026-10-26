@@ -11,11 +11,13 @@ delays and finish in-flight checkpoints before pausing. A separate recovery fixt
 processing and explicit reconnect receipts in Node and Chromium; interactive
 recovery is selectable with `--recovery`, and manual viewer controls mark runs
 exploratory. The host data-fault gate and bounded client recovery are implemented.
-The `--fault` scenario integration is implemented for review: it waits for a
+The `--fault` scenario integration is merged: it waits for a
 refused retry, checks source progress during the outage, restores only the route,
 and verifies the first recovery snapshots and rendering against real ZooGlass.
-Node-only execution rejects the fixture before service launch. Final recovery
-and programme acceptance remain outstanding.
+Node-only execution rejects the fixture before service launch. The
+[recovery acceptance review](../verification/2026-10-26-recovery.md) records the
+requirement-by-requirement evidence and recommends accepting this increment.
+Final acceptance of the whole demo remains outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -56,12 +58,10 @@ Proposed layout:
 - Workbench scenario fixtures: the event sequence and expected view states,
   exercised by the existing functional scenario suite.
 
-The intended local command is `npm run demo -- vehicle-tracker` from Workbench.
-This is a proposed command to implement, not one available today. After the
-normal dependency installation, it should build the browser assets, start the
-session, wait for ZooGlass health and print the browser URL. Keep the existing
-Node 26 and JDK 25 requirements. The command will launch an owned Chromium
-session through Playwright; browser installation becomes a documented setup step.
+Run `npm run demo -- vehicle-tracker` from Workbench. After dependency
+installation, it builds the browser assets, starts the session, waits for
+ZooGlass health and launches an owned Chromium session through Playwright.
+Node 26, JDK 25 and the documented browser installation are required.
 
 ## What the user sees
 
@@ -254,7 +254,7 @@ available after page loss. `--auto` retains the timed, single-run demonstration.
 The browser observer must derive rendered expectations from this same fixture;
 source events and expected values must never supply the app's displayed state.
 The journey delivers 40, 42, delayed 41, then 43–59 in order. Position 41 is the
-only deliberate gap. Duplicate delivery and recovery remain later work. Visible
+only deliberate gap. Duplicate delivery and recovery use the separate fixtures below. Visible
 failures stop dispatch. Interactive runs can be reset from the browser or
 terminal. Automatic mode retains failed headed pages for inspection and cleans
 up headless failures immediately.
@@ -280,7 +280,8 @@ before reconnecting. It subscribes to both views again and checks their initial
 snapshots before any further source event can hide a stale result. The browser
 receipt test runs these exact actions through the existing executor. The interactive `--recovery` mode now adds independent rendering assertions
 and separate connection checkpoints. Manual viewer controls are available for
-exploration. Neither mode exercises the planned proxy fault gate.
+exploration. Neither mode exercises the proxy fault gate; use `--fault` for the separate
+[connection-loss scenario](../../incubator/workbench/README.md#run-the-connection-loss-scenario).
 
 ### Activity and step explanation delivery
 

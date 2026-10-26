@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 26 October 2026.
+Last reviewed: 27 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
@@ -17,9 +17,9 @@ are intended outcomes, not release dates or claims of existing capability. The
 | --- | --- | --- |
 | Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](incubator/zooglass/README.md) |
 | Ordering scenarios | Latest-position and received-history views can respond differently to the same out-of-order events. Scenarios explore duplicates and the limits of sequence-based completeness assumptions. | [Workbench ordering support, PR #18](https://github.com/sproates/zooglass/pull/18), [sequence guarantees, PR #20](https://github.com/sproates/zooglass/pull/20) |
-| Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with an executor boundary for future browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
+| Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with bindings for Node and browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
 | Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation includes data-route interruption and bounded recovery; final acceptance remains ahead. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
-| Project guides | Separate production-intent and testing diagrams explain ZooGlass's direction. The Workbench guide distinguishes today's CLI from planned browser orchestration. | [Project explanation, PR #24](https://github.com/sproates/zooglass/pull/24), [Workbench guide, PR #25](https://github.com/sproates/zooglass/pull/25) |
+| Project guides | Separate production-intent and testing diagrams explain ZooGlass's direction. The Workbench guide describes the CLI and delivered browser orchestration, with their verification boundaries. | [Project explanation, PR #24](https://github.com/sproates/zooglass/pull/24), [Workbench guide, PR #25](https://github.com/sproates/zooglass/pull/25) |
 
 The service remains in memory. Durable recovery, replay of missed messages and
 a production retention policy are not implemented. Passing the current scenarios
@@ -40,15 +40,15 @@ Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
 Step/reset, repeat-run lifecycle tests and the installation/usability walkthrough
 are complete, including keyboard controls, history scrolling and narrow layouts
-([PR #35](https://github.com/sproates/zooglass/pull/35)). The complete recovery
-demo will still need final acceptance.
+([PR #35](https://github.com/sproates/zooglass/pull/35)). Recovery implementation is accepted; the complete demo still needs its final
+acceptance record.
 Independent rendered checks now gate interactive and automatic completion,
 including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The delivered browser-view milestone includes a fresh run, reset and another
 checked run. See the [vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for
-the design and remaining recovery acceptance criteria.
+the design and remaining final acceptance criteria.
 
 ## Verification and readability review
 
@@ -135,8 +135,11 @@ passed setup and the journey/recovery scenarios and was accepted in
 signal interruption, resource release and fresh state after restart, accepted in
 [PR #71](https://github.com/sproates/zooglass/pull/71). The
 [keyboard and layout review](docs/verification/2026-10-26-usability.md) adds
-enlarged-text fixes and keyboard coverage, pending acceptance. Capability claims
-and the lasting diagram remain ahead.
+enlarged-text fixes and keyboard coverage, accepted in
+[PR #72](https://github.com/sproates/zooglass/pull/72). The
+[capability-claims review](docs/verification/2026-10-27-capabilities.md) records
+what the demo establishes and corrects stale descriptions, pending acceptance.
+The lasting diagram and completion record remain ahead.
 
 ## Longer-term direction
 

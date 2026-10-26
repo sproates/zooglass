@@ -14,7 +14,7 @@ expected values are only used to check it.
 
 Today Workbench supports connected CLI runs with Node WebSocket clients and a
 vehicle browser demo with interactive controls and real data-route interruption. See
-[where we're heading](#where-were-heading) for that separate view, and
+[browser verification environment](#browser-verification-environment) for that separate view, and
 [what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
 product explanation.
 
@@ -135,7 +135,9 @@ The existing client view check can match an earlier queued update. It does not
 prove that the matching update was the first snapshot after a subscription, nor
 that a browser rendered it. The vehicle demo adds an independent rendered
 observer after receipt checkpoints; the generic Node client check retains its
-existing meaning. Stronger first-snapshot checks remain planned.
+existing meaning. The vehicle fault adapter separately checks each first
+recovery snapshot; the explicit reconnect regression test captures first frames
+on the replacement socket. These do not change the generic check contract.
 
 ### Timeline order and real time
 
@@ -246,7 +248,7 @@ business rules of a sportsbook, order system, or ride service.
   using the Node client. The Chromium suite also runs its receipt checks through
   the real browser. Select it in the interactive demo with `npm run demo -- vehicle-tracker --recovery`.
   This is deliberate disconnection, not an unexpected network failure.
-- `vehicle-browser-basic.json` is the finite first slice for the planned browser
+- `vehicle-browser-basic.json` is the finite first slice for the browser
   demo: connect `rider-app`, subscribe to `live-map` and `trip-history`, then send
   positions 40 and 42 for `car-17`. Each send is followed by HTTP and client
   receipt checks for both views. The CLI uses a real Node WebSocket client;
@@ -472,15 +474,15 @@ the scenario cursor unchanged. Reset restores a fresh service and browser.
 The recovery deadline continues while playback is paused; stepping through an
 outage must therefore finish within that interval.
 
-## Where we're heading
+## Browser verification environment
 
-![Planned browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)
+![Browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)
 
-This is the intended browser environment, not the current CLI architecture.
-Workbench would keep ownership of the scenario while a real browser performs
-its client actions. Playwright would launch the browser and independently check
-the rendered result. A separate control connection would keep orchestration
-available while the blue fault proxy interrupts the application's data path.
+This shows the browser environment alongside the CLI execution path. Workbench
+owns the scenario while a real browser performs its client actions. Playwright
+launches the browser and independently checks the rendered result. A separate
+control connection keeps orchestration available while the blue fault proxy
+interrupts the application's data path.
 
 The aim is one scenario workflow for interactive exploration and automated
 verification, with source sends, service state, client receipts and rendered
@@ -492,7 +494,8 @@ The shared session and client-executor boundary already provide a starting
 point. Owned browser launch, registration and the data proxy now exist.
 The bridge now executes browser actions and reports actual receipts, and the
 display has rendered checks within interactive and automatic action completion,
-plus serialised Step/Play/Pause/Reset controls. Fault injection remains planned. Their detailed contracts are in the
+plus serialised Step/Play/Pause/Reset controls. The data-route gate and opt-in
+automatic recovery are implemented for the vehicle demo. Their detailed contracts are in the
 [browser orchestration design](../../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session

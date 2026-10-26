@@ -203,6 +203,16 @@ manual viewer button makes it exploratory. `--recovery` cannot be combined with
 
 ## Reading the display
 
+“Current position” means the highest sequence accepted for this vehicle in the
+received snapshot. It does not establish how recently the source measured that
+position or that the source is still producing events. A connected socket alone
+is not a freshness guarantee.
+
+The ordering policies keep the first accepted payload for a sequence. Sending
+different coordinates with the same sequence does not revise that position.
+The duplicate fixture checks identical delivery; a general correction/revision
+contract remains future work.
+
 The current sequence and coordinates come from the `live-map` snapshot. The
 history list and line come from `trip-history`. Each full snapshot replaces its
 own displayed state; the app does not sort events or merge these two views into
@@ -236,7 +246,7 @@ up on failure. Automatic reconnection is not implemented.
 
 ## Checks and current limits
 
-From Workbench, `npm run test:browser` drives both fixtures in Chromium and checks
+From Workbench, `npm run test:browser` drives the vehicle fixtures in Chromium and checks
 the visible sequence, coordinates, marker position and history at their
 checkpoints, including late 41 leaving the current position at 42. It also checks that resubscription does not duplicate the history
 and that the phone-width layout has no horizontal overflow. `npm run build`,

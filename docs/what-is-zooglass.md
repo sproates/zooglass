@@ -153,7 +153,8 @@ still have to be designed for the workload.
 This is a different view of the system: the environment we are building to
 exercise ZooGlass. The vehicle app and feed make a concrete scenario. Workbench
 runs alongside the stack, with a separate control path to each boundary. The
-browser bridge, Playwright observer and fault proxy are planned test machinery.
+browser bridge, Playwright observer and fault proxy are implemented test machinery
+for this bounded vehicle scenario. Wider application adapters remain future work.
 
 Blue marks that machinery and its control connections; green marks the
 application components and data flow. The proxy is blue because it belongs to
@@ -167,16 +168,15 @@ an event successfully while the service is still processing it. A service can
 update a view while a client is disconnected. A socket can receive data before
 the screen has rendered it. Checking only one boundary leaves the rest uncertain.
 
-Workbench is intended to coordinate those boundaries in one scenario. For the
-vehicle example it would send 40, then 42, then the delayed 41; verify the server
-view; observe the browser's actual receipt; and independently inspect the
-rendered marker and history. Expected values belong in the checks. They must
+Workbench coordinates those boundaries in the vehicle scenario. It sends 40,
+then 42, then delayed 41; verifies the server view; observes the browser's actual
+receipt; and independently inspects the rendered marker and history. Expected values belong in the checks. They must
 never supply the app's displayed data.
 
-The fault gate makes failure observable too. Workbench would break the real
-data connection, allow the feed to advance and then restore the route. The app
-would have to detect the interruption and recover through its own connection
-logic. Keeping control separate from data lets us examine that behaviour while
+The fault gate makes failure observable too. Workbench breaks the real
+data connection, lets the feed advance and then restores the route. The demo app
+detects the interruption and recovers through its own bounded connection
+policy during an explicitly armed fault interval. Keeping control separate from data lets us examine that behaviour while
 the fault is still present.
 
 The aim is one way to run and understand a scenario, using specialist tools such
@@ -192,7 +192,8 @@ reliability and capacity claims need their own evidence.
 
 ## Where we are now
 
-As of October 2026, the project has a small in-memory service and a CLI Workbench.
+As of October 2026, the project has a small in-memory service, a CLI Workbench
+and an orchestrated browser demo.
 The distinction between that foundation and the intended product matters:
 
 | Area | Current position |
@@ -200,7 +201,7 @@ The distinction between that foundation and the intended product matters:
 | View maintenance | Source/type matching, entity-scoped fields, runtime view definitions, and optional latest/history ordering by numeric sequence. |
 | Client delivery | HTTP view reads and WebSocket subscriptions with full snapshots. A reconnecting client can resubscribe for current state. |
 | Workbench | JSON scenarios, real service/source/Node-client connections, checks, and reusable service and scenario sessions. |
-| Browser verification | The basic vehicle app receives real snapshots through an owned Chromium session and local proxy. Its short fixture and twenty-position journey have receipt and rendered checks, including delayed 41. Waiting, empty and retained/error states are visible. Step and reset provide repeatable sessions, with independent rendered checks gating interactive and automatic completion. Play/pause, recovery and the fault gate remain planned. |
+| Browser verification | The basic vehicle app receives real snapshots through an owned Chromium session and local proxy. Its short fixture and twenty-position journey have receipt and rendered checks, including delayed 41. Waiting, empty and retained/error states are visible. Step and reset provide repeatable sessions, with independent rendered checks gating interactive and automatic completion. Play/pause, explicit reconnect and proxy-induced loss with bounded automatic recovery are implemented. Checks verify first recovery snapshots; final demo acceptance is underway. |
 | Data lifecycle | State is in memory. Durable recovery, replay and a bounded history-retention policy remain future work. |
 | Permissions | [Authorisation over time](requirements/authorisation.md) is required: scope checks on reads and subscriptions, plus bounded cessation after revocation or expiry. Design and enforcement remain outstanding. |
 | Broader view contracts | General source relationships, correction revisions, freshness/provenance metadata, and completeness signals remain design and implementation work. |

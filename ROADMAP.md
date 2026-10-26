@@ -129,8 +129,11 @@ the boundaries and checks. Final demo acceptance is next and includes a fresh-ch
 process cleanup, keyboard and narrow-screen checks, and documentation that
 matches the demonstrated behaviour. The
 [fresh-checkout walkthrough](docs/verification/2026-10-26-fresh-checkout.md)
-passed setup and the journey/recovery scenarios, pending review. Cleanup,
-usability, capability claims and the lasting diagram remain to be accepted.
+passed setup and the journey/recovery scenarios and was accepted in
+[PR #70](https://github.com/sproates/zooglass/pull/70). The
+[cleanup review](docs/verification/2026-10-26-cleanup.md) verifies normal exit,
+signal interruption, resource release and fresh state after restart, pending
+acceptance. Usability, capability claims and the lasting diagram remain ahead.
 
 ## Longer-term direction
 

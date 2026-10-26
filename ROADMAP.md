@@ -102,7 +102,7 @@ The vehicle demo also provides bounded run activity and current/next-step
 explanations, distinguishing source sends from actual browser receipts. See the
 [vehicle guide](incubator/vehicle-tracker/README.md#follow-the-run).
 
-## Following: late delivery and recovery
+## Late delivery and recovery: acceptance review
 
 The journey already shows delayed position 41 filling history without moving
 the current marker back from 42. A separate recovery fixture checks duplicate
@@ -115,16 +115,17 @@ exploration are explicitly counted. The host data-fault gate interrupts
 active/pending data routes and refuses upgrades until restored. The client has
 bounded retries and completes recovery only after all desired snapshots arrive.
 
-The `--fault` real-service scenario is implemented for review, pending merge.
+The `--fault` real-service scenario is merged in [PR #68](https://github.com/sproates/zooglass/pull/68).
 It waits for a refused retry, checks both server views advance while the browser
 is cut off, then restores the route without issuing a reconnect command. Checks
 verify the first recovery snapshots and rendered result. Node-only execution
 rejects this browser fixture before service launch. Reset during an outage and
-deadline expiry while paused also have real-service browser coverage. Final
-recovery acceptance remains outstanding.
+deadline expiry while paused also have real-service browser coverage. The
+[acceptance record](docs/verification/2026-10-26-recovery.md) brings together the
+evidence and recommends closing this increment, pending review and merge.
 
 The [browser orchestration design](docs/plans/browser-orchestration.md) defines
-the boundaries and checks. Completion also includes a fresh-checkout walkthrough,
+the boundaries and checks. Final demo acceptance is next and includes a fresh-checkout walkthrough,
 process cleanup, keyboard and narrow-screen checks, and documentation that
 matches the demonstrated behaviour.
 

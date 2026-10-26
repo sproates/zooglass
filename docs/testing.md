@@ -546,3 +546,11 @@ The [26 October refactor review](verification/2026-10-26-refactor.md) records th
 post-extraction fresh-checkout results, dependency and ownership review, coverage
 comparison, CI turnaround and remaining harness risks. The earlier review remains
 the pre-refactor baseline; neither document is a live test-status dashboard.
+
+
+## Vehicle recovery acceptance
+
+The [recovery acceptance record](verification/2026-10-26-recovery.md) maps the
+six deliberate-action steps and unexpected connection-loss scenario to their
+service, transport and browser evidence. It records the checked source revision
+and keeps whole-demo acceptance and broader recovery guarantees separate.

@@ -25,7 +25,9 @@ and restart evidence, accepted in PR #71. The
 [keyboard and layout review](../verification/2026-10-26-usability.md) fixes
 enlarged-text overflow and records final usability evidence, accepted in PR #72.
 The [capability-claims review](../verification/2026-10-27-capabilities.md)
-reconciles demo labels and documentation with implementation, pending acceptance.
+reconciles demo labels and documentation with implementation, accepted in PR #73.
+The maintained [architecture diagram guide](../diagrams/README.md) preserves the
+vertical explanation beyond this plan; its final review is pending acceptance.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="980" viewBox="0 0 960 980" role="img" aria-labelledby="title desc">
 <title id="title">Building and testing ZooGlass with Workbench</title>
-<desc id="desc">Target design, including planned browser orchestration and fault injection. The real browser, data proxy, ZooGlass and simulated source form a vertical stack on the right. Workbench runs alongside on the left, with horizontal connections to launch and inspect the browser, command its control bridge, break or restore the data proxy, check ZooGlass processing and advance source events. Vehicle data flows up the stack independently of orchestration. Blue identifies test machinery, including the data proxy and fault gate.</desc>
+<desc id="desc">Implemented vehicle-demo environment with browser orchestration and a data-connection fault gate. This is the local verification setup, not a production deployment. The real browser, data proxy, ZooGlass and simulated source form a vertical stack on the right. Workbench runs alongside on the left, with horizontal connections to launch and inspect the browser, command its control bridge, break or restore the data proxy, check ZooGlass processing and advance source events. Vehicle data flows up the stack independently of orchestration. Blue identifies test machinery, including the data proxy and fault gate.</desc>
 <defs>
  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#286552"/></marker>
  <marker id="control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#496aaf"/></marker>
@@ -8,14 +8,14 @@
 </defs>
 <rect width="960" height="980" fill="#fff"/>
 <text x="42" y="44" class="heading">Building and testing: the vehicle example</text>
-<text x="42" y="67" class="detail">Target design; browser orchestration and fault injection are planned.</text>
+<text x="42" y="67" class="detail">Implemented vehicle demo • local verification environment, not production topology.</text>
 <rect x="40" y="80" width="270" height="770" rx="16" fill="#edf2fc" stroke="#496aaf" stroke-width="2"/>
 <text x="65" y="122" class="heading">Workbench</text>
 <text x="65" y="154" class="small">Coordinates the run</text>
 <text x="65" y="190" class="detail">Scenario • timing • checks</text>
 <text x="65" y="216" class="detail">Faults • reset • evidence</text>
 <rect x="60" y="245" width="230" height="85" rx="10" fill="#fff" stroke="#b4c5e5"/>
-<text x="76" y="277" class="label">Playwright</text><text x="76" y="305" class="detail">Launch and inspect UI</text>
+<text x="76" y="277" class="label">Playwright</text><text x="76" y="305" class="detail">Launch; demo UI checks</text>
 <rect x="60" y="350" width="230" height="67" rx="10" fill="#fff" stroke="#b4c5e5"/>
 <text x="76" y="378" class="label">Client commands</text><text x="76" y="402" class="detail">Wait for real completion</text>
 <text x="65" y="513" class="label">Fault control</text>

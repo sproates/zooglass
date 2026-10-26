@@ -178,6 +178,13 @@ require an unchanged view to emit another message. A
 [fixture check](test/scenarios/vehicle-browser-recovery.test.ts) protects the
 duplicate payload, shared source and ordering of the barrier and history checks.
 
+The same recovery test checks both server views contain position 43 while the
+viewer is disconnected. On reconnect it captures the first `view-update` frame
+for each view on the new data socket, then checks its complete contents. The
+capture selects by view identity, never by matching expected data, so a stale
+initial snapshot cannot be skipped in favour of a later correct update. The
+two views may arrive in either order; no atomic snapshot across views is claimed.
+
 Checks have finite waits and fail if their condition isn't observed. A passing
 scenario supports its stated expectations and conditions; it doesn't establish
 unmeasured performance, general completeness or every possible failure outcome.

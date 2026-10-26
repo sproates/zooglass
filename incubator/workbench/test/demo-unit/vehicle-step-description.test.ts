@@ -78,3 +78,24 @@ test("progress describes the active cursor without claiming an outcome", () => {
     /fresh run/,
   );
 });
+
+for (const completed of [1, 2]) {
+  for (const lastIntervention of ["Disconnect viewer", "Reconnect viewer"]) {
+    test(`progress describes ${lastIntervention} with ${completed} of 2 steps complete`, () => {
+      const description = describeVehicleProgress(
+        {
+          ...ready,
+          phase: "intervening",
+          exploratory: true,
+          interventions: 1,
+          lastIntervention,
+          completed,
+          total: 2,
+        },
+        ["Send position 40.", "Send position 42."],
+      );
+
+      assert.equal(description, `Current action: ${lastIntervention}.`);
+    });
+  }
+}

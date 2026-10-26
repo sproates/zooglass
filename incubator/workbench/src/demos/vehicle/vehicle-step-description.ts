@@ -42,6 +42,8 @@ export function describeVehicleProgress(
   state: DemoState,
   steps: string[],
 ): string {
+  if (state.phase === "intervening")
+    return `Current action: ${state.lastIntervention}.`;
   if (state.phase === "complete")
     return "No further scripted steps. Reset to start again.";
   if (state.phase === "failed") return "Run stopped. Reset before continuing.";

@@ -1,4 +1,4 @@
-import { createSubscriptionClient } from "./subscription-client.js";
+import { createRecoveringClient } from "./recovering-client.js";
 import { receiveView, setConnection, subscriptionState } from "./view.js";
 export type { Command } from "./subscription-client.js";
 
@@ -8,7 +8,7 @@ export function createVehicleClient(
   report: (event: Record<string, unknown>) => void,
   fail: (reason: string) => void,
 ) {
-  return createSubscriptionClient(dataPath, report, fail, {
+  return createRecoveringClient(dataPath, report, fail, {
     validateSubscription(viewId, entityId) {
       if (
         !viewId ||

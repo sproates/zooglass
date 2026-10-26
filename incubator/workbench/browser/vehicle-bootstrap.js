@@ -54,6 +54,10 @@ const bridge = startBrowserBridge({
     }
   },
   onRunState(state, client) {
+    if (state.kind === "expect-data-fault") {
+      client.expectRecovery(state.timeoutMs);
+      return;
+    }
     if (state.kind === "vehicle-source-sent") {
       recordSourceSend(state);
       return;

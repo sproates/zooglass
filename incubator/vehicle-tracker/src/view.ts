@@ -46,7 +46,8 @@ const views: Record<ViewId, ViewState> = {
   },
 };
 
-let connection: "disconnected" | "connecting" | "connected" | "error" =
+let connection:
+  "disconnected" | "connecting" | "connected" | "reconnecting" | "error" =
   "disconnected";
 
 function renderStatus() {
@@ -113,6 +114,7 @@ export function setConnection(state: typeof connection, reason?: string) {
   const labels = {
     disconnected: "ZooGlass disconnected",
     connecting: "Connecting to ZooGlass…",
+    reconnecting: "ZooGlass interrupted · reconnecting…",
     connected: "Connected to ZooGlass",
     error: "ZooGlass connection failed",
   };

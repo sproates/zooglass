@@ -1,8 +1,8 @@
 # Vehicle tracker source map
 
-The vehicle tracker is the browser UI for a ZooGlass demo. Its four TypeScript
+The vehicle tracker is the browser UI for a ZooGlass demo. Its five TypeScript
 modules separate vehicle-specific policy, subscription handling, rendering and
-run diagnostics.
+bounded recovery and run diagnostics.
 Workbench supplies the scenario and controls; vehicle values come from ZooGlass
 snapshots.
 
@@ -20,7 +20,9 @@ flowchart TB
   client["src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
   subscription["src/subscription-client.ts<br/>Manage live-view protocol state"]
   view["src/view.ts<br/>Render received vehicle state"]
-  client -->|creates subscription client with vehicle binding| subscription
+  recovery["src/recovering-client.ts<br/>Bounded retries and desired subscriptions"]
+  client -->|creates recovery policy with vehicle binding| recovery
+  recovery -->|creates a protocol client per attempt| subscription
   client -->|supplies connection, subscription and view callbacks| view
   subscription -.->|invokes supplied rendering callbacks| view
 ```
@@ -32,12 +34,13 @@ The dotted callback arrow is not an import: `subscription-client.ts` accepts a
 | Module                                                    | Responsibility                                                                                                                                                                                                |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`vehicle-client.ts`](../src/vehicle-client.ts)           | Create the subscription client, restrict subscriptions to `car-17` and the `live-map`/`trip-history` views, and bind protocol notifications to the renderer. Start here to understand the app's composition.  |
+| [`recovering-client.ts`](../src/recovering-client.ts)     | Own desired subscriptions, retry delays, attempt generations, cancellation and the wall-clock recovery deadline. Require all first snapshots before reporting recovery.                                       |
 | [`subscription-client.ts`](../src/subscription-client.ts) | Own the WebSocket, connection generations, active subscriptions and pending acknowledgements. Execute connect/disconnect/subscribe/unsubscribe commands, report observations and notify the supplied binding. |
 | [`view.ts`](../src/view.ts)                               | Validate received positions for rendering, retain the displayed latest position and history, and update the map, route, history list and connection/subscription status.                                      |
 
 The subscription client rejects unexpected acknowledgements and ignores messages
-from an old socket. Its connection lifecycle is explicitly commanded; this map does not
-imply an autonomous reconnect loop. The renderer distinguishes retained data
+from an old socket. The recovery wrapper adds an explicitly armed retry interval;
+without it, unexpected transport loss remains fatal. The renderer distinguishes retained data
 from a current subscribed snapshot. It does not manufacture expected scenario
 results or own the socket.
 

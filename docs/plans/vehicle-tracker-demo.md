@@ -11,8 +11,9 @@ delays and finish in-flight checkpoints before pausing. A separate recovery fixt
 processing and explicit reconnect receipts in Node and Chromium; interactive
 recovery is selectable with `--recovery`, and manual viewer controls mark runs
 exploratory. The host data-fault gate is implemented for review, with socket
-checks for interruption, refused upgrades and restoration. Scenario fault wiring,
-automatic recovery and final acceptance remain outstanding.
+checks for interruption, refused upgrades and restoration. Opt-in bounded client
+recovery is implemented for review with controlled-peer browser checks. Scenario
+fault wiring, real-service recovery evidence and final acceptance remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

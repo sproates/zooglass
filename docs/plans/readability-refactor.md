@@ -16,11 +16,13 @@ playback timing and lifecycle ownership. Host/session asset and identity
 configuration merged in [PR #52](https://github.com/sproates/zooglass/pull/52).
 The shared bridge, client presentation boundary and shared demo assembly merged
 in PRs #53–#55. Independent core verification and the dependency/reuse review merged in PR #56.
-Test organisation is implemented pending review and merge; final acceptance remains ahead. The accepted
+Test organisation merged in PR #57 and CI turnaround improvements in PR #58.
+The [final acceptance review](../verification/2026-10-26-refactor.md) records the
+resulting structure, fresh-checkout verification, coverage and remaining risks. The accepted
 [verification review](../verification/2026-10-25.md) supplies the behavioural
 baseline and identifies gaps that need protection before particular extractions.
 
-## Findings in the current code
+## Findings at the original review baseline
 
 Paths in this table are relative to `incubator/`. Line counts include comments
 and blank lines. They identify review targets, not limits to enforce mechanically.
@@ -225,6 +227,6 @@ assertion failures from leaving blocked gates or sessions behind.
 The original 95 core / 119 standard / 33 browser test counts are retained. The
 core path remains independent of vehicle builds and browser binaries. No production
 code, projection oracle or protocol expectations changed. The larger but cohesive
-Java functional and browser reconnection groups remain intact. Final acceptance
-will review the overall structure, coverage and fresh-checkout behaviour, including
-the previously observed concurrent Maven compilation risk.
+Java functional and browser reconnection groups remain intact. The final acceptance review covers the overall structure, coverage and
+fresh-checkout behaviour, including the previously observed concurrent Maven
+compilation risk.

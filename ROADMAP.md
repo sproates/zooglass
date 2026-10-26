@@ -132,8 +132,11 @@ matches the demonstrated behaviour. The
 passed setup and the journey/recovery scenarios and was accepted in
 [PR #70](https://github.com/sproates/zooglass/pull/70). The
 [cleanup review](docs/verification/2026-10-26-cleanup.md) verifies normal exit,
-signal interruption, resource release and fresh state after restart, pending
-acceptance. Usability, capability claims and the lasting diagram remain ahead.
+signal interruption, resource release and fresh state after restart, accepted in
+[PR #71](https://github.com/sproates/zooglass/pull/71). The
+[keyboard and layout review](docs/verification/2026-10-26-usability.md) adds
+enlarged-text fixes and keyboard coverage, pending acceptance. Capability claims
+and the lasting diagram remain ahead.
 
 ## Longer-term direction
 

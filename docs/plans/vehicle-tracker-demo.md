@@ -21,7 +21,9 @@ Final acceptance of the whole demo remains outstanding. The
 [fresh-checkout walkthrough](../verification/2026-10-26-fresh-checkout.md)
 verifies setup and scenario completion, accepted in PR #70. The
 [cleanup review](../verification/2026-10-26-cleanup.md) records shutdown, Reset
-and restart evidence, pending acceptance.
+and restart evidence, accepted in PR #71. The
+[keyboard and layout review](../verification/2026-10-26-usability.md) fixes
+enlarged-text overflow and records final usability evidence, pending acceptance.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

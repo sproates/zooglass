@@ -16,5 +16,6 @@ export function deferred() {
   const promise = new Promise<void>((done) => {
     resolve = done;
   });
+
   return { promise, resolve };
 }

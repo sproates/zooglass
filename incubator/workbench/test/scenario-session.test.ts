@@ -44,6 +44,7 @@ test("client binding receives every client action and closes once", async (t) =>
     createClientExecutor(client, url) {
       assert.equal(client.id, "viewer");
       assert.equal(url, "ws://127.0.0.1:1/views/live");
+
       return {
         async execute(entry) {
           seen.push(entry);
@@ -54,11 +55,16 @@ test("client binding receives every client action and closes once", async (t) =>
       };
     },
   });
+
   t.after(() => session.close());
+
   const trace = playScenario(scenario);
+
   for (const entry of trace) await session.execute(entry);
+
   assert.deepEqual(seen, trace);
   await Promise.all([session.close(), session.close()]);
+
   assert.equal(closes, 1);
   await assert.rejects(session.execute(trace[0]), /session closed/);
 });
@@ -84,18 +90,23 @@ test("closing cancels an active executor, rejects overlap and waits before dispo
       },
     }),
   });
+
   t.after(() => session.close());
+
   const entry = playScenario(scenario)[0];
   const pending = session.execute(entry);
   const rejected = assert.rejects(pending, /session closed/);
+
   await assert.rejects(session.execute(entry), /already running/);
   await session.close();
   await rejected;
+
   assert.deepEqual(order, ["cancelled", "closed"]);
 });
 
 test("partial client setup closes previous executors, even when one close fails", async () => {
   const closed: string[] = [];
+
   await assert.rejects(
     openScenarioSession(
       {
@@ -110,10 +121,12 @@ test("partial client setup closes previous executors, even when one close fails"
       {
         createClientExecutor(client) {
           if (client.id === "c") throw new Error("setup failed");
+
           return {
             async execute() {},
             async close() {
               closed.push(client.id);
+
               if (client.id === "a") throw new Error("close failed");
             },
           };
@@ -139,7 +152,9 @@ test("closing cancels an HTTP view check before its timeout", async (t) => {
     { ...scenario, clients: [] },
     baseUrl,
   );
+
   t.after(() => session.close());
+
   const pending = session.execute({
     kind: "view-check",
     simulationTime: 0,
@@ -148,6 +163,7 @@ test("closing cancels an HTTP view check before its timeout", async (t) => {
     expected: { position: 42 },
   });
   const rejected = assert.rejects(pending);
+
   await request;
   await session.close();
   await rejected;
@@ -160,15 +176,19 @@ test("source startup failure closes earlier source connections", async (t) => {
   const closed = new Promise<void>((resolve) => {
     firstClosed = resolve;
   });
+
   server.on("upgrade", (req, socket) => {
     t.after(() => socket.destroy());
+
     if (++connections === 2) {
       socket.destroy();
       return;
     }
+
     acceptWebSocket(req, socket);
     socket.on("close", firstClosed);
   });
+
   await assert.rejects(
     openScenarioSession(
       {
@@ -195,15 +215,20 @@ test(
     const closed = new Promise<void>((resolve) => {
       disconnected = resolve;
     });
+
     server.on("upgrade", (req, socket) => {
       acceptWebSocket(req, socket);
       socket.on("close", disconnected);
     });
+
     const session = await openScenarioSession(scenario, baseUrl);
+
     t.after(() => session.close());
     await session.execute(playScenario(scenario)[0]);
+
     const pending = session.execute(playScenario(scenario)[2]);
     const rejected = assert.rejects(pending);
+
     await session.close();
     await rejected;
     await closed;
@@ -224,6 +249,7 @@ test(
     );
     const rejected = assert.rejects(pending, /cancelled/);
     const [, socket] = await upgraded;
+
     socket.on("end", () => socket.destroy());
     controller.abort(new Error("cancelled"));
     await rejected;

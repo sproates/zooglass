@@ -76,25 +76,32 @@ test("setup precedes source steps and connection actions start their own checkpo
       entries.push(entry);
     },
   }));
+
   const takeKinds = () => entries.splice(0).map((entry) => entry.kind);
+
   try {
     await demo.reset();
+
     assert.equal(demo.state.total, 3);
     assert.deepEqual(takeKinds(), [
       "client-initial-state",
       "client-subscription",
     ]);
     await demo.step();
+
     assert.deepEqual(takeKinds(), ["source-event", "view-check"]);
     assert.equal(demo.state.completed, 1);
     await demo.step();
+
     assert.deepEqual(takeKinds(), ["client-state", "view-check"]);
     await demo.step();
+
     assert.deepEqual(takeKinds(), ["source-event", "client-view-check"]);
     assert.equal(demo.state.phase, "complete");
     await demo.reset();
     takeKinds();
     await demo.step();
+
     assert.deepEqual(takeKinds(), ["source-event", "view-check"]);
     assert.equal(demo.state.completed, 1);
   } finally {
@@ -104,6 +111,7 @@ test("setup precedes source steps and connection actions start their own checkpo
 
 test("a demo without a source event is rejected before opening a run", () => {
   let opened = false;
+
   assert.throws(
     () =>
       createDemoController({ ...scenario, timeline: [] }, async () => {
@@ -119,6 +127,7 @@ test("step delays use the preceding checkpoint's final timestamp", () => {
   const trace = playScenario(scenario);
   const original = structuredClone(trace);
   const plan = planDemoSteps(trace);
+
   assert.deepEqual(
     plan.steps.map((step) => step.delayBefore),
     [40, 30, 0],
@@ -145,6 +154,7 @@ test("the first step waits from zero when no setup entries precede it", () => {
     timeline: [scenario.timeline[1]],
   });
   const plan = planDemoSteps(trace);
+
   assert.deepEqual(plan.setup, []);
   assert.equal(plan.steps[0].delayBefore, 50);
 });

@@ -21,12 +21,15 @@ export function parseScenario(input: unknown): Scenario {
   }
 
   const name = requiredString(input.name, "name");
+
   if (!Array.isArray(input.sources)) {
     throw new Error("Expected sources to be an array.");
   }
+
   if (!Array.isArray(input.clients)) {
     throw new Error("Expected clients to be an array.");
   }
+
   if (!Array.isArray(input.timeline)) {
     throw new Error("Expected timeline to be an array.");
   }
@@ -43,10 +46,12 @@ export function parseScenario(input: unknown): Scenario {
   });
 
   const sourceIds = new Set<string>();
+
   for (const source of sources) {
     if (sourceIds.has(source.id)) {
       throw new Error(`Source id "${source.id}" is declared more than once.`);
     }
+
     sourceIds.add(source.id);
   }
 
@@ -56,6 +61,7 @@ export function parseScenario(input: unknown): Scenario {
     }
 
     const initialState = client.initialState;
+
     if (!isClientState(initialState)) {
       throw new Error(
         `Expected clients[${index}].initialState to be a client state.`,
@@ -70,14 +76,17 @@ export function parseScenario(input: unknown): Scenario {
   });
 
   const clientIds = new Set<string>();
+
   for (const client of clients) {
     if (clientIds.has(client.id)) {
       throw new Error(`Client id "${client.id}" is declared more than once.`);
     }
+
     clientIds.add(client.id);
   }
 
   const viewsInput = input.views ?? [];
+
   if (!Array.isArray(viewsInput)) {
     throw new Error("Expected views to be an array.");
   }
@@ -87,10 +96,12 @@ export function parseScenario(input: unknown): Scenario {
   );
 
   const viewIds = new Set<string>();
+
   for (const view of views) {
     if (viewIds.has(view.id)) {
       throw new Error(`View id "${view.id}" is declared more than once.`);
     }
+
     viewIds.add(view.id);
   }
 
@@ -101,6 +112,7 @@ export function parseScenario(input: unknown): Scenario {
 
 export async function loadScenario(path: string): Promise<Scenario> {
   let contents: string;
+
   try {
     contents = await readFile(path, "utf8");
   } catch (error) {
@@ -111,6 +123,7 @@ export async function loadScenario(path: string): Promise<Scenario> {
   }
 
   let input: unknown;
+
   try {
     input = JSON.parse(contents);
   } catch (error) {

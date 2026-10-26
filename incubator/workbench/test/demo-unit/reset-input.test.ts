@@ -22,6 +22,7 @@ function resetFixture() {
   };
   // Only the reset helper's observed surface is needed for this fixture.
   const demo = state as unknown as Parameters<typeof resetThroughBrowser>[0];
+
   return {
     demo,
     closePage,
@@ -46,15 +47,20 @@ for (const message of [
     const observed = reset.then(() => {
       finished = true;
     });
+
     // Avoid an unhandled rejection when running this against the old helper.
     observed.catch(() => {});
+
     try {
       await setImmediate();
+
       assert.equal(finished, false, "closure alone must not complete reset");
     } finally {
       fixture.ready();
     }
+
     await observed;
+
     assert.equal(finished, true);
   });
 }
@@ -62,6 +68,7 @@ for (const message of [
 test("reset does not accept a closure message while the old page is open", async () => {
   const fixture = resetFixture();
   const error = new Error("locator.click: Browser closed");
+
   try {
     await assert.rejects(
       resetThroughBrowser(fixture.demo, async () => {
@@ -77,6 +84,7 @@ test("reset does not accept a closure message while the old page is open", async
 test("reset propagates other input failures even after page closure", async () => {
   const fixture = resetFixture();
   const error = new Error("locator.click: Timeout exceeded");
+
   await assert.rejects(
     resetThroughBrowser(fixture.demo, async () => {
       fixture.closePage();

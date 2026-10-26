@@ -9,6 +9,7 @@ const state = {
   clientName: "Viewer",
   state: "connected" as const,
 };
+
 const check = {
   kind: "client-view-check" as const,
   simulationTime: 0,
@@ -28,6 +29,7 @@ test("browser executor sends only action arguments, waits for matching completio
     () => {},
   );
   const running = control.executor.execute(state, new AbortController().signal);
+
   await assert.rejects(
     control.executor.execute(state, new AbortController().signal),
     /already running/,
@@ -54,7 +56,9 @@ test("browser executor sends only action arguments, waits for matching completio
     connectionGeneration: 1,
   });
   await running;
+
   const waiting = control.executor.execute(check, new AbortController().signal);
+
   assert.equal(
     sent.length,
     1,
@@ -81,6 +85,7 @@ test("old-generation receipts cannot satisfy a current check; cancellation fails
     () => {},
     (reason) => failures.push(reason),
   );
+
   control.receive({
     type: "observation",
     event: "opened",
@@ -102,9 +107,12 @@ test("old-generation receipts cannot satisfy a current check; cancellation fails
     entityId: check.entityId,
     data: check.expected,
   });
+
   const cancellation = new AbortController();
   const waiting = control.executor.execute(check, cancellation.signal);
+
   cancellation.abort(new Error("Cancelled check"));
+
   await assert.rejects(waiting);
   assert.equal(failures.length, 1);
   await control.executor.close();
@@ -118,6 +126,7 @@ test("browser receipt overflow fails rather than discarding evidence", async () 
     () => {},
     (reason) => failures.push(reason),
   );
+
   control.receive({
     type: "observation",
     event: "opened",
@@ -134,6 +143,7 @@ test("browser receipt overflow fails rather than discarding evidence", async () 
       entityId: check.entityId,
       data: check.expected,
     });
+
   assert.deepEqual(failures, ["Browser receipt buffer exhausted."]);
   await control.executor.close();
 });
@@ -148,6 +158,7 @@ test(
       () => {},
       () => {},
     );
+
     const observation = (event: string, generation: number, index: number) =>
       control.receive({
         type: "observation",
@@ -158,20 +169,24 @@ test(
         entityId: check.entityId,
         data: check.expected,
       });
+
     try {
       observation("opened", 1, 1);
       observation("view-update", 1, 2);
       observation("opened", 2, 3);
       observation("view-update", 1, 100);
+
       let completed = false;
       const waiting = control.executor.execute(
         check,
         new AbortController().signal,
       );
+
       void waiting.then(() => {
         completed = true;
       });
       await Promise.resolve();
+
       assert.equal(
         completed,
         false,
@@ -179,6 +194,7 @@ test(
       );
       observation("view-update", 2, 4);
       await waiting;
+
       assert.equal(
         completed,
         true,

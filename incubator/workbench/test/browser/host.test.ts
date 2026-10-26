@@ -18,12 +18,14 @@ test(
   async () => {
     const scenario = await loadScenario(fixture);
     const service = await startZooGlassSession({ views: scenario.views });
+
     try {
       const browser = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: true,
       });
       const origin = browser.host.origin;
+
       try {
         assert.equal(new URL(browser.page.url()).hash, "");
         assert.match(
@@ -42,14 +44,18 @@ test(
           if (message.type === 'subscribed') resolve();
         };
       })`);
+
         const source = new WebSocket(
           service.baseUrl.replace("http:", "ws:") + "/events",
         );
+
         try {
           await once(source, "open");
+
           const event = scenario.timeline.find(
             (entry) => entry.kind === "source-event",
           );
+
           assert.ok(event && event.kind === "source-event");
           source.send(
             JSON.stringify({
@@ -67,37 +73,49 @@ test(
             undefined,
             { timeout: 5_000 },
           );
+
           const data = await browser.page.evaluate(
             "receipts.find(message => message.type === 'view-update').data",
           );
+
           assert.deepEqual(data, { position: event.payload });
         } finally {
           source.terminate();
         }
+
         // Closing data must leave the independent control connection healthy.
         await browser.page.evaluate(
           "new Promise(resolve => { dataSocket.onclose = resolve; dataSocket.close(); })",
         );
+
         assert.equal(browser.signal.aborted, false);
+
         const oldRoute = await browser.page
           .locator("body")
           .getAttribute("data-data-path");
+
         assert.ok(oldRoute);
+
         // Browser exit must fail the owned session, not leave a seemingly live host.
         const aborted = once(browser.signal, "abort");
+
         await browser.page.close();
         await aborted;
+
         assert.equal(browser.signal.aborted, true);
       } finally {
         await browser.close();
         await browser.close();
       }
+
       await assert.rejects(fetch(origin));
+
       // A subsequent launch gets a new run and context, without stale registrations.
       const next = await startVehicleBrowserSession(service.baseUrl, {
         signal: service.signal,
         headless: true,
       });
+
       try {
         assert.notEqual(next.host.runId, browser.host.runId);
       } finally {
@@ -115,6 +133,7 @@ test(
   async () => {
     const controller = new AbortController();
     controller.abort(new Error("Cancelled before launch"));
+
     await assert.rejects(
       startVehicleBrowserSession("http://127.0.0.1:1", {
         signal: controller.signal,
@@ -149,6 +168,7 @@ for (const automatic of [false, true]) {
           () => reject(new Error("Demo startup timed out: " + output)),
           60_000,
         );
+
         child.once("error", reject);
         child.once("close", () => {
           clearTimeout(timer);
@@ -159,6 +179,7 @@ for (const automatic of [false, true]) {
           const match = output.match(
             /Browser host ready at (http:\/\/127\.0\.0\.1:\d+)/,
           );
+
           if (match) {
             clearTimeout(timer);
             resolve(match[1]);
@@ -168,18 +189,25 @@ for (const automatic of [false, true]) {
           output += chunk.toString();
         });
       });
+
       try {
         const origin = await ready;
+
         child.kill("SIGTERM");
+
         const [code] = await exited;
+
         assert.equal(code, 0, output);
         await assert.rejects(fetch(origin));
+
         const port = output.match(/Tomcat started on port (\d+)/)?.[1];
+
         assert.ok(port, output);
         await assert.rejects(fetch(`http://127.0.0.1:${port}/actuator/health`));
       } finally {
         if (child.exitCode === null && child.signalCode === null)
           child.kill("SIGTERM");
+
         await exited;
       }
     },

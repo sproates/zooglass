@@ -16,12 +16,14 @@ test("session modules can be imported without starting a service or running the 
     { timeout: 5_000, stdio: ["ignore", "pipe", "pipe"] },
   );
   let output = "";
+
   child.stdout.on("data", (data) => {
     output += data;
   });
   child.stderr.on("data", (data) => {
     output += data;
   });
+
   assert.deepEqual(await once(child, "close"), [0, null]);
   assert.equal(output, "");
 });

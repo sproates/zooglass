@@ -27,12 +27,15 @@ async function rejected(url: string, origin?: string) {
       socket.terminate();
     }),
   );
+
   socket.on("error", () => {});
+
   return result;
 }
 
 test("host rejects foreign/missing origins and invalid routes; timeout and close release its port", async () => {
   const host = await startBrowserHost("http://127.0.0.1:1", { application });
+
   try {
     assert.equal(host.clientId, "inventory-reader");
     assert.equal(
@@ -40,7 +43,9 @@ test("host rejects foreign/missing origins and invalid routes; timeout and close
       "<title>Inventory fixture</title>",
     );
     assert.equal((await fetch(host.origin + "/vehicle-client.js")).status, 404);
+
     const control = host.origin.replace("http:", "ws:") + "/control";
+
     assert.equal(await rejected(control, "http://foreign.invalid"), 403);
     assert.equal(await rejected(control), 403);
     assert.equal(
@@ -72,6 +77,7 @@ test("host rejects foreign/missing origins and invalid routes; timeout and close
     await host.close();
     await host.close();
   }
+
   await assert.rejects(fetch(host.origin));
 });
 
@@ -86,6 +92,7 @@ test("registration validates run identity and token, rejects duplicate clients, 
     clientId: host.clientId,
     token: parameters.get("token"),
   };
+
   try {
     for (const bad of [
       { token: "wrong" },
@@ -94,16 +101,23 @@ test("registration validates run identity and token, rejects duplicate clients, 
       { protocolVersion: 2 },
     ]) {
       const socket = new WebSocket(url, { origin: host.origin });
+
       await once(socket, "open");
       socket.send(JSON.stringify({ ...register, ...bad }));
+
       const [code] = await once(socket, "close");
+
       assert.equal(code, 1008);
     }
+
     const socket = new WebSocket(url, { origin: host.origin });
+
     await once(socket, "open");
     socket.send(JSON.stringify(register));
+
     const [response] = await once(socket, "message");
     const registrationReply = JSON.parse(response.toString());
+
     assert.equal(registrationReply.type, "registered");
     socket.send(
       JSON.stringify({
@@ -113,15 +127,21 @@ test("registration validates run identity and token, rejects duplicate clients, 
       }),
     );
     await host.waitForReady(new AbortController().signal);
+
     assert.equal(await rejected(url, host.origin), 403);
+
     const dataUrl =
       host.origin.replace("http:", "ws:") + registrationReply.dataPath;
+
     assert.equal(await rejected(dataUrl, "http://foreign.invalid"), 403);
     assert.equal(await rejected(dataUrl, host.origin), 502);
     assert.equal(host.signal.aborted, false);
+
     const aborted = once(host.signal, "abort");
+
     socket.terminate();
     await aborted;
+
     assert.match(host.signal.reason.message, /control connection lost/);
   } finally {
     await host.close();

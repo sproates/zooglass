@@ -104,9 +104,11 @@ test("preserves ordering for startup and runtime view definitions", () => {
   assert.deepEqual(scenario.views[0]?.ordering, {
     position: latestBySequence,
   });
+
   const runtimeView = scenario.timeline.find(
     (entry) => entry.kind === "view-definition",
   );
+
   assert.deepEqual(runtimeView?.ordering, { position: latestBySequence });
 });
 
@@ -119,6 +121,7 @@ test("rejects invalid ordering strategies and fields", () => {
       ],
     },
   };
+
   const scenario = (ordering: unknown) =>
     parseScenario({
       name: "Invalid ordering",

@@ -7,6 +7,7 @@ import {
 import { parseView } from "./scenario-view.js";
 
 type TimedEntry = Record<string, unknown> & { simulationTime: number };
+
 interface References {
   sourceIds: Set<string>;
   clientIds: Set<string>;
@@ -21,19 +22,23 @@ export function parseTimeline(
   viewIds: Set<string>,
 ): ScenarioTimelineEntry[] {
   const runtimeViewIds = new Set<string>();
+
   for (const [index, entry] of input.entries()) {
     if (!isRecord(entry) || entry.kind !== "view-definition") {
       continue;
     }
 
     const viewId = requiredString(entry.id, `timeline[${index}].id`);
+
     if (viewIds.has(viewId) || runtimeViewIds.has(viewId)) {
       throw new Error(`View id "${viewId}" is declared more than once.`);
     }
+
     runtimeViewIds.add(viewId);
   }
 
   const references = { sourceIds, clientIds, viewIds, runtimeViewIds };
+
   return input.map((entry, index) => {
     if (!isRecord(entry)) {
       throw new Error(`Expected timeline[${index}] to be an object.`);
@@ -50,6 +55,7 @@ export function parseTimeline(
     }
 
     const timedEntry = { ...entry, simulationTime: entry.simulationTime };
+
     if (entry.kind === "client-state")
       return parseClientState(timedEntry, index, references);
 
@@ -84,6 +90,7 @@ function parseClientState(
     entry.clientId,
     `timeline[${index}].clientId`,
   );
+
   if (!clientIds.has(clientId)) {
     throw new Error(
       `timeline[${index}] refers to unknown client "${clientId}".`,
@@ -111,11 +118,13 @@ function parseClientSubscription(
     entry.clientId,
     `timeline[${index}].clientId`,
   );
+
   if (!clientIds.has(clientId)) {
     throw new Error(
       `timeline[${index}] refers to unknown client "${clientId}".`,
     );
   }
+
   if (entry.action !== "subscribe" && entry.action !== "unsubscribe") {
     throw new Error(
       `Expected timeline[${index}].action to be "subscribe" or "unsubscribe".`,
@@ -123,6 +132,7 @@ function parseClientSubscription(
   }
 
   const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+
   if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
     throw new Error(`timeline[${index}] refers to unknown view "${viewId}".`);
   }
@@ -146,6 +156,7 @@ function parseClientViewCheck(
     entry.clientId,
     `timeline[${index}].clientId`,
   );
+
   if (!clientIds.has(clientId)) {
     throw new Error(
       `timeline[${index}] refers to unknown client "${clientId}".`,
@@ -153,9 +164,11 @@ function parseClientViewCheck(
   }
 
   const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+
   if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
     throw new Error(`timeline[${index}] refers to unknown view "${viewId}".`);
   }
+
   if (!isRecord(entry.expected)) {
     throw new Error(`Expected timeline[${index}].expected to be an object.`);
   }
@@ -189,13 +202,16 @@ function parseViewCheck(
   { viewIds, runtimeViewIds }: References,
 ): ScenarioTimelineEntry {
   const viewId = requiredString(entry.viewId, `timeline[${index}].viewId`);
+
   if (!viewIds.has(viewId) && !runtimeViewIds.has(viewId)) {
     throw new Error(`timeline[${index}] refers to unknown view "${viewId}".`);
   }
+
   const entityId = requiredString(
     entry.entityId,
     `timeline[${index}].entityId`,
   );
+
   if (entry.expected !== null && !isRecord(entry.expected)) {
     throw new Error(`Expected timeline[${index}].expected to be an object.`);
   }
@@ -218,6 +234,7 @@ function parseSourceEvent(
     entry.sourceId,
     `timeline[${index}].sourceId`,
   );
+
   if (!sourceIds.has(sourceId)) {
     throw new Error(
       `timeline[${index}] refers to unknown source "${sourceId}".`,

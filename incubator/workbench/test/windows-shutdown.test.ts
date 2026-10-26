@@ -18,10 +18,12 @@ for (const outcome of [
     const requests: string[][] = [];
     let closed = false;
     let firstRequestAt = 0;
+
     const finish = () => {
       closed = true;
       child.emit("close", 0, null);
     };
+
     t.after(() => {
       Object.defineProperty(process, "platform", platform);
       t.mock.restoreAll();
@@ -43,12 +45,15 @@ for (const outcome of [
       ) => {
         assert.equal(command, "taskkill");
         requests.push(args);
+
         if (requests.length === 1) {
           firstRequestAt = performance.now();
+
           assert.deepEqual(args, ["/PID", "12345", "/T"]);
           callback(
             outcome === "request refused" ? new Error("Requires /F") : null,
           );
+
           if (outcome === "clean exit") setImmediate(finish);
         } else {
           assert.ok(performance.now() - firstRequestAt >= 40);
@@ -56,16 +61,21 @@ for (const outcome of [
           callback(null);
           setImmediate(finish);
         }
+
         return child;
       },
     );
     t.mock.method(globalThis, "fetch", async () => new Response("{}"));
     syncBuiltinESMExports();
+
     const session = await startZooGlassSession({ shutdownTimeoutMs: 50 });
+
     await session.close();
+
     assert.equal(closed, true, "close must await child completion");
     assert.equal(requests.length, outcome === "clean exit" ? 1 : 2);
     await session.close();
+
     assert.equal(requests.length, outcome === "clean exit" ? 1 : 2);
   });
 }

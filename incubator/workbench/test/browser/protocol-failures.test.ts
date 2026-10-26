@@ -10,6 +10,7 @@ import {
 } from "./support/view-peer.js";
 
 const ack = { type: "subscribed", viewId: "live-map", entityId: "car-17" };
+
 const cases: [string, string[], string][] = [
   ["malformed JSON", ["{"], "connection failed"],
   [
@@ -45,6 +46,7 @@ const cases: [string, string[], string][] = [
     "Unexpected ZooGlass message",
   ],
 ];
+
 for (const [name, responses, expected] of cases) {
   test(
     `${name} fails the browser run; a fresh session still works`,
@@ -55,12 +57,15 @@ for (const [name, responses, expected] of cases) {
         if (bad) for (const response of responses) upstream.raw(response);
         else acknowledge();
       });
+
       t.after(() => upstream.close());
+
       const browser = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
         keepOpenOnFailure: true,
       });
+
       try {
         await browser.host.executor.execute(state("connected"), signal());
         // A duplicate may follow successful completion of the first ack. The run
@@ -76,6 +81,7 @@ for (const [name, responses, expected] of cases) {
           .locator("#status")
           .filter({ hasText: "run failed" })
           .waitFor();
+
         assert.equal(browser.signal.aborted, true);
         assert.equal(browser.page.isClosed(), false);
         await assert.rejects(
@@ -84,11 +90,14 @@ for (const [name, responses, expected] of cases) {
       } finally {
         await browser.close();
       }
+
       bad = false;
+
       const fresh = await startVehicleBrowserSession(upstream.url, {
         signal: signal(),
         headless: true,
       });
+
       try {
         await fresh.host.executor.execute(state("connected"), signal());
         await fresh.host.executor.execute(subscription("live-map"), signal());
@@ -105,6 +114,7 @@ for (const [name, responses, expected] of cases) {
           },
           signal(),
         );
+
         assert.equal(fresh.signal.aborted, false);
       } finally {
         await fresh.close();
@@ -118,21 +128,27 @@ test(
   { timeout: 20_000 },
   async (t) => {
     const upstream = await peer(false, () => {});
+
     t.after(() => upstream.close());
+
     const lifetime = new AbortController();
     const browser = await startVehicleBrowserSession(upstream.url, {
       signal: lifetime.signal,
       headless: true,
       keepOpenOnFailure: true,
     });
+
     try {
       await browser.host.executor.execute(state("connected"), signal());
+
       await assert.rejects(
         browser.host.executor.execute(subscription("live-map"), signal()),
         { name: "AbortError" },
       );
       assert.equal(browser.signal.aborted, true);
+
       const closed = browser.page.waitForEvent("close");
+
       lifetime.abort(new Error("Test caller stopped"));
       await closed;
     } finally {

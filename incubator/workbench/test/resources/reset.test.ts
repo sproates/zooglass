@@ -19,8 +19,10 @@ test(
     let previous:
       | { browser: NonNullable<typeof demo.browser>; baseUrl: string }
       | undefined;
+
     const refused = (url: string) =>
       assert.rejects(fetch(url, { signal: AbortSignal.timeout(1000) }));
+
     try {
       for (let cycle = 0; cycle < 5; cycle++) {
         if (!previous) await demo.reset();
@@ -33,6 +35,7 @@ test(
               : page.locator("#reset").click(),
           );
         }
+
         if (previous) {
           assert.equal(previous.browser.page.isClosed(), true);
           assert.equal(
@@ -42,7 +45,9 @@ test(
           await refused(previous.browser.host.origin);
           await refused(previous.baseUrl + "/actuator/health");
         }
+
         previous = { browser: demo.browser!, baseUrl: demo.baseUrl! };
+
         assert.equal(demo.state.completed, 0);
         assert.equal(
           (
@@ -54,6 +59,7 @@ test(
         );
         await demo.step();
         await demo.step();
+
         assert.equal(demo.state.phase, "complete");
         assert.equal(
           await demo.browser!.page.locator("#history li").count(),
@@ -75,6 +81,7 @@ test(
     } finally {
       await demo.close();
     }
+
     assert.equal(previous!.browser.page.isClosed(), true);
     assert.equal(
       previous!.browser.page.context().browser()!.isConnected(),

@@ -3,25 +3,34 @@ export interface Position {
   latitude: number;
   longitude: number;
 }
+
 function position(value: unknown): value is Position {
   if (!value || typeof value !== "object") return false;
+
   const p = value as Position;
+
   return (
     [p.sequence, p.latitude, p.longitude].every(Number.isFinite) &&
     Math.abs(p.latitude) <= 90 &&
     Math.abs(p.longitude) <= 180
   );
 }
+
 const element = (id: string) => document.getElementById(id)!;
+
 let latest: Position | undefined;
+
 let history: Position[] = [];
+
 type ViewId = "live-map" | "trip-history";
+
 type ViewState = {
   subscribed: boolean;
   received: boolean;
   current: boolean;
   subscribing: boolean;
 };
+
 const views: Record<ViewId, ViewState> = {
   "live-map": {
     subscribed: false,
@@ -36,12 +45,15 @@ const views: Record<ViewId, ViewState> = {
     subscribing: false,
   },
 };
+
 let connection: "disconnected" | "connecting" | "connected" | "error" =
   "disconnected";
+
 function renderStatus() {
   for (const id of ["live-map", "trip-history"] as const) {
     const state = views[id];
     let text: string;
+
     if (state.current && state.subscribed && connection === "connected") {
       text =
         id === "live-map"
@@ -53,6 +65,7 @@ function renderStatus() {
       text = state.subscribed
         ? "Last received · waiting for a fresh snapshot"
         : "Last received · not subscribed";
+
       if (connection !== "connected")
         text = `Last received · ${connection === "error" ? "connection failed" : connection}`;
     } else if (connection === "error")
@@ -60,9 +73,11 @@ function renderStatus() {
     else if (state.subscribed) text = "Subscribed · waiting for first snapshot";
     else if (state.subscribing) text = "Subscribing…";
     else text = "Not subscribed · no snapshot received";
+
     const target = element(
       id === "live-map" ? "latest-status" : "history-status",
     );
+
     target.textContent = text;
     target.dataset.state =
       state.current && state.subscribed && connection === "connected"
@@ -71,6 +86,7 @@ function renderStatus() {
           ? "retained"
           : "waiting";
   }
+
   if (latest) {
     const current =
       views["live-map"].current &&
@@ -83,36 +99,44 @@ function renderStatus() {
       `${current ? "Latest" : "Last received"} position ${latest.sequence} at ${coordinates(latest)}. Connecting received points does not establish the route travelled.`;
   }
 }
+
 export function setConnection(state: typeof connection, reason?: string) {
   connection = state;
+
   if (state !== "connected")
     for (const view of Object.values(views)) {
       view.subscribed = false;
       view.subscribing = false;
       view.current = false;
     }
+
   const labels = {
     disconnected: "ZooGlass disconnected",
     connecting: "Connecting to ZooGlass…",
     connected: "Connected to ZooGlass",
     error: "ZooGlass connection failed",
   };
+
   element("connection-status").textContent = reason
     ? `${labels[state]} · ${reason}`
     : labels[state];
   renderStatus();
 }
+
 export function subscriptionState(
   viewId: string,
   state: "pending" | "subscribed" | "unsubscribed",
 ) {
   if (!(viewId in views)) throw new Error("Unknown vehicle view.");
+
   const view = views[viewId as ViewId];
+
   view.subscribing = state === "pending";
   view.subscribed = state === "subscribed";
   view.current = false;
   renderStatus();
 }
+
 // Fixed schematic bounds for this finite route, not a geographic map.
 export function point(p: Position) {
   return {
@@ -120,9 +144,11 @@ export function point(p: Position) {
     y: 270 - ((p.latitude - 50.95) / 0.4) * 220,
   };
 }
+
 function coordinates(p: Position) {
   return `${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`;
 }
+
 function draw() {
   element("route-line").setAttribute(
     "points",
@@ -133,21 +159,28 @@ function draw() {
       })
       .join(" "),
   );
+
   const marker = element("vehicle-marker");
+
   marker.setAttribute("visibility", latest ? "visible" : "hidden");
+
   if (latest) {
     const { x, y } = point(latest);
+
     marker.setAttribute("cx", String(x));
     marker.setAttribute("cy", String(y));
     element("route-description").textContent =
       `Latest position ${latest.sequence} at ${coordinates(latest)}. Connecting received points does not establish the route travelled.`;
   }
 }
+
 /** Only call with a snapshot received from the app's ZooGlass socket. */
 export function receiveView(viewId: string, entityId: string, data: unknown) {
   if (entityId !== "car-17" || !data || typeof data !== "object")
     throw new Error("Unexpected vehicle snapshot.");
+
   const fields = data as Record<string, unknown>;
+
   if (viewId === "live-map" && position(fields.position)) {
     latest = fields.position;
     element("current-sequence").textContent = String(latest.sequence);
@@ -160,18 +193,23 @@ export function receiveView(viewId: string, entityId: string, data: unknown) {
     fields.positions.every(position)
   ) {
     history = fields.positions;
+
     const rows = history.map((p) => {
       const row = document.createElement("li");
+
       row.dataset.sequence = String(p.sequence);
       row.textContent = `Position ${p.sequence} · ${coordinates(p)}`;
+
       return row;
     });
+
     element("history").replaceChildren(...rows);
     views["trip-history"].received = true;
     views["trip-history"].current = true;
   } else {
     throw new Error("Invalid vehicle snapshot.");
   }
+
   draw();
   renderStatus();
 }

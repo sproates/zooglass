@@ -15,9 +15,12 @@ import {
 
 async function next(socket: WebSocket): Promise<Message> {
   const inbox = messagesBySocket.get(socket)!;
+
   if (!inbox.length)
     await once(socket, "message", { signal: AbortSignal.timeout(5000) });
+
   assert.ok(inbox.length, "expected a socket receipt");
+
   return inbox.shift() as Message;
 }
 
@@ -39,6 +42,7 @@ test(
     const lifetime = new AbortController();
     let source: Awaited<ReturnType<typeof liveClient>> | undefined;
     let socket: WebSocket | undefined;
+
     try {
       source = await liveClient(service.baseUrl, "/events");
       for (let cycle = 0; cycle < 50; cycle++) {
@@ -46,6 +50,7 @@ test(
           service.baseUrl.replace("http:", "ws:") + "/views/live",
           lifetime.signal,
         );
+
         assert.equal(getEventListeners(lifetime.signal, "abort").length, 0);
         socket.send(
           JSON.stringify({
@@ -54,12 +59,15 @@ test(
             entityId: "bus",
           }),
         );
+
         assert.equal((await next(socket)).type, "subscribed");
+
         if (cycle)
           assert.equal(
             (await next(socket)).data?.position.sequence,
             cycle * 25,
           );
+
         for (let offset = 1; offset <= 25; offset++)
           await source.send(positionEvent("bus", cycle * 25 + offset));
         for (let offset = 1; offset <= 25; offset++)
@@ -67,8 +75,10 @@ test(
             (await next(socket)).data?.position.sequence,
             cycle * 25 + offset,
           );
+
         assert.equal(messagesBySocket.get(socket)!.length, 0);
         await closeClient(socket);
+
         assert.equal(socket.readyState, WebSocket.CLOSED);
         assert.equal(getEventListeners(lifetime.signal, "abort").length, 0);
       }
@@ -80,6 +90,7 @@ test(
         await service.close();
       }
     }
+
     await assert.rejects(
       fetch(service.baseUrl + "/actuator/health", {
         signal: AbortSignal.timeout(1000),

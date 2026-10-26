@@ -15,7 +15,9 @@ const views = [
     },
   },
 ];
+
 const valid = { action: "subscribe", viewId: "position", entityId: "bus" };
+
 const invalidRequests: [string, string][] = [
   ["{", "Could not read live view request."],
   ...[
@@ -40,19 +42,24 @@ test(
   async () => {
     const service = await startZooGlassSession({ views });
     const clients: Awaited<ReturnType<typeof liveClient>>[] = [];
+
     try {
       for (const path of ["/events", "/views/live", "/views/live"])
         clients.push(await liveClient(service.baseUrl, path));
+
       const [source, healthy, invalid] = clients;
+
       await healthy.subscription("bus");
       for (const [index, [request, error]] of invalidRequests.entries()) {
         invalid.socket.send(request);
+
         assert.deepEqual(
           await invalid.next(),
           { type: "error", message: error },
           request,
         );
         await source.send(positionEvent("bus", index));
+
         assert.equal((await healthy.next()).data?.position.sequence, index);
       }
       // The same connection remains usable after rejection; a second subscribe
@@ -62,13 +69,16 @@ test(
       await invalid.subscription("bus");
       await invalid.next();
       await source.send(positionEvent("bus", 100));
+
       assert.equal((await invalid.next()).data?.position.sequence, 100);
       assert.equal((await healthy.next()).data?.position.sequence, 100);
       await invalid.subscription("bus", "unsubscribe");
       await invalid.subscription("bus", "unsubscribe");
       await source.send(positionEvent("bus", 101));
+
       assert.equal((await healthy.next()).data?.position.sequence, 101);
       await invalid.subscription("bus");
+
       assert.equal((await invalid.next()).data?.position.sequence, 101);
     } finally {
       try {
@@ -86,13 +96,18 @@ test(
   async () => {
     const service = await startZooGlassSession({ views });
     const clients: Awaited<ReturnType<typeof liveClient>>[] = [];
+
     try {
       const source = await liveClient(service.baseUrl, "/events");
+
       clients.push(source);
+
       const viewer = await liveClient(service.baseUrl);
+
       clients.push(viewer);
       await viewer.subscription("barrier");
       await source.send(positionEvent("target", 1));
+
       const validEvent = positionEvent("target", 999);
       const invalidEvents = [
         "{",
@@ -117,14 +132,18 @@ test(
           ].map((payload) => ({ ...validEvent, payload })),
         ].map((message) => JSON.stringify(message)),
       ];
+
       for (const [index, message] of invalidEvents.entries()) {
         source.socket.send(message);
         await source.send(positionEvent("barrier", index));
+
         assert.equal((await viewer.next()).data?.position.sequence, index);
+
         const response = await fetch(
           service.baseUrl + "/views/position/target",
           { signal: AbortSignal.timeout(5000) },
         );
+
         assert.equal(response.status, 200);
         assert.deepEqual(
           (await response.json()).data,
@@ -134,8 +153,10 @@ test(
       }
       await source.send(positionEvent("target", 2));
       await source.send(positionEvent("barrier", 100));
+
       assert.equal((await viewer.next()).data?.position.sequence, 100);
       await viewer.subscription("target");
+
       assert.equal((await viewer.next()).data?.position.sequence, 2);
     } finally {
       try {
@@ -153,12 +174,17 @@ test(
   async () => {
     const service = await startZooGlassSession({ views });
     const clients: Awaited<ReturnType<typeof liveClient>>[] = [];
+
     try {
       const source = await liveClient(service.baseUrl, "/events");
+
       clients.push(source);
+
       const viewer = await liveClient(service.baseUrl);
+
       clients.push(viewer);
       await viewer.subscription("barrier");
+
       const definitions = [
         { fields: {} },
         { fields: { position: [] } },
@@ -180,6 +206,7 @@ test(
           },
         },
       ];
+
       const define = (body: unknown) =>
         fetch(service.baseUrl + "/views", {
           method: "POST",
@@ -187,15 +214,18 @@ test(
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(5000),
         });
+
       for (const [index, invalid] of definitions.entries()) {
         const id = `corrected-${index}`;
         const entity = `item-${index}`;
+
         assert.equal(
           (await define({ ...views[0], id, ...invalid })).status,
           400,
         );
         await source.send(positionEvent(entity, 1));
         await source.send(positionEvent("barrier", index));
+
         assert.equal((await viewer.next()).data?.position.sequence, index);
         assert.equal(
           (
@@ -212,13 +242,16 @@ test(
           viewId: id,
           entityId: entity,
         });
+
         assert.deepEqual(await viewer.next(), {
           type: "subscribed",
           viewId: id,
           entityId: entity,
         });
         await source.send(positionEvent(entity, 2));
+
         const update = await viewer.next();
+
         assert.equal(update.viewId, id);
         assert.equal(update.data?.position.sequence, 2);
       }

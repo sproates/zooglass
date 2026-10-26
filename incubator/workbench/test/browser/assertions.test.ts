@@ -19,14 +19,17 @@ for (const variant of ["basic", "journey"]) {
         ),
       );
       const demo = createVehicleDemo(scenario, { headless: true });
+
       try {
         for (let run = 0; run < 2; run++) {
           await demo.reset();
+
           assert.equal(
             await demo.browser!.page.locator("#history li").count(),
             0,
           );
           while (demo.state.phase === "ready") await demo.step();
+
           assert.equal(demo.state.phase, "complete");
           assert.equal(demo.state.completed, variant === "basic" ? 2 : 20);
         }
@@ -56,9 +59,12 @@ test(
       ),
     );
     const demo = createVehicleDemo(scenario, { headless: true });
+
     try {
       await demo.reset();
+
       const page = demo.browser!.page;
+
       await page.evaluate(() => {
         const marker = document.getElementById("vehicle-marker")!;
         new MutationObserver(() => {
@@ -66,6 +72,7 @@ test(
             marker.setAttribute("cx", "999");
         }).observe(marker, { attributes: true, attributeFilter: ["cx"] });
       });
+
       await assert.rejects(
         demo.step(),
         /Rendered check failed.*marker coordinate 0/s,
@@ -80,6 +87,7 @@ test(
       await assert.rejects(demo.step(), /idle/);
       await demo.reset();
       await demo.step();
+
       assert.equal(demo.state.completed, 1);
     } finally {
       await demo.close();
@@ -97,25 +105,33 @@ test(
       ),
     );
     const demo = createVehicleDemo(scenario, { headless: true });
+
     try {
       await demo.reset();
+
       const page = demo.browser!.page;
+
       await page.evaluate(
         "document.getElementById('vehicle-marker').style.visibility = 'hidden'",
       );
+
       const step = demo.step();
       const rejected = assert.rejects(step);
+
       await page.waitForFunction(
         () => document.querySelector("#current-sequence")!.textContent === "40",
         undefined,
         { timeout: 5000 },
       );
+
       assert.equal(demo.state.phase, "stepping");
       await demo.reset();
       await rejected;
+
       assert.equal(demo.state.completed, 0);
       assert.equal(demo.state.phase, "ready");
       await demo.step();
+
       assert.equal(demo.state.completed, 1);
     } finally {
       await demo.close();

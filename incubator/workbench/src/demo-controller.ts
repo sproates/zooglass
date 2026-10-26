@@ -22,6 +22,7 @@ export type DemoState = {
   total: number;
   detail: string;
 };
+
 export class DemoCleanupError extends Error {}
 
 export interface DemoRun {
@@ -60,10 +61,12 @@ export function createDemoController(
   let playbackTask: Promise<void> | undefined;
   let timer: AbortController | undefined;
   let remaining = 0;
+
   const stopPlayback = () => {
     state = { ...state, playing: false };
     timer?.abort();
   };
+
   const update = (phase: DemoState["phase"], detail: string) => {
     state = {
       ...state,
@@ -72,16 +75,20 @@ export function createDemoController(
     };
     run?.publish(state);
   };
+
   const reason = (error: unknown) =>
     error instanceof Error ? error.message : String(error);
+
   const reset = (): Promise<void> => {
     if (closing) return Promise.reject(new Error("Demo is closed."));
     if (resetTask)
       return Promise.reject(new Error("Reset is already running."));
+
     if (cleanupFailed)
       return Promise.reject(
         new Error("Cleanup failed. Stop the demo before trying again."),
       );
+
     stopPlayback();
     update("resetting", "Resetting: stopping the old session…");
     controller.abort(new Error("Run replaced by reset."));
@@ -89,6 +96,7 @@ export function createDemoController(
       await playbackTask;
       await interventionTask?.catch(() => {});
       await stepTask?.catch(() => {});
+
       if (run) {
         try {
           await run.close();
@@ -96,11 +104,15 @@ export function createDemoController(
           cleanupFailed = true;
           throw error;
         }
+
         run = undefined;
       }
+
       if (closing) return;
+
       controller = new AbortController();
       const current = controller;
+
       state = {
         ...state,
         completed: 0,
@@ -113,14 +125,17 @@ export function createDemoController(
       remaining = steps[0].delayBefore;
       run = await openRun(current.signal);
       current.signal.throwIfAborted();
+
       const failed = () => {
         if (controller !== current || current.signal.aborted) return;
+
         stopPlayback();
         update(
           "failed",
           `Run failed: ${reason(run!.signal.reason)}. Reset to try again.`,
         );
       };
+
       run.signal.addEventListener("abort", failed, { once: true });
       run.signal.throwIfAborted();
       for (const entry of setup) await run.execute(entry);
@@ -137,13 +152,16 @@ export function createDemoController(
             "failed",
             `Reset failed: ${reason(error)}. ${cleanupFailed ? "Stop the demo." : "Reset to try again."}`,
           );
+
         throw error;
       })
       .finally(() => {
         resetTask = undefined;
       });
+
     return resetTask;
   };
+
   const step = (automatic = false): Promise<void> => {
     if (
       closing ||
@@ -155,16 +173,20 @@ export function createDemoController(
       !run
     )
       return Promise.reject(new Error("Step requires a ready, idle run."));
+
     const current = controller;
     const activeRun = run;
+
     update("stepping", `Running step ${state.completed + 1} of ${total}…`);
     stepTask = (async () => {
       for (const entry of steps[cursor].entries) {
         current.signal.throwIfAborted();
+
         if (state.exploratory && entry.kind === "client-view-check") {
           state = { ...state, skippedChecks: state.skippedChecks + 1 };
           continue;
         }
+
         await activeRun.execute(entry);
       }
       current.signal.throwIfAborted();
@@ -172,7 +194,9 @@ export function createDemoController(
       cursor++;
       remaining = steps[cursor]?.delayBefore ?? 0;
       state = { ...state, completed: state.completed + 1 };
+
       if (cursor === steps.length) stopPlayback();
+
       update(
         cursor === steps.length ? "complete" : "ready",
         cursor === steps.length
@@ -184,18 +208,22 @@ export function createDemoController(
     })()
       .catch((error) => {
         stopPlayback();
+
         if (!current.signal.aborted)
           update(
             "failed",
             `Step failed: ${reason(error)}. Reset to try again.`,
           );
+
         throw error;
       })
       .finally(() => {
         stepTask = undefined;
       });
+
     return stepTask;
   };
+
   return {
     get state() {
       return { ...state };
@@ -215,9 +243,11 @@ export function createDemoController(
         return Promise.reject(
           new Error("Viewer controls require a paused, idle run."),
         );
+
       const phase = state.phase;
       const current = controller;
       const activeRun = run;
+
       state = {
         ...state,
         exploratory: true,
@@ -243,11 +273,13 @@ export function createDemoController(
               "failed",
               `${label} failed: ${reason(error)}. Reset to try again.`,
             );
+
           throw error;
         })
         .finally(() => {
           interventionTask = undefined;
         });
+
       return interventionTask;
     },
     play(): Promise<void> {
@@ -261,8 +293,10 @@ export function createDemoController(
         !run
       )
         return Promise.reject(new Error("Play requires a ready, idle run."));
+
       const current = controller;
       const activeRun = run;
+
       state = { ...state, playing: true };
       update(
         "ready",
@@ -271,7 +305,9 @@ export function createDemoController(
       playbackTask = (async () => {
         while (state.playing && state.phase === "ready") {
           timer = new AbortController();
+
           const started = performance.now();
+
           try {
             await delay(remaining, undefined, {
               signal: AbortSignal.any([
@@ -283,19 +319,24 @@ export function createDemoController(
           } catch (error) {
             current.signal.throwIfAborted();
             activeRun.signal.throwIfAborted();
+
             if (!timer.signal.aborted) throw error;
           } finally {
             remaining = Math.max(0, remaining - (performance.now() - started));
             timer = undefined;
           }
+
           current.signal.throwIfAborted();
           activeRun.signal.throwIfAborted();
+
           if (!state.playing) break;
+
           await step(true);
         }
       })()
         .catch((error) => {
           stopPlayback();
+
           if (!current.signal.aborted && state.phase !== "failed")
             update(
               "failed",
@@ -304,17 +345,20 @@ export function createDemoController(
         })
         .finally(() => {
           playbackTask = undefined;
+
           if (!current.signal.aborted && state.phase === "ready")
             update(
               "ready",
               "Paused. Step advances once; Play resumes the remaining delay.",
             );
         });
+
       return Promise.resolve();
     },
     async pause(): Promise<void> {
       if (!state.playing || !playbackTask)
         throw new Error("Pause requires active playback.");
+
       stopPlayback();
       update(
         state.phase,
@@ -324,6 +368,7 @@ export function createDemoController(
     },
     close(): Promise<void> {
       if (closing) return closing;
+
       stopPlayback();
       controller.abort(new Error("Demo closed."));
       closing = (async () => {
@@ -334,6 +379,7 @@ export function createDemoController(
         await run?.close();
         update("closed", "Demo closed.");
       })();
+
       return closing;
     },
   };

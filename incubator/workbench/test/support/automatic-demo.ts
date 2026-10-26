@@ -3,16 +3,16 @@ import { EventEmitter, once } from "node:events";
 import { runInNewContext } from "node:vm";
 import { transpileModule, ModuleKind, ScriptTarget } from "typescript";
 
+interface AutomaticDemoFixtureOptions {
+  failAt?: "browser" | "scenario" | "execute";
+  closeFailure?: boolean;
+  browserCloseFailure?: boolean;
+  delayed?: boolean;
+  pendingScenario?: boolean;
+}
+
 /** Controlled resource boundaries around the real automatic-demo control flow. */
-export function automaticFixture(
-  options: {
-    failAt?: "browser" | "scenario" | "execute";
-    closeFailure?: boolean;
-    browserCloseFailure?: boolean;
-    delayed?: boolean;
-    pendingScenario?: boolean;
-  } = {},
-) {
+export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
   const calls: string[] = [];
   const events = new EventEmitter();
   const process = Object.assign(new EventEmitter(), { exitCode: 0 });
@@ -32,6 +32,7 @@ export function automaticFixture(
     },
     async close() {
       calls.push("close browser");
+
       if (options.browserCloseFailure)
         throw new Error("browser cleanup failed");
     },
@@ -61,6 +62,7 @@ export function automaticFixture(
         signal.addEventListener("abort", () => stopped.abort(signal.reason), {
           once: true,
         });
+
         return {
           baseUrl: "http://service",
           signal,
@@ -73,8 +75,10 @@ export function automaticFixture(
     "./vehicle-browser.js": {
       startVehicleBrowserSession: async () => {
         calls.push("start browser");
+
         if (options.failAt === "browser")
           throw new Error("browser startup failed");
+
         return browser;
       },
     },
@@ -85,17 +89,21 @@ export function automaticFixture(
         { signal }: { signal: AbortSignal },
       ) => {
         calls.push("open scenario");
+
         if (options.pendingScenario)
           await new Promise((_, reject) => {
             signal.addEventListener("abort", () => reject(signal.reason), {
               once: true,
             });
           });
+
         if (options.failAt === "scenario")
           throw new Error("scenario startup failed");
+
         return {
           async close() {
             calls.push("close scenario");
+
             if (options.closeFailure)
               throw new Error("scenario cleanup failed");
           },
@@ -106,6 +114,7 @@ export function automaticFixture(
       observeVehicleSession: () => ({
         async execute() {
           calls.push("execute");
+
           if (options.failAt === "execute")
             throw new Error("rendered check failed");
         },
@@ -113,15 +122,18 @@ export function automaticFixture(
     },
     "./demo-controller.js": { DemoCleanupError: class extends Error {} },
   };
+
   function load(name: string): unknown {
     if (name in mocks) return mocks[name];
     if (!["automatic-demo", "vehicle-run"].includes(name))
       throw new Error(`Unexpected module: ${name}`);
+
     const source = readFileSync(
       new URL(`../../src/${name}.ts`, import.meta.url),
       "utf8",
     ).replaceAll("import.meta.url", JSON.stringify(import.meta.url));
     const exports = {};
+
     runInNewContext(
       transpileModule(source, {
         compilerOptions: {
@@ -152,11 +164,14 @@ export function automaticFixture(
         },
       },
     );
+
     return exports;
   }
+
   const { runAutomaticDemo } = load("automatic-demo") as {
     runAutomaticDemo(args: string[]): Promise<void>;
   };
+
   return {
     calls,
     process,

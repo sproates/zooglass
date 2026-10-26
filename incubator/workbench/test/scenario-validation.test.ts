@@ -19,6 +19,7 @@ function scenario() {
 
 test("runtime declarations allow forward references without sorting the timeline", () => {
   const input = scenario();
+
   input.timeline = [
     {
       kind: "client-subscription",
@@ -42,13 +43,17 @@ test("runtime declarations allow forward references without sorting the timeline
       fields: input.views[0].fields,
     },
   ];
+
   const parsed = parseScenario(input);
+
   assert.deepEqual(parsed.timeline, input.timeline);
 });
 
 test("duplicate runtime declarations are rejected before individual timeline entries", () => {
   const input = scenario();
+
   input.timeline = [null, { kind: "view-definition", id: "current" }];
+
   assert.throws(() => parseScenario(input), {
     message: 'View id "current" is declared more than once.',
   });
@@ -56,6 +61,7 @@ test("duplicate runtime declarations are rejected before individual timeline ent
     { kind: "view-definition", id: "later" },
     { kind: "view-definition", id: "later" },
   ];
+
   assert.throws(() => parseScenario(input), {
     message: 'View id "later" is declared more than once.',
   });
@@ -66,6 +72,7 @@ test("view fields are validated before the view id", () => {
   input.views = [
     { id: "", fields: { value: [{ sourceId: "missing", type: "" }] } },
   ];
+
   assert.throws(() => parseScenario(input), {
     message: 'View field "value" refers to unknown source "missing".',
   });
@@ -148,16 +155,19 @@ const invalidEntries = [
     message: "Expected timeline[0].payload to be an object.",
   },
 ];
+
 for (const { entry, message } of invalidEntries) {
   test(`validation precedence: ${message}`, () => {
     const input = scenario();
     input.timeline = [entry];
+
     assert.throws(() => parseScenario(input), { message });
   });
 }
 
 test("client checks require an object while HTTP checks allow null", () => {
   const input = scenario();
+
   input.timeline = [
     {
       kind: "client-view-check",
@@ -168,6 +178,7 @@ test("client checks require an object while HTTP checks allow null", () => {
       expected: {},
     },
   ];
+
   assert.deepEqual(parseScenario(input).timeline, input.timeline);
   input.timeline = [
     {
@@ -178,5 +189,6 @@ test("client checks require an object while HTTP checks allow null", () => {
       expected: null,
     },
   ];
+
   assert.deepEqual(parseScenario(input).timeline, input.timeline);
 });

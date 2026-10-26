@@ -13,7 +13,9 @@ export async function checkView(
 
   while (Date.now() - startedAt < 5_000) {
     signal.throwIfAborted();
+
     let response: Response;
+
     try {
       response = await fetch(url, {
         signal: AbortSignal.any([signal, AbortSignal.timeout(1_000)]),
@@ -32,16 +34,20 @@ export async function checkView(
         );
         return;
       }
+
       if (response.ok) {
         throw new Error(
           `Expected view ${check.viewId} (${check.entityId}) to be absent, but it was present.`,
         );
       }
+
       lastActual = `HTTP ${response.status}`;
     } else if (response.ok) {
       const body: unknown = await response.json();
+
       if (typeof body === "object" && body !== null && "data" in body) {
         lastActual = body.data;
+
         if (isDeepStrictEqual(body.data, check.expected)) {
           console.log(`View check passed: ${check.viewId} (${check.entityId})`);
           return;

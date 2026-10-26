@@ -4,6 +4,7 @@ import { loadScenario } from "./scenario.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+
   if (args.length > 1) {
     throw new Error("Usage: npm run simulate -- [scenario.json]");
   }

@@ -9,6 +9,7 @@ const processTestOptions = {
   skip: process.platform === "win32",
   timeout: 10_000,
 };
+
 const views = [{ id: "position", fields: {} }];
 
 test(
@@ -21,13 +22,17 @@ test(
       views,
       shutdownTimeoutMs: 50,
     });
+
     t.after(() => session.close());
+
     const { pid, config } = await fixture.started();
+
     assert.deepEqual(
       JSON.parse(await readFile(fileURLToPath(config), "utf8")),
       { views },
     );
     await Promise.all([session.close(), session.close()]);
+
     assert.throws(() => process.kill(pid, 0), { code: "ESRCH" });
     await assert.rejects(access(fileURLToPath(config)), { code: "ENOENT" });
     assert.equal(session.signal.aborted, true);
@@ -40,6 +45,7 @@ for (const mode of ["unhealthy", "exit"] as const) {
     processTestOptions,
     async (t) => {
       const fixture = await serviceFixture(t, mode);
+
       await assert.rejects(
         startZooGlassSession({
           serviceDirectory: fixture.directory,
@@ -48,7 +54,9 @@ for (const mode of ["unhealthy", "exit"] as const) {
         }),
         mode === "exit" ? /aborted|SIGTERM/ : /healthy/,
       );
+
       const { pid, config } = await fixture.started();
+
       assert.throws(() => process.kill(pid, 0), { code: "ESRCH" });
       await assert.rejects(access(fileURLToPath(config)), { code: "ENOENT" });
     },

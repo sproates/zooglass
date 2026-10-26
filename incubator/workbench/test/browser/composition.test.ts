@@ -13,6 +13,7 @@ test(
   { timeout: 30_000 },
   async () => {
     const upstream = new WebSocketServer({ port: 0, host: "127.0.0.1" });
+
     await once(upstream, "listening");
     upstream.on("connection", (socket) =>
       socket.send(
@@ -23,12 +24,16 @@ test(
         }),
       ),
     );
+
     const address = upstream.address();
+
     assert.ok(address && typeof address !== "string");
+
     const lifetime = new AbortController();
     const baseUrl = `http://127.0.0.1:${address.port}`;
     let browser: Awaited<ReturnType<typeof startBrowserSession>> | undefined;
     let session: Awaited<ReturnType<typeof openScenarioSession>> | undefined;
+
     try {
       browser = await startBrowserSession(baseUrl, {
         signal: lifetime.signal,
@@ -66,12 +71,14 @@ test(
           ]),
         },
       });
+
       assert.equal(await browser.page.title(), "Inventory fixture");
       assert.equal(new URL(browser.page.url()).hash, "");
       assert.equal(
         (await fetch(browser.host.origin + "/vehicle-client.js")).status,
         404,
       );
+
       const scenario: Scenario = {
         name: "Inventory",
         sources: [],
@@ -94,6 +101,7 @@ test(
           },
         ],
       };
+
       session = await openScenarioSession(scenario, baseUrl, {
         signal: browser.signal,
         createClientExecutor: (client) => {
@@ -102,6 +110,7 @@ test(
         },
       });
       for (const entry of playScenario(scenario)) await session.execute(entry);
+
       assert.equal(browser.signal.aborted, false);
     } finally {
       try {
@@ -115,6 +124,7 @@ test(
         }
       }
     }
+
     assert.equal(browser!.page.isClosed(), true);
     await assert.rejects(fetch(browser!.host.origin));
   },

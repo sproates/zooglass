@@ -1,6 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { startBrowserHost, type BrowserApplication } from "./browser-host.js";
-import { startBrowserSession } from "./browser-session.js";
+import {
+  startBrowserSession,
+  type BrowserSessionOptions,
+} from "./browser-session.js";
+
+export type VehicleBrowserSessionOptions = Omit<
+  BrowserSessionOptions,
+  "application"
+>;
 
 /** Vehicle assets and identity belong to demo composition, not the transport host. */
 export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
@@ -78,7 +86,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
 
 export async function startVehicleBrowserSession(
   baseUrl: string,
-  options: Omit<Parameters<typeof startBrowserSession>[1], "application">,
+  options: VehicleBrowserSessionOptions,
 ) {
   return startBrowserSession(baseUrl, {
     ...options,

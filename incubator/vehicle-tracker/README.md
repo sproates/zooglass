@@ -203,6 +203,16 @@ manual viewer button makes it exploratory. `--recovery` cannot be combined with
 
 ## Reading the display
 
+“Current position” means the highest sequence accepted for this vehicle in the
+received snapshot. It does not establish how recently the source measured that
+position or that the source is still producing events. A connected socket alone
+is not a freshness guarantee.
+
+The ordering policies keep the first accepted payload for a sequence. Sending
+different coordinates with the same sequence does not revise that position.
+The duplicate fixture checks identical delivery; a general correction/revision
+contract remains future work.
+
 The current sequence and coordinates come from the `live-map` snapshot. The
 history list and line come from `trip-history`. Each full snapshot replaces its
 own displayed state; the app does not sort events or merge these two views into
@@ -227,16 +237,25 @@ so a subscription acknowledgement alone leaves that view waiting.
 
 After disconnect or unsubscribe, previously received values remain visible and
 are labelled **Last received**. Reconnecting does not make them current: each
-view must receive its own fresh snapshot. A connection failure stops playback
-and shows an error. In a visible demo, the failed page remains open for
-inspection. Use Reset to start again, or type `reset` in the terminal if the
+view must receive its own fresh snapshot. An unexpected connection loss outside
+an explicitly armed fault interval stops playback and shows an error. In a
+visible demo, the failed page remains open for inspection. Use Reset to start again, or type `reset` in the terminal if the
 page or control connection is gone. Ctrl+C closes all owned resources. In
 `--auto` mode, restart the command after failure; automatic headless runs clean
-up on failure. Automatic reconnection is not implemented.
+up on failure.
+
+Automatic recovery is limited to an explicitly armed fault interval, used by the
+`--fault` scenario and the manual **Interrupt data** control. During that interval
+the client retains its desired subscriptions, retries within the deadline, and
+resubscribes after the route is restored. Recovery requires acknowledgements and
+both first snapshots. The scripted fault run also checks their contents; manual
+intervention keeps the run exploratory. A timeout fails the run, and an unarmed
+loss still fails immediately. See the
+[connection-loss walkthrough](#connection-loss-walkthrough).
 
 ## Checks and current limits
 
-From Workbench, `npm run test:browser` drives both fixtures in Chromium and checks
+From Workbench, `npm run test:browser` drives the vehicle fixtures in Chromium and checks
 the visible sequence, coordinates, marker position and history at their
 checkpoints, including late 41 leaving the current position at 42. It also checks that resubscription does not duplicate the history
 and that the phone-width layout has no horizontal overflow. `npm run build`,

@@ -141,7 +141,63 @@ test(
         await demo.browser!.page.locator("#current-sequence").innerText(),
         "42",
       );
+      const page = demo.browser!.page;
+      const expectedPositions = [
+        { sequence: 40, latitude: 51, longitude: -0.3 },
+        { sequence: 41, latitude: 51.06, longitude: -0.29 },
+        { sequence: 42, latitude: 51.1, longitude: -0.25 },
+        { sequence: 43, latitude: 51.12, longitude: -0.2 },
+      ];
+      const expectedViews = [
+        { viewId: "live-map", data: { position: expectedPositions[3] } },
+        { viewId: "trip-history", data: { positions: expectedPositions } },
+      ];
+
+      // Inspect both server views while the browser is still disconnected.
+      for (const { viewId, data } of expectedViews) {
+        const response = await fetch(`${demo.baseUrl}/views/${viewId}/car-17`);
+        assert.equal(response.status, 200);
+        assert.deepEqual((await response.json()).data, data);
+      }
+      assert.equal(await page.locator("#history li").count(), 3);
+
+      // Capture each view's first frame on the new data socket. Do not filter
+      // by expected data: that could skip a stale snapshot and accept a later one.
+      const initialSnapshots = page
+        .waitForEvent("websocket", {
+          predicate: (socket) =>
+            new URL(socket.url()).pathname === "/views/live",
+          timeout: 5_000,
+        })
+        .then((socket) =>
+          Promise.all(
+            expectedViews.map(async ({ viewId }) => {
+              const frame = await socket.waitForEvent("framereceived", {
+                predicate: ({ payload }) => {
+                  const message = JSON.parse(String(payload));
+                  return (
+                    message.type === "view-update" && message.viewId === viewId
+                  );
+                },
+                timeout: 5_000,
+              });
+              return JSON.parse(String(frame.payload));
+            }),
+          ),
+        );
+      // Observe a timeout even if advancing the scenario fails first.
+      void initialSnapshots.catch(() => {});
       await demo.step(); // reconnect/subscriptions and independent receipt/render checks
+
+      const snapshots = await initialSnapshots;
+      for (const [index, { viewId, data }] of expectedViews.entries()) {
+        assert.deepEqual(snapshots[index], {
+          type: "view-update",
+          viewId,
+          entityId: "car-17",
+          data,
+        });
+      }
 
       assert.equal(demo.state.phase, "complete");
       assert.equal(demo.state.exploratory, false);

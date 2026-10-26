@@ -59,7 +59,10 @@ export function createBrowserClientExecutor(
 
     if (nextGeneration < generation || index <= observationIndex) return;
     if (nextGeneration > generation) {
-      if (message.event !== "opened" || nextGeneration !== generation + 1)
+      if (
+        !["opened", "connecting"].includes(String(message.event)) ||
+        nextGeneration !== generation + 1
+      )
         throw new Error("Unexpected browser connection generation.");
 
       generation = nextGeneration;

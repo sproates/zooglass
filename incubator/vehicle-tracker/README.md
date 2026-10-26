@@ -95,7 +95,7 @@ controls through the terminal without showing a window.
 Add `--auto` for the previous timed demonstration. That mode plays once and
 keeps the result open; it has no interactive controls. The recording above shows
 this automatic mode. Use the interactive recovery fixture below for deliberate
-disconnection and duplicate delivery. Unexpected faults and automatic recovery
+disconnection and duplicate delivery. The full unexpected-fault scenario and automatic recovery integration
 remain planned. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
@@ -236,8 +236,10 @@ A rendered mismatch fails the step after a five-second deadline, without
 advancing its counter. Reset cancels pending rendered checks. Tests deliberately
 break the marker while real snapshots arrive, verify that the step fails, and
 check both fixtures again after reset. Lifecycle tests also cover fresh state,
-old host/service closure and reset after page loss. Automatic
-recovery and final acceptance of the complete recovery demo remain outstanding.
+old host/service closure and reset after page loss. Opt-in automatic recovery
+now has controlled-peer browser coverage for refused retries, both snapshot
+orders, cancellation and deadline expiry. The full ZooGlass fault scenario and
+final acceptance remain outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
 not a full accessibility audit or a check of native mobile browsers.

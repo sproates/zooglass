@@ -20,7 +20,8 @@ export interface ClientBinding {
   ): void;
   connectionLostReason: string;
   onConnection(
-    state: "disconnected" | "connecting" | "connected" | "error",
+    state:
+      "disconnected" | "connecting" | "connected" | "reconnecting" | "error",
     reason?: string,
   ): void;
   onSubscription(
@@ -35,7 +36,7 @@ export interface ClientBinding {
 export function createSubscriptionClient(
   dataPath: string,
   report: (event: Record<string, unknown>) => void,
-  fail: (reason: string) => void,
+  fail: (reason: string, transport?: boolean) => void,
   binding: ClientBinding,
 ) {
   let socket: WebSocket | undefined;
@@ -44,7 +45,7 @@ export function createSubscriptionClient(
   let deliberateClose = false;
   let failure: string | undefined;
 
-  const markFailure = (reason: string, notify = true) => {
+  const markFailure = (reason: string, notify = true, transport = false) => {
     if (failure) return;
 
     failure = reason;
@@ -61,7 +62,7 @@ export function createSubscriptionClient(
 
     socket?.close();
 
-    if (notify) fail(reason);
+    if (notify) fail(reason, transport);
   };
 
   const subscriptions = new Set<string>();
@@ -81,7 +82,7 @@ export function createSubscriptionClient(
     });
 
   async function execute(command: Command) {
-    if (failure) throw new Error(failure);
+    if (failure && command.action !== "disconnect") throw new Error(failure);
     if (command.action === "connect") {
       if (socket?.readyState === WebSocket.OPEN) return generation;
 
@@ -159,7 +160,7 @@ export function createSubscriptionClient(
 
         if (!failure) {
           if (deliberateClose) binding.onConnection("disconnected");
-          else markFailure(binding.connectionLostReason);
+          else markFailure(binding.connectionLostReason, true, true);
         }
 
         observe("closed");
@@ -192,7 +193,7 @@ export function createSubscriptionClient(
 
             const reason = "Could not connect to ZooGlass.";
 
-            markFailure(reason);
+            markFailure(reason, true, true);
             reject(new Error(reason));
           },
           { once: true },

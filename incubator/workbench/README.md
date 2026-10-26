@@ -416,10 +416,33 @@ commands against a closed host are rejected.
 
 The gate affects only the data proxy. Asset serving, the control channel and
 independent source connections remain available. This is the host foundation;
-scenario fault entries and automatic browser recovery are not wired yet. The
-current vehicle client still treats unexpected connection loss as a run failure.
+scenario fault entries remain to be wired. The vehicle client now supports an
+explicitly armed recovery interval; unarmed unexpected loss still fails the run.
 Socket-level [fault tests](test/browser-data-fault.test.ts) cover abrupt closure,
 refused upgrades, control/source continuity, restoration and pending handshakes.
+
+### Bounded automatic recovery
+
+Before an expected interruption, the vehicle bootstrap accepts an
+`expect-data-fault` run-state message and calls `client.expectRecovery()`.
+A `recovery-armed` observation confirms the interval is active. The default
+30-second deadline starts at activation, includes the outage, and is independent
+of scenario pause. Shorter deadlines are available for focused checks.
+
+On unexpected data loss within that interval, the client retains desired
+subscriptions and labels displayed data as interrupted/reconnecting. One attempt
+runs at a time after delays of 250 ms, 500 ms, 1 s, then 2 s capped. Each open
+attempt has a 10-second timeout. A new socket gets a new observation generation,
+including attempts that fail before opening. The client resubscribes and requires
+acknowledgements and a first snapshot for every desired subscription before
+reporting `recovered`. Workbench must still verify the contents independently.
+
+Explicit disconnect, page shutdown and run failure cancel retries and pending
+attempts. Protocol or rendering errors remain fatal; recovery does not hide them.
+The activity trace records interruption, attempts, failures and recovery.
+[Browser recovery tests](test/browser/automatic-recovery.test.ts) exercise the
+real proxy gate against a controlled peer. The real-ZooGlass fault fixture and
+scenario capability validation are the next integration step, not yet delivered.
 
 ## Where we're heading
 

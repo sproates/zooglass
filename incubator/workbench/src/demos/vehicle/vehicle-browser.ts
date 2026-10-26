@@ -66,6 +66,18 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       ],
     ],
     [
+      "/recovering-client.js",
+      [
+        "text/javascript; charset=utf-8",
+        await readFile(
+          new URL(
+            "../../../../vehicle-tracker/dist/recovering-client.js",
+            import.meta.url,
+          ),
+        ),
+      ],
+    ],
+    [
       "/activity.js",
       [
         "text/javascript; charset=utf-8",

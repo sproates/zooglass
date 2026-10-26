@@ -113,7 +113,9 @@ and separate connection checkpoints. Manual viewer controls leave the source
 running and mark the run exploratory until Reset; client checks skipped during
 exploration are explicitly counted. The host data-fault gate is implemented for
 review: it interrupts active/pending data routes and refuses upgrades until
-restored. Scenario fault wiring and automatic browser recovery remain ahead.
+restored. An opt-in client recovery policy is implemented for review, with
+bounded retries and completion only after all desired snapshots arrive.
+The full real-service fault scenario and its capability validation remain ahead.
 
 A separate fault scenario will interrupt the actual browser data path. The app
 must detect the loss, label retained data and recover after the route is

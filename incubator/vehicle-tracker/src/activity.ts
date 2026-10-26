@@ -33,6 +33,22 @@ export function recordSourceSend(message: Record<string, unknown>) {
 export function recordObservation(message: Record<string, unknown>) {
   if (message.type !== "observation") return;
 
+  if (
+    [
+      "recovery-armed",
+      "interrupted",
+      "retry-attempt",
+      "retry-failed",
+      "recovered",
+    ].includes(String(message.event))
+  ) {
+    append(
+      "Recovery",
+      `${message.event}${message.attempt ? ` ${message.attempt}` : ""}${message.reason ? `: ${message.reason}` : ""}.`,
+    );
+    return;
+  }
+
   const connection = `connection ${message.connectionGeneration}`;
 
   if (message.event === "opened" || message.event === "closed") {

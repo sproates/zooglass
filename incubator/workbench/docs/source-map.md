@@ -203,7 +203,7 @@ flowchart TB
 
 The host serves browser modules as assets; it does not import them into Node.
 The next diagram crosses into the browser source, where the two `.js` modules
-are authored JavaScript and the three `.ts` modules compile to served JavaScript.
+are authored JavaScript and the `.ts` modules compile to served JavaScript.
 
 ```mermaid
 flowchart TB
@@ -216,7 +216,9 @@ flowchart TB
   bootstrap -->|forwards actual observations and source-send notices| activity
   bootstrap -->|starts control bridge with client factory| bridge
   bootstrap -->|creates vehicle client| client
-  client -->|creates subscription client with callbacks| subscription
+  recovery["vehicle-tracker/src/recovering-client.ts<br/>Bounded retry and snapshot recovery policy"]
+  client -->|creates recovery client with callbacks| recovery
+  recovery -->|creates protocol client for each attempt| subscription
   client -->|supplies rendering callbacks| view
 ```
 

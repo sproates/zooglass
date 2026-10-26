@@ -24,6 +24,10 @@ export function createBrowserClientExecutor(
   let observationIndex = 0;
   let pending: PendingBrowserCommand | undefined;
   const receipts: Record<string, unknown>[] = [];
+  const events = new Map<string, number>();
+  const firstViews = new Map<string, unknown>();
+  const viewKey = (view: unknown, entity: unknown) =>
+    JSON.stringify([view, entity]);
   const controller = new AbortController();
   const signal = AbortSignal.any([lifetime, controller.signal]);
 
@@ -67,9 +71,13 @@ export function createBrowserClientExecutor(
 
       generation = nextGeneration;
       receipts.length = 0;
+      firstViews.clear();
     }
 
     observationIndex = index;
+    events.set(String(message.event), index);
+    if (message.event === "subscribed")
+      firstViews.delete(viewKey(message.viewId, message.entityId));
 
     if (message.event === "view-update") {
       if (
@@ -85,6 +93,8 @@ export function createBrowserClientExecutor(
         return;
       }
 
+      const key = viewKey(message.viewId, message.entityId);
+      if (!firstViews.has(key)) firstViews.set(key, message.data);
       receipts.push(message);
     }
   }
@@ -170,5 +180,28 @@ export function createBrowserClientExecutor(
     },
   };
 
-  return { executor, receive };
+  return {
+    executor,
+    receive,
+    observations: {
+      cursor: () => observationIndex,
+      firstView: (viewId: string, entityId: string) =>
+        firstViews.get(viewKey(viewId, entityId)),
+      async wait(
+        event: string,
+        after: number,
+        callerSignal: AbortSignal,
+        timeoutMs = 30_000,
+      ) {
+        const combined = AbortSignal.any([
+          signal,
+          callerSignal,
+          AbortSignal.timeout(timeoutMs),
+        ]);
+        while ((events.get(event) ?? 0) <= after)
+          await delay(10, undefined, { signal: combined });
+        combined.throwIfAborted();
+      },
+    },
+  };
 }

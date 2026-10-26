@@ -1,6 +1,6 @@
 import { startBrowserBridge } from "/bridge.js";
 import { createVehicleClient } from "/vehicle-client.js";
-import { recordObservation, recordSourceSend } from "/activity.js";
+import { recordObservation, recordSourceSend, recordFault } from "/activity.js";
 
 const status = document.querySelector("#status");
 const step = document.querySelector("#step");
@@ -8,6 +8,8 @@ const play = document.querySelector("#play");
 const pause = document.querySelector("#pause");
 const disconnect = document.querySelector("#disconnect");
 const reconnect = document.querySelector("#reconnect");
+const interrupt = document.querySelector("#interrupt");
+const restore = document.querySelector("#restore");
 const reset = document.querySelector("#reset");
 const controlError = document.querySelector("#control-error");
 for (const [button, action] of [
@@ -17,6 +19,8 @@ for (const [button, action] of [
   [reset, "reset"],
   [disconnect, "disconnect"],
   [reconnect, "reconnect"],
+  [interrupt, "interrupt"],
+  [restore, "restore"],
 ]) {
   button.addEventListener("click", () => {
     controlError.textContent = "";
@@ -47,13 +51,26 @@ const bridge = startBrowserBridge({
     };
     status.textContent = messages[state];
     if (state === "closed") {
-      for (const button of [step, play, pause, reset, disconnect, reconnect])
+      for (const button of [
+        step,
+        play,
+        pause,
+        reset,
+        disconnect,
+        reconnect,
+        interrupt,
+        restore,
+      ])
         button.disabled = true;
       controlError.textContent =
         "Control connection lost. Type reset in the terminal to start again.";
     }
   },
   onRunState(state, client) {
+    if (state.kind === "data-fault") {
+      recordFault(state.action);
+      return;
+    }
     if (state.kind === "expect-data-fault") {
       client.expectRecovery(state.timeoutMs);
       return;
@@ -69,8 +86,11 @@ const bridge = startBrowserBridge({
     step.disabled = state.phase !== "ready" || state.playing;
     play.disabled = state.phase !== "ready" || state.playing;
     pause.disabled = !state.playing;
-    disconnect.disabled = reconnect.disabled =
-      state.playing || !["ready", "complete"].includes(state.phase);
+    interrupt.disabled =
+      restore.disabled =
+      disconnect.disabled =
+      reconnect.disabled =
+        state.playing || !["ready", "complete"].includes(state.phase);
     document.querySelector("#run-mode").textContent = state.exploratory
       ? `Exploratory · ${state.interventions} manual intervention(s) · Last: ${state.lastIntervention} · ${state.skippedChecks} client checks skipped. Reset for a scripted run.`
       : "Scripted run";

@@ -77,7 +77,16 @@ export interface ScenarioViewCheck {
   expected: Record<string, unknown> | null;
 }
 
+export interface ScenarioDataConnectionFault {
+  kind: "data-connection-fault";
+  simulationTime: number;
+  clientId: string;
+  action: "break" | "restore";
+  timeoutMs?: number;
+}
+
 export type ScenarioTimelineEntry =
+  | ScenarioDataConnectionFault
   | ScenarioSourceEvent
   | ScenarioClientStateChange
   | ScenarioClientSubscription

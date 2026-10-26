@@ -1,5 +1,6 @@
 import type {
   Scenario,
+  ScenarioDataConnectionFault,
   ScenarioClientStateChange,
   ScenarioClientSubscription,
   ScenarioClientViewCheck,
@@ -36,7 +37,12 @@ export type ViewCheckTraceEntry = ScenarioViewCheck;
 
 export type ViewDefinitionTraceEntry = ScenarioViewDefinition;
 
+export interface DataConnectionFaultTraceEntry extends ScenarioDataConnectionFault {
+  clientName: string;
+}
+
 export type TraceEntry =
+  | DataConnectionFaultTraceEntry
   | SourceEventTraceEntry
   | ClientStateTraceEntry
   | ClientSubscriptionTraceEntry
@@ -100,6 +106,9 @@ export function formatTraceEntry(entry: TraceEntry): string {
   if (isSourceEvent(entry)) {
     return `${time} ${entry.sourceName} (${entry.sourceId})  ${entry.type}  ${entry.entityId}  ${JSON.stringify(entry.payload)}`;
   }
+
+  if (entry.kind === "data-connection-fault")
+    return `${time} ${entry.action} data route for ${entry.clientName}`;
 
   if (entry.kind === "client-initial-state") {
     return `${time} Client ${entry.clientName} (${entry.clientId}) starts ${entry.state}`;

@@ -10,10 +10,12 @@ verification are complete. Play/Pause now share the Step cursor, preserve remain
 delays and finish in-flight checkpoints before pausing. A separate recovery fixture now covers duplicate
 processing and explicit reconnect receipts in Node and Chromium; interactive
 recovery is selectable with `--recovery`, and manual viewer controls mark runs
-exploratory. The host data-fault gate is implemented for review, with socket
-checks for interruption, refused upgrades and restoration. Opt-in bounded client
-recovery is implemented for review with controlled-peer browser checks. Scenario
-fault wiring, real-service recovery evidence and final acceptance remain outstanding.
+exploratory. The host data-fault gate and bounded client recovery are implemented.
+The `--fault` scenario integration is implemented for review: it waits for a
+refused retry, checks source progress during the outage, restores only the route,
+and verifies the first recovery snapshots and rendering against real ZooGlass.
+Node-only execution rejects the fixture before service launch. Final recovery
+and programme acceptance remain outstanding.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.

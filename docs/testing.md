@@ -91,7 +91,7 @@ for review, not a claim of exhaustive coverage.
 | --- | --- | --- |
 | Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
 | Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
-| Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. Automatic retry and real fault-gate recovery remain future work. |
+| Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. `test/browser/connection-loss.test.ts` checks automatic recovery against real ZooGlass, including source continuity and first snapshots. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
 | Controller and executor lifecycle | `test/controller-*.test.ts`, `scenario-session.test.ts`, `zooglass-session.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
 | Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
@@ -169,7 +169,7 @@ checks controller ownership independently of browser scheduling; existing
 real-service/browser reset and recovery tests remain integration evidence.
 
 These are bounded cases, not a claim that every possible interleaving has been
-explored. They don't implement automatic retries or a proxy fault gate.
+explored. Automatic retries and the proxy fault gate have separate browser integration coverage.
 
 ## Concurrent clients and backpressure
 
@@ -339,9 +339,9 @@ The [verification review](verification/2026-10-25.md) records fresh-checkout
 results, coverage changes, deliberate regression checks and remaining gaps. It
 was accepted in [PR #46](https://github.com/sproates/zooglass/pull/46). The
 [readability plan](plans/readability-refactor.md) maps proposed extractions to
-protecting tests and keeps core protocol verification independent of demo UI checks. Real data-path fault injection, automatic
-retry and permissions remain feature work; tests must not imply these are
-already implemented.
+protecting tests and keeps core protocol verification independent of demo UI checks. Real data-path fault injection and automatic retry now have focused browser
+coverage, including outage reset and deadline expiry. Permissions remain future
+feature work; these tests do not establish authorisation behaviour.
 
 Use the stronger suite to protect subsequent readability refactoring. Production
 and test modules both need clear responsibilities, explicit lifecycle ownership

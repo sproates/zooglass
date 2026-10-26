@@ -78,3 +78,12 @@ export function recordObservation(message: Record<string, unknown>) {
 
   append("View received", `${message.viewId}: ${detail} (${connection}).`);
 }
+
+export function recordFault(action: string) {
+  append(
+    "Fault gate",
+    action === "break"
+      ? "Data route interrupted; upgrades refused."
+      : "Data route restored; client recovery remains automatic.",
+  );
+}

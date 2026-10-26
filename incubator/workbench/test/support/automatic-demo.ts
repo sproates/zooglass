@@ -41,6 +41,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
     },
   };
   const mocks: Record<string, unknown> = {
+    "./vehicle-faults.js": {
+      createVehicleFaults: () => ({ check() {}, async execute() {} }),
+    },
     "node:url": { fileURLToPath: () => "fixture" },
     "../../scenario/scenario.js": {
       loadScenario: async () => ({ views: [], clients: [] }),

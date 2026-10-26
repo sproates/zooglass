@@ -1,3 +1,4 @@
+import { createVehicleFaults } from "./vehicle-faults.js";
 import { DemoCleanupError } from "../../control/demo-controller.js";
 import { observeVehicleSession } from "./vehicle-observer.js";
 import { startZooGlassSession } from "../../service/zooglass-session.js";
@@ -67,6 +68,7 @@ export async function startVehicleRun(
 
     const ownedService = service;
     const ownedBrowser = browser;
+    const faults = createVehicleFaults(ownedBrowser.host);
 
     return {
       browser: ownedBrowser,
@@ -84,6 +86,7 @@ export async function startVehicleRun(
               ownedBrowser.signal,
               scenarioController.signal,
             ]),
+            executeDataFault: faults.execute,
             createClientExecutor(client) {
               if (client.id !== ownedBrowser.host.clientId)
                 throw new Error("Unbound browser client.");
@@ -100,6 +103,7 @@ export async function startVehicleRun(
           return {
             ...observed,
             async execute(entry) {
+              faults.check(entry);
               await observed.execute(entry);
 
               if (entry.kind === "source-event")

@@ -21,7 +21,8 @@ export function planDemoSteps(trace: TraceEntry[]) {
     while (
       end < trace.length &&
       trace[end].kind !== "source-event" &&
-      trace[end].kind !== "client-state"
+      trace[end].kind !== "client-state" &&
+      trace[end].kind !== "data-connection-fault"
     )
       end++;
     steps.push({

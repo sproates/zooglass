@@ -95,8 +95,8 @@ controls through the terminal without showing a window.
 Add `--auto` for the previous timed demonstration. That mode plays once and
 keeps the result open; it has no interactive controls. The recording above shows
 this automatic mode. Use the interactive recovery fixture below for deliberate
-disconnection and duplicate delivery. The full unexpected-fault scenario and automatic recovery integration
-remain planned. See the
+disconnection and duplicate delivery, or `--fault` for real data-route interruption
+and automatic recovery. See the
 [Workbench guide](../workbench/README.md#browser-host-preview) for installation
 and host details.
 
@@ -142,6 +142,23 @@ waiting, received and retained data without relying on colour alone.
 - Keep the terminal output when reporting a startup or check failure. If the page
   closes, type `reset` in the terminal; reopening its URL does not register a new
   viewer. If startup never succeeds, quit and rerun after fixing the reported cause.
+
+## Connection-loss walkthrough
+
+Run `npm run demo -- vehicle-tracker --fault` from Workbench. Step through the
+first five checkpoints to see late 41 and its duplicate, then Step to interrupt
+the data route. The app retains position 42, labels the connection as reconnecting
+and records a refused retry. Step again to send 43 to ZooGlass while the route
+remains closed. The final Step restores the route: the app reconnects and
+resubscribes automatically, and Workbench checks its first snapshots and rendered
+position 43. Complete the outage within the 30-second recovery deadline, which
+continues while paused. Reset starts a fresh run after timeout.
+
+**Interrupt data** and **Restore data** also work as manual controls (terminal
+`interrupt` and `restore`). These mark the run exploratory. The activity panel
+records gate actions and recovery attempts. Restoring the route does not command
+the app to reconnect. This demonstrates fresh-snapshot recovery, not replay of
+individual missed messages.
 
 ## Viewer controls and recovery fixture
 
@@ -238,8 +255,9 @@ break the marker while real snapshots arrive, verify that the step fails, and
 check both fixtures again after reset. Lifecycle tests also cover fresh state,
 old host/service closure and reset after page loss. Opt-in automatic recovery
 now has controlled-peer browser coverage for refused retries, both snapshot
-orders, cancellation and deadline expiry. The full ZooGlass fault scenario and
-final acceptance remain outstanding.
+orders, cancellation and deadline expiry. The real-ZooGlass connection-loss suite
+checks source continuity and the first recovery snapshots. Final acceptance
+remains outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
 not a full accessibility audit or a check of native mobile browsers.

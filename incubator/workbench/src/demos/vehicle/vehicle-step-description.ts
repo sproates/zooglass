@@ -12,6 +12,11 @@ export function vehicleStepDescriptions(scenario: Scenario): string[] {
   return steps.map(({ entries }) => {
     const action = entries[0];
 
+    if (action.kind === "data-connection-fault")
+      return action.action === "break"
+        ? "Interrupt the viewer data route and wait for a refused automatic retry."
+        : "Restore the route and wait for automatic recovery with fresh snapshots.";
+
     if (action.kind === "client-state")
       return action.state === "connected"
         ? `Reconnect ${action.clientName} and resubscribe to the views.`

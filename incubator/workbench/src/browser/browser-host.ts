@@ -5,7 +5,14 @@ import type { Socket } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
 
 export type BrowserControlAction =
-  "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect";
+  | "step"
+  | "reset"
+  | "play"
+  | "pause"
+  | "disconnect"
+  | "reconnect"
+  | "interrupt"
+  | "restore";
 
 export type BrowserControlHandler = (
   action: BrowserControlAction,
@@ -168,6 +175,8 @@ export async function startBrowserHost(
                 "pause",
                 "disconnect",
                 "reconnect",
+                "interrupt",
+                "restore",
               ].includes(message.action)
             )
               throw new Error();
@@ -342,6 +351,7 @@ export async function startBrowserHost(
     clientId,
     signal: controller.signal,
     executor: client.executor,
+    observations: client.observations,
     async controlDataConnection(fault: DataConnectionFault): Promise<void> {
       if (
         closing ||

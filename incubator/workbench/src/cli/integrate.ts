@@ -9,7 +9,10 @@ import { formatTraceEntry, playScenario } from "../scenario/playback.js";
 import { loadScenario } from "../scenario/scenario.js";
 import { namespaceScenario } from "../scenario/namespace-scenario.js";
 import { startZooGlassSession } from "../service/zooglass-session.js";
-import { openScenarioSession } from "../execution/scenario-session.js";
+import {
+  openScenarioSession,
+  requireDataFaultSupport,
+} from "../execution/scenario-session.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -29,6 +32,7 @@ async function main(): Promise<void> {
       namespaceScenario(await loadScenario(resolve(path)), index),
     ),
   );
+  for (const scenario of scenarios) requireDataFaultSupport(scenario);
   const controller = new AbortController();
 
   const stop = () => controller.abort(new Error("Workbench interrupted."));

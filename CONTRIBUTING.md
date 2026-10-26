@@ -45,6 +45,11 @@ and Prettier. Prefer names and comments that explain purpose, ownership and
 failure behaviour. Document assumptions about event identity, ordering and
 connection lifecycle when they affect callers.
 
+Use blank lines to separate logical steps, such as setup, action and assertions,
+without separating every statement. Apply the same care to production and test
+code. Give substantial options and data contracts meaningful type names; keep
+small, obvious shapes inline when a name would add little.
+
 Tests should assert observable behaviour. For a fix, include a focused regression
 case where practical. Use Workbench scenarios when the behaviour spans source
 events, service processing and client receipt; keep isolated component checks

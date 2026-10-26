@@ -1,12 +1,12 @@
-import { observeVehicleSession } from "../../src/vehicle-observer.js";
+import { observeVehicleSession } from "../../src/demos/vehicle/vehicle-observer.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startVehicleBrowserSession } from "../../src/vehicle-browser.js";
-import { openScenarioSession } from "../../src/scenario-session.js";
-import { playScenario } from "../../src/playback.js";
-import { loadScenario } from "../../src/scenario.js";
+import { startZooGlassSession } from "../../src/service/zooglass-session.js";
+import { startVehicleBrowserSession } from "../../src/demos/vehicle/vehicle-browser.js";
+import { openScenarioSession } from "../../src/execution/scenario-session.js";
+import { playScenario } from "../../src/scenario/playback.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 for (const variant of ["basic", "journey"]) {
   const fixture = fileURLToPath(
@@ -19,11 +19,13 @@ for (const variant of ["basic", "journey"]) {
     async () => {
       const scenario = await loadScenario(fixture);
       const service = await startZooGlassSession({ views: scenario.views });
+
       try {
         const browser = await startVehicleBrowserSession(service.baseUrl, {
           signal: service.signal,
           headless: true,
         });
+
         try {
           const session = await openScenarioSession(scenario, service.baseUrl, {
             signal: browser.signal,
@@ -34,6 +36,7 @@ for (const variant of ["basic", "journey"]) {
             browser.page,
             browser.signal,
           );
+
           try {
             assert.equal(
               await browser.page.locator("#current-sequence").textContent(),
@@ -42,6 +45,7 @@ for (const variant of ["basic", "journey"]) {
             assert.equal(await browser.page.locator("#history li").count(), 0);
             for (const entry of playScenario(scenario)) {
               await observed.execute(entry);
+
               if (entry.kind !== "client-view-check") continue;
               if (entry.viewId === "live-map") {
                 const p = entry.expected.position as {
@@ -49,6 +53,7 @@ for (const variant of ["basic", "journey"]) {
                   latitude: number;
                   longitude: number;
                 };
+
                 assert.equal(
                   await browser.page.locator("#current-sequence").textContent(),
                   String(p.sequence),
@@ -59,7 +64,9 @@ for (const variant of ["basic", "journey"]) {
                     .textContent(),
                   `${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`,
                 );
+
                 const marker = browser.page.locator("#vehicle-marker");
+
                 assert.equal(
                   await marker.getAttribute("visibility"),
                   "visible",
@@ -82,6 +89,7 @@ for (const variant of ["basic", "journey"]) {
                   latitude: number;
                   longitude: number;
                 }[];
+
                 if (variant === "journey" && positions.length === 3) {
                   // History receipt proves delayed 41 was processed; latest must remain 42.
                   assert.equal(
@@ -100,6 +108,7 @@ for (const variant of ["basic", "journey"]) {
                     ) < 0.001,
                   );
                 }
+
                 assert.deepEqual(
                   await browser.page.locator("#history li").allTextContents(),
                   positions.map(
@@ -126,6 +135,7 @@ for (const variant of ["basic", "journey"]) {
               path: `/tmp/zooglass-vehicle-${variant}-mobile.png`,
               fullPage: true,
             });
+
             assert.equal(
               await browser.page.evaluate(() => {
                 const page = globalThis as unknown as {
@@ -138,10 +148,12 @@ for (const variant of ["basic", "journey"]) {
               }),
               true,
             );
+
             // Resubscribing receives the same full snapshots. History must be replaced, not appended.
             const subscriptions = scenario.timeline.filter(
               (entry) => entry.kind === "client-subscription",
             );
+
             for (const entry of subscriptions) {
               await session.execute({
                 ...entry,
@@ -150,6 +162,7 @@ for (const variant of ["basic", "journey"]) {
               });
               await session.execute({ ...entry, clientName: "Vehicle viewer" });
             }
+
             const finalChecks = scenario.timeline.filter(
               (entry) =>
                 entry.kind === "client-view-check" &&
@@ -158,8 +171,10 @@ for (const variant of ["basic", "journey"]) {
                     ...scenario.timeline.map((item) => item.simulationTime),
                   ),
             );
+
             for (const entry of finalChecks)
               await session.execute({ ...entry, clientName: "Vehicle viewer" });
+
             assert.equal(
               await browser.page.locator("#history li").count(),
               variant === "basic" ? 2 : 20,

@@ -3,16 +3,16 @@ import { EventEmitter, once } from "node:events";
 import { runInNewContext } from "node:vm";
 import { transpileModule, ModuleKind, ScriptTarget } from "typescript";
 
+interface AutomaticDemoFixtureOptions {
+  failAt?: "browser" | "scenario" | "execute";
+  closeFailure?: boolean;
+  browserCloseFailure?: boolean;
+  delayed?: boolean;
+  pendingScenario?: boolean;
+}
+
 /** Controlled resource boundaries around the real automatic-demo control flow. */
-export function automaticFixture(
-  options: {
-    failAt?: "browser" | "scenario" | "execute";
-    closeFailure?: boolean;
-    browserCloseFailure?: boolean;
-    delayed?: boolean;
-    pendingScenario?: boolean;
-  } = {},
-) {
+export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
   const calls: string[] = [];
   const events = new EventEmitter();
   const process = Object.assign(new EventEmitter(), { exitCode: 0 });
@@ -32,14 +32,17 @@ export function automaticFixture(
     },
     async close() {
       calls.push("close browser");
+
       if (options.browserCloseFailure)
         throw new Error("browser cleanup failed");
     },
   };
   const mocks: Record<string, unknown> = {
     "node:url": { fileURLToPath: () => "fixture" },
-    "./scenario.js": { loadScenario: async () => ({ views: [], clients: [] }) },
-    "./playback.js": {
+    "../../scenario/scenario.js": {
+      loadScenario: async () => ({ views: [], clients: [] }),
+    },
+    "../../scenario/playback.js": {
       playScenario: () => [{ simulationTime: options.delayed ? 100 : 0 }],
     },
     "node:timers/promises": {
@@ -55,12 +58,13 @@ export function automaticFixture(
           events.emit("delay");
         }),
     },
-    "./zooglass-session.js": {
+    "../../service/zooglass-session.js": {
       startZooGlassSession: async ({ signal }: { signal: AbortSignal }) => {
         calls.push("start service");
         signal.addEventListener("abort", () => stopped.abort(signal.reason), {
           once: true,
         });
+
         return {
           baseUrl: "http://service",
           signal,
@@ -73,29 +77,35 @@ export function automaticFixture(
     "./vehicle-browser.js": {
       startVehicleBrowserSession: async () => {
         calls.push("start browser");
+
         if (options.failAt === "browser")
           throw new Error("browser startup failed");
+
         return browser;
       },
     },
-    "./scenario-session.js": {
+    "../../execution/scenario-session.js": {
       openScenarioSession: async (
         _scenario: unknown,
         _url: string,
         { signal }: { signal: AbortSignal },
       ) => {
         calls.push("open scenario");
+
         if (options.pendingScenario)
           await new Promise((_, reject) => {
             signal.addEventListener("abort", () => reject(signal.reason), {
               once: true,
             });
           });
+
         if (options.failAt === "scenario")
           throw new Error("scenario startup failed");
+
         return {
           async close() {
             calls.push("close scenario");
+
             if (options.closeFailure)
               throw new Error("scenario cleanup failed");
           },
@@ -106,22 +116,28 @@ export function automaticFixture(
       observeVehicleSession: () => ({
         async execute() {
           calls.push("execute");
+
           if (options.failAt === "execute")
             throw new Error("rendered check failed");
         },
       }),
     },
-    "./demo-controller.js": { DemoCleanupError: class extends Error {} },
+    "../../control/demo-controller.js": {
+      DemoCleanupError: class extends Error {},
+    },
   };
+
   function load(name: string): unknown {
     if (name in mocks) return mocks[name];
     if (!["automatic-demo", "vehicle-run"].includes(name))
       throw new Error(`Unexpected module: ${name}`);
+
     const source = readFileSync(
-      new URL(`../../src/${name}.ts`, import.meta.url),
+      new URL(`../../src/demos/vehicle/${name}.ts`, import.meta.url),
       "utf8",
     ).replaceAll("import.meta.url", JSON.stringify(import.meta.url));
     const exports = {};
+
     runInNewContext(
       transpileModule(source, {
         compilerOptions: {
@@ -152,11 +168,14 @@ export function automaticFixture(
         },
       },
     );
+
     return exports;
   }
+
   const { runAutomaticDemo } = load("automatic-demo") as {
     runAutomaticDemo(args: string[]): Promise<void>;
   };
+
   return {
     calls,
     process,
@@ -165,7 +184,7 @@ export function automaticFixture(
     startRun: () => {
       const { startVehicleRun } = load(
         "vehicle-run",
-      ) as typeof import("../../src/vehicle-run.js");
+      ) as typeof import("../../src/demos/vehicle/vehicle-run.js");
       return startVehicleRun(
         {
           name: "Ownership",

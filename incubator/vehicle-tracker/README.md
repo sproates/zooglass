@@ -1,5 +1,8 @@
 # Vehicle tracker demo
 
+The [source map](docs/source-map.md) explains the source files, their responsibilities
+and how they depend on each other. Start there when reading the implementation.
+
 A real browser receives two ZooGlass views for one vehicle: its latest position
 and the history received so far. Workbench drives a twenty-position journey through the
 same service and browser connections used by the app.

@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
-import type { TraceEntry } from "./playback.js";
+import type { TraceEntry } from "../scenario/playback.js";
 import {
   connectClient,
   closeClient,
@@ -21,22 +21,28 @@ async function waitForClientMessage(
   signal: AbortSignal,
 ): Promise<unknown> {
   const messages = messagesBySocket.get(socket);
+
   if (messages === undefined) {
     throw new Error("No message queue is available for the client connection.");
   }
 
   const deadline = Date.now() + messageTimeoutMs;
+
   while (Date.now() < deadline) {
     signal.throwIfAborted();
+
     const index = messages.findIndex(matches);
+
     if (index >= 0) {
       return messages.splice(index, 1)[0];
     }
+
     if (socket.readyState !== WebSocket.OPEN) {
       throw new Error(
         "Client connection closed before the expected message arrived.",
       );
     }
+
     await delay(10, undefined, { signal });
   }
 
@@ -53,10 +59,12 @@ async function applyClientState(
     if (!sockets.has(entry.clientId)) {
       sockets.set(entry.clientId, await connectClient(url, signal));
     }
+
     return;
   }
 
   const socket = sockets.get(entry.clientId);
+
   await closeClient(socket);
   sockets.delete(entry.clientId);
 }
@@ -67,6 +75,7 @@ async function applyClientSubscription(
   signal: AbortSignal,
 ): Promise<void> {
   const socket = sockets.get(entry.clientId);
+
   if (socket === undefined || socket.readyState !== WebSocket.OPEN) {
     throw new Error(
       `Client ${entry.clientId} is not connected when its subscription is scheduled.`,
@@ -80,8 +89,10 @@ async function applyClientSubscription(
       entityId: entry.entityId,
     }),
   );
+
   const responseType =
     entry.action === "subscribe" ? "subscribed" : "unsubscribed";
+
   await waitForClientMessage(
     socket,
     (message) =>
@@ -100,6 +111,7 @@ async function checkClientView(
   signal: AbortSignal,
 ): Promise<void> {
   const socket = sockets.get(entry.clientId);
+
   if (socket === undefined || socket.readyState !== WebSocket.OPEN) {
     throw new Error(
       `Client ${entry.clientId} is not connected when its view update is expected.`,
@@ -133,6 +145,7 @@ export function createNodeClientExecutor(url: string): ClientExecutor {
   return {
     async execute(entry, signal) {
       signal.throwIfAborted();
+
       if (entry.kind === "client-subscription") {
         await applyClientSubscription(entry, sockets, signal);
       } else if (entry.kind === "client-view-check") {

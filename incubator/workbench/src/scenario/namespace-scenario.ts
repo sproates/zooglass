@@ -16,6 +16,7 @@ export function namespaceScenario(scenario: Scenario, index: number): Scenario {
   const viewIds = new Map(
     allViews.map((view) => [view.id, `${namespace}-${view.id}`]),
   );
+
   const namespaceView = <T extends Scenario["views"][number]>(view: T): T =>
     ({
       ...view,
@@ -42,18 +43,22 @@ export function namespaceScenario(scenario: Scenario, index: number): Scenario {
       if (entry.kind === "source-event") {
         return { ...entry, sourceId: sourceIds.get(entry.sourceId)! };
       }
+
       if (entry.kind === "view-check") {
         return { ...entry, viewId: viewIds.get(entry.viewId)! };
       }
+
       if (
         entry.kind === "client-subscription" ||
         entry.kind === "client-view-check"
       ) {
         return { ...entry, viewId: viewIds.get(entry.viewId)! };
       }
+
       if (entry.kind === "view-definition") {
         return namespaceView(entry);
       }
+
       return entry;
     }),
   };

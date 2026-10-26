@@ -1,8 +1,17 @@
+interface PendingAcknowledgement {
+  action: string;
+  viewId: string;
+  entityId: string;
+  resolve: () => void;
+  reject: (error: Error) => void;
+}
+
 export type Command = {
   action: "connect" | "disconnect" | "subscribe" | "unsubscribe";
   viewId?: string;
   entityId?: string;
 };
+
 /** Application policy and presentation are supplied by the caller. */
 export interface ClientBinding {
   validateSubscription(
@@ -34,33 +43,34 @@ export function createSubscriptionClient(
   let observationIndex = 0;
   let deliberateClose = false;
   let failure: string | undefined;
+
   const markFailure = (reason: string, notify = true) => {
     if (failure) return;
+
     failure = reason;
     deliberateClose = true;
     acknowledgement?.reject(new Error(reason));
     acknowledgement = undefined;
+
     // Rendering an error must not prevent cleanup or hide the original failure.
     try {
       binding.onConnection("error", reason);
     } catch {
       // The client is already failed; continue closing and notifying Workbench.
     }
+
     socket?.close();
+
     if (notify) fail(reason);
   };
+
   const subscriptions = new Set<string>();
+
   const key = (viewId: string, entityId: string) =>
     JSON.stringify([viewId, entityId]);
-  let acknowledgement:
-    | {
-        action: string;
-        viewId: string;
-        entityId: string;
-        resolve: () => void;
-        reject: (error: Error) => void;
-      }
-    | undefined;
+
+  let acknowledgement: PendingAcknowledgement | undefined;
+
   const observe = (event: string, detail: Record<string, unknown> = {}) =>
     report({
       type: "observation",
@@ -69,11 +79,14 @@ export function createSubscriptionClient(
       observationIndex: ++observationIndex,
       ...detail,
     });
+
   async function execute(command: Command) {
     if (failure) throw new Error(failure);
     if (command.action === "connect") {
       if (socket?.readyState === WebSocket.OPEN) return generation;
+
       const current = new WebSocket(`ws://${location.host}${dataPath}`);
+
       socket = current;
       generation++;
       deliberateClose = false;
@@ -81,14 +94,17 @@ export function createSubscriptionClient(
       binding.onConnection("connecting");
       current.addEventListener("message", (event) => {
         if (socket !== current || failure) return;
+
         try {
           const message = JSON.parse(event.data);
           const pair = key(message.viewId, message.entityId);
+
           if (
             message.type === "subscribed" ||
             message.type === "unsubscribed"
           ) {
             const waiting = acknowledgement;
+
             if (
               !waiting ||
               message.type !== `${waiting.action}d` ||
@@ -96,8 +112,10 @@ export function createSubscriptionClient(
               message.entityId !== waiting.entityId
             )
               throw new Error("Unexpected subscription response.");
+
             if (message.type === "subscribed") subscriptions.add(pair);
             else subscriptions.delete(pair);
+
             binding.onSubscription(
               message.viewId,
               message.entityId,
@@ -132,15 +150,18 @@ export function createSubscriptionClient(
       });
       current.addEventListener("close", () => {
         if (socket !== current) return;
+
         subscriptions.clear();
         acknowledgement?.reject(
           new Error("Connection closed before acknowledgement."),
         );
         acknowledgement = undefined;
+
         if (!failure) {
           if (deliberateClose) binding.onConnection("disconnected");
           else markFailure(binding.connectionLostReason);
         }
+
         observe("closed");
       });
       await new Promise<void>((resolve, reject) => {
@@ -148,6 +169,7 @@ export function createSubscriptionClient(
           "open",
           () => {
             if (socket !== current || failure) return;
+
             try {
               binding.onConnection("connected");
               observe("opened");
@@ -167,7 +189,9 @@ export function createSubscriptionClient(
           "error",
           () => {
             if (socket !== current) return;
+
             const reason = "Could not connect to ZooGlass.";
+
             markFailure(reason);
             reject(new Error(reason));
           },
@@ -176,6 +200,7 @@ export function createSubscriptionClient(
       });
     } else if (command.action === "disconnect") {
       deliberateClose = true;
+
       if (socket && socket.readyState !== WebSocket.CLOSED) {
         const current = socket;
         await new Promise<void>((resolve) => {
@@ -186,12 +211,17 @@ export function createSubscriptionClient(
     } else {
       if (socket?.readyState !== WebSocket.OPEN)
         throw new Error("ZooGlass socket is not open.");
+
       binding.validateSubscription(command.viewId, command.entityId);
+
       const { viewId, entityId } = command;
+
       if (!viewId || !entityId)
         throw new Error("Missing subscription identity.");
+
       if (command.action === "subscribe")
         binding.onSubscription(viewId, entityId, "pending");
+
       await new Promise<void>((resolve, reject) => {
         acknowledgement = {
           action: command.action,
@@ -205,8 +235,10 @@ export function createSubscriptionClient(
         );
       });
     }
+
     return generation;
   }
+
   return {
     execute,
     fail(reason: string) {

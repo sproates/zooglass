@@ -9,18 +9,24 @@ export async function serviceFixture(
   mode: "healthy" | "unhealthy" | "exit" | "stubborn",
 ) {
   const directory = await mkdtemp(join(tmpdir(), "workbench-service-test-"));
+
   t.after(() => rm(directory, { recursive: true, force: true }));
+
   const script = join(directory, "service.mjs");
+
   await copyFile(
     new URL("../fixtures/process/service.js", import.meta.url),
     script,
   );
+
   const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
+
   await writeFile(
     join(directory, "mvnw"),
     `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(script)} ${quote(mode)} "$@"\n`,
     { mode: 0o755 },
   );
+
   return {
     directory,
     async started() {

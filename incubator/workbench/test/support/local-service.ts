@@ -11,6 +11,7 @@ export async function localService(
 ) {
   const server = createServer(handler);
   const sockets = new Set<import("node:net").Socket>();
+
   server.on("connection", (socket) => {
     sockets.add(socket);
     socket.on("close", () => sockets.delete(socket));
@@ -25,8 +26,11 @@ export async function localService(
         server.close(() => resolve());
       }),
   );
+
   const address = server.address();
+
   assert.ok(address && typeof address !== "string");
+
   return { server, baseUrl: `http://127.0.0.1:${address.port}` };
 }
 

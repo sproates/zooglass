@@ -33,6 +33,7 @@ export interface ClientInitialStateTraceEntry {
 }
 
 export type ViewCheckTraceEntry = ScenarioViewCheck;
+
 export type ViewDefinitionTraceEntry = ScenarioViewDefinition;
 
 export type TraceEntry =
@@ -95,6 +96,7 @@ export function playScenario(scenario: Scenario): TraceEntry[] {
 
 export function formatTraceEntry(entry: TraceEntry): string {
   const time = `+${entry.simulationTime}ms`.padEnd(8);
+
   if (isSourceEvent(entry)) {
     return `${time} ${entry.sourceName} (${entry.sourceId})  ${entry.type}  ${entry.entityId}  ${JSON.stringify(entry.payload)}`;
   }

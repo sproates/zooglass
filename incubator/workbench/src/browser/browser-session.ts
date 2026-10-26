@@ -1,19 +1,22 @@
 import { chromium, type BrowserServer, type Browser } from "playwright";
-import { startBrowserHost, type BrowserApplication } from "./browser-host.js";
+import {
+  startBrowserHost,
+  type BrowserControlHandler,
+  type BrowserApplication,
+} from "./browser-host.js";
+
+export interface BrowserSessionOptions {
+  application: BrowserApplication;
+  signal: AbortSignal;
+  headless?: boolean;
+  keepOpenOnFailure?: boolean;
+  onControl?: BrowserControlHandler;
+}
 
 /** Own a fresh Chromium process/context and its local host, but not ZooGlass. */
 export async function startBrowserSession(
   baseUrl: string,
-  options: {
-    application: BrowserApplication;
-    signal: AbortSignal;
-    headless?: boolean;
-    keepOpenOnFailure?: boolean;
-    onControl?: (
-      action: "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect",
-      runId: string,
-    ) => Promise<void>;
-  },
+  options: BrowserSessionOptions,
 ) {
   const host = await startBrowserHost(baseUrl, {
     application: options.application,
@@ -28,13 +31,16 @@ export async function startBrowserSession(
   let process: BrowserServer | undefined;
   let browser: Browser | undefined;
   let closing: Promise<void> | undefined;
+
   const close = (): Promise<void> => {
     if (closing) return closing;
+
     closing = Promise.resolve().then(async () => {
       controller.abort(new Error("Browser session closed."));
       const force = setTimeout(() => {
         void process?.kill().catch(() => {});
       }, 5_000);
+
       try {
         await process?.close();
       } finally {
@@ -43,11 +49,14 @@ export async function startBrowserSession(
         await host.close();
       }
     });
+
     return closing;
   };
+
   const stop = () => {
     void close().catch(() => {});
   };
+
   signal.addEventListener(
     "abort",
     () => {
@@ -57,6 +66,7 @@ export async function startBrowserSession(
   );
   // Caller cancellation must still close a page retained after an earlier failure.
   options.signal.addEventListener("abort", stop, { once: true });
+
   try {
     signal.throwIfAborted();
     process = await chromium.launchServer({
@@ -66,11 +76,13 @@ export async function startBrowserSession(
       handleSIGTERM: false,
       handleSIGHUP: false,
     });
+
     // Cancellation during launch must close the newly acquired process too.
     if (signal.aborted) {
       await process.close();
       signal.throwIfAborted();
     }
+
     browser = await chromium.connect(process.wsEndpoint(), { timeout: 15_000 });
     browser.on("disconnected", () => {
       if (!closing) {
@@ -78,8 +90,10 @@ export async function startBrowserSession(
         stop();
       }
     });
+
     const context = await browser.newContext();
     const page = await context.newPage();
+
     page.on("close", () => {
       if (!closing) {
         controller.abort(new Error("Owned browser page closed."));
@@ -88,6 +102,7 @@ export async function startBrowserSession(
     });
     await page.goto(host.pageUrl, { timeout: 15_000 });
     await host.waitForReady(signal);
+
     return { host, page, signal, close };
   } catch (error) {
     await close();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
-import type { createVehicleDemo } from "../../../src/vehicle-demo.js";
+import type { createVehicleDemo } from "../../../src/demos/vehicle/vehicle-demo.js";
 
 /** Reset destroys the input target. Require both closure and a fresh ready run. */
 export async function resetThroughBrowser(
@@ -20,12 +20,16 @@ export async function resetThroughBrowser(
     )
       throw error;
   });
+
   await Promise.all([closed, action]);
+
   const deadline = Date.now() + 30_000;
+
   while (demo.browser === old || demo.state.phase !== "ready") {
     assert.notEqual(demo.state.phase, "failed", JSON.stringify(demo.state));
     assert.ok(Date.now() < deadline, JSON.stringify(demo.state));
     await delay(20);
   }
+
   assert.notEqual(demo.browser!.host.runId, old.host.runId);
 }

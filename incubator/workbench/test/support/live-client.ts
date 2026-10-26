@@ -16,14 +16,18 @@ export async function liveClient(baseUrl: string, path = "/views/live") {
   });
   const inbox: Message[] = [];
   let wake: (() => void) | undefined;
+
   socket.on("message", (data) => {
     inbox.push(JSON.parse(data.toString()) as Message);
     wake?.();
   });
+
   const closed = new Promise<number>((resolve) =>
     socket.once("close", resolve),
   );
+
   socket.on("close", () => wake?.());
+
   try {
     await once(socket, "open", { signal: AbortSignal.timeout(5000) });
   } catch (error) {
@@ -31,6 +35,7 @@ export async function liveClient(baseUrl: string, path = "/views/live") {
     await closed;
     throw error;
   }
+
   const next = async (): Promise<Message> => {
     if (!inbox.length) {
       await new Promise<void>((resolve, reject) => {
@@ -45,15 +50,19 @@ export async function liveClient(baseUrl: string, path = "/views/live") {
       });
       wake = undefined;
     }
+
     assert.ok(inbox.length, "socket closed before expected message");
+
     return inbox.shift()!;
   };
+
   const send = (message: unknown) =>
     new Promise<void>((resolve, reject) => {
       socket.send(JSON.stringify(message), (error) =>
         error ? reject(error) : resolve(),
       );
     });
+
   return {
     socket,
     next,
@@ -61,6 +70,7 @@ export async function liveClient(baseUrl: string, path = "/views/live") {
     closed,
     async subscription(entityId: string, action = "subscribe") {
       await send({ action, viewId: "position", entityId });
+
       assert.deepEqual(await next(), {
         type: `${action}d`,
         viewId: "position",

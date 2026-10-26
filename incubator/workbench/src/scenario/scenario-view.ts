@@ -15,17 +15,20 @@ function parseOrdering(
   }
 
   const ordering: Record<string, ScenarioOrdering> = {};
+
   for (const [fieldName, orderingInput] of Object.entries(input)) {
     if (!Object.hasOwn(fields, fieldName)) {
       throw new Error(
         `Ordering is configured for unknown field "${fieldName}" in ${label}.`,
       );
     }
+
     if (!isRecord(orderingInput)) {
       throw new Error(
         `Expected ${label}.ordering.${fieldName} to be an object.`,
       );
     }
+
     if (
       orderingInput.mode !== "latestBySequence" &&
       orderingInput.mode !== "historyBySequence"
@@ -61,8 +64,10 @@ export function parseView(
   }
 
   const fields: Record<string, ScenarioEventMatcher[]> = {};
+
   for (const [fieldName, matchersInput] of Object.entries(input.fields)) {
     requiredString(fieldName, `${label} field name`);
+
     if (!Array.isArray(matchersInput) || matchersInput.length === 0) {
       throw new Error(
         `Expected ${label}.fields.${fieldName} to be a non-empty array.`,
@@ -80,6 +85,7 @@ export function parseView(
         matcher.sourceId,
         `${label}.fields.${fieldName}[${matcherIndex}].sourceId`,
       );
+
       if (!sourceIds.has(sourceId)) {
         throw new Error(
           `View field "${fieldName}" refers to unknown source "${sourceId}".`,
@@ -97,6 +103,7 @@ export function parseView(
   }
 
   const id = requiredString(input.id, `${label}.id`);
+
   if (input.ordering === undefined) {
     return { id, fields };
   }

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
-import { playScenario } from "./playback.js";
+import { playScenario } from "../../scenario/playback.js";
 import { setTimeout as delay } from "node:timers/promises";
-import { loadScenario } from "./scenario.js";
+import { loadScenario } from "../../scenario/scenario.js";
 import { startVehicleRun } from "./vehicle-run.js";
 
 export async function runAutomaticDemo(args: string[]) {
@@ -13,17 +13,21 @@ export async function runAutomaticDemo(args: string[]) {
       "Usage: npm run demo -- vehicle-tracker [--headless] [--basic]",
     );
   }
+
   const controller = new AbortController();
+
   const stop = () => controller.abort(new Error("Demo interrupted."));
+
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
+
   try {
     const scenario = await loadScenario(
       fileURLToPath(
         new URL(
           args.includes("--basic")
-            ? "../scenarios/vehicle-browser-basic.json"
-            : "../scenarios/vehicle-browser-journey.json",
+            ? "../../../scenarios/vehicle-browser-basic.json"
+            : "../../../scenarios/vehicle-browser-journey.json",
           import.meta.url,
         ),
       ),
@@ -34,28 +38,35 @@ export async function runAutomaticDemo(args: string[]) {
       keepOpenOnFailure: !args.includes("--headless"),
     });
     const browser = run.browser;
+
     try {
       try {
         console.log(`Browser host ready at ${browser.host.origin}`);
         const observed = await run.openScenario();
+
         try {
           let previousTime = 0;
+
           for (const entry of playScenario(scenario)) {
             const wait = entry.simulationTime - previousTime;
+
             if (wait > 0)
               await delay(wait, undefined, { signal: browser.signal });
+
             await observed.execute(entry);
             previousTime = entry.simulationTime;
           }
           console.log(
             `${args.includes("--basic") ? "Basic fixture" : "Journey"} received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.`,
           );
+
           if (!browser.signal.aborted)
             await new Promise<void>((resolve) =>
               browser.signal.addEventListener("abort", () => resolve(), {
                 once: true,
               }),
             );
+
           if (!controller.signal.aborted) throw browser.signal.reason;
         } finally {
           await run.closeScenario();
@@ -79,6 +90,7 @@ export async function runAutomaticDemo(args: string[]) {
             ),
           ]);
         }
+
         throw error;
       }
     } finally {

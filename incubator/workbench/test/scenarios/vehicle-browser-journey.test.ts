@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { loadScenario } from "../../src/scenario.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 test("journey contains twenty unique contiguous positions with only 41 delayed", async () => {
   const scenario = await loadScenario(
@@ -12,14 +12,17 @@ test("journey contains twenty unique contiguous positions with only 41 delayed",
   const events = scenario.timeline.filter(
     (entry) => entry.kind === "source-event",
   );
+
   assert.equal(events.length, 20);
   assert.deepEqual(
     events.map((event) => event.payload.sequence),
     [40, 42, 41, ...Array.from({ length: 17 }, (_, index) => index + 43)],
   );
+
   const lateIndex = scenario.timeline.findIndex(
     (entry) => entry.kind === "source-event" && entry.payload.sequence === 41,
   );
+
   assert.equal(
     scenario.timeline[lateIndex + 1].kind,
     "view-check",

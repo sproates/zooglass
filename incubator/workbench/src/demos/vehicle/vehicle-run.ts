@@ -1,19 +1,20 @@
-import { DemoCleanupError } from "./demo-controller.js";
+import { DemoCleanupError } from "../../control/demo-controller.js";
 import { observeVehicleSession } from "./vehicle-observer.js";
-import { startZooGlassSession } from "./zooglass-session.js";
-import { startVehicleBrowserSession } from "./vehicle-browser.js";
+import { startZooGlassSession } from "../../service/zooglass-session.js";
+import {
+  startVehicleBrowserSession,
+  type VehicleBrowserSessionOptions,
+} from "./vehicle-browser.js";
 import {
   openScenarioSession,
   type ScenarioSession,
-} from "./scenario-session.js";
-import type { Scenario } from "./scenario.js";
-
-type BrowserOptions = Parameters<typeof startVehicleBrowserSession>[1];
+} from "../../execution/scenario-session.js";
+import type { Scenario } from "../../scenario/scenario.js";
 
 /** Own the vehicle service, browser and scenario in acquisition order. */
 export async function startVehicleRun(
   scenario: Scenario,
-  options: BrowserOptions,
+  options: VehicleBrowserSessionOptions,
 ) {
   let service: Awaited<ReturnType<typeof startZooGlassSession>> | undefined;
   let browser:
@@ -31,6 +32,7 @@ export async function startVehicleRun(
       await opening?.catch(() => {});
       await session?.close();
     }));
+
   const close = () =>
     (closing ??= Promise.resolve().then(async () => {
       const errors: unknown[] = [];
@@ -46,11 +48,13 @@ export async function startVehicleRun(
           errors.push(error);
         }
       }
+
       if (errors.length)
         throw new DemoCleanupError("Could not close the demo session.", {
           cause: new AggregateError(errors),
         });
     }));
+
   try {
     service = await startZooGlassSession({
       views: scenario.views,
@@ -60,8 +64,10 @@ export async function startVehicleRun(
       ...options,
       signal: service.signal,
     });
+
     const ownedService = service;
     const ownedBrowser = browser;
+
     return {
       browser: ownedBrowser,
       baseUrl: ownedService.baseUrl,
@@ -71,6 +77,7 @@ export async function startVehicleRun(
       openScenario() {
         if (closing || scenarioClosing)
           return Promise.reject(new Error("Vehicle run is closing."));
+
         return (opening ??= (async () => {
           session = await openScenarioSession(scenario, ownedService.baseUrl, {
             signal: AbortSignal.any([
@@ -80,6 +87,7 @@ export async function startVehicleRun(
             createClientExecutor(client) {
               if (client.id !== ownedBrowser.host.clientId)
                 throw new Error("Unbound browser client.");
+
               return ownedBrowser.host.executor;
             },
           });

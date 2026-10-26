@@ -1,4 +1,4 @@
-import type { TraceEntry } from "./playback.js";
+import type { TraceEntry } from "../scenario/playback.js";
 
 export interface DemoStep {
   entries: TraceEntry[];
@@ -9,11 +9,15 @@ export interface DemoStep {
 /** Group an ordered trace without owning a cursor, timer or run resources. */
 export function planDemoSteps(trace: TraceEntry[]) {
   const first = trace.findIndex((entry) => entry.kind === "source-event");
+
   if (first < 0) throw new Error("The demo needs at least one source event.");
+
   const steps: DemoStep[] = [];
   let start = first;
+
   while (start < trace.length) {
     let end = start + 1;
+
     while (
       end < trace.length &&
       trace[end].kind !== "source-event" &&
@@ -29,5 +33,6 @@ export function planDemoSteps(trace: TraceEntry[]) {
     });
     start = end;
   }
+
   return { setup: trace.slice(0, first), steps };
 }

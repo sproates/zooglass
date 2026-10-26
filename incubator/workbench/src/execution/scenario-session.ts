@@ -1,6 +1,6 @@
 import { checkView, defineView } from "./view-http.js";
-import type { TraceEntry } from "./playback.js";
-import type { Scenario, ScenarioClient } from "./scenario.js";
+import type { TraceEntry } from "../scenario/playback.js";
+import type { Scenario, ScenarioClient } from "../scenario/scenario.js";
 import {
   createNodeClientExecutor,
   type ClientExecutor,
@@ -34,15 +34,20 @@ export async function openScenarioSession(
     : controller.signal;
   const sourceSockets = new Map<string, WebSocket>();
   const executors = new Map<string, ClientExecutor>();
+
   const socketUrl = (path: string) => {
     const url = new URL(path, baseUrl);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+
     return url.href;
   };
+
   let active: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
+
   const close = (): Promise<void> => {
     if (closing) return closing;
+
     controller.abort(new Error("Scenario session closed."));
     closing = (async () => {
       // Cancellation must settle before an executor's resources can be disposed.
@@ -54,8 +59,10 @@ export async function openScenarioSession(
         ),
       ]);
     })();
+
     return closing;
   };
+
   try {
     signal.throwIfAborted();
     for (const client of scenario.clients) {
@@ -81,13 +88,16 @@ export async function openScenarioSession(
 
   const dispatch = async (entry: TraceEntry) => {
     signal.throwIfAborted();
+
     if (entry.kind === "source-event") {
       const socket = sourceSockets.get(entry.sourceId);
+
       if (socket === undefined || socket.readyState !== WebSocket.OPEN) {
         throw new Error(
           `Source ${entry.sourceId} is not connected when its event is scheduled.`,
         );
       }
+
       socket.send(
         JSON.stringify({
           sourceId: entry.sourceId,
@@ -102,16 +112,22 @@ export async function openScenarioSession(
       await defineView(baseUrl, entry, signal);
     } else {
       const executor = executors.get(entry.clientId);
+
       if (!executor)
         throw new Error(`No executor for client ${entry.clientId}.`);
+
       await executor.execute(entry, signal);
     }
   };
+
   return {
     async execute(entry) {
       signal.throwIfAborted();
+
       if (active) throw new Error("A scenario action is already running.");
+
       active = dispatch(entry);
+
       try {
         await active;
       } finally {

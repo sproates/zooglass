@@ -1,5 +1,8 @@
 # Event-driven live views prototype
 
+The [source map](docs/source-map.md) explains the source files, their responsibilities
+and how they depend on each other. Start there when reading the implementation.
+
 ## Run locally
 
 Requires JDK 25. The Maven Wrapper downloads the configured Maven version when needed.

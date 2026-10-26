@@ -1,7 +1,10 @@
-import { createDemoController, type DemoRun } from "./demo-controller.js";
+import {
+  createDemoController,
+  type DemoRun,
+} from "../../control/demo-controller.js";
 import { startVehicleRun } from "./vehicle-run.js";
-import type { TraceEntry } from "./playback.js";
-import type { Scenario } from "./scenario.js";
+import type { TraceEntry } from "../../scenario/playback.js";
+import type { Scenario } from "../../scenario/scenario.js";
 
 export function createVehicleDemo(
   scenario: Scenario,
@@ -20,16 +23,20 @@ export function createVehicleDemo(
         onControl: async (action, runId) => {
           if (browser?.host.runId !== runId)
             throw new Error("This run has been replaced.");
+
           if (action === "disconnect" || action === "reconnect")
             await viewer(action);
           else await controller[action]();
         },
       });
+
       browser = run.browser;
       baseUrl = run.baseUrl;
+
       try {
         const observed = await run.openScenario();
         console.log(`Browser host ready at ${run.browser.host.origin}`);
+
         return {
           signal: run.signal,
           execute: observed.execute,
@@ -42,10 +49,13 @@ export function createVehicleDemo(
       }
     },
   );
+
   const viewer = (action: "disconnect" | "reconnect") => {
     const client = scenario.clients.find((item) => item.id === "rider-app");
+
     if (!client)
       return Promise.reject(new Error("No vehicle viewer configured."));
+
     const entries: TraceEntry[] = [
       {
         kind: "client-state",
@@ -55,6 +65,7 @@ export function createVehicleDemo(
         state: action === "disconnect" ? "disconnected" : "connected",
       },
     ];
+
     if (action === "reconnect") {
       for (const viewId of ["live-map", "trip-history"])
         entries.push({
@@ -67,11 +78,13 @@ export function createVehicleDemo(
           entityId: "car-17",
         });
     }
+
     return controller.intervene(
       action === "disconnect" ? "Disconnect viewer" : "Reconnect viewer",
       entries,
     );
   };
+
   return {
     ...controller,
     disconnect: () => viewer("disconnect"),

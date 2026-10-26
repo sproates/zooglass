@@ -4,6 +4,19 @@ import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
 
+export type BrowserControlAction =
+  "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect";
+
+export type BrowserControlHandler = (
+  action: BrowserControlAction,
+  runId: string,
+) => Promise<void>;
+
+export interface BrowserHostOptions {
+  application: BrowserApplication;
+  onControl?: BrowserControlHandler;
+}
+
 export interface BrowserApplication {
   clientId: string;
   /** Exact URL paths mapped to content type and bytes; no filesystem routing. */
@@ -13,13 +26,7 @@ export interface BrowserApplication {
 /** Local transport host. Command execution and scenario scheduling are separate. */
 export async function startBrowserHost(
   baseUrl: string,
-  options: {
-    application: BrowserApplication;
-    onControl?: (
-      action: "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect",
-      runId: string,
-    ) => Promise<void>;
-  },
+  options: BrowserHostOptions,
 ) {
   const runId = randomUUID();
   const { clientId, assets } = options.application;
@@ -45,11 +52,14 @@ export async function startBrowserHost(
       response.writeHead(403).end();
       return;
     }
+
     const asset = assets.get(request.url ?? "");
+
     if (request.method !== "GET" || !asset) {
       response.writeHead(404).end();
       return;
     }
+
     response
       .writeHead(200, {
         "Content-Type": asset[0],
@@ -61,11 +71,13 @@ export async function startBrowserHost(
       })
       .end(asset[1]);
   });
+
   server.on("connection", (socket) => {
     sockets.add(socket);
     socket.on("error", () => socket.destroy());
     socket.on("close", () => sockets.delete(socket));
   });
+
   const fail = (message: string) => {
     if (controller.signal.aborted) return;
     if (ready && registered?.readyState === WebSocket.OPEN)
@@ -77,34 +89,44 @@ export async function startBrowserHost(
           reason: message,
         }),
       );
+
     controller.abort(new Error(message));
   };
+
   const client = createBrowserClientExecutor(
     clientId,
     controller.signal,
     (message) => {
       if (!ready || registered?.readyState !== WebSocket.OPEN)
         throw new Error("Browser is not ready.");
+
       registered.send(JSON.stringify({ ...message, runId, clientId }));
     },
     fail,
   );
+
   controlServer.on("connection", (socket) => {
     const deadline = setTimeout(() => socket.terminate(), 5_000);
+
     socket.on("error", () => socket.terminate());
     socket.on("close", () => {
       clearTimeout(deadline);
+
       if (registered === socket && !closing)
         fail("Browser control connection lost.");
     });
     socket.on("message", (data, binary) => {
       try {
         if (binary) throw new Error();
+
         const message = JSON.parse(data.toString());
+
         if (message.runId !== runId || message.clientId !== clientId) {
           if (registered === socket && ready) return;
+
           throw new Error();
         }
+
         if (
           !registered &&
           message.type === "register" &&
@@ -140,6 +162,7 @@ export async function startBrowserHost(
               ].includes(message.action)
             )
               throw new Error();
+
             void options.onControl(message.action, runId).catch((error) => {
               if (socket.readyState === WebSocket.OPEN)
                 socket.send(
@@ -164,6 +187,7 @@ export async function startBrowserHost(
   server.on("upgrade", (request, socket, head) => {
     const reject = (status: number) =>
       socket.end(`HTTP/1.1 ${status} Rejected\r\nConnection: close\r\n\r\n`);
+
     if (
       closing ||
       request.headers.host !== new URL(origin).host ||
@@ -172,13 +196,16 @@ export async function startBrowserHost(
       reject(403);
       return;
     }
+
     const path = new URL(request.url ?? "/", origin);
+
     if (path.pathname === "/control" && !path.search && !registered) {
       controlServer.handleUpgrade(request, socket, head, (client) =>
         controlServer.emit("connection", client),
       );
       return;
     }
+
     if (
       path.pathname !== "/views/live" ||
       path.search !== `?route=${routeToken}` ||
@@ -188,22 +215,30 @@ export async function startBrowserHost(
       reject(403);
       return;
     }
+
     const upstreamUrl = new URL("/views/live", baseUrl);
+
     upstreamUrl.protocol = upstreamUrl.protocol === "https:" ? "wss:" : "ws:";
+
     const upstream = new WebSocket(upstreamUrl, {
       origin: new URL(baseUrl).origin,
       handshakeTimeout: 10_000,
       maxPayload: 1_048_576,
     });
+
     upstreams.add(upstream);
+
     let downstream: WebSocket | undefined;
+
     const terminate = () => {
       upstream.terminate();
       downstream?.terminate();
     };
+
     socket.on("close", terminate);
     upstream.on("error", () => {
       if (!downstream) reject(502);
+
       terminate();
     });
     upstream.on("close", () => {
@@ -215,10 +250,12 @@ export async function startBrowserHost(
         terminate();
         return;
       }
+
       dataServer.handleUpgrade(request, socket, head, (client) => {
         downstream = client;
         client.on("error", terminate);
         client.on("close", terminate);
+
         // No retained replay buffer: excessive pending output closes this route.
         const relay = (target: WebSocket, data: Buffer, binary: boolean) => {
           if (
@@ -228,10 +265,12 @@ export async function startBrowserHost(
             terminate();
             return;
           }
+
           target.send(data, { binary }, (error) => {
             if (error) terminate();
           });
         };
+
         client.on("message", (data, binary) =>
           relay(upstream, data as Buffer, binary),
         );
@@ -248,11 +287,15 @@ export async function startBrowserHost(
       resolve();
     });
   });
+
   const address = server.address();
+
   if (!address || typeof address === "string")
     throw new Error("Host has no local port.");
+
   origin = `http://127.0.0.1:${address.port}`;
   server.on("error", () => fail("Browser host failed."));
+
   return {
     origin,
     runId,
@@ -280,6 +323,7 @@ export async function startBrowserHost(
     },
     close(): Promise<void> {
       if (closing) return closing;
+
       closing = Promise.resolve().then(async () => {
         controller.abort(new Error("Browser host closed."));
         await client.executor.close();
@@ -295,6 +339,7 @@ export async function startBrowserHost(
           ),
         ]);
       });
+
       return closing;
     },
   };

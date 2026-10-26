@@ -12,11 +12,21 @@ check both the latest position and received history, then disconnect a viewer
 while the source continues. The service's response is the evidence; the scenario's
 expected values are only used to check it.
 
-Today Workbench is a CLI with Node WebSocket clients. Browser orchestration,
-interactive controls and fault injection are planned. See
+Today Workbench supports connected CLI runs with Node WebSocket clients and a
+vehicle browser demo with interactive controls. Transport fault injection remains
+planned. See
 [where we're heading](#where-were-heading) for that separate view, and
 [what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
 product explanation.
+
+## Find your way around the source
+
+The [source map](docs/source-map.md) shows the TypeScript modules as boxes with
+labelled dependencies. It explains the CLI entry points, scenario execution and
+browser demo composition, including which parts are shared and which belong to
+the vehicle demo. Start there when reading `src/`. The source folders group CLI entry points, scenario definitions, execution,
+browser infrastructure, playback controls and service lifecycle. Concrete demo
+composition lives under `src/demos/vehicle/`.
 
 ## Run a scenario
 
@@ -455,13 +465,13 @@ for commands, exact scope, limitations and failure artefacts.
 and the exported scenario types. It validates the top-level declarations and
 passes view and timeline rules to cohesive modules:
 
-- `scenario-model.ts` defines the data model without runtime dependencies.
-- `scenario-view.ts` validates field matchers and ordering for both startup and
+- `scenario/scenario-model.ts` defines the data model without runtime dependencies.
+- `scenario/scenario-view.ts` validates field matchers and ordering for both startup and
   runtime views.
-- `scenario-timeline.ts` validates references and dispatches each entry kind to
+- `scenario/scenario-timeline.ts` validates references and dispatches each entry kind to
   its own parser. Runtime view IDs are collected first, allowing forward
   references; parsing preserves input order and does not schedule actions.
-- `scenario-validation.ts` contains the shared record, string and client-state
+- `scenario/scenario-validation.ts` contains the shared record, string and client-state
   checks.
 
 These modules know nothing about the vehicle UI. Run execution and resource
@@ -476,12 +486,12 @@ The session and controller remain the owners of running work. Stateless helpers
 make the protocol operations and step boundaries easier to read without
 introducing another lifecycle manager.
 
-| Module                | Responsibility                                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scenario-session.ts` | Own source sockets and client executors, dispatch one action at a time, cancel active work before disposing resources.                            |
-| `view-http.ts`        | Poll HTTP view checks and post runtime view definitions using the session's cancellation signal and the existing timeouts.                        |
-| `demo-steps.ts`       | Group an ordered trace into setup and steps. Source events and subsequent connection changes begin steps; following checks stay with that action. |
-| `demo-controller.ts`  | Own the step cursor, active tasks, playback timer, pause/resume, reset and close.                                                                 |
+| Module                          | Responsibility                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `execution/scenario-session.ts` | Own source sockets and client executors, dispatch one action at a time, cancel active work before disposing resources.                            |
+| `execution/view-http.ts`        | Poll HTTP view checks and post runtime view definitions using the session's cancellation signal and the existing timeouts.                        |
+| `control/demo-steps.ts`         | Group an ordered trace into setup and steps. Source events and subsequent connection changes begin steps; following checks stay with that action. |
+| `control/demo-controller.ts`    | Own the step cursor, active tasks, playback timer, pause/resume, reset and close.                                                                 |
 
 A step's delay is measured from the preceding checkpoint's final entry, preserving
 the existing playback behaviour. Pause freezes the remaining delay; Reset and
@@ -497,7 +507,7 @@ bytes. The host serves only those entries; it does not choose a demo, read
 vehicle files or provide a default client identity. The supplied page must
 implement the Workbench registration and command protocol.
 
-`vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
+`demos/vehicle/vehicle-browser.ts` supplies the vehicle page, scripts, stylesheet and
 `rider-app` identity. Interactive and automatic vehicle demos use
 `startVehicleBrowserSession`; the browser-engine probes use the same vehicle
 composition. The shared `browser/bridge.js` owns registration, command identity and completion,
@@ -550,7 +560,7 @@ the client, and rendered checks remain in the demo-specific observer.
 
 ### Vehicle run ownership
 
-`vehicle-run.ts` owns the service, browser and scenario for both interactive and
+`demos/vehicle/vehicle-run.ts` owns the service, browser and scenario for both interactive and
 automatic demos. It supplies the vehicle client binding and rendered observer;
 core scenario execution does not import either demo path.
 

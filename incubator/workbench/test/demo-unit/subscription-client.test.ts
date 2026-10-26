@@ -8,11 +8,13 @@ import type {
 } from "../../../vehicle-tracker/src/subscription-client.js";
 
 type Message = Record<string, unknown>;
+
 async function fixture(overrides: Partial<ClientBinding> = {}) {
   const sockets: Socket[] = [];
   const observations: Message[] = [];
   const calls: unknown[][] = [];
   const failures: string[] = [];
+
   class Socket {
     static OPEN = 1;
     static CLOSED = 3;
@@ -30,6 +32,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     }
     emit(name: string, message: Message = {}) {
       if (name === "open") this.readyState = Socket.OPEN;
+
       for (const listener of this.listeners.get(name) ?? [])
         listener({ data: JSON.stringify(message) });
     }
@@ -38,10 +41,12 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     }
     close() {
       if (this.readyState === Socket.CLOSED) return;
+
       this.readyState = Socket.CLOSED;
       this.emit("close");
     }
   }
+
   const binding: ClientBinding = {
     validateSubscription(view, entity) {
       if (view !== "stock" || entity !== "warehouse-2")
@@ -89,12 +94,16 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     close(): void;
     fail(reason: string): void;
   };
+
   async function connect() {
     const pending = client.execute({ action: "connect" });
+
     sockets.at(-1)!.emit("open");
     await pending;
+
     return sockets.at(-1)!;
   }
+
   async function subscribe(socket: Socket) {
     const pending = client.execute({
       action: "subscribe",
@@ -108,8 +117,10 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     });
     await pending;
   }
+
   return { client, connect, subscribe, observations, calls, failures };
 }
+
 const snapshot = {
   type: "view-update",
   viewId: "stock",
@@ -120,8 +131,10 @@ const snapshot = {
 test("a DOM-free inventory binding receives subscriptions and snapshots before observation", async () => {
   const f = await fixture();
   const socket = await f.connect();
+
   await f.subscribe(socket);
   socket.emit("message", snapshot);
+
   assert.deepEqual(socket.sent, [
     { action: "subscribe", viewId: "stock", entityId: "warehouse-2" },
   ]);
@@ -150,6 +163,7 @@ test("a DOM-free inventory binding receives subscriptions and snapshots before o
 test("application restrictions reject a command without writing to the socket", async () => {
   const f = await fixture();
   const socket = await f.connect();
+
   await assert.rejects(
     f.client.execute({
       action: "subscribe",
@@ -171,8 +185,10 @@ test("presentation rejection fails the run without reporting an accepted snapsho
     },
   });
   const socket = await f.connect();
+
   await f.subscribe(socket);
   socket.emit("message", snapshot);
+
   assert.deepEqual(f.failures, ["Invalid inventory snapshot."]);
   assert.equal(
     f.observations.some((e) => e.event === "view-update"),
@@ -188,16 +204,21 @@ test("presentation rejection fails the run without reporting an accepted snapsho
 test("reconnection ignores old socket callbacks and reports the new generation", async () => {
   const f = await fixture();
   const old = await f.connect();
+
   await f.subscribe(old);
   await f.client.execute({ action: "disconnect" });
+
   const current = await f.connect();
   const count = f.calls.length;
+
   old.emit("message", snapshot);
   old.emit("close");
   old.emit("error");
+
   assert.equal(f.calls.length, count);
   await f.subscribe(current);
   current.emit("message", snapshot);
+
   assert.equal(f.observations.at(-1)!.connectionGeneration, 2);
   assert.deepEqual(f.failures, []);
   f.client.close();
@@ -215,9 +236,11 @@ test("unexpected closure rejects pending acknowledgement and reports the binding
     pending,
     /Connection closed before acknowledgement/,
   );
+
   socket.close();
   await rejected;
   f.client.fail("later failure");
+
   assert.deepEqual(f.failures, ["Inventory connection lost."]);
   assert.ok(
     f.calls.some(
@@ -239,6 +262,7 @@ test(
           throw new Error("Cannot render connected state.");
       },
     });
+
     await assert.rejects(f.connect(), /Cannot render connected state/);
     assert.deepEqual(f.failures, ["Cannot render connected state."]);
     assert.equal(
@@ -263,6 +287,7 @@ test(
           throw new Error(`Cannot render ${state}.`);
       },
     });
+
     await assert.rejects(f.connect(), /Cannot render connected/);
     assert.deepEqual(f.failures, ["Cannot render connected."]);
     assert.equal(f.observations.at(-1)!.event, "closed");
@@ -280,6 +305,7 @@ test(
       },
     });
     const socket = await f.connect();
+
     await assert.rejects(f.subscribe(socket), /Cannot render subscription/);
     assert.deepEqual(f.failures, ["Cannot render subscription."]);
     assert.equal(socket.readyState, 3);

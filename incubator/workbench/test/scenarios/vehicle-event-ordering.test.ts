@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { loadScenario } from "../../src/scenario.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 const scenarioPath = fileURLToPath(
   new URL("../../scenarios/vehicle-event-ordering.json", import.meta.url),

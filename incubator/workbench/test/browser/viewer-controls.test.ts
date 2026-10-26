@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { createVehicleDemo } from "../../src/vehicle-demo.js";
-import { loadScenario } from "../../src/scenario.js";
+import { createVehicleDemo } from "../../src/demos/vehicle/vehicle-demo.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 test(
   "manual viewer controls retain data, leave the source live and mark exploration until reset",
@@ -15,6 +15,7 @@ test(
       ),
     );
     const demo = createVehicleDemo(scenario, { headless: true });
+
     const wait = async (check: () => boolean) => {
       const deadline = Date.now() + 30000;
       while (!check()) {
@@ -22,12 +23,16 @@ test(
         await delay(20);
       }
     };
+
     try {
       await demo.reset();
       await demo.step();
+
       const page = demo.browser!.page;
+
       await page.locator("#disconnect").click();
       await wait(() => demo.state.phase === "ready" && demo.state.exploratory);
+
       assert.equal(demo.state.completed, 1);
       assert.match(
         await page.locator("#latest-status").innerText(),
@@ -39,6 +44,7 @@ test(
       );
       await demo.disconnect(); // Already closed is safe.
       await demo.step();
+
       assert.equal(await page.locator("#current-sequence").innerText(), "40");
       assert.equal(
         (await (await fetch(demo.baseUrl + "/views/live-map/car-17")).json())
@@ -55,6 +61,7 @@ test(
       await page.waitForFunction(
         () => document.querySelectorAll("#history li").length === 2,
       );
+
       assert.equal(await page.locator("#history li").count(), 2);
       assert.match(await page.locator("#run-mode").innerText(), /Exploratory/);
       assert.doesNotMatch(
@@ -62,6 +69,7 @@ test(
         /All steps checked/,
       );
       await page.setViewportSize({ width: 390, height: 844 });
+
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
@@ -73,9 +81,11 @@ test(
         fullPage: true,
       });
       await demo.reset();
+
       assert.equal(demo.state.exploratory, false);
       await demo.step();
       await demo.step();
+
       assert.match(demo.state.detail, /All steps checked/);
     } finally {
       await demo.close();
@@ -96,20 +106,24 @@ test(
       ),
     );
     const demo = createVehicleDemo(scenario, { headless: true });
+
     try {
       await demo.reset();
       // 40, 42, late 41, duplicate 41, processing barrier, disconnect.
       for (let i = 0; i < 6; i++) await demo.step();
+
       assert.match(
         await demo.browser!.page.locator("#connection-status").innerText(),
         /disconnected/i,
       );
       await demo.step(); // source continues with 43; viewer remains disconnected
+
       assert.equal(
         await demo.browser!.page.locator("#current-sequence").innerText(),
         "42",
       );
       await demo.step(); // reconnect/subscriptions and independent receipt/render checks
+
       assert.equal(demo.state.phase, "complete");
       assert.equal(demo.state.exploratory, false);
       assert.equal(

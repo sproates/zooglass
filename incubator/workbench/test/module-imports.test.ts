@@ -11,17 +11,19 @@ test("session modules can be imported without starting a service or running the 
       "tsx",
       "--input-type=module",
       "-e",
-      'await import("./src/scenario-session.ts"); await import("./src/zooglass-session.ts"); await import("./src/namespace-scenario.ts");',
+      'await import("./src/execution/scenario-session.ts"); await import("./src/service/zooglass-session.ts"); await import("./src/scenario/namespace-scenario.ts");',
     ],
     { timeout: 5_000, stdio: ["ignore", "pipe", "pipe"] },
   );
   let output = "";
+
   child.stdout.on("data", (data) => {
     output += data;
   });
   child.stderr.on("data", (data) => {
     output += data;
   });
+
   assert.deepEqual(await once(child, "close"), [0, null]);
   assert.equal(output, "");
 });

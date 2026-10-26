@@ -12,6 +12,12 @@ export type BrowserControlHandler = (
   runId: string,
 ) => Promise<void>;
 
+export interface DataConnectionFault {
+  runId: string;
+  clientId: string;
+  action: "break" | "restore";
+}
+
 export interface BrowserHostOptions {
   application: BrowserApplication;
   onControl?: BrowserControlHandler;
@@ -35,6 +41,9 @@ export async function startBrowserHost(
   const controller = new AbortController();
   const sockets = new Set<Socket>();
   const upstreams = new Set<WebSocket>();
+  const routes = new Map<WebSocket, () => Promise<void>>();
+  let dataBlocked = false;
+  let changingDataConnection = false;
   const controlServer = new WebSocketServer({
     noServer: true,
     maxPayload: 16_384,
@@ -216,6 +225,11 @@ export async function startBrowserHost(
       return;
     }
 
+    if (dataBlocked) {
+      reject(503);
+      return;
+    }
+
     const upstreamUrl = new URL("/views/live", baseUrl);
 
     upstreamUrl.protocol = upstreamUrl.protocol === "https:" ? "wss:" : "ws:";
@@ -229,11 +243,28 @@ export async function startBrowserHost(
     upstreams.add(upstream);
 
     let downstream: WebSocket | undefined;
+    let retired = false;
+    const upstreamClosed = new Promise<void>((resolve) =>
+      upstream.once("close", resolve),
+    );
+    const transportClosed = new Promise<void>((resolve) =>
+      socket.once("close", resolve),
+    );
 
     const terminate = () => {
+      retired = true;
       upstream.terminate();
       downstream?.terminate();
     };
+
+    routes.set(upstream, async () => {
+      terminate();
+      socket.destroy();
+      await Promise.all([upstreamClosed, transportClosed]);
+    });
+    void Promise.all([upstreamClosed, transportClosed]).then(() =>
+      routes.delete(upstream),
+    );
 
     socket.on("close", terminate);
     upstream.on("error", () => {
@@ -244,9 +275,16 @@ export async function startBrowserHost(
     upstream.on("close", () => {
       upstreams.delete(upstream);
       downstream?.terminate();
+      if (!downstream) socket.destroy();
     });
     upstream.on("open", () => {
-      if (socket.destroyed || closing || controller.signal.aborted) {
+      if (
+        retired ||
+        dataBlocked ||
+        socket.destroyed ||
+        closing ||
+        controller.signal.aborted
+      ) {
         terminate();
         return;
       }
@@ -259,6 +297,8 @@ export async function startBrowserHost(
         // No retained replay buffer: excessive pending output closes this route.
         const relay = (target: WebSocket, data: Buffer, binary: boolean) => {
           if (
+            retired ||
+            dataBlocked ||
             target.readyState !== WebSocket.OPEN ||
             target.bufferedAmount > 1_048_576
           ) {
@@ -302,6 +342,29 @@ export async function startBrowserHost(
     clientId,
     signal: controller.signal,
     executor: client.executor,
+    async controlDataConnection(fault: DataConnectionFault): Promise<void> {
+      if (
+        closing ||
+        controller.signal.aborted ||
+        fault.runId !== runId ||
+        fault.clientId !== clientId
+      )
+        throw new Error("Data fault does not target an active run and client.");
+      if (fault.action !== "break" && fault.action !== "restore")
+        throw new Error("Unknown data fault action.");
+      if (changingDataConnection)
+        throw new Error("A data fault operation is already in progress.");
+
+      changingDataConnection = true;
+      try {
+        // Gate upgrades before terminating routes, including pending handshakes.
+        dataBlocked = fault.action === "break";
+        if (dataBlocked)
+          await Promise.all([...routes.values()].map((stop) => stop()));
+      } finally {
+        changingDataConnection = false;
+      }
+    },
     publish(state: unknown) {
       if (registered?.readyState === WebSocket.OPEN)
         registered.send(

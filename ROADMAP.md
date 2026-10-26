@@ -111,8 +111,9 @@ disconnected and verifies current snapshots after explicit reconnection.
 It runs through both Node and browser clients. The interactive `--recovery` demo now runs this sequence with rendered checks
 and separate connection checkpoints. Manual viewer controls leave the source
 running and mark the run exploratory until Reset; client checks skipped during
-exploration are explicitly counted. Unexpected faults and automatic recovery
-remain ahead.
+exploration are explicitly counted. The host data-fault gate is implemented for
+review: it interrupts active/pending data routes and refuses upgrades until
+restored. Scenario fault wiring and automatic browser recovery remain ahead.
 
 A separate fault scenario will interrupt the actual browser data path. The app
 must detect the loss, label retained data and recover after the route is

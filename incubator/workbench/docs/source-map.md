@@ -183,7 +183,9 @@ The shared scenario session and client executors do not depend on it.
 [`browser/browser-session.ts`](../src/browser/browser-session.ts) owns Chromium, its context/page
 and the local host. [`browser/browser-host.ts`](../src/browser/browser-host.ts) serves supplied
 assets, accepts the browser control connection and proxies its data connection
-to ZooGlass. It has no dependency on the vehicle app's implementation.
+to ZooGlass. It also owns the run/client-scoped data fault gate, which retires
+active and pending routes before permitting restoration. It has no dependency
+on the vehicle app's implementation.
 
 ```mermaid
 flowchart TB

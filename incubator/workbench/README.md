@@ -404,6 +404,23 @@ run in Workbench CI. The [first walkthrough](../vehicle-tracker/README.md#first-
 covers installation, keyboard controls, reset and narrow-screen use. Final acceptance
 of the complete recovery demo remains outstanding.
 
+### Data connection fault gate
+
+The host exposes `controlDataConnection({ runId, clientId, action })`, where
+`action` is `break` or `restore`. Breaking first blocks new data upgrades with
+HTTP 503, then abruptly terminates active routes and pending upstream handshakes.
+The promise settles after the local transports close. Retired routes cannot
+forward queued callbacks, and restoration creates no connection or replay: the
+client must connect again. Overlapping fault operations, stale identities and
+commands against a closed host are rejected.
+
+The gate affects only the data proxy. Asset serving, the control channel and
+independent source connections remain available. This is the host foundation;
+scenario fault entries and automatic browser recovery are not wired yet. The
+current vehicle client still treats unexpected connection loss as a run failure.
+Socket-level [fault tests](test/browser-data-fault.test.ts) cover abrupt closure,
+refused upgrades, control/source continuity, restoration and pending handshakes.
+
 ## Where we're heading
 
 ![Planned browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)

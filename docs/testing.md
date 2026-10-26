@@ -538,3 +538,11 @@ cohesive protocol scenarios. They have bounded setup/cleanup and independent
 assertions; splitting them solely to reduce line counts would scatter related
 behaviour. Pause timing checks retain real elapsed-time assertions because elapsed
 time is the behaviour being tested.
+
+
+## Refactor acceptance
+
+The [26 October refactor review](verification/2026-10-26-refactor.md) records the
+post-extraction fresh-checkout results, dependency and ownership review, coverage
+comparison, CI turnaround and remaining harness risks. The earlier review remains
+the pre-refactor baseline; neither document is a live test-status dashboard.

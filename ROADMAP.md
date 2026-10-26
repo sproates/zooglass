@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 25 October 2026.
+Last reviewed: 26 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
@@ -46,26 +46,16 @@ Independent rendered checks now gate interactive and automatic completion,
 including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
-The first slice will provide:
+The delivered browser-view milestone includes a fresh run, reset and another
+checked run. See the [vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for
+the design and remaining recovery acceptance criteria.
 
-- A real browser subscribed to latest position and received history.
-- Positions 40 and 42 delivered through ZooGlass, with an observable marker and
-  history list derived from received snapshots.
-- Step and reset controls, with clean session ownership and visible waiting or
-  failure states.
-- Checks of service state, browser receipt and the independently rendered result.
+## Verification and readability review
 
-The milestone is complete when a fresh run displays both views, reset produces
-a fresh session, and another run passes the same checks. See the
-[vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for the design and
-acceptance criteria.
-
-## Next: stronger verification and code readability
-
-Before extending the demo, strengthen evidence for event ordering, reconnect
+Before extending the demo, we strengthened evidence for event ordering, reconnect
 races, concurrent clients, invalid traffic and sustained activity. The
 [verification map](docs/testing.md) records the current tests and measurement
-boundaries. Coverage reporting is the first step, not completion of this work. Seeded
+boundaries. Seeded
 ordering tests now compare every delivery prefix with an independent reference
 model, including duplicates and source/entity isolation. Deterministic reconnect and lifecycle checks now cover stale callbacks, independent
 snapshots and reset/close boundaries. Concurrent clients now have real-transport isolation and bounded slow-receiver
@@ -96,13 +86,17 @@ that same bridge. Client protocol/presentation separation merged in
 rendering supplied by a small binding. Shared demo assembly merged in [PR #55](https://github.com/sproates/zooglass/pull/55).
 The independent core verification command and dependency/reuse review merged in
 [PR #56](https://github.com/sproates/zooglass/pull/56). Core checks run without building the vehicle
-UI or installing browsers; the full test suite remains available. Test organisation is implemented pending review and merge, separating controller
-behaviours and session/process ownership. Final refactor acceptance remains ahead.
+UI or installing browsers; the full test suite remains available. Test organisation
+merged in [PR #57](https://github.com/sproates/zooglass/pull/57), separating controller
+behaviours and session/process ownership. CI turnaround improvements merged in
+[PR #58](https://github.com/sproates/zooglass/pull/58). The
+[final refactor review](docs/verification/2026-10-26-refactor.md) records fresh-checkout
+results, dependency boundaries, justified larger modules and remaining risks.
 
-Once that protection is in place, refactor production and test code for human
-readability, cohesive responsibilities and manageable complexity. Deliver the
-changes in focused increments, preserving observable behaviour. Further demo
-features follow this work.
+The planned refactor is delivered in focused increments with behavioural
+verification retained. The final review is the acceptance record; it does not
+declare the prototype production-ready or close the remaining demo programme.
+Further delivery decisions follow project review.
 
 ## Following: late delivery and recovery
 

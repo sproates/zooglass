@@ -237,12 +237,20 @@ so a subscription acknowledgement alone leaves that view waiting.
 
 After disconnect or unsubscribe, previously received values remain visible and
 are labelled **Last received**. Reconnecting does not make them current: each
-view must receive its own fresh snapshot. A connection failure stops playback
-and shows an error. In a visible demo, the failed page remains open for
+view must receive its own fresh snapshot. An unexpected connection loss outside
+an explicitly armed fault interval stops playback and shows an error. In a visible demo, the failed page remains open for
 inspection. Use Reset to start again, or type `reset` in the terminal if the
 page or control connection is gone. Ctrl+C closes all owned resources. In
 `--auto` mode, restart the command after failure; automatic headless runs clean
-up on failure. Automatic reconnection is not implemented.
+up on failure.
+
+Automatic recovery is limited to an explicitly armed fault interval, used by the
+`--fault` scenario and the manual **Interrupt data** control. During that interval
+the client retains its desired subscriptions, retries within the deadline, and
+resubscribes after the route is restored. Recovery requires acknowledgements and
+both first snapshots; Workbench then checks their contents. A timeout fails the
+run, and an unarmed loss still fails immediately. See the
+[connection-loss walkthrough](#connection-loss-walkthrough).
 
 ## Checks and current limits
 

@@ -32,6 +32,8 @@ export function createVehicleDemo(
 
           if (action === "disconnect" || action === "reconnect")
             await viewer(action);
+          else if (action === "interrupt" || action === "restore")
+            await fault(action);
           else await controller[action]();
         },
       });
@@ -96,8 +98,28 @@ export function createVehicleDemo(
     );
   };
 
+  const fault = (action: "interrupt" | "restore") => {
+    const client = scenario.clients.find((item) => item.id === "rider-app");
+    if (!client)
+      return Promise.reject(new Error("No vehicle viewer configured."));
+    return controller.intervene(
+      action === "interrupt" ? "Interrupt data route" : "Restore data route",
+      [
+        {
+          kind: "data-connection-fault",
+          simulationTime: 0,
+          clientId: client.id,
+          clientName: client.name,
+          action: action === "interrupt" ? "break" : "restore",
+        },
+      ],
+    );
+  };
+
   return {
     ...controller,
+    interrupt: () => fault("interrupt"),
+    restore: () => fault("restore"),
     disconnect: () => viewer("disconnect"),
     reconnect: () => viewer("reconnect"),
     get state() {

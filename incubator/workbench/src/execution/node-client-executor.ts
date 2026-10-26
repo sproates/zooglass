@@ -132,7 +132,10 @@ async function checkClientView(
   console.log(`Client view check passed: ${entry.clientId} (${entry.viewId})`);
 }
 
-export type ClientEntry = Extract<TraceEntry, { clientId: string }>;
+export type ClientEntry = Exclude<
+  Extract<TraceEntry, { clientId: string }>,
+  { kind: "data-connection-fault" }
+>;
 
 /** Owned by one scenario session. execute must honour cancellation. */
 export interface ClientExecutor {

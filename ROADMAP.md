@@ -18,7 +18,7 @@ are intended outcomes, not release dates or claims of existing capability. The
 | Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](incubator/zooglass/README.md) |
 | Ordering scenarios | Latest-position and received-history views can respond differently to the same out-of-order events. Scenarios explore duplicates and the limits of sequence-based completeness assumptions. | [Workbench ordering support, PR #18](https://github.com/sproates/zooglass/pull/18), [sequence guarantees, PR #20](https://github.com/sproates/zooglass/pull/20) |
 | Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with an executor boundary for future browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
-| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation is underway; fault injection remains ahead. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
+| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation includes data-route interruption and bounded recovery; final acceptance remains ahead. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
 | Project guides | Separate production-intent and testing diagrams explain ZooGlass's direction. The Workbench guide distinguishes today's CLI from planned browser orchestration. | [Project explanation, PR #24](https://github.com/sproates/zooglass/pull/24), [Workbench guide, PR #25](https://github.com/sproates/zooglass/pull/25) |
 
 The service remains in memory. Durable recovery, replay of missed messages and
@@ -111,17 +111,17 @@ disconnected and verifies current snapshots after explicit reconnection.
 It runs through both Node and browser clients. The interactive `--recovery` demo now runs this sequence with rendered checks
 and separate connection checkpoints. Manual viewer controls leave the source
 running and mark the run exploratory until Reset; client checks skipped during
-exploration are explicitly counted. The host data-fault gate is implemented for
-review: it interrupts active/pending data routes and refuses upgrades until
-restored. An opt-in client recovery policy is implemented for review, with
-bounded retries and completion only after all desired snapshots arrive.
-The full real-service fault scenario and its capability validation remain ahead.
+exploration are explicitly counted. The host data-fault gate interrupts
+active/pending data routes and refuses upgrades until restored. The client has
+bounded retries and completes recovery only after all desired snapshots arrive.
 
-A separate fault scenario will interrupt the actual browser data path. The app
-must detect the loss, label retained data and recover after the route is
-restored. Workbench will observe the connection and rendered state throughout.
-This is planned work; the current Node scenarios do not establish that a browser
-already behaves this way.
+The `--fault` real-service scenario is implemented for review, pending merge.
+It waits for a refused retry, checks both server views advance while the browser
+is cut off, then restores the route without issuing a reconnect command. Checks
+verify the first recovery snapshots and rendered result. Node-only execution
+rejects this browser fixture before service launch. Reset during an outage and
+deadline expiry while paused also have real-service browser coverage. Final
+recovery acceptance remains outstanding.
 
 The [browser orchestration design](docs/plans/browser-orchestration.md) defines
 the boundaries and checks. Completion also includes a fresh-checkout walkthrough,

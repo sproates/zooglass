@@ -13,8 +13,7 @@ while the source continues. The service's response is the evidence; the scenario
 expected values are only used to check it.
 
 Today Workbench supports connected CLI runs with Node WebSocket clients and a
-vehicle browser demo with interactive controls. Transport fault injection remains
-planned. See
+vehicle browser demo with interactive controls and real data-route interruption. See
 [where we're heading](#where-were-heading) for that separate view, and
 [what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
 product explanation.
@@ -415,8 +414,8 @@ client must connect again. Overlapping fault operations, stale identities and
 commands against a closed host are rejected.
 
 The gate affects only the data proxy. Asset serving, the control channel and
-independent source connections remain available. This is the host foundation;
-scenario fault entries remain to be wired. The vehicle client now supports an
+independent source connections remain available. Scenario fault entries use this
+gate through an injected execution callback. The vehicle client supports an
 explicitly armed recovery interval; unarmed unexpected loss still fails the run.
 Socket-level [fault tests](test/browser-data-fault.test.ts) cover abrupt closure,
 refused upgrades, control/source continuity, restoration and pending handshakes.
@@ -441,8 +440,37 @@ Explicit disconnect, page shutdown and run failure cancel retries and pending
 attempts. Protocol or rendering errors remain fatal; recovery does not hide them.
 The activity trace records interruption, attempts, failures and recovery.
 [Browser recovery tests](test/browser/automatic-recovery.test.ts) exercise the
-real proxy gate against a controlled peer. The real-ZooGlass fault fixture and
-scenario capability validation are the next integration step, not yet delivered.
+real proxy gate against a controlled peer. The [connection-loss tests](test/browser/connection-loss.test.ts)
+exercise real ZooGlass, source continuity, first recovery snapshots, reset during
+an outage and deadline expiry while playback is paused.
+
+### Run the connection-loss scenario
+
+```sh
+npm run demo -- vehicle-tracker --fault
+```
+
+The browser-only [fixture](scenarios/browser/vehicle-connection-loss.json) has eight
+checkpoints. It sends 40, 42, late 41 and duplicate 41, then interrupts the data
+route. The break checkpoint waits for an actual refused retry. Position 43 reaches
+both server views while the browser retains 42. Restore opens the route and waits
+for the application's own retry and resubscription. Workbench checks that the
+first snapshot for each view contains 43; a later correct update cannot hide a
+stale first snapshot. Independent rendered checks complete the run.
+
+A `data-connection-fault` timeline entry names `clientId`, `simulationTime` and
+`action` (`break` or `restore`). An optional `timeoutMs` on `break` sets the
+recovery deadline from 1 to 30,000 ms. Both actions start separate checkpoints.
+The Node integration CLI rejects these fixtures before starting ZooGlass. The
+shared session requires an injected fault handler; vehicle composition supplies
+it without introducing a demo dependency into the executor.
+
+`--fault` cannot be combined with `--basic`, `--recovery` or `--auto`. The page's
+**Interrupt data** and **Restore data** buttons, or terminal `interrupt` and
+`restore`, use the same gate. Manual actions mark the run exploratory and leave
+the scenario cursor unchanged. Reset restores a fresh service and browser.
+The recovery deadline continues while playback is paused; stepping through an
+outage must therefore finish within that interval.
 
 ## Where we're heading
 
@@ -524,9 +552,8 @@ boundaries and the remaining behavioural gaps.
 The browser-host CI job runs both browser coverage and resource tests. Controlled
 peers provide deterministic delayed-delivery and failure cases; they do not
 simulate slow processing inside ZooGlass. Real-service tests separately verify
-receipt, rendering and cleanup. These checks establish current failure handling,
-not automatic network recovery: the planned proxy fault gate and bounded retry
-behaviour remain outstanding.
+receipt, rendering and cleanup. The connection-loss suite additionally verifies
+bounded automatic recovery through the real proxy gate and ZooGlass service.
 
 ### Platform verification
 

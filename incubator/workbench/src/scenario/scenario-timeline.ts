@@ -56,6 +56,41 @@ export function parseTimeline(
 
     const timedEntry = { ...entry, simulationTime: entry.simulationTime };
 
+    if (entry.kind === "data-connection-fault") {
+      const clientId = requiredString(
+        entry.clientId,
+        `timeline[${index}].clientId`,
+      );
+      if (!clientIds.has(clientId))
+        throw new Error(
+          `timeline[${index}] refers to unknown client "${clientId}".`,
+        );
+      if (entry.action !== "break" && entry.action !== "restore")
+        throw new Error(
+          "Data connection fault action must be break or restore.",
+        );
+      if (
+        entry.timeoutMs !== undefined &&
+        (entry.action !== "break" ||
+          typeof entry.timeoutMs !== "number" ||
+          !Number.isInteger(entry.timeoutMs) ||
+          entry.timeoutMs < 1 ||
+          entry.timeoutMs > 30000)
+      )
+        throw new Error(
+          "Fault timeoutMs must be 1–30000 ms and is allowed only on break.",
+        );
+      return {
+        kind: "data-connection-fault",
+        simulationTime: entry.simulationTime,
+        clientId,
+        action: entry.action,
+        ...(entry.timeoutMs === undefined
+          ? {}
+          : { timeoutMs: entry.timeoutMs as number }),
+      };
+    }
+
     if (entry.kind === "client-state")
       return parseClientState(timedEntry, index, references);
 
@@ -73,7 +108,7 @@ export function parseTimeline(
 
     if (entry.kind !== "source-event") {
       throw new Error(
-        `Expected timeline[${index}].kind to be "source-event", "client-state", "client-subscription", "client-view-check", "view-definition", or "view-check".`,
+        `Expected timeline[${index}].kind to be "source-event", "client-state", "client-subscription", "client-view-check", "view-definition", "view-check", or "data-connection-fault".`,
       );
     }
 

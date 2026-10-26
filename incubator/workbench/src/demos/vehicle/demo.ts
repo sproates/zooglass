@@ -18,18 +18,28 @@ async function main() {
       .slice(1)
       .some(
         (arg) =>
-          !["--headless", "--basic", "--auto", "--recovery"].includes(arg),
+          ![
+            "--headless",
+            "--basic",
+            "--auto",
+            "--recovery",
+            "--fault",
+          ].includes(arg),
       )
   )
     throw new Error(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery] [--auto]",
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
     );
 
   if (
-    args.includes("--recovery") &&
-    (args.includes("--basic") || args.includes("--auto"))
+    (args.includes("--recovery") || args.includes("--fault")) &&
+    (args.includes("--basic") ||
+      args.includes("--auto") ||
+      (args.includes("--recovery") && args.includes("--fault")))
   )
-    throw new Error("--recovery cannot be combined with --basic or --auto.");
+    throw new Error(
+      "--recovery and --fault cannot be combined with each other, --basic or --auto.",
+    );
 
   if (args.includes("--auto"))
     return runAutomaticDemo(args.filter((arg) => arg !== "--auto"));
@@ -37,11 +47,13 @@ async function main() {
   const scenario = await loadScenario(
     fileURLToPath(
       new URL(
-        args.includes("--recovery")
-          ? "../../../scenarios/vehicle-browser-recovery.json"
-          : args.includes("--basic")
-            ? "../../../scenarios/vehicle-browser-basic.json"
-            : "../../../scenarios/vehicle-browser-journey.json",
+        args.includes("--fault")
+          ? "../../../scenarios/browser/vehicle-connection-loss.json"
+          : args.includes("--recovery")
+            ? "../../../scenarios/vehicle-browser-recovery.json"
+            : args.includes("--basic")
+              ? "../../../scenarios/vehicle-browser-basic.json"
+              : "../../../scenarios/vehicle-browser-journey.json",
         import.meta.url,
       ),
     ),
@@ -71,18 +83,33 @@ async function main() {
 
     if (action === "quit" || action === "q") return stop();
     if (
-      !["step", "reset", "play", "pause", "disconnect", "reconnect"].includes(
-        action,
-      )
+      ![
+        "step",
+        "reset",
+        "play",
+        "pause",
+        "disconnect",
+        "reconnect",
+        "interrupt",
+        "restore",
+      ].includes(action)
     ) {
       console.log(
-        "Commands: step, play, pause, disconnect, reconnect, reset, quit.",
+        "Commands: step, play, pause, disconnect, reconnect, interrupt, restore, reset, quit.",
       );
       return;
     }
 
     void demo[
-      action as "step" | "reset" | "play" | "pause" | "disconnect" | "reconnect"
+      action as
+        | "step"
+        | "reset"
+        | "play"
+        | "pause"
+        | "disconnect"
+        | "reconnect"
+        | "interrupt"
+        | "restore"
     ]()
       .then(() => console.log(demo.state.detail))
       .catch((error: unknown) =>
@@ -92,7 +119,7 @@ async function main() {
 
   try {
     console.log(
-      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, disconnect, reconnect, reset or quit here. Reset remains available if the page closes.",
+      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, disconnect, reconnect, interrupt, restore, reset or quit here. Reset remains available if the page closes.",
     );
     await demo.reset();
     console.log(demo.state.detail);

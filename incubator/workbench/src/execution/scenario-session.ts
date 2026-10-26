@@ -1,5 +1,8 @@
 import { checkView, defineView } from "./view-http.js";
-import type { TraceEntry } from "../scenario/playback.js";
+import type {
+  TraceEntry,
+  DataConnectionFaultTraceEntry,
+} from "../scenario/playback.js";
 import type { Scenario, ScenarioClient } from "../scenario/scenario.js";
 import {
   createNodeClientExecutor,
@@ -16,6 +19,10 @@ export interface ScenarioSession {
 
 export interface ScenarioSessionOptions {
   signal?: AbortSignal;
+  executeDataFault?: (
+    entry: DataConnectionFaultTraceEntry,
+    signal: AbortSignal,
+  ) => Promise<void>;
   /** Called once per declared client. Returned executors belong to this session. */
   createClientExecutor?: (
     client: ScenarioClient,
@@ -23,11 +30,22 @@ export interface ScenarioSessionOptions {
   ) => ClientExecutor;
 }
 
+export function requireDataFaultSupport(scenario: Scenario, supported = false) {
+  if (
+    !supported &&
+    scenario.timeline.some((entry) => entry.kind === "data-connection-fault")
+  )
+    throw new Error(
+      "This scenario requires browser data-connection-fault support; Node-only execution is unsupported.",
+    );
+}
+
 export async function openScenarioSession(
   scenario: Scenario,
   baseUrl: string,
   options: ScenarioSessionOptions = {},
 ): Promise<ScenarioSession> {
+  requireDataFaultSupport(scenario, !!options.executeDataFault);
   const controller = new AbortController();
   const signal = options.signal
     ? AbortSignal.any([controller.signal, options.signal])
@@ -89,7 +107,11 @@ export async function openScenarioSession(
   const dispatch = async (entry: TraceEntry) => {
     signal.throwIfAborted();
 
-    if (entry.kind === "source-event") {
+    if (entry.kind === "data-connection-fault") {
+      if (!options.executeDataFault)
+        throw new Error("Data connection faults are unsupported.");
+      await options.executeDataFault(entry, signal);
+    } else if (entry.kind === "source-event") {
       const socket = sourceSockets.get(entry.sourceId);
 
       if (socket === undefined || socket.readyState !== WebSocket.OPEN) {

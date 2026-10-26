@@ -148,6 +148,8 @@ flowchart TB
   service["service/zooglass-session.ts<br/>Own ZooGlass process"]
   browser["demos/vehicle/vehicle-browser.ts<br/>Supply vehicle assets and identity"]
   session["execution/scenario-session.ts<br/>Execute scenario actions"]
+  faults["demos/vehicle/vehicle-faults.ts<br/>Coordinate gate, recovery observations and first snapshots"]
+  host["browser/browser-host.ts<br/>Expose data gate and browser observations"]
   observer["demos/vehicle/vehicle-observer.ts<br/>Check the rendered vehicle page"]
   descriptions["demos/vehicle/vehicle-step-description.ts<br/>Explain planned actions and progress"]
   vehicle -->|describes the current or next step| descriptions
@@ -162,6 +164,9 @@ flowchart TB
   run -->|starts and closes service| service
   run -->|starts and closes vehicle browser| browser
   run -->|injects browser executor into session| session
+  run -->|creates fault handler and checks first snapshots| faults
+  faults -.->|uses BrowserHost type for gate and observation API| host
+  run -->|injects fault callback| session
   run -->|wraps execution with page checks| observer
   observer -.->|wraps ScenarioSession contract| session
 ```
@@ -173,6 +178,12 @@ to miss when reading a directory listing.
 `vehicle-step-description.ts` describes planned actions without inferring results.
 `vehicle-run.ts` publishes a demo activity notification only after a source-send
 action succeeds. Neither changes the shared execution or control contracts.
+
+`vehicle-faults.ts` arms recovery, controls the gate and waits for current-run
+observations. After restoration it compares each view's first snapshot with the
+scenario expectation. The shared session dispatches fault entries through an
+injected callback and rejects unsupported scenarios before allocating resources;
+it does not import the vehicle adapter.
 
 The observer is optional demo verification assembled by `vehicle-run.ts`.
 It reads the rendered page independently of the vehicle app's rendering code.

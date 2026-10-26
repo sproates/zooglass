@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
-import { startBrowserHost, type BrowserApplication } from "../browser-host.js";
+import {
+  startBrowserHost,
+  type BrowserApplication,
+} from "../../browser/browser-host.js";
 import {
   startBrowserSession,
   type BrowserSessionOptions,
-} from "../browser-session.js";
+} from "../../browser/browser-session.js";
 
 export type VehicleBrowserSessionOptions = Omit<
   BrowserSessionOptions,
@@ -18,7 +21,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       [
         "text/html; charset=utf-8",
         await readFile(
-          new URL("../../../vehicle-tracker/index.html", import.meta.url),
+          new URL("../../../../vehicle-tracker/index.html", import.meta.url),
         ),
       ],
     ],
@@ -26,7 +29,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       "/bridge.js",
       [
         "text/javascript; charset=utf-8",
-        await readFile(new URL("../../browser/bridge.js", import.meta.url)),
+        await readFile(new URL("../../../browser/bridge.js", import.meta.url)),
       ],
     ],
     [
@@ -34,7 +37,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       [
         "text/javascript; charset=utf-8",
         await readFile(
-          new URL("../../browser/vehicle-bootstrap.js", import.meta.url),
+          new URL("../../../browser/vehicle-bootstrap.js", import.meta.url),
         ),
       ],
     ],
@@ -44,7 +47,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../vehicle-tracker/dist/vehicle-client.js",
+            "../../../../vehicle-tracker/dist/vehicle-client.js",
             import.meta.url,
           ),
         ),
@@ -56,7 +59,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../vehicle-tracker/dist/subscription-client.js",
+            "../../../../vehicle-tracker/dist/subscription-client.js",
             import.meta.url,
           ),
         ),
@@ -67,7 +70,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       [
         "text/javascript; charset=utf-8",
         await readFile(
-          new URL("../../../vehicle-tracker/dist/view.js", import.meta.url),
+          new URL("../../../../vehicle-tracker/dist/view.js", import.meta.url),
         ),
       ],
     ],
@@ -76,7 +79,7 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       [
         "text/css; charset=utf-8",
         await readFile(
-          new URL("../../../vehicle-tracker/vehicle.css", import.meta.url),
+          new URL("../../../../vehicle-tracker/vehicle.css", import.meta.url),
         ),
       ],
     ],

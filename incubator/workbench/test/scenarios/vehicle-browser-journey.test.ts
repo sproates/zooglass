@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { loadScenario } from "../../src/scenario.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 test("journey contains twenty unique contiguous positions with only 41 delayed", async () => {
   const scenario = await loadScenario(

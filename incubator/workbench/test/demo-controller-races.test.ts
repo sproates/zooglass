@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { deferred } from "./support/controller.js";
 import { fileURLToPath } from "node:url";
-import { createDemoController } from "../src/demo-controller.js";
-import { loadScenario } from "../src/scenario.js";
-import type { TraceEntry } from "../src/playback.js";
+import { createDemoController } from "../src/control/demo-controller.js";
+import { loadScenario } from "../src/scenario/scenario.js";
+import type { TraceEntry } from "../src/scenario/playback.js";
 
 const scenario = await loadScenario(
   fileURLToPath(

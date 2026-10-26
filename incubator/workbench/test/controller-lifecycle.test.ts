@@ -4,8 +4,8 @@ import {
   createDemoController,
   DemoCleanupError,
   type DemoRun,
-} from "../src/demo-controller.js";
-import type { TraceEntry } from "../src/playback.js";
+} from "../src/control/demo-controller.js";
+import type { TraceEntry } from "../src/scenario/playback.js";
 import { basicScenario, deferred } from "./support/controller.js";
 
 const scenario = await basicScenario();

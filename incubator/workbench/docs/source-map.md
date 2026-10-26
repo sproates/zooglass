@@ -10,23 +10,43 @@ not a sequence of events or a diagram of deployed processes. Node built-ins,
 external packages and most type-only imports are omitted to keep the views readable.
 A file repeated in two diagrams is the same module.
 
-Paths are relative to `incubator/workbench` unless stated otherwise. The diagrams group related responsibilities. Vehicle-specific composition lives
-in `src/vehicle/`; the other Workbench modules remain directly under `src/`.
+Diagram paths are relative to `src/` unless shown otherwise. Modules are grouped
+by responsibility, with concrete demos under `src/demos/`.
 
-The vehicle folder contains its CLI (`demo.ts`), automatic playback, interactive
+The `demos/vehicle/` folder contains its CLI (`demo.ts`), automatic playback, interactive
 composition, resource ownership, asset binding and rendered-page observer.
-Shared scenario execution, browser transport and playback controls remain outside
-it. These modules use ordinary imports; there is no plugin loading mechanism.
+Shared scenario execution, browser transport and playback controls have their
+own folders. These modules use ordinary imports; there is no plugin loading mechanism.
+
+## Source folders
+
+```text
+src/
+├── cli/             Print-only and connected scenario commands
+├── scenario/        Scenario definitions, validation and ordered traces
+├── execution/       Execute actions, manage connections and check results
+├── browser/         Browser lifecycle, local hosting and command execution
+├── control/         Stepping, playback controls, reset and cancellation
+├── service/         ZooGlass process lifecycle
+└── demos/
+    └── vehicle/     Compose shared components for the vehicle demo
+```
+
+`scenario/` describes and prepares the work; `execution/` performs it against
+ZooGlass. `browser/` is the Node-side browser infrastructure. The sibling
+`workbench/browser/` directory contains scripts served to the browser itself.
+New demos can compose shared modules through ordinary imports beside `vehicle/`.
+No plugin loader or registration framework is involved.
 
 ## Start with the command
 
-| Command                           | Entry module                                    | Purpose                                                                                                  |
-| --------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `npm run simulate`                | [`src/index.ts`](../src/index.ts)               | Load a scenario and print its ordered trace. No service is started and no results are verified.          |
-| `npm run integrate`               | [`src/integration.ts`](../src/integration.ts)   | Run scenarios against a real ZooGlass process using Node clients; send events and verify expected views. |
-| `npm run demo -- vehicle-tracker` | [`src/vehicle/demo.ts`](../src/vehicle/demo.ts) | Start the vehicle demo with browser and terminal controls, or select automatic playback with `--auto`.   |
+| Command                           | Entry module                                                | Purpose                                                                                                  |
+| --------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `npm run simulate`                | [`src/cli/simulate.ts`](../src/cli/simulate.ts)             | Load a scenario and print its ordered trace. No service is started and no results are verified.          |
+| `npm run integrate`               | [`src/cli/integrate.ts`](../src/cli/integrate.ts)           | Run scenarios against a real ZooGlass process using Node clients; send events and verify expected views. |
+| `npm run demo -- vehicle-tracker` | [`src/demos/vehicle/demo.ts`](../src/demos/vehicle/demo.ts) | Start the vehicle demo with browser and terminal controls, or select automatic playback with `--auto`.   |
 
-`integration.ts` means **scenario integration with the real ZooGlass service**.
+`cli/integrate.ts` means **scenario integration with the real ZooGlass service**.
 It namespaces scenario identifiers, starts one service, runs the scenarios in
 order and closes the resources it owns. `--fast` skips scheduled delays, but still
 executes the actions and checks. It is a CLI entry point, not a general integration
@@ -34,13 +54,13 @@ library.
 
 ```mermaid
 flowchart TB
-  index["index.ts<br/>Print-only CLI"]
-  integration["integration.ts<br/>Connected scenario CLI"]
-  demo["vehicle/demo.ts<br/>Vehicle demo CLI"]
-  scenario["scenario.ts<br/>Load and validate fixtures"]
-  playback["playback.ts<br/>Build and format ordered traces"]
-  vehicle["vehicle/vehicle-demo.ts<br/>Interactive demo composition"]
-  automatic["vehicle/automatic-demo.ts<br/>Automatic demo playback"]
+  index["cli/simulate.ts<br/>Print-only CLI"]
+  integration["cli/integrate.ts<br/>Connected scenario CLI"]
+  demo["demos/vehicle/demo.ts<br/>Vehicle demo CLI"]
+  scenario["scenario/scenario.ts<br/>Load and validate fixtures"]
+  playback["scenario/playback.ts<br/>Build and format ordered traces"]
+  vehicle["demos/vehicle/vehicle-demo.ts<br/>Interactive demo composition"]
+  automatic["demos/vehicle/automatic-demo.ts<br/>Automatic demo playback"]
   index -->|loads fixture| scenario
   index -->|prints ordered entries| playback
   integration -->|loads fixtures| scenario
@@ -54,19 +74,19 @@ flowchart TB
 
 ## Turn a fixture into an executable trace
 
-[`scenario.ts`](../src/scenario.ts) is the public loader/parser and re-exports the
+[`scenario/scenario.ts`](../src/scenario/scenario.ts) is the public loader/parser and re-exports the
 scenario types. The smaller parser modules validate their own portions of the
-JSON. [`playback.ts`](../src/playback.ts) turns a validated scenario into ordered
+JSON. [`scenario/playback.ts`](../src/scenario/playback.ts) turns a validated scenario into ordered
 trace entries; callers decide when and where those entries execute.
 
 ```mermaid
 flowchart TB
-  scenario["scenario.ts<br/>Load and parse the whole fixture"]
-  timeline["scenario-timeline.ts<br/>Parse actions and check references"]
-  view["scenario-view.ts<br/>Parse view definitions"]
-  validation["scenario-validation.ts<br/>Shared field checks"]
-  model["scenario-model.ts<br/>Scenario data types"]
-  playback["playback.ts<br/>Produce trace entries"]
+  scenario["scenario/scenario.ts<br/>Load and parse the whole fixture"]
+  timeline["scenario/scenario-timeline.ts<br/>Parse actions and check references"]
+  view["scenario/scenario-view.ts<br/>Parse view definitions"]
+  validation["scenario/scenario-validation.ts<br/>Shared field checks"]
+  model["scenario/scenario-model.ts<br/>Scenario data types"]
+  playback["scenario/playback.ts<br/>Produce trace entries"]
   scenario -->|parses timeline| timeline
   scenario -->|parses initial views| view
   scenario -->|checks fields and client states| validation
@@ -82,20 +102,20 @@ flowchart TB
 
 ## Execute against ZooGlass
 
-[`zooglass-session.ts`](../src/zooglass-session.ts) owns the Java process, temporary
-configuration, readiness checks and shutdown. [`scenario-session.ts`](../src/scenario-session.ts)
+[`service/zooglass-session.ts`](../src/service/zooglass-session.ts) owns the Java process, temporary
+configuration, readiness checks and shutdown. [`execution/scenario-session.ts`](../src/execution/scenario-session.ts)
 owns one scenario's connections and dispatches its trace entries. It does not
 schedule delays or start a browser.
 
 ```mermaid
 flowchart TB
-  integration["integration.ts<br/>Connected scenario CLI"]
-  namespace["namespace-scenario.ts<br/>Isolate scenario identifiers"]
-  service["zooglass-session.ts<br/>Own the service process"]
-  session["scenario-session.ts<br/>Dispatch actions and own connections"]
-  http["view-http.ts<br/>Define and check server views"]
-  client["node-client-executor.ts<br/>Execute client actions and check receipts"]
-  sockets["sockets.ts<br/>Connect, buffer and close WebSockets"]
+  integration["cli/integrate.ts<br/>Connected scenario CLI"]
+  namespace["scenario/namespace-scenario.ts<br/>Isolate scenario identifiers"]
+  service["service/zooglass-session.ts<br/>Own the service process"]
+  session["execution/scenario-session.ts<br/>Dispatch actions and own connections"]
+  http["execution/view-http.ts<br/>Define and check server views"]
+  client["execution/node-client-executor.ts<br/>Execute client actions and check receipts"]
+  sockets["execution/sockets.ts<br/>Connect, buffer and close WebSockets"]
   integration -->|avoids clashes between fixtures| namespace
   integration -->|starts and closes ZooGlass| service
   integration -->|opens and executes each scenario| session
@@ -112,23 +132,23 @@ out of scenario execution.
 
 ## Assemble the vehicle demo
 
-[`demo-controller.ts`](../src/demo-controller.ts) controls stepping, playback,
+[`control/demo-controller.ts`](../src/control/demo-controller.ts) controls stepping, playback,
 reset and cancellation through the `DemoRun` contract. It does not import the
-vehicle app or browser host. [`vehicle-demo.ts`](../src/vehicle/vehicle-demo.ts) supplies
+vehicle app or browser host. [`vehicle-demo.ts`](../src/demos/vehicle/vehicle-demo.ts) supplies
 the concrete run and the vehicle-specific disconnect/reconnect actions.
 
 ```mermaid
 flowchart TB
-  vehicle["vehicle/vehicle-demo.ts<br/>Interactive vehicle composition"]
-  automatic["vehicle/automatic-demo.ts<br/>Automatic playback and failure inspection"]
-  controller["demo-controller.ts<br/>Step, play, pause and reset"]
-  steps["demo-steps.ts<br/>Group entries into checkpoints"]
-  playback["playback.ts<br/>Produce ordered trace entries"]
-  run["vehicle/vehicle-run.ts<br/>Acquire and release demo resources"]
-  service["zooglass-session.ts<br/>Own ZooGlass process"]
-  browser["vehicle/vehicle-browser.ts<br/>Supply vehicle assets and identity"]
-  session["scenario-session.ts<br/>Execute scenario actions"]
-  observer["vehicle/vehicle-observer.ts<br/>Check the rendered vehicle page"]
+  vehicle["demos/vehicle/vehicle-demo.ts<br/>Interactive vehicle composition"]
+  automatic["demos/vehicle/automatic-demo.ts<br/>Automatic playback and failure inspection"]
+  controller["control/demo-controller.ts<br/>Step, play, pause and reset"]
+  steps["control/demo-steps.ts<br/>Group entries into checkpoints"]
+  playback["scenario/playback.ts<br/>Produce ordered trace entries"]
+  run["demos/vehicle/vehicle-run.ts<br/>Acquire and release demo resources"]
+  service["service/zooglass-session.ts<br/>Own ZooGlass process"]
+  browser["demos/vehicle/vehicle-browser.ts<br/>Supply vehicle assets and identity"]
+  session["execution/scenario-session.ts<br/>Execute scenario actions"]
+  observer["demos/vehicle/vehicle-observer.ts<br/>Check the rendered vehicle page"]
   vehicle -->|creates interactive controller| controller
   vehicle -->|opens replacement runs| run
   automatic -->|opens an automatic run| run
@@ -142,7 +162,7 @@ flowchart TB
   observer -.->|wraps ScenarioSession contract| session
 ```
 
-The arrow back to `demo-controller.ts` is a real import of `DemoCleanupError`.
+The arrow back to `control/demo-controller.ts` is a real import of `DemoCleanupError`.
 The map shows the code as it exists, including small dependencies that are easy
 to miss when reading a directory listing.
 
@@ -152,18 +172,18 @@ The shared scenario session and client executors do not depend on it.
 
 ## Host the browser and bind the app
 
-[`browser-session.ts`](../src/browser-session.ts) owns Chromium, its context/page
-and the local host. [`browser-host.ts`](../src/browser-host.ts) serves supplied
+[`browser/browser-session.ts`](../src/browser/browser-session.ts) owns Chromium, its context/page
+and the local host. [`browser/browser-host.ts`](../src/browser/browser-host.ts) serves supplied
 assets, accepts the browser control connection and proxies its data connection
 to ZooGlass. It has no dependency on the vehicle app's implementation.
 
 ```mermaid
 flowchart TB
-  vehicle["src/vehicle/vehicle-browser.ts<br/>Vehicle asset and identity binding"]
-  session["src/browser-session.ts<br/>Own Chromium and local host"]
-  host["src/browser-host.ts<br/>Assets, control channel and data proxy"]
-  executor["src/browser-client-executor.ts<br/>Send commands and check observations"]
-  contract["src/node-client-executor.ts<br/>ClientExecutor and ClientEntry types"]
+  vehicle["src/demos/vehicle/vehicle-browser.ts<br/>Vehicle asset and identity binding"]
+  session["src/browser/browser-session.ts<br/>Own Chromium and local host"]
+  host["src/browser/browser-host.ts<br/>Assets, control channel and data proxy"]
+  executor["src/browser/browser-client-executor.ts<br/>Send commands and check observations"]
+  contract["src/execution/node-client-executor.ts<br/>ClientExecutor and ClientEntry types"]
   vehicle -->|starts owned browser session| session
   vehicle -->|can start host alone| host
   session -->|starts and closes host| host
@@ -195,7 +215,7 @@ be read independently of the demo's presentation.
 
 ## Use the map while reading
 
-For a first connected run, read `integration.ts`, then `scenario-session.ts`,
+For a first connected run, read `cli/integrate.ts`, then `execution/scenario-session.ts`,
 then the executor or HTTP helper for the action you are interested in. For a
 browser demo, start with `demo.ts`, then `vehicle-demo.ts` and `vehicle-run.ts`.
 The controller explains interaction; the browser host explains transport; the

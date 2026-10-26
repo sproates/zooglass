@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { startZooGlassSession } from "../src/zooglass-session.js";
+import { startZooGlassSession } from "../src/service/zooglass-session.js";
 import { serviceFixture } from "./support/service-process.js";
 
 const processTestOptions = {

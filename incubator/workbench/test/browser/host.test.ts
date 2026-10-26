@@ -4,9 +4,9 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import { WebSocket } from "ws";
-import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startVehicleBrowserSession } from "../../src/vehicle/vehicle-browser.js";
-import { loadScenario } from "../../src/scenario.js";
+import { startZooGlassSession } from "../../src/service/zooglass-session.js";
+import { startVehicleBrowserSession } from "../../src/demos/vehicle/vehicle-browser.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 const fixture = fileURLToPath(
   new URL("../../scenarios/vehicle-browser-basic.json", import.meta.url),
@@ -154,7 +154,7 @@ for (const automatic of [false, true]) {
         [
           "--import",
           "tsx",
-          "src/vehicle/demo.ts",
+          "src/demos/vehicle/demo.ts",
           "vehicle-tracker",
           "--headless",
           ...(automatic ? ["--auto"] : []),

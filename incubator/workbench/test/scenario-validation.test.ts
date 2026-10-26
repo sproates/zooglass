@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseScenario } from "../src/scenario.js";
+import { parseScenario } from "../src/scenario/scenario.js";
 
 function scenario() {
   return {

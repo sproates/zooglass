@@ -3,7 +3,7 @@ import childProcess, { type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
 import test from "node:test";
-import { startZooGlassSession } from "../src/zooglass-session.js";
+import { startZooGlassSession } from "../src/service/zooglass-session.js";
 
 // Exercise Windows shutdown decisions on every CI host. These mocks do not
 // establish how a particular Windows console process responds to taskkill.

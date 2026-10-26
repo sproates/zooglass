@@ -3,8 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createVehicleDemo } from "../../src/vehicle/vehicle-demo.js";
-import { loadScenario } from "../../src/scenario.js";
+import { createVehicleDemo } from "../../src/demos/vehicle/vehicle-demo.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 test(
   "five complete browser runs release old hosts and services before fresh state is used",

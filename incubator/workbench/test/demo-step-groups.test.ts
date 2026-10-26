@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createDemoController } from "../src/demo-controller.js";
-import { playScenario, type TraceEntry } from "../src/playback.js";
-import { planDemoSteps } from "../src/demo-steps.js";
-import type { Scenario } from "../src/scenario.js";
+import { createDemoController } from "../src/control/demo-controller.js";
+import { playScenario, type TraceEntry } from "../src/scenario/playback.js";
+import { planDemoSteps } from "../src/control/demo-steps.js";
+import type { Scenario } from "../src/scenario/scenario.js";
 
 const scenario: Scenario = {
   name: "Step boundaries",

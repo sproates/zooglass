@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseScenario } from "../src/scenario.js";
+import { parseScenario } from "../src/scenario/scenario.js";
 
 test("rejects events that refer to an unknown source", () => {
   assert.throws(

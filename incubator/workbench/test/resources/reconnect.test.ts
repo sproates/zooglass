@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { getEventListeners, once } from "node:events";
 import test from "node:test";
-import { startZooGlassSession } from "../../src/zooglass-session.js";
+import { startZooGlassSession } from "../../src/service/zooglass-session.js";
 import {
   connectClient,
   closeClient,
   messagesBySocket,
-} from "../../src/sockets.js";
+} from "../../src/execution/sockets.js";
 import {
   liveClient,
   positionEvent,

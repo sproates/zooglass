@@ -3,10 +3,10 @@ import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { WebSocketServer } from "ws";
-import { startBrowserSession } from "../../src/browser-session.js";
-import { openScenarioSession } from "../../src/scenario-session.js";
-import { playScenario } from "../../src/playback.js";
-import type { Scenario } from "../../src/scenario.js";
+import { startBrowserSession } from "../../src/browser/browser-session.js";
+import { openScenarioSession } from "../../src/execution/scenario-session.js";
+import { playScenario } from "../../src/scenario/playback.js";
+import type { Scenario } from "../../src/scenario/scenario.js";
 
 test(
   "a non-vehicle page registers and supplies receipts through the shared host and scenario session",

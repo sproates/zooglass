@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Page } from "playwright";
-import type { TraceEntry } from "../playback.js";
-import type { ScenarioSession } from "../scenario-session.js";
+import type { TraceEntry } from "../../scenario/playback.js";
+import type { ScenarioSession } from "../../execution/scenario-session.js";
 
 interface RenderedVehicleState {
   sequence: string | null;

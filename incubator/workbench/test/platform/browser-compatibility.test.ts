@@ -3,12 +3,12 @@ import test from "node:test";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium, firefox, webkit } from "playwright";
-import { startVehicleBrowserHost } from "../../src/vehicle/vehicle-browser.js";
-import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { loadScenario } from "../../src/scenario.js";
-import { openScenarioSession } from "../../src/scenario-session.js";
-import { playScenario } from "../../src/playback.js";
-import { observeVehicleSession } from "../../src/vehicle/vehicle-observer.js";
+import { startVehicleBrowserHost } from "../../src/demos/vehicle/vehicle-browser.js";
+import { startZooGlassSession } from "../../src/service/zooglass-session.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
+import { openScenarioSession } from "../../src/execution/scenario-session.js";
+import { playScenario } from "../../src/scenario/playback.js";
+import { observeVehicleSession } from "../../src/demos/vehicle/vehicle-observer.js";
 
 const engines = { chromium, firefox, webkit };
 

@@ -1,7 +1,10 @@
-import { createDemoController, type DemoRun } from "../demo-controller.js";
+import {
+  createDemoController,
+  type DemoRun,
+} from "../../control/demo-controller.js";
 import { startVehicleRun } from "./vehicle-run.js";
-import type { TraceEntry } from "../playback.js";
-import type { Scenario } from "../scenario.js";
+import type { TraceEntry } from "../../scenario/playback.js";
+import type { Scenario } from "../../scenario/scenario.js";
 
 export function createVehicleDemo(
   scenario: Scenario,

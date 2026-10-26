@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
-import type { createVehicleDemo } from "../../../src/vehicle/vehicle-demo.js";
+import type { createVehicleDemo } from "../../../src/demos/vehicle/vehicle-demo.js";
 
 /** Reset destroys the input target. Require both closure and a fresh ready run. */
 export async function resetThroughBrowser(

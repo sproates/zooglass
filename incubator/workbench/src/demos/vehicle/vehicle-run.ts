@@ -1,6 +1,6 @@
-import { DemoCleanupError } from "../demo-controller.js";
+import { DemoCleanupError } from "../../control/demo-controller.js";
 import { observeVehicleSession } from "./vehicle-observer.js";
-import { startZooGlassSession } from "../zooglass-session.js";
+import { startZooGlassSession } from "../../service/zooglass-session.js";
 import {
   startVehicleBrowserSession,
   type VehicleBrowserSessionOptions,
@@ -8,8 +8,8 @@ import {
 import {
   openScenarioSession,
   type ScenarioSession,
-} from "../scenario-session.js";
-import type { Scenario } from "../scenario.js";
+} from "../../execution/scenario-session.js";
+import type { Scenario } from "../../scenario/scenario.js";
 
 /** Own the vehicle service, browser and scenario in acquisition order. */
 export async function startVehicleRun(

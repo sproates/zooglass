@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBrowserClientExecutor } from "../src/browser-client-executor.js";
+import { createBrowserClientExecutor } from "../src/browser/browser-client-executor.js";
 
 const state = {
   kind: "client-state" as const,

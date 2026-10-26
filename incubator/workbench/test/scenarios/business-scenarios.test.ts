@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { loadScenario } from "../../src/scenario.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 const scenariosDirectory = new URL("../../scenarios/", import.meta.url);
 

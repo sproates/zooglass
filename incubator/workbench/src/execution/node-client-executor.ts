@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
-import type { TraceEntry } from "./playback.js";
+import type { TraceEntry } from "../scenario/playback.js";
 import {
   connectClient,
   closeClient,

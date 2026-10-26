@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { startZooGlassSession } from "../src/zooglass-session.js";
+import { startZooGlassSession } from "../src/service/zooglass-session.js";
 import { liveClient, positionEvent } from "./support/live-client.js";
 
 const views = [

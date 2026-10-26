@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { loadScenario } from "../../src/scenario.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 /** Each test group receives its own scenario data; timing variants clone it locally. */
 export function basicScenario() {

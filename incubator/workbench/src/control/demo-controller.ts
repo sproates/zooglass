@@ -1,6 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { playScenario, type TraceEntry } from "./playback.js";
-import type { Scenario } from "./scenario.js";
+import { playScenario, type TraceEntry } from "../scenario/playback.js";
+import type { Scenario } from "../scenario/scenario.js";
 import { planDemoSteps } from "./demo-steps.js";
 
 export type DemoState = {

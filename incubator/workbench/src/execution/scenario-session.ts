@@ -1,6 +1,6 @@
 import { checkView, defineView } from "./view-http.js";
-import type { TraceEntry } from "./playback.js";
-import type { Scenario, ScenarioClient } from "./scenario.js";
+import type { TraceEntry } from "../scenario/playback.js";
+import type { Scenario, ScenarioClient } from "../scenario/scenario.js";
 import {
   createNodeClientExecutor,
   type ClientExecutor,

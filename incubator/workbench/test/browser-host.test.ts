@@ -3,7 +3,7 @@ import test from "node:test";
 import { get } from "node:http";
 import { once } from "node:events";
 import { WebSocket } from "ws";
-import { startBrowserHost } from "../src/browser-host.js";
+import { startBrowserHost } from "../src/browser/browser-host.js";
 
 const application = {
   clientId: "inventory-reader",

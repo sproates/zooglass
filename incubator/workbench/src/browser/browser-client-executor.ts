@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
-import type { ClientEntry, ClientExecutor } from "./node-client-executor.js";
+import type {
+  ClientEntry,
+  ClientExecutor,
+} from "../execution/node-client-executor.js";
 
 interface PendingBrowserCommand {
   id: string;

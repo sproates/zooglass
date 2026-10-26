@@ -7,7 +7,7 @@ import {
   subscription,
   position,
 } from "./support/view-peer.js";
-import { startVehicleBrowserSession } from "../../src/vehicle/vehicle-browser.js";
+import { startVehicleBrowserSession } from "../../src/demos/vehicle/vehicle-browser.js";
 
 test(
   "independent waiting and empty states, retained data, and fresh snapshots after resubscription",

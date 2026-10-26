@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { createVehicleDemo } from "../../src/vehicle/vehicle-demo.js";
-import { loadScenario } from "../../src/scenario.js";
+import { createVehicleDemo } from "../../src/demos/vehicle/vehicle-demo.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 test(
   "manual viewer controls retain data, leave the source live and mark exploration until reset",

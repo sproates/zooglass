@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer, type RequestListener } from "node:http";
 import test, { type TestContext } from "node:test";
-import { openScenarioSession } from "../src/scenario-session.js";
+import { openScenarioSession } from "../src/execution/scenario-session.js";
 
 interface RecordedRequest {
   method: string;

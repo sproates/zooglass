@@ -5,7 +5,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import type { ScenarioView } from "./scenario.js";
+import type { ScenarioView } from "../scenario/scenario.js";
 
 export interface ZooGlassSession {
   baseUrl: string;
@@ -159,7 +159,7 @@ export async function startZooGlassSession(
     child = spawn(process.platform === "win32" ? "mvnw.cmd" : "./mvnw", args, {
       cwd:
         options.serviceDirectory ??
-        fileURLToPath(new URL("../../zooglass/", import.meta.url)),
+        fileURLToPath(new URL("../../../zooglass/", import.meta.url)),
       stdio: ["ignore", "pipe", "pipe"],
       shell: process.platform === "win32",
       detached: process.platform !== "win32",

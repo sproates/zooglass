@@ -1,12 +1,12 @@
-import { observeVehicleSession } from "../../src/vehicle/vehicle-observer.js";
+import { observeVehicleSession } from "../../src/demos/vehicle/vehicle-observer.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { startZooGlassSession } from "../../src/zooglass-session.js";
-import { startVehicleBrowserSession } from "../../src/vehicle/vehicle-browser.js";
-import { openScenarioSession } from "../../src/scenario-session.js";
-import { playScenario } from "../../src/playback.js";
-import { loadScenario } from "../../src/scenario.js";
+import { startZooGlassSession } from "../../src/service/zooglass-session.js";
+import { startVehicleBrowserSession } from "../../src/demos/vehicle/vehicle-browser.js";
+import { openScenarioSession } from "../../src/execution/scenario-session.js";
+import { playScenario } from "../../src/scenario/playback.js";
+import { loadScenario } from "../../src/scenario/scenario.js";
 
 for (const variant of ["basic", "journey"]) {
   const fixture = fileURLToPath(

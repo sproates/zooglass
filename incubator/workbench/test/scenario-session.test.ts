@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { openScenarioSession } from "../src/scenario-session.js";
-import { playScenario } from "../src/playback.js";
-import type { Scenario } from "../src/scenario.js";
+import { openScenarioSession } from "../src/execution/scenario-session.js";
+import { playScenario } from "../src/scenario/playback.js";
+import type { Scenario } from "../src/scenario/scenario.js";
 import { localService, acceptWebSocket } from "./support/local-service.js";
 
 const scenario: Scenario = {

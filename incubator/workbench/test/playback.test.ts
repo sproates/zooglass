@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { playScenario } from "../src/playback.js";
-import { parseScenario } from "../src/scenario.js";
+import { playScenario } from "../src/scenario/playback.js";
+import { parseScenario } from "../src/scenario/scenario.js";
 
 test("plays events by simulation time and preserves declaration order for ties", () => {
   const scenario = parseScenario({

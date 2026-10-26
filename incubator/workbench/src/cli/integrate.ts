@@ -1,15 +1,15 @@
 /**
  * Connected scenario CLI (`npm run integrate`): start ZooGlass, execute fixtures
  * through Node clients, verify their expected views and close owned resources.
- * See ../docs/source-map.md for the module relationships.
+ * See ../../docs/source-map.md for the module relationships.
  */
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { formatTraceEntry, playScenario } from "./playback.js";
-import { loadScenario } from "./scenario.js";
-import { namespaceScenario } from "./namespace-scenario.js";
-import { startZooGlassSession } from "./zooglass-session.js";
-import { openScenarioSession } from "./scenario-session.js";
+import { formatTraceEntry, playScenario } from "../scenario/playback.js";
+import { loadScenario } from "../scenario/scenario.js";
+import { namespaceScenario } from "../scenario/namespace-scenario.js";
+import { startZooGlassSession } from "../service/zooglass-session.js";
+import { openScenarioSession } from "../execution/scenario-session.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);

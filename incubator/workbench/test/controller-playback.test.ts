@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createDemoController } from "../src/demo-controller.js";
+import { createDemoController } from "../src/control/demo-controller.js";
 import { basicScenario, deferred } from "./support/controller.js";
 
 const scenario = await basicScenario();

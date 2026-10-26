@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
-import { playScenario } from "../playback.js";
+import { playScenario } from "../../scenario/playback.js";
 import { setTimeout as delay } from "node:timers/promises";
-import { loadScenario } from "../scenario.js";
+import { loadScenario } from "../../scenario/scenario.js";
 import { startVehicleRun } from "./vehicle-run.js";
 
 export async function runAutomaticDemo(args: string[]) {
@@ -26,8 +26,8 @@ export async function runAutomaticDemo(args: string[]) {
       fileURLToPath(
         new URL(
           args.includes("--basic")
-            ? "../../scenarios/vehicle-browser-basic.json"
-            : "../../scenarios/vehicle-browser-journey.json",
+            ? "../../../scenarios/vehicle-browser-basic.json"
+            : "../../../scenarios/vehicle-browser-journey.json",
           import.meta.url,
         ),
       ),

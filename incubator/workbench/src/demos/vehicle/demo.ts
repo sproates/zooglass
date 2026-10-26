@@ -1,11 +1,11 @@
 /**
  * Vehicle demo CLI (`npm run demo`): select interactive browser/terminal controls
  * or automatic playback, and own command-line shutdown.
- * See ../../docs/source-map.md for the module relationships.
+ * See ../../../docs/source-map.md for the module relationships.
  */
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
-import { loadScenario } from "../scenario.js";
+import { loadScenario } from "../../scenario/scenario.js";
 import { createVehicleDemo } from "./vehicle-demo.js";
 import { runAutomaticDemo } from "./automatic-demo.js";
 
@@ -38,10 +38,10 @@ async function main() {
     fileURLToPath(
       new URL(
         args.includes("--recovery")
-          ? "../../scenarios/vehicle-browser-recovery.json"
+          ? "../../../scenarios/vehicle-browser-recovery.json"
           : args.includes("--basic")
-            ? "../../scenarios/vehicle-browser-basic.json"
-            : "../../scenarios/vehicle-browser-journey.json",
+            ? "../../../scenarios/vehicle-browser-basic.json"
+            : "../../../scenarios/vehicle-browser-journey.json",
         import.meta.url,
       ),
     ),

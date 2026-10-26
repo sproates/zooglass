@@ -1,4 +1,4 @@
-import type { TraceEntry } from "./playback.js";
+import type { TraceEntry } from "../scenario/playback.js";
 
 export interface DemoStep {
   entries: TraceEntry[];

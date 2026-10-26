@@ -16,9 +16,9 @@ on:
       - "incubator/vehicle-tracker/**"
       - "incubator/zooglass/**"
 
-# Stop obsolete PR runs when a newer revision is pushed. Main runs finish normally.
+# PR revisions share a group; each main push gets its own independent group.
 concurrency:
-  group: workbench-${{ github.event.pull_request.number || github.ref }}
+  group: workbench-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:

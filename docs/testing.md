@@ -487,8 +487,10 @@ wrapper once before starting service tests, so parallel clients cannot race to
 unpack a missing distribution on a cold cache. This does not serialise the tests
 or claim to resolve concurrent Maven compilation of the shared service target.
 
-New PR revisions cancel obsolete runs for that PR. Main-branch runs are not
-cancelled. The seven verification jobs and their test scopes remain unchanged.
+New PR revisions share a concurrency group and cancel obsolete runs for that PR.
+Each main-branch push uses its unique run ID, so neither running nor pending
+main runs are superseded by this concurrency policy. The seven verification
+jobs and their test scopes remain unchanged.
 Existing path filters exclude changes confined to root documentation, but changes
 under the three component directories still run the full Workbench workflow.
 

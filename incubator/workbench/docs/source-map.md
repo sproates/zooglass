@@ -230,3 +230,6 @@ implementation and external libraries are outside this map. See the
 When a module is added or its responsibility or dependencies change, update the
 relevant view here alongside the code. Keep labels about the purpose of each
 relationship, rather than reducing them to “imports”.
+
+For the adjacent components, see the [ZooGlass source map](../../zooglass/docs/source-map.md)
+and [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).

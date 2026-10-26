@@ -37,6 +37,7 @@
           <button id="reset" type="button" disabled>Reset</button>
         </div>
         <p id="run-progress" role="status">Starting…</p>
+        <p id="next-step" role="status"></p>
         <p id="run-mode" role="status"></p>
         <p id="control-error" role="alert"></p>
       </section>
@@ -99,6 +100,18 @@
           </p>
         </section>
       </div>
+      <section class="activity-panel" aria-labelledby="activity-title">
+        <h2 id="activity-title">Run activity</h2>
+        <p class="note">
+          Source sends and browser observations are separate evidence. Entries
+          appear in the order this page learns about them, not a global event
+          order.
+        </p>
+        <p id="activity-count">
+          No activity yet. The latest 100 entries will be retained.
+        </p>
+        <ol id="activity" tabindex="0" aria-label="Recent run activity"></ol>
+      </section>
       <footer>
         Snapshots arrive independently. Connecting points is a visual aid, not
         proof of the route travelled. Workbench controls the scenario; vehicle

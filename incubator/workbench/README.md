@@ -595,3 +595,12 @@ CI verifies the core group in a fresh checkout with an explicitly empty
 output or browser binaries appeared, then runs the full standard coverage suite.
 The repeated core checks preserve the existing combined coverage report while
 also proving the clean-checkout contract.
+
+### Vehicle activity and step explanations
+
+The interactive vehicle demo explains its current or next scripted action. Its
+bounded activity panel distinguishes source sends from actual browser receipts,
+subscription acknowledgements and connection changes. The latest 100 entries
+are retained; reset replaces the page and clears the trace. These diagnostics
+are demo-specific and do not change scenario execution or verification. See the
+[vehicle guide](../vehicle-tracker/README.md#follow-the-run) for how to read them.

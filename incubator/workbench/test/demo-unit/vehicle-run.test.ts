@@ -79,3 +79,40 @@ test(
     assert.deepEqual(f.calls.slice(-2), ["close browser", "close service"]);
   },
 );
+
+for (const failAt of [undefined, "execute"] as const) {
+  test(`source send is reported only after successful execution (${failAt ?? "success"})`, async () => {
+    const f = automaticFixture({ failAt });
+    const run = await f.startRun();
+
+    try {
+      const session = await run.openScenario();
+      const action = session.execute({
+        kind: "source-event",
+        sourceId: "vehicle-feed",
+        sourceName: "Location feed",
+        type: "location",
+        entityId: "car-17",
+        payload: { sequence: 41 },
+        simulationTime: 300,
+      });
+
+      if (failAt) {
+        await assert.rejects(action, /rendered check failed/);
+        assert.deepEqual(structuredClone(f.published), []);
+      } else {
+        await action;
+        assert.deepEqual(structuredClone(f.published), [
+          {
+            kind: "vehicle-source-sent",
+            sourceName: "Location feed",
+            sequence: 41,
+            simulationTime: 300,
+          },
+        ]);
+      }
+    } finally {
+      await run.close();
+    }
+  });
+}

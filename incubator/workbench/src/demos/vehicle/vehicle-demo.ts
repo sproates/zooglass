@@ -2,6 +2,10 @@ import {
   createDemoController,
   type DemoRun,
 } from "../../control/demo-controller.js";
+import {
+  vehicleStepDescriptions,
+  describeVehicleProgress,
+} from "./vehicle-step-description.js";
 import { startVehicleRun } from "./vehicle-run.js";
 import type { TraceEntry } from "../../scenario/playback.js";
 import type { Scenario } from "../../scenario/scenario.js";
@@ -10,6 +14,8 @@ export function createVehicleDemo(
   scenario: Scenario,
   options: { headless?: boolean } = {},
 ) {
+  const descriptions = vehicleStepDescriptions(scenario);
+
   let browser:
     Awaited<ReturnType<typeof startVehicleRun>>["browser"] | undefined;
   let baseUrl: string | undefined;
@@ -41,7 +47,12 @@ export function createVehicleDemo(
           signal: run.signal,
           execute: observed.execute,
           close: run.close,
-          publish: run.publish,
+          publish(state) {
+            run.publish({
+              ...state,
+              nextStep: describeVehicleProgress(state, descriptions),
+            });
+          },
         };
       } catch (error) {
         await run.close();

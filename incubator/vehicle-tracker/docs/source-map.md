@@ -1,7 +1,8 @@
 # Vehicle tracker source map
 
-The vehicle tracker is the browser UI for a ZooGlass demo. Its three TypeScript
-modules separate vehicle-specific policy, subscription handling and rendering.
+The vehicle tracker is the browser UI for a ZooGlass demo. Its four TypeScript
+modules separate vehicle-specific policy, subscription handling, rendering and
+run diagnostics.
 Workbench supplies the scenario and controls; vehicle values come from ZooGlass
 snapshots.
 
@@ -40,6 +41,11 @@ imply an autonomous reconnect loop. The renderer distinguishes retained data
 from a current subscribed snapshot. It does not manufacture expected scenario
 results or own the socket.
 
+[`activity.ts`](../src/activity.ts) renders the latest 100 diagnostic entries. It
+receives actual browser observations and successful source-send notices from the
+bootstrap; it does not drive the vehicle views or infer service processing from
+a send. Its state lives for one page lifetime, so reset starts a new trace.
+
 ## How Workbench starts the page
 
 The browser app is currently composed by Workbench. Paths below are relative to
@@ -55,6 +61,8 @@ flowchart TB
   client["vehicle-tracker/src/vehicle-client.ts<br/>Vehicle app composition"]
   html -.->|loads stylesheet| css
   html -.->|loads module script| bootstrap
+  activity["vehicle-tracker/src/activity.ts<br/>Bounded activity rendering"]
+  bootstrap -->|forwards observations and source-send notices| activity
   bootstrap -->|starts bridge with supplied client factory| bridge
   bootstrap -->|creates vehicle client| client
 ```

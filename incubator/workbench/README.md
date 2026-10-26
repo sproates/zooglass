@@ -472,6 +472,22 @@ Apply formatting with `npm run format`.
 See the [verification map](../../docs/testing.md) for coverage commands, report
 boundaries and the remaining behavioural gaps.
 
+### Browser failure and lifecycle evidence
+
+| Behaviour             | Verification                                                                                                                                                                                                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delayed view delivery | [Reconnection tests](test/browser/reconnection.test.ts) hold back a snapshot after subscription acknowledgement, verify the receipt check remains pending, then release it and verify completion and rendering. Closing the session cancels the same pending check.                          |
+| Connection failures   | [State tests](test/browser/states.test.ts) cover refused connections and unexpected loss with retained data. [Reconnection tests](test/browser/reconnection.test.ts) cover loss during subscription/unsubscription acknowledgement, independent snapshot arrival and stale socket callbacks. |
+| Reset during work     | [Lifecycle tests](test/browser/lifecycle.test.ts) cancel pending service checks and playback. [Rendered assertion tests](test/browser/assertions.test.ts) cancel pending rendering checks and verify another run after reset.                                                                |
+| Repeated resets       | [Resource reset test](test/resources/reset.test.ts) completes five real-service browser runs, alternates mouse/keyboard reset and checks old pages, browser processes, hosts and service ports are closed before using fresh state.                                                          |
+
+The browser-host CI job runs both browser coverage and resource tests. Controlled
+peers provide deterministic delayed-delivery and failure cases; they do not
+simulate slow processing inside ZooGlass. Real-service tests separately verify
+receipt, rendering and cleanup. These checks establish current failure handling,
+not automatic network recovery: the planned proxy fault gate and bounded retry
+behaviour remain outstanding.
+
 ### Platform verification
 
 The interactive launcher uses Chromium. CI also runs bounded lifecycle workloads

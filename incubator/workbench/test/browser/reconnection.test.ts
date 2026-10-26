@@ -145,53 +145,82 @@ for (const firstView of ["live-map", "trip-history"]) {
   );
 }
 
-test(
-  "a missing snapshot remains pending and closing the session cancels its check",
-  { timeout: 30_000 },
-  async (t) => {
-    const upstream = await peer();
+for (const outcome of ["delivered", "cancelled"] as const) {
+  test(
+    `a delayed snapshot check stays pending until ${outcome}`,
+    { timeout: 30_000 },
+    async (t) => {
+      const upstream = await peer();
 
-    t.after(() => upstream.close());
+      t.after(() => upstream.close());
 
-    const browser = await startVehicleBrowserSession(upstream.url, {
-      signal: signal(),
-      headless: true,
-    });
+      const browser = await startVehicleBrowserSession(upstream.url, {
+        signal: signal(),
+        headless: true,
+      });
 
-    try {
-      await browser.host.executor.execute(state("connected"), signal());
-      await browser.host.executor.execute(
-        subscription("trip-history"),
-        signal(),
-      );
+      try {
+        await browser.host.executor.execute(state("connected"), signal());
+        await browser.host.executor.execute(
+          subscription("trip-history"),
+          signal(),
+        );
 
-      const pending = browser.host.executor.execute(
-        {
-          kind: "client-view-check",
-          simulationTime: 0,
-          clientId: "rider-app",
-          clientName: "Viewer",
-          viewId: "trip-history",
-          entityId: "car-17",
-          expected: { positions: [position] },
-        },
-        signal(),
-      );
-      const rejected = assert.rejects(pending);
+        let completed = false;
+        const pending = browser.host.executor.execute(
+          {
+            kind: "client-view-check",
+            simulationTime: 0,
+            clientId: "rider-app",
+            clientName: "Viewer",
+            viewId: "trip-history",
+            entityId: "car-17",
+            expected: { positions: [position] },
+          },
+          signal(),
+        );
+        const observed = pending.then(() => {
+          completed = true;
+        });
+        const rejected =
+          outcome === "cancelled" ? assert.rejects(observed) : undefined;
+        // Attach a rejection handler even if an earlier page assertion fails.
+        void observed.catch(() => {});
 
-      assert.match(
-        await browser.page.locator("#history-status").innerText(),
-        /waiting for first snapshot/,
-      );
-      await browser.close();
-      await rejected;
+        assert.match(
+          await browser.page.locator("#history-status").innerText(),
+          /waiting for first snapshot/,
+        );
+        assert.equal(
+          completed,
+          false,
+          "acknowledging the subscription is not a snapshot",
+        );
 
-      assert.equal(browser.page.isClosed(), true);
-    } finally {
-      await browser.close();
-    }
-  },
-);
+        if (outcome === "delivered") {
+          upstream.snapshot("trip-history", { positions: [position] });
+          await observed;
+          await browser.page.locator("#history li").waitFor();
+
+          assert.equal(completed, true);
+          assert.equal(
+            await browser.page.locator("#history li").innerText(),
+            "Position 42 · 51.200, -0.100",
+          );
+          assert.equal(browser.signal.aborted, false);
+        } else {
+          await browser.close();
+          await rejected;
+
+          assert.equal(completed, false);
+          assert.equal(browser.page.isClosed(), true);
+        }
+      } finally {
+        await browser.close();
+      }
+    },
+  );
+}
 
 test(
   "updates before unsubscribe acknowledgement remain valid; resubscribe waits for fresh data",

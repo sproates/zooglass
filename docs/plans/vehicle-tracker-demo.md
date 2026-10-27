@@ -1,6 +1,8 @@
 # Vehicle tracker demo
 
-Status: implemented design baseline; final completion record pending acceptance.
+Status: implemented design baseline. Merging
+[PR #75](https://github.com/sproates/zooglass/pull/75) records final acceptance and
+closes the bounded demo milestone.
 
 The basic browser app
 now renders short 40/42 and twenty-position journey fixtures through real
@@ -20,7 +22,7 @@ Node-only execution rejects the fixture before service launch. The
 [recovery acceptance review](../verification/2026-10-26-recovery.md) records the
 requirement-by-requirement evidence accepted in PR #69.
 The [completion record](../verification/2026-10-27-demo-completion.md) brings
-together the evidence for final acceptance, pending review and merge. The
+together the scope and evidence for that acceptance. The
 [fresh-checkout walkthrough](../verification/2026-10-26-fresh-checkout.md)
 verifies setup and scenario completion, accepted in PR #70. The
 [cleanup review](../verification/2026-10-26-cleanup.md) records shutdown, Reset

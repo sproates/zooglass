@@ -1,9 +1,11 @@
 # Vehicle demo completion record
 
-The bounded vehicle demo is ready for final acceptance. A user can run the
-published commands, follow late delivery and recovery in a real browser, and
-see the views returned by ZooGlass. This record recommends closing that delivery
-milestone when this PR is accepted and merged.
+This record is the proposed final acceptance of the bounded vehicle demo in
+[PR #75](https://github.com/sproates/zooglass/pull/75). Merging that PR records
+acceptance of the evidence and scope below and closes the delivery milestone.
+
+A user can run the published commands, follow late delivery and recovery in a
+real browser, and see the views returned by ZooGlass.
 
 Reviewed baseline: `17216623f2cdc3f3cedd4e92344f5bc19ba672d4`, after
 [PR #74](https://github.com/sproates/zooglass/pull/74). This is a reconciliation

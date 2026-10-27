@@ -5,7 +5,9 @@ Last reviewed: 27 October 2026.
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
 including when information arrives late and a client's connection fails. The bounded
-vehicle demo is ready for final acceptance; a product stocktake follows closure.
+vehicle demo's completion record defines final acceptance through
+[PR #75](https://github.com/sproates/zooglass/pull/75); a product stocktake follows
+that PR's merge.
 
 This page records delivered work, the next milestones and longer-term direction.
 Completed items link to merged changes or working documentation. Planned items
@@ -19,7 +21,7 @@ are intended outcomes, not release dates or claims of existing capability. The
 | Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](incubator/zooglass/README.md) |
 | Ordering scenarios | Latest-position and received-history views can respond differently to the same out-of-order events. Scenarios explore duplicates and the limits of sequence-based completeness assumptions. | [Workbench ordering support, PR #18](https://github.com/sproates/zooglass/pull/18), [sequence guarantees, PR #20](https://github.com/sproates/zooglass/pull/20) |
 | Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with bindings for Node and browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
-| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation includes data-route interruption and bounded recovery; the final completion record is ready for review. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
+| Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation includes data-route interruption and bounded recovery; the final completion record defines acceptance of the bounded demo. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
 | Project guides | Separate production-intent and testing diagrams explain ZooGlass's direction. The Workbench guide describes the CLI and delivered browser orchestration, with their verification boundaries. | [Project explanation, PR #24](https://github.com/sproates/zooglass/pull/24), [Workbench guide, PR #25](https://github.com/sproates/zooglass/pull/25) |
 
 The service remains in memory. Durable recovery, replay of missed messages and
@@ -41,15 +43,16 @@ Waiting, explicit empty snapshots and retained/error states are visible. A
 failed visible run stops and keeps its page available for inspection.
 Step/reset, repeat-run lifecycle tests and the installation/usability walkthrough
 are complete, including keyboard controls, history scrolling and narrow layouts
-([PR #35](https://github.com/sproates/zooglass/pull/35)). Recovery implementation is accepted; the complete demo still needs its final
-acceptance record.
+([PR #35](https://github.com/sproates/zooglass/pull/35)). Recovery implementation is accepted; the
+[completion record](docs/verification/2026-10-27-demo-completion.md) covers final
+acceptance of the complete demo.
 Independent rendered checks now gate interactive and automatic completion,
 including rejection of broken rendering despite correct socket receipts. See the
 [fixture guide](docs/plans/vehicle-tracker-demo.md#basic-scenario-fixture).
 
 The delivered browser-view milestone includes a fresh run, reset and another
 checked run. See the [vehicle demo plan](docs/plans/vehicle-tracker-demo.md) for
-the design and remaining final acceptance criteria.
+the design and final acceptance criteria.
 
 ## Verification and readability review
 
@@ -146,8 +149,9 @@ stack and explains the implemented test environment, accepted in
 [PR #74](https://github.com/sproates/zooglass/pull/74).
 
 The [completion record](docs/verification/2026-10-27-demo-completion.md) reconciles
-these accepted reviews and passing final-baseline CI. Closure of the bounded demo
-is pending review and merge of that record. The next step after acceptance is a
+these accepted reviews and passing final-baseline CI. Merging
+[PR #75](https://github.com/sproates/zooglass/pull/75) records final acceptance and
+closes the bounded demo milestone. The next step after acceptance is a
 product stocktake: assess demonstrated value, missing contracts and the scope
 of a more polished demo, including multiple vehicles and a real map. This does
 not commit to a particular implementation or delivery date.

@@ -43,7 +43,9 @@ and row selection stay in sync. The map uses locally served Leaflet and
 configurable background tiles; automated tests use local synthetic tiles.
 Fit fleet and Follow selected support local navigation; panning releases follow.
 Tile failures show a separate message and Retry map while vehicle data stays usable.
-Direct phone access remains a later increment.
+[Direct phone access](../workbench/docs/external-viewers.md) is available in the
+external fleet mode: `npm run demo -- vehicle-tracker --fleet --bind=<local IPv4 address>`.
+The terminal issues separate pairing links; one viewer controls shared playback.
 
 ![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)
 
@@ -53,8 +55,8 @@ The [manifest](fleet-manifest.json) supplies names and IDs only. Values come fro
 ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).
 `--fleet` is an interactive variant and cannot be combined with `--basic`,
 `--recovery`, `--fault` or `--auto`. The existing default journey and short variants
-are retained. A narrow Chromium viewport is tested; this does not yet provide
-actual network phone access.
+are retained. Automated tests exercise independent Chromium clients. Native
+iPhone/Safari acceptance remains a separate walkthrough.
 
 ## Follow the run
 

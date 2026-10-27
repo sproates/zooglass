@@ -3,6 +3,7 @@
  * or automatic playback, and own command-line shutdown.
  * See ../../../docs/source-map.md for the module relationships.
  */
+import { runExternalVehicleDemo } from "./external-vehicle-terminal.js";
 import { interactiveMapConfiguration } from "./fleet-assets.js";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
@@ -42,8 +43,14 @@ async function main() {
       "Interactive mode is the default; --auto has no terminal commands.\n",
     );
     console.log(terminalHelp);
+    console.log(
+      "Direct phone mode: npm run demo -- vehicle-tracker --fleet --bind=<local IPv4 address>",
+    );
     return;
   }
+
+  if (args.some((arg) => arg.startsWith("--bind=")))
+    return runExternalVehicleDemo(args);
 
   if (
     args[0] !== "vehicle-tracker" ||

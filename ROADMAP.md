@@ -234,9 +234,10 @@ controls and background-failure handling merged in
 [Map acceptance](docs/verification/2026-10-27-fleet-map.md) merged in
 [PR #84](https://github.com/sproates/zooglass/pull/84), followed by precise location
 pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
-[Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) is proposed
-for review: a stable page and control socket can bind to a fresh run after clearing
-old data. Network pairing, simultaneous viewers and the longer six-vehicle scenario
-remain pending.
+[Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
+[External viewer sessions](incubator/workbench/docs/external-viewers.md) are proposed
+for review: explicit local-interface binding, single-use pairing, refresh leases,
+one controller and independent data routes. Native phone acceptance and the longer
+six-vehicle scenario remain pending.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

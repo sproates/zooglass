@@ -9,9 +9,20 @@ export function startBrowserBridge({
   const registration = new URLSearchParams(location.hash.slice(1));
   history.replaceState(null, "", "/");
   let runId = registration.get("runId");
-  const clientId = registration.get("clientId");
-  if (!runId || !clientId || !registration.get("token")) {
-    onStatus("unregistered");
+  let clientId = registration.get("clientId");
+  const pair = registration.get("pair");
+  const saved =
+    runId || pair ? null : sessionStorage.getItem("workbench-viewer");
+  let lease;
+  try {
+    lease = saved ? JSON.parse(saved) : undefined;
+  } catch {
+    sessionStorage.removeItem("workbench-viewer");
+  }
+  const external = !!pair || (!runId && !!lease);
+  const status = (state) => onStatus(state, { external });
+  if (!external && (!runId || !clientId || !registration.get("token"))) {
+    status("unregistered");
     return { requestControl() {} };
   }
   const control = new WebSocket(`ws://${location.host}/control`);
@@ -26,12 +37,28 @@ export function startBrowserBridge({
       type: "register",
       protocolVersion: 1,
       token: registration.get("token"),
+      ...(pair ? { pair } : external ? lease : {}),
     });
     registration.delete("token");
   });
   control.addEventListener("message", async (event) => {
     try {
       const message = JSON.parse(event.data);
+      if (external && message.type === "registered" && !client) {
+        if (
+          typeof message.lease !== "string" ||
+          typeof message.capability !== "string"
+        )
+          throw new Error("Invalid viewer session.");
+        clientId = message.clientId;
+        sessionStorage.setItem(
+          "workbench-viewer",
+          JSON.stringify({
+            lease: message.lease,
+            capability: message.capability,
+          }),
+        );
+      }
       if (message.clientId !== clientId) return;
       if (
         message.type === "run-changed" ||
@@ -55,7 +82,7 @@ export function startBrowserBridge({
           report({ type: "fatal", reason }),
         );
         send({ type: "ready" });
-        onStatus("ready");
+        status("ready");
         return;
       }
       if (message.runId !== runId) return;
@@ -69,7 +96,7 @@ export function startBrowserBridge({
       }
       if (message.type === "run-failed" && client) {
         client.fail(message.reason);
-        onStatus("failed");
+        status("failed");
         return;
       }
       if (
@@ -127,14 +154,14 @@ export function startBrowserBridge({
   control.addEventListener("close", () => {
     client?.fail("Workbench control connection lost.");
     client?.close();
-    onStatus("closed");
+    status("closed");
   });
   control.addEventListener("error", () => {
-    onStatus("error");
+    status("error");
   });
   return {
-    requestControl(action) {
-      send({ type: "control-request", action });
+    requestControl(action, targetClientId) {
+      send({ type: "control-request", action, targetClientId });
     },
   };
 }

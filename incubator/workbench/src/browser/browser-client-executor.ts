@@ -18,6 +18,7 @@ export function createBrowserClientExecutor(
   lifetime: AbortSignal,
   send: (message: Record<string, unknown>) => void,
   fail: (reason: string) => void,
+  recordReceipts = true,
 ) {
   let active = false;
   let generation = 0;
@@ -88,14 +89,14 @@ export function createBrowserClientExecutor(
       )
         throw new Error("Invalid view receipt.");
 
-      if (receipts.length >= 256) {
+      if (recordReceipts && receipts.length >= 256) {
         fail("Browser receipt buffer exhausted.");
         return;
       }
 
       const key = viewKey(message.viewId, message.entityId);
       if (!firstViews.has(key)) firstViews.set(key, message.data);
-      receipts.push(message);
+      if (recordReceipts) receipts.push(message);
     }
   }
 

@@ -30,6 +30,34 @@ const interrupt = document.querySelector("#interrupt");
 const restore = document.querySelector("#restore");
 const reset = document.querySelector("#reset");
 const controlError = document.querySelector("#control-error");
+const target = document.querySelector("#viewer-target");
+let viewerSession;
+let lastRunState;
+function updateAuthority() {
+  if (!lastRunState) return;
+  const state = lastRunState;
+  step.disabled = play.disabled = state.phase !== "ready" || state.playing;
+  pause.disabled = !state.playing;
+  reset.disabled = ["starting", "resetting", "closed"].includes(state.phase);
+  interrupt.disabled =
+    restore.disabled =
+    disconnect.disabled =
+    reconnect.disabled =
+      state.playing || !["ready", "complete"].includes(state.phase);
+  if (state.external && !viewerSession?.controller)
+    for (const button of [
+      step,
+      play,
+      pause,
+      reset,
+      disconnect,
+      reconnect,
+      interrupt,
+      restore,
+    ])
+      button.disabled = true;
+  if (target) target.disabled = !viewerSession?.controller;
+}
 for (const [button, action] of [
   [step, "step"],
   [play, "play"],
@@ -43,12 +71,19 @@ for (const [button, action] of [
   button.addEventListener("click", () => {
     controlError.textContent = "";
     button.disabled = true;
-    bridge.requestControl(action);
+    const targeted = [
+      "disconnect",
+      "reconnect",
+      "interrupt",
+      "restore",
+    ].includes(action);
+    bridge.requestControl(action, targeted ? target?.value : undefined);
   });
 }
 
 const bridge = startBrowserBridge({
   onRunChanged() {
+    lastRunState = undefined;
     resetActivity();
     document.querySelector("#next-step").textContent = "";
     document.querySelector("#run-progress").textContent =
@@ -78,12 +113,16 @@ const bridge = startBrowserBridge({
       fail,
     );
   },
-  onStatus(state) {
+  onStatus(state, context) {
     const messages = {
       unregistered: "Open this demo through Workbench.",
       ready: "Connected to Workbench",
-      failed: "Workbench run failed · playback stopped",
-      closed: "Workbench disconnected · playback stopped",
+      failed: context.external
+        ? "This viewer failed · refresh to rejoin or reset the shared run."
+        : "Workbench run failed · playback stopped",
+      closed: context.external
+        ? "This viewer disconnected · refresh to rejoin, or use a new pairing link."
+        : "Workbench disconnected · playback stopped",
       error: "Could not connect to Workbench.",
     };
     status.textContent = messages[state];
@@ -100,10 +139,33 @@ const bridge = startBrowserBridge({
       ])
         button.disabled = true;
       controlError.textContent =
-        "Control connection lost. Type reset in the terminal to start again.";
+        "Control connection lost. External viewers can refresh to rejoin; owned-browser mode can reset from the terminal.";
     }
   },
   onRunState(state, client) {
+    if (state.kind === "viewer-session") {
+      viewerSession = state;
+      const role = document.querySelector("#viewer-role");
+      role.hidden = false;
+      role.textContent = state.controller
+        ? "You control this shared run."
+        : "Observer · selection is local; playback is controlled by another viewer or the terminal.";
+      document.querySelector("#viewer-target-label").hidden = false;
+      const selected = target.value || state.viewerId;
+      target.replaceChildren(
+        ...state.viewers.map((viewer) => {
+          const option = document.createElement("option");
+          option.value = viewer.id;
+          option.textContent = `${viewer.name}${viewer.connected ? "" : " (disconnected)"}`;
+          return option;
+        }),
+      );
+      target.value = state.viewers.some((viewer) => viewer.id === selected)
+        ? selected
+        : state.viewerId;
+      updateAuthority();
+      return;
+    }
     if (state.kind === "data-fault") {
       recordFault(state.action);
       return;
@@ -117,6 +179,7 @@ const bridge = startBrowserBridge({
       return;
     }
 
+    lastRunState = state;
     document.querySelector("#next-step").textContent = state.nextStep ?? "";
     document.querySelector("#workbench-controls").hidden = false;
     if (state.phase === "failed") client?.fail(state.detail);
@@ -128,15 +191,19 @@ const bridge = startBrowserBridge({
       disconnect.disabled =
       reconnect.disabled =
         state.playing || !["ready", "complete"].includes(state.phase);
-    document.querySelector("#run-mode").textContent = state.exploratory
-      ? `Exploratory · ${state.interventions} manual intervention(s) · Last: ${state.lastIntervention} · ${state.skippedChecks} client checks skipped. Reset for a scripted run.`
-      : "Scripted run";
+    document.querySelector("#run-mode").textContent = state.external
+      ? "External demonstration · source/HTTP checks only; viewer behaviour is exploratory."
+      : state.exploratory
+        ? `Exploratory · ${state.interventions} manual intervention(s) · Last: ${state.lastIntervention} · ${state.skippedChecks} client checks skipped. Reset for a scripted run.`
+        : "Scripted run";
     reset.disabled = ["starting", "resetting", "closed"].includes(state.phase);
     document.querySelector("#run-progress").textContent =
-      `${state.completed}/${state.total} ${state.exploratory ? "steps executed" : "steps checked"} · ${state.detail}`;
+      `${state.completed}/${state.total} ${state.external ? "source steps checked" : state.exploratory ? "steps executed" : "steps checked"} · ${state.detail}`;
     controlError.textContent = "";
+    updateAuthority();
   },
   onControlRejected(reason) {
     controlError.textContent = reason;
+    updateAuthority();
   },
 });

@@ -1,8 +1,8 @@
-import { createBrowserClientExecutor } from "./browser-client-executor.js";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
+import { createBrowserRun, type BrowserRun } from "./browser-run.js";
 
 export type BrowserControlAction =
   | "step"
@@ -38,12 +38,8 @@ export interface BrowserApplication {
   assets: ReadonlyMap<string, readonly [string, Buffer]>;
 }
 
-/** Local transport host. Command execution and scenario scheduling are separate. */
-export async function startBrowserHost(
-  baseUrl: string,
-  options: BrowserHostOptions,
-) {
-  const runId = randomUUID();
+/** Stable local application host; replacing a run preserves its registered control socket. */
+export async function startApplicationHost(options: BrowserHostOptions) {
   const { clientId, assets } = options.application;
   const imageOrigins = (options.application.imageOrigins ?? []).map((value) => {
     const url = new URL(value);
@@ -52,38 +48,28 @@ export async function startBrowserHost(
     return url.origin;
   });
   const registrationToken = randomUUID();
-  const routeToken = randomUUID();
   const controller = new AbortController();
   const sockets = new Set<Socket>();
-  const upstreams = new Set<WebSocket>();
-  const routes = new Map<WebSocket, () => Promise<void>>();
-  let dataBlocked = false;
-  let changingDataConnection = false;
   const controlServer = new WebSocketServer({
     noServer: true,
     maxPayload: 16_384,
   });
-  const dataServer = new WebSocketServer({
-    noServer: true,
-    maxPayload: 1_048_576,
-  });
+  let active: BrowserRun | undefined;
   let registered: WebSocket | undefined;
-  let ready = false;
   let closing: Promise<void> | undefined;
+  let replacing = false;
+  let retiring: Promise<void> | undefined;
   let origin = "";
   const server = createServer((request, response) => {
     if (request.headers.host !== new URL(origin).host) {
       response.writeHead(403).end();
       return;
     }
-
     const asset = assets.get(request.url ?? "");
-
     if (request.method !== "GET" || !asset) {
       response.writeHead(404).end();
       return;
     }
-
     response
       .writeHead(200, {
         "Content-Type": asset[0],
@@ -94,247 +80,67 @@ export async function startBrowserHost(
       })
       .end(asset[1]);
   });
-
   server.on("connection", (socket) => {
     sockets.add(socket);
     socket.on("error", () => socket.destroy());
     socket.on("close", () => sockets.delete(socket));
   });
-
-  const fail = (message: string) => {
-    if (controller.signal.aborted) return;
-    if (ready && registered?.readyState === WebSocket.OPEN)
-      registered.send(
-        JSON.stringify({
-          type: "run-failed",
-          runId,
-          clientId,
-          reason: message,
-        }),
-      );
-
-    controller.abort(new Error(message));
-  };
-
-  const client = createBrowserClientExecutor(
-    clientId,
-    controller.signal,
-    (message) => {
-      if (!ready || registered?.readyState !== WebSocket.OPEN)
-        throw new Error("Browser is not ready.");
-
-      registered.send(JSON.stringify({ ...message, runId, clientId }));
-    },
-    fail,
-  );
-
   controlServer.on("connection", (socket) => {
     const deadline = setTimeout(() => socket.terminate(), 5_000);
-
     socket.on("error", () => socket.terminate());
     socket.on("close", () => {
       clearTimeout(deadline);
-
       if (registered === socket && !closing)
-        fail("Browser control connection lost.");
+        active?.fail("Browser control connection lost.");
     });
     socket.on("message", (data, binary) => {
       try {
         if (binary) throw new Error();
-
         const message = JSON.parse(data.toString());
-
-        if (message.runId !== runId || message.clientId !== clientId) {
-          if (registered === socket && ready) return;
-
-          throw new Error();
-        }
-
-        if (
+        if (!message || typeof message !== "object") throw new Error();
+        if (registered === socket) {
+          active?.receive(message);
+        } else if (
           !registered &&
+          active &&
           message.type === "register" &&
+          message.runId === active.runId &&
+          message.clientId === clientId &&
           message.protocolVersion === 1 &&
           message.token === registrationToken
         ) {
           registered = socket;
           clearTimeout(deadline);
-          socket.send(
-            JSON.stringify({
-              type: "registered",
-              runId,
-              clientId,
-              dataPath: `/views/live?route=${routeToken}`,
-            }),
-          );
-        } else if (
-          registered === socket &&
-          message.type === "ready" &&
-          !ready
-        ) {
-          ready = true;
-        } else if (registered === socket && ready) {
-          if (message.type === "control-request" && options.onControl) {
-            if (
-              ![
-                "step",
-                "reset",
-                "play",
-                "pause",
-                "disconnect",
-                "reconnect",
-                "interrupt",
-                "restore",
-              ].includes(message.action)
-            )
-              throw new Error();
-
-            void options.onControl(message.action, runId).catch((error) => {
-              if (socket.readyState === WebSocket.OPEN)
-                socket.send(
-                  JSON.stringify({
-                    type: "control-rejected",
-                    runId,
-                    clientId,
-                    reason:
-                      error instanceof Error ? error.message : String(error),
-                  }),
-                );
-            });
-          } else if (!controller.signal.aborted) client.receive(message);
-        } else {
-          throw new Error();
-        }
+          active.announce("registered");
+        } else throw new Error();
       } catch {
         socket.close(1008, "Invalid control message.");
       }
     });
   });
   server.on("upgrade", (request, socket, head) => {
-    const reject = (status: number) =>
-      socket.end(`HTTP/1.1 ${status} Rejected\r\nConnection: close\r\n\r\n`);
-
+    const reject = () =>
+      socket.end("HTTP/1.1 403 Rejected\r\nConnection: close\r\n\r\n");
     if (
       closing ||
       request.headers.host !== new URL(origin).host ||
       request.headers.origin !== origin
     ) {
-      reject(403);
+      reject();
       return;
     }
-
     const path = new URL(request.url ?? "/", origin);
-
-    if (path.pathname === "/control" && !path.search && !registered) {
+    if (path.pathname === "/control" && !path.search && !registered && active) {
       controlServer.handleUpgrade(request, socket, head, (client) =>
         controlServer.emit("connection", client),
       );
       return;
     }
-
-    if (
-      path.pathname !== "/views/live" ||
-      path.search !== `?route=${routeToken}` ||
-      !ready ||
-      controller.signal.aborted
-    ) {
-      reject(403);
+    if (!active?.ready || request.url !== active.dataPath) {
+      reject();
       return;
     }
-
-    if (dataBlocked) {
-      reject(503);
-      return;
-    }
-
-    const upstreamUrl = new URL("/views/live", baseUrl);
-
-    upstreamUrl.protocol = upstreamUrl.protocol === "https:" ? "wss:" : "ws:";
-
-    const upstream = new WebSocket(upstreamUrl, {
-      origin: new URL(baseUrl).origin,
-      handshakeTimeout: 10_000,
-      maxPayload: 1_048_576,
-    });
-
-    upstreams.add(upstream);
-
-    let downstream: WebSocket | undefined;
-    let retired = false;
-    const upstreamClosed = new Promise<void>((resolve) =>
-      upstream.once("close", resolve),
-    );
-    const transportClosed = new Promise<void>((resolve) =>
-      socket.once("close", resolve),
-    );
-
-    const terminate = () => {
-      retired = true;
-      upstream.terminate();
-      downstream?.terminate();
-    };
-
-    routes.set(upstream, async () => {
-      terminate();
-      socket.destroy();
-      await Promise.all([upstreamClosed, transportClosed]);
-    });
-    void Promise.all([upstreamClosed, transportClosed]).then(() =>
-      routes.delete(upstream),
-    );
-
-    socket.on("close", terminate);
-    upstream.on("error", () => {
-      if (!downstream) reject(502);
-
-      terminate();
-    });
-    upstream.on("close", () => {
-      upstreams.delete(upstream);
-      downstream?.terminate();
-      if (!downstream) socket.destroy();
-    });
-    upstream.on("open", () => {
-      if (
-        retired ||
-        dataBlocked ||
-        socket.destroyed ||
-        closing ||
-        controller.signal.aborted
-      ) {
-        terminate();
-        return;
-      }
-
-      dataServer.handleUpgrade(request, socket, head, (client) => {
-        downstream = client;
-        client.on("error", terminate);
-        client.on("close", terminate);
-
-        // No retained replay buffer: excessive pending output closes this route.
-        const relay = (target: WebSocket, data: Buffer, binary: boolean) => {
-          if (
-            retired ||
-            dataBlocked ||
-            target.readyState !== WebSocket.OPEN ||
-            target.bufferedAmount > 1_048_576
-          ) {
-            terminate();
-            return;
-          }
-
-          target.send(data, { binary }, (error) => {
-            if (error) terminate();
-          });
-        };
-
-        client.on("message", (data, binary) =>
-          relay(upstream, data as Buffer, binary),
-        );
-        upstream.on("message", (data, binary) =>
-          relay(client, data as Buffer, binary),
-        );
-      });
-    });
+    active.upgrade(request, socket, head);
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -343,84 +149,89 @@ export async function startBrowserHost(
       resolve();
     });
   });
-
   const address = server.address();
-
   if (!address || typeof address === "string")
     throw new Error("Host has no local port.");
-
   origin = `http://127.0.0.1:${address.port}`;
-  server.on("error", () => fail("Browser host failed."));
+  server.on("error", () => {
+    active?.fail("Browser host failed.");
+    controller.abort(new Error("Browser host failed."));
+  });
 
   return {
     origin,
-    runId,
-    clientId,
     signal: controller.signal,
-    executor: client.executor,
-    observations: client.observations,
-    async controlDataConnection(fault: DataConnectionFault): Promise<void> {
-      if (
-        closing ||
-        controller.signal.aborted ||
-        fault.runId !== runId ||
-        fault.clientId !== clientId
-      )
-        throw new Error("Data fault does not target an active run and client.");
-      if (fault.action !== "break" && fault.action !== "restore")
-        throw new Error("Unknown data fault action.");
-      if (changingDataConnection)
-        throw new Error("A data fault operation is already in progress.");
-
-      changingDataConnection = true;
+    get pageUrl() {
+      if (!active) throw new Error("Bind a run before opening a browser.");
+      return `${origin}/#${new URLSearchParams({ runId: active.runId, clientId, token: registrationToken })}`;
+    },
+    async replaceRun(baseUrl: string): Promise<BrowserRun> {
+      if (closing || controller.signal.aborted)
+        throw new Error("Browser host closed.");
+      if (replacing) throw new Error("Run replacement already in progress.");
+      replacing = true;
       try {
-        // Gate upgrades before terminating routes, including pending handshakes.
-        dataBlocked = fault.action === "break";
-        if (dataBlocked)
-          await Promise.all([...routes.values()].map((stop) => stop()));
+        const previous = active;
+        active = undefined;
+        retiring = previous?.close();
+        await retiring;
+        if (closing) throw new Error("Browser host closed.");
+        const run = createBrowserRun(baseUrl, {
+          clientId,
+          onControl: options.onControl,
+          send(message) {
+            if (active !== run || registered?.readyState !== WebSocket.OPEN)
+              return false;
+            registered.send(JSON.stringify(message));
+            return true;
+          },
+        });
+        active = run;
+        if (registered) run.announce("run-changed");
+        return run;
       } finally {
-        changingDataConnection = false;
+        replacing = false;
       }
-    },
-    publish(state: unknown) {
-      if (registered?.readyState === WebSocket.OPEN)
-        registered.send(
-          JSON.stringify({ type: "run-state", runId, clientId, state }),
-        );
-    },
-    pageUrl: `${origin}/#${new URLSearchParams({ runId, clientId, token: registrationToken })}`,
-    async waitForReady(signal: AbortSignal, timeoutMs = 15_000) {
-      const combined = AbortSignal.any([
-        signal,
-        controller.signal,
-        AbortSignal.timeout(timeoutMs),
-      ]);
-      while (!ready) {
-        combined.throwIfAborted();
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-      combined.throwIfAborted();
     },
     close(): Promise<void> {
-      if (closing) return closing;
-
-      closing = Promise.resolve().then(async () => {
+      return (closing ??= (async () => {
         controller.abort(new Error("Browser host closed."));
-        await client.executor.close();
-        for (const client of controlServer.clients) client.terminate();
-        for (const client of dataServer.clients) client.terminate();
-        for (const upstream of upstreams) upstream.terminate();
+        await retiring;
+        await active?.close();
+        for (const socket of controlServer.clients) socket.terminate();
         for (const socket of sockets) socket.destroy();
         await Promise.all([
           new Promise<void>((resolve) => controlServer.close(() => resolve())),
-          new Promise<void>((resolve) => dataServer.close(() => resolve())),
           new Promise<void>((resolve, reject) =>
             server.close((error) => (error ? reject(error) : resolve())),
           ),
         ]);
-      });
-
-      return closing;
+      })());
     },
   };
+}
+
+export type ApplicationHost = Awaited<ReturnType<typeof startApplicationHost>>;
+
+/** Convenience composition for the existing one-host-per-owned-browser mode. */
+export async function startBrowserHost(
+  baseUrl: string,
+  options: BrowserHostOptions,
+) {
+  const host = await startApplicationHost(options);
+  try {
+    const run = await host.replaceRun(baseUrl);
+    return {
+      ...run,
+      get ready() {
+        return run.ready;
+      },
+      origin: host.origin,
+      pageUrl: host.pageUrl,
+      close: host.close,
+    };
+  } catch (error) {
+    await host.close();
+    throw error;
+  }
 }

@@ -23,7 +23,7 @@ export function createFleetClient(
     map.render();
   }
 
-  return createRecoveringClient(dataPath, report, fail, {
+  const client = createRecoveringClient(dataPath, report, fail, {
     validateSubscription(viewId, entityId) {
       if (!viewId || !entityId)
         throw new Error("Missing fleet subscription identity.");
@@ -43,4 +43,11 @@ export function createFleetClient(
       render();
     },
   });
+  return {
+    ...client,
+    close() {
+      client.close();
+      map.close();
+    },
+  };
 }

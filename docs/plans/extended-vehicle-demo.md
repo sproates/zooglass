@@ -9,8 +9,9 @@ a text-based fleet browser with local selection, independent received state and
 manual reconnect/reset. Map integration adds a Gibraltar background, received
 markers and selected history. Fit/follow and map failure handling are merged on
 the programme branch; [map acceptance](../verification/2026-10-27-fleet-map.md)
-is ready for review. Network viewers and the longer six-vehicle scenarios remain
-pending.
+merged in PR #84, with location pointers added in PR #85. The
+[host lifetime foundation](../../incubator/workbench/docs/browser-lifetime.md) is
+proposed for review; network viewers and the longer six-vehicle scenarios remain pending.
 
 ## What someone should be able to do
 

@@ -8,6 +8,7 @@ export interface MapConfiguration {
 
 /** Tile availability is presentation state, independent of ZooGlass connectivity. */
 export function addMapTiles(map: L.Map, configuration: MapConfiguration) {
+  const lifetime = new AbortController();
   const credit = document.createElement(
     configuration.attributionUrl ? "a" : "span",
   );
@@ -78,11 +79,23 @@ export function addMapTiles(map: L.Map, configuration: MapConfiguration) {
   tiles.on("tileunload", tileFinished);
   tiles.on("tileload", tileFinished);
   tiles.on("loading load", render);
-  retry.addEventListener("click", () => {
-    failed.clear();
-    tiles.redraw();
-    render();
-  });
+  retry.addEventListener(
+    "click",
+    () => {
+      failed.clear();
+      tiles.redraw();
+      render();
+    },
+    { signal: lifetime.signal },
+  );
   tiles.addTo(map);
   render();
+  return {
+    close() {
+      lifetime.abort();
+      tiles.off();
+      for (const timer of deadlines.values()) clearTimeout(timer);
+      deadlines.clear();
+    },
+  };
 }

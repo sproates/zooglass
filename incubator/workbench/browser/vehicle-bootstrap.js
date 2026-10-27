@@ -1,6 +1,11 @@
 import { startBrowserBridge } from "/bridge.js";
 import { createVehicleClient } from "/vehicle-client.js";
-import { recordObservation, recordSourceSend, recordFault } from "/activity.js";
+import {
+  recordObservation,
+  recordSourceSend,
+  recordFault,
+  resetActivity,
+} from "/activity.js";
 
 let createClient = createVehicleClient;
 if (document.body.dataset.fleet === "true") {
@@ -43,6 +48,25 @@ for (const [button, action] of [
 }
 
 const bridge = startBrowserBridge({
+  onRunChanged() {
+    resetActivity();
+    document.querySelector("#next-step").textContent = "";
+    document.querySelector("#run-progress").textContent =
+      "Waiting for the new run.";
+    document.querySelector("#run-mode").textContent = "Scripted run";
+    controlError.textContent = "";
+    for (const button of [
+      step,
+      play,
+      pause,
+      reset,
+      disconnect,
+      reconnect,
+      interrupt,
+      restore,
+    ])
+      button.disabled = true;
+  },
   createClient(dataPath, report, fail) {
     document.body.dataset.dataPath = dataPath;
     return createClient(

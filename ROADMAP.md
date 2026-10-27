@@ -231,8 +231,12 @@ and recovery after offline source progress.
 history and configurable background tiles. Fit/follow navigation, keyboard/touch
 controls and background-failure handling merged in
 [PR #83](https://github.com/sproates/zooglass/pull/83).
-[Map acceptance](docs/verification/2026-10-27-fleet-map.md) is proposed for review,
-with independent rendering, interaction and provider-boundary evidence. Network
-viewers and the longer six-vehicle scenario remain pending.
+[Map acceptance](docs/verification/2026-10-27-fleet-map.md) merged in
+[PR #84](https://github.com/sproates/zooglass/pull/84), followed by precise location
+pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
+[Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) is proposed
+for review: a stable page and control socket can bind to a fresh run after clearing
+old data. Network pairing, simultaneous viewers and the longer six-vehicle scenario
+remain pending.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

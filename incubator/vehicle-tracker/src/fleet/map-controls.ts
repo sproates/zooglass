@@ -3,6 +3,7 @@ import type { FleetModel } from "./model.js";
 
 /** Local map navigation; never changes subscriptions or scenario playback. */
 export function createMapControls(map: L.Map, model: FleetModel) {
+  const lifetime = new AbortController();
   const fit = document.getElementById("fit-fleet") as HTMLButtonElement;
   const follow = document.getElementById(
     "follow-selected",
@@ -41,25 +42,33 @@ export function createMapControls(map: L.Map, model: FleetModel) {
     render();
   };
 
-  fit.addEventListener("click", () => {
-    stopFollowing();
-    const positions = model.vehicles.flatMap((vehicle) => {
-      const p = model.get("fleet-state", vehicle.id).position;
-      return p ? [L.latLng(p.latitude, p.longitude)] : [];
-    });
-    if (positions.length)
-      map.fitBounds(L.latLngBounds(positions), {
-        paddingTopLeft: [40, 64],
-        paddingBottomRight: [40, 40],
-        maxZoom: 17,
-        animate: false,
+  fit.addEventListener(
+    "click",
+    () => {
+      stopFollowing();
+      const positions = model.vehicles.flatMap((vehicle) => {
+        const p = model.get("fleet-state", vehicle.id).position;
+        return p ? [L.latLng(p.latitude, p.longitude)] : [];
       });
-  });
-  follow.addEventListener("click", () => {
-    following = !following;
-    lastTarget = "";
-    render();
-  });
+      if (positions.length)
+        map.fitBounds(L.latLngBounds(positions), {
+          paddingTopLeft: [40, 64],
+          paddingBottomRight: [40, 40],
+          maxZoom: 17,
+          animate: false,
+        });
+    },
+    { signal: lifetime.signal },
+  );
+  follow.addEventListener(
+    "click",
+    () => {
+      following = !following;
+      lastTarget = "";
+      render();
+    },
+    { signal: lifetime.signal },
+  );
   map.on("dragstart boxzoomstart", stopFollowing);
   map.getContainer().addEventListener(
     "keydown",
@@ -70,16 +79,16 @@ export function createMapControls(map: L.Map, model: FleetModel) {
       )
         stopFollowing();
     },
-    true,
+    { capture: true, signal: lifetime.signal },
   );
   map.getContainer().addEventListener(
     "touchstart",
     (event) => {
       if (event.touches.length > 1) stopFollowing();
     },
-    { passive: true },
+    { passive: true, signal: lifetime.signal },
   );
 
   render();
-  return { render };
+  return { render, close: () => lifetime.abort() };
 }

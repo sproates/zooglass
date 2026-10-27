@@ -1,5 +1,10 @@
 import { createRecoveringClient } from "./recovering-client.js";
-import { receiveView, setConnection, subscriptionState } from "./view.js";
+import {
+  receiveView,
+  resetView,
+  setConnection,
+  subscriptionState,
+} from "./view.js";
 export type { Command } from "./subscription-client.js";
 
 /** Bind the protocol client to the vehicle demo's views and presentation. */
@@ -8,6 +13,7 @@ export function createVehicleClient(
   report: (event: Record<string, unknown>) => void,
   fail: (reason: string) => void,
 ) {
+  resetView();
   return createRecoveringClient(dataPath, report, fail, {
     validateSubscription(viewId, entityId) {
       if (

@@ -94,3 +94,10 @@ export function recordFault(action: string) {
       : "Data route restored; client recovery remains automatic.",
   );
 }
+
+export function resetActivity() {
+  count = 0;
+  document.getElementById("activity")!.replaceChildren();
+  document.getElementById("activity-count")!.textContent =
+    "No activity in this run.";
+}

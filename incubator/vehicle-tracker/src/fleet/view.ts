@@ -19,6 +19,7 @@ export function createFleetView(
     }
   >();
 
+  element("fleet-list").replaceChildren();
   for (const vehicle of model.vehicles) {
     const row = document.createElement("li");
     row.dataset.entityId = vehicle.id;

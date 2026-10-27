@@ -42,7 +42,7 @@ next-step explanations belong to interactive runs.
 Install Git, Node 26 and a Java 25 JDK, with `node`, `npm` and `java` available
 in your terminal. Check `node --version` and `java --version` before starting.
 The repository includes the Maven wrapper; no separate Maven installation is needed.
-The first run needs internet access to download JavaScript, Chromium and Maven dependencies.
+Initial preparation needs internet access to download JavaScript, Chromium and Maven dependencies.
 
 From a new terminal:
 
@@ -55,6 +55,7 @@ Then install and run:
 
 ```sh
 npm ci
+npm run prepare:service
 npx playwright install chromium
 npm run demo -- vehicle-tracker
 ```
@@ -64,7 +65,11 @@ packages are missing. A visible run needs a desktop session; use `--headless`
 with terminal controls on a machine without a display. The browser runs on the
 machine where you start Workbench. The loopback URL is not a remotely hosted demo.
 
-The command compiles the app's TypeScript, starts ZooGlass and an owned Chromium
+Preparation builds `../zooglass/target/zooglass.jar`. Repeat it after changing
+Java sources, resources or dependencies, with active demo/test sessions stopped.
+A missing JAR produces a preparation error; startup and Reset never invoke Maven.
+
+The demo command compiles the app's TypeScript, launches the prebuilt ZooGlass JAR and an owned Chromium
 session, connects the viewer and subscribes to both views. **Step** sends one position at a time, using positions
 40–59 from the [journey fixture](../workbench/scenarios/vehicle-browser-journey.json),
 awaiting HTTP, browser receipt and independent rendered checks after each send. The page stays
@@ -139,7 +144,8 @@ waiting, received and retained data without relying on colour alone.
 ### If startup fails
 
 - A Node version error means the active terminal is not using Node 26.
-- Java compilation failures should first be checked against `java --version` and
+- A missing ZooGlass JAR means you need `npm run prepare:service`.
+- Java compilation failures during preparation should first be checked against `java --version` and
   `JAVA_HOME`; the service needs a Java 25 JDK.
 - If Chromium is missing, rerun `npx playwright install chromium` from Workbench,
   particularly after updating Playwright. On Linux, check system dependencies too.

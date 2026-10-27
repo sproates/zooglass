@@ -195,3 +195,12 @@ show the results of the automated checks.
 
 Update this page when a milestone lands or the delivery direction changes,
 keeping the current status and evidence together.
+
+
+## Service test startup
+
+A prebuilt-launch change is under review: Workbench prepares the executable
+ZooGlass JAR explicitly before tests, then starts isolated Java processes from
+that artifact for sessions and Reset. This removes build work from test startup
+rather than relying on retries of concurrent Maven compilation. See the
+[launch boundary and verification](docs/testing.md#prebuilt-service-launch-boundary).

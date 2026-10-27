@@ -103,7 +103,12 @@ flowchart TB
 ## Execute against ZooGlass
 
 [`service/zooglass-session.ts`](../src/service/zooglass-session.ts) owns the Java process, temporary
-configuration, readiness checks and shutdown. [`execution/scenario-session.ts`](../src/execution/scenario-session.ts)
+configuration, readiness checks and shutdown. It launches the already-built
+`zooglass/target/zooglass.jar` directly with Java, without a shell or Maven.
+[`scripts/prepare-service.js`](../scripts/prepare-service.js), outside `src/`, is
+an explicit developer/CI preparation command. Session modules do not import or
+call it; there is no runtime dependency from session startup to the build step.
+[`execution/scenario-session.ts`](../src/execution/scenario-session.ts)
 owns one scenario's connections and dispatches its trace entries. It does not
 schedule delays or start a browser.
 

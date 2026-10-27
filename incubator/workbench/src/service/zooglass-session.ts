@@ -1,5 +1,5 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -18,6 +18,8 @@ export interface ZooGlassSessionOptions {
   views?: ScenarioView[];
   signal?: AbortSignal;
   serviceDirectory?: string;
+  /** Override the Java executable for process-ownership fixtures. */
+  javaExecutable?: string;
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
 }
@@ -73,7 +75,7 @@ export async function startZooGlassSession(
 
           const terminate = async (force: boolean) => {
             if (process.platform === "win32") {
-              // Windows has no POSIX process groups; terminate the Maven/JVM tree.
+              // Windows has no POSIX process groups; terminate the JVM process tree.
               await new Promise<void>((resolve, reject) => {
                 execFile(
                   "taskkill",
@@ -132,6 +134,20 @@ export async function startZooGlassSession(
   try {
     signal.throwIfAborted();
 
+    const serviceDirectory =
+      options.serviceDirectory ??
+      fileURLToPath(new URL("../../../zooglass/", import.meta.url));
+    const artifact = join(serviceDirectory, "target", "zooglass.jar");
+
+    try {
+      await access(artifact);
+    } catch (error) {
+      throw new Error(
+        `ZooGlass application is not available at ${artifact}. Run npm run prepare:service from incubator/workbench before starting sessions; rebuild after Java changes.`,
+        { cause: error },
+      );
+    }
+
     const port = await getPort();
     let configLocation: string | undefined;
 
@@ -146,22 +162,26 @@ export async function startZooGlassSession(
 
     signal.throwIfAborted();
 
-    const bootArguments = `-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=${port}`;
+    const java =
+      options.javaExecutable ??
+      (process.env.JAVA_HOME
+        ? join(
+            process.env.JAVA_HOME,
+            "bin",
+            process.platform === "win32" ? "java.exe" : "java",
+          )
+        : "java");
     const args = [
-      "--batch-mode",
-      process.platform === "win32" ? `"${bootArguments}"` : bootArguments,
-      "spring-boot:run",
+      "-jar",
+      artifact,
+      "--server.address=127.0.0.1",
+      `--server.port=${port}`,
     ];
 
-    if (process.env.MAVEN_REPO_LOCAL !== undefined)
-      args.unshift(`-Dmaven.repo.local=${process.env.MAVEN_REPO_LOCAL}`);
-
-    child = spawn(process.platform === "win32" ? "mvnw.cmd" : "./mvnw", args, {
-      cwd:
-        options.serviceDirectory ??
-        fileURLToPath(new URL("../../../zooglass/", import.meta.url)),
+    child = spawn(java, args, {
+      cwd: serviceDirectory,
       stdio: ["ignore", "pipe", "pipe"],
-      shell: process.platform === "win32",
+      shell: false,
       detached: process.platform !== "win32",
       env: {
         ...process.env,

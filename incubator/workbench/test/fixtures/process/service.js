@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 
-// A small stand-in for Maven's service process, used only by ownership tests.
+// A small stand-in for the Java service process, used only by ownership tests.
 const mode = process.argv[2];
 writeFileSync(
   new URL("started.json", import.meta.url),

@@ -2,14 +2,14 @@ name: Workbench CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/vehicle-fleet]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"
       - "incubator/vehicle-tracker/**"
       - "incubator/zooglass/**"
   pull_request:
-    branches: [main]
+    branches: [main, feature/vehicle-fleet]
     paths:
       - ".github/workflows/workbench.yml"
       - "incubator/workbench/**"

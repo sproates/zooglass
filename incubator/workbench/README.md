@@ -217,6 +217,14 @@ These scenarios show three distinct applications that could use ZooGlass:
 They exercise live data flows and view delivery; they don't implement the
 business rules of a sportsbook, order system, or ride service.
 
+### Fleet contracts
+
+`vehicle-fleet-contracts.json` extends the vehicle example to three known entities
+and independent location/status sources. It checks six subscriptions, late
+updates and duplicate handling through real service and Node-client connections.
+See the [fleet contract guide](docs/fleet-contracts.md) for the manifest, view
+definitions and source-specific processing barriers. The browser UI is unchanged.
+
 ### Focused scenarios
 
 - `live-match.json` checks a match view assembled from score and odds updates

@@ -1,7 +1,10 @@
 # Vehicle fleet demo
 
-Status: proposed design for review. The existing single-vehicle demo is delivered;
-this document describes the next experience, not capabilities already implemented.
+Status: design accepted in [PR #78](https://github.com/sproates/zooglass/pull/78).
+The existing single-vehicle demo is delivered; this document describes the next
+experience, not capabilities already implemented. The first
+[fleet contract scenario](../../incubator/workbench/docs/fleet-contracts.md)
+establishes three entities and independent feeds; browser changes remain pending.
 
 ## What someone should be able to do
 

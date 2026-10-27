@@ -211,5 +211,15 @@ The [fleet-demo design](docs/plans/extended-vehicle-demo.md) proposes a fuller
 application: six synthetic vehicles, a geographic map, independent location and
 status contributions, selectable history and direct local-network phone access.
 Delivery starts smaller and expands through usable increments. The design includes
-verification boundaries and an application-work comparison. It is under review;
-implementation and these broader demo capabilities are not yet delivered.
+verification boundaries and an application-work comparison. The design was
+accepted in [PR #78](https://github.com/sproates/zooglass/pull/78); the broader
+browser capabilities are not yet delivered.
+
+## Fleet extension under development
+
+The [accepted fleet design](docs/plans/extended-vehicle-demo.md) is being developed
+on `feature/vehicle-fleet`, with slice PRs reviewed into that branch and a final
+PR to main after acceptance. The first slice adds a
+[three-vehicle contract scenario](incubator/workbench/docs/fleet-contracts.md),
+independent location/status feeds and exact HTTP/client checks. It is under
+review; the delivered single-vehicle browser remains unchanged.

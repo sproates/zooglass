@@ -23,6 +23,14 @@ https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 The 11-second recording shows the short `--basic` fixture using real ZooGlass snapshots, with longer pauses between
 positions 40 and 42 so the changes are easy to follow.
 
+## Fleet extension in progress
+
+The [fleet manifest](fleet-manifest.json) defines three initial vehicle IDs and
+names for the extension. Its [Workbench contract scenario](../workbench/docs/fleet-contracts.md)
+verifies independent location/status fields and received journeys through the
+real service. The existing browser does not consume this manifest yet; fleet
+selection and the geographic map remain subsequent work.
+
 ## Follow the run
 
 Interactive controls explain the next scripted action, including late or duplicate

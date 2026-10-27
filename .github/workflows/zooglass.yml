@@ -2,12 +2,12 @@ name: ZooGlass CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/vehicle-fleet]
     paths:
       - ".github/workflows/zooglass.yml"
       - "incubator/zooglass/**"
   pull_request:
-    branches: [main]
+    branches: [main, feature/vehicle-fleet]
     paths:
       - ".github/workflows/zooglass.yml"
       - "incubator/zooglass/**"

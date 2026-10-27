@@ -1,0 +1,665 @@
+{
+  "name": "Three vehicles retain independent location, history and operational state",
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "name": "Vehicle locations"
+    },
+    {
+      "id": "operations-feed",
+      "name": "Vehicle operations"
+    }
+  ],
+  "clients": [
+    {
+      "id": "fleet-viewer",
+      "name": "Fleet viewer",
+      "initialState": "connected"
+    }
+  ],
+  "views": [
+    {
+      "id": "fleet-state",
+      "fields": {
+        "position": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ],
+        "operation": [
+          {
+            "sourceId": "operations-feed",
+            "type": "vehicle.operation.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "position": {
+          "mode": "latestBySequence",
+          "sequenceField": "sequence"
+        },
+        "operation": {
+          "mode": "latestBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    },
+    {
+      "id": "received-journey",
+      "fields": {
+        "positions": [
+          {
+            "sourceId": "vehicle-feed",
+            "type": "vehicle.location.updated"
+          }
+        ]
+      },
+      "ordering": {
+        "positions": {
+          "mode": "historyBySequence",
+          "sequenceField": "sequence"
+        }
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "client-subscription",
+      "simulationTime": 0,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "fleet-state",
+      "entityId": "car-17"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 10,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "received-journey",
+      "entityId": "car-17"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 20,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "fleet-state",
+      "entityId": "car-28"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 30,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "received-journey",
+      "entityId": "car-28"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 40,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "fleet-state",
+      "entityId": "car-39"
+    },
+    {
+      "kind": "client-subscription",
+      "simulationTime": 50,
+      "clientId": "fleet-viewer",
+      "action": "subscribe",
+      "viewId": "received-journey",
+      "entityId": "car-39"
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 60,
+      "entityId": "car-17",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 40,
+        "latitude": 36.1408,
+        "longitude": -5.3536
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 70,
+      "entityId": "car-28",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 40,
+        "latitude": 36.1432,
+        "longitude": -5.3544
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 80,
+      "entityId": "car-39",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 40,
+        "latitude": 36.1387,
+        "longitude": -5.3528
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 90,
+      "entityId": "car-17",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 100,
+        "status": "available"
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 100,
+      "entityId": "car-28",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 100,
+        "status": "on-a-job"
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 110,
+      "entityId": "car-39",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 100,
+        "status": "returning"
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 120,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1408,
+          "longitude": -5.3536
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 130,
+      "clientId": "fleet-viewer",
+      "viewId": "received-journey",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1408,
+            "longitude": -5.3536
+          }
+        ]
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 140,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-28",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1432,
+          "longitude": -5.3544
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "on-a-job"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 150,
+      "clientId": "fleet-viewer",
+      "viewId": "received-journey",
+      "entityId": "car-28",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1432,
+            "longitude": -5.3544
+          }
+        ]
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 160,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-39",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1387,
+          "longitude": -5.3528
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "returning"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 170,
+      "clientId": "fleet-viewer",
+      "viewId": "received-journey",
+      "entityId": "car-39",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1387,
+            "longitude": -5.3528
+          }
+        ]
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 180,
+      "entityId": "car-17",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 42,
+        "latitude": 36.1412,
+        "longitude": -5.3532
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 190,
+      "entityId": "car-28",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 102,
+        "status": "available"
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 200,
+      "viewId": "fleet-state",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 36.1412,
+          "longitude": -5.3532
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 210,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 36.1412,
+          "longitude": -5.3532
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 220,
+      "viewId": "fleet-state",
+      "entityId": "car-28",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1432,
+          "longitude": -5.3544
+        },
+        "operation": {
+          "sequence": 102,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 230,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-28",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1432,
+          "longitude": -5.3544
+        },
+        "operation": {
+          "sequence": 102,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 240,
+      "entityId": "car-17",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 41,
+        "latitude": 36.141,
+        "longitude": -5.3534
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 250,
+      "entityId": "car-28",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 101,
+        "status": "returning"
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 260,
+      "clientId": "fleet-viewer",
+      "viewId": "received-journey",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1408,
+            "longitude": -5.3536
+          },
+          {
+            "sequence": 41,
+            "latitude": 36.141,
+            "longitude": -5.3534
+          },
+          {
+            "sequence": 42,
+            "latitude": 36.1412,
+            "longitude": -5.3532
+          }
+        ]
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 270,
+      "entityId": "car-17",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 41,
+        "latitude": 36.141,
+        "longitude": -5.3534
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 280,
+      "entityId": "car-17",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 42,
+        "latitude": 36.15,
+        "longitude": -5.36
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 290,
+      "entityId": "car-28",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 102,
+        "status": "available"
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 300,
+      "entityId": "car-28",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 102,
+        "status": "returning"
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 310,
+      "entityId": "car-39",
+      "sourceId": "vehicle-feed",
+      "type": "vehicle.location.updated",
+      "payload": {
+        "sequence": 41,
+        "latitude": 36.1389,
+        "longitude": -5.3526
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 320,
+      "entityId": "car-39",
+      "sourceId": "operations-feed",
+      "type": "vehicle.operation.updated",
+      "payload": {
+        "sequence": 101,
+        "status": "available"
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 330,
+      "viewId": "fleet-state",
+      "entityId": "car-39",
+      "expected": {
+        "position": {
+          "sequence": 41,
+          "latitude": 36.1389,
+          "longitude": -5.3526
+        },
+        "operation": {
+          "sequence": 101,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 340,
+      "viewId": "fleet-state",
+      "entityId": "car-17",
+      "expected": {
+        "position": {
+          "sequence": 42,
+          "latitude": 36.1412,
+          "longitude": -5.3532
+        },
+        "operation": {
+          "sequence": 100,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 360,
+      "viewId": "received-journey",
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1408,
+            "longitude": -5.3536
+          },
+          {
+            "sequence": 41,
+            "latitude": 36.141,
+            "longitude": -5.3534
+          },
+          {
+            "sequence": 42,
+            "latitude": 36.1412,
+            "longitude": -5.3532
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 380,
+      "viewId": "fleet-state",
+      "entityId": "car-28",
+      "expected": {
+        "position": {
+          "sequence": 40,
+          "latitude": 36.1432,
+          "longitude": -5.3544
+        },
+        "operation": {
+          "sequence": 102,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 400,
+      "viewId": "received-journey",
+      "entityId": "car-28",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1432,
+            "longitude": -5.3544
+          }
+        ]
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 420,
+      "viewId": "fleet-state",
+      "entityId": "car-39",
+      "expected": {
+        "position": {
+          "sequence": 41,
+          "latitude": 36.1389,
+          "longitude": -5.3526
+        },
+        "operation": {
+          "sequence": 101,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 430,
+      "clientId": "fleet-viewer",
+      "viewId": "fleet-state",
+      "entityId": "car-39",
+      "expected": {
+        "position": {
+          "sequence": 41,
+          "latitude": 36.1389,
+          "longitude": -5.3526
+        },
+        "operation": {
+          "sequence": 101,
+          "status": "available"
+        }
+      }
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 440,
+      "viewId": "received-journey",
+      "entityId": "car-39",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1387,
+            "longitude": -5.3528
+          },
+          {
+            "sequence": 41,
+            "latitude": 36.1389,
+            "longitude": -5.3526
+          }
+        ]
+      }
+    },
+    {
+      "kind": "client-view-check",
+      "simulationTime": 450,
+      "clientId": "fleet-viewer",
+      "viewId": "received-journey",
+      "entityId": "car-39",
+      "expected": {
+        "positions": [
+          {
+            "sequence": 40,
+            "latitude": 36.1387,
+            "longitude": -5.3528
+          },
+          {
+            "sequence": 41,
+            "latitude": 36.1389,
+            "longitude": -5.3526
+          }
+        ]
+      }
+    }
+  ]
+}

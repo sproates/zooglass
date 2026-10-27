@@ -9,8 +9,40 @@ import { loadScenario } from "../../scenario/scenario.js";
 import { createVehicleDemo } from "./vehicle-demo.js";
 import { runAutomaticDemo } from "./automatic-demo.js";
 
+const terminalHelp = `Terminal commands (type a command and press Enter):
+  step         Advance one scripted checkpoint and wait for its checks.
+  play         Continue the scenario from the current checkpoint.
+  pause        Stop future steps; let the current checkpoint finish.
+  disconnect   Close the viewer's data socket; keep the source running.
+  reconnect    Open the viewer socket and subscribe to both views again.
+  interrupt    Break the data route and refuse connections until restored.
+  restore      Reopen the route; the armed client retries automatically.
+  reset        Close the old browser/service and start a fresh session.
+  help, ?      Show this help again. Pressing Enter also shows help.
+  quit, q      Stop the demo and close its owned resources (or Ctrl+C).
+
+Use Step/Play for the scripted checks. Manual disconnect/reconnect and
+interrupt/restore mark the run Exploratory and skip affected client checks
+until Reset. Pause and wait for an idle run before using manual controls.
+An armed recovery has a 30-second deadline, even while paused; Reset after expiry.
+Reset remains available here if the browser page closes.`;
+
 async function main() {
   const args = process.argv.slice(2);
+
+  if (
+    (args.length === 1 && args[0] === "--help") ||
+    (args.length === 2 && args[0] === "vehicle-tracker" && args[1] === "--help")
+  ) {
+    console.log(
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
+    );
+    console.log(
+      "Interactive mode is the default; --auto has no terminal commands.\n",
+    );
+    console.log(terminalHelp);
+    return;
+  }
 
   if (
     args[0] !== "vehicle-tracker" ||
@@ -82,6 +114,12 @@ async function main() {
     const action = line.trim().toLowerCase();
 
     if (action === "quit" || action === "q") return stop();
+
+    if (action === "help" || action === "?" || action === "") {
+      console.log(terminalHelp);
+      return;
+    }
+
     if (
       ![
         "step",
@@ -95,7 +133,7 @@ async function main() {
       ].includes(action)
     ) {
       console.log(
-        "Commands: step, play, pause, disconnect, reconnect, interrupt, restore, reset, quit.",
+        `Unknown command: ${action}. Type help for available commands.`,
       );
       return;
     }
@@ -118,9 +156,7 @@ async function main() {
   });
 
   try {
-    console.log(
-      "Use Step, Play, Pause and Reset in the browser, or type step, play, pause, disconnect, reconnect, interrupt, restore, reset or quit here. Reset remains available if the page closes.",
-    );
+    console.log(terminalHelp);
     await demo.reset();
     console.log(demo.state.detail);
     await done;

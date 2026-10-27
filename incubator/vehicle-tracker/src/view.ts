@@ -215,3 +215,21 @@ export function receiveView(viewId: string, entityId: string, data: unknown) {
   draw();
   renderStatus();
 }
+
+/** A replacement run begins with no retained data from the previous service. */
+export function resetView() {
+  latest = undefined;
+  history = [];
+  for (const view of Object.values(views)) {
+    view.subscribed = false;
+    view.received = false;
+    view.current = false;
+    view.subscribing = false;
+  }
+  element("current-sequence").textContent = "—";
+  element("current-coordinates").textContent = "No position received";
+  element("history").replaceChildren();
+  element("route-description").textContent = "Waiting for received positions.";
+  setConnection("disconnected");
+  draw();
+}

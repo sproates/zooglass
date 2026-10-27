@@ -13,7 +13,7 @@ export function createFleetMap(
     scrollWheelZoom: false,
     attributionControl: false,
   }).setView([36.141, -5.3535], 16);
-  addMapTiles(map, configuration);
+  const tiles = addMapTiles(map, configuration);
   const controls = createMapControls(map, model);
 
   const markers = new Map<string, L.Marker>();
@@ -101,5 +101,12 @@ export function createFleetMap(
   }
 
   render();
-  return { render };
+  return {
+    render,
+    close() {
+      controls.close();
+      tiles.close();
+      map.remove();
+    },
+  };
 }

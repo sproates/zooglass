@@ -630,6 +630,12 @@ or resources.
 
 ## Browser application composition
 
+The [host and run lifecycle guide](docs/browser-lifetime.md) explains the separate
+application host, replaceable run binding and owned-browser launcher. The stable
+host supports a run-change/readiness handshake on the same page and control socket.
+The current CLI retains its fresh owned page on Reset; network pairing and
+multiple viewers remain planned work.
+
 `startBrowserHost` and `startBrowserSession` require an `application` containing
 `clientId` and an exact-path asset map. Each asset supplies its content type and
 bytes. The host serves only those entries; it does not choose a demo, read

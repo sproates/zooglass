@@ -206,26 +206,31 @@ The shared scenario session and client executors do not depend on it.
 
 ## Host the browser and bind the app
 
-[`browser/browser-session.ts`](../src/browser/browser-session.ts) owns Chromium, its context/page
-and the local host. [`browser/browser-host.ts`](../src/browser/browser-host.ts) serves supplied
-assets, accepts the browser control connection and proxies its data connection
-to ZooGlass. It also owns the run/client-scoped data fault gate, which retires
-active and pending routes before permitting restoration. It has no dependency
-on the vehicle app's implementation.
+[`browser/browser-session.ts`](../src/browser/browser-session.ts) composes an owned
+browser and local host for existing verification. The independent lifetimes and
+replacement handshake are described in [Browser host and run lifetimes](browser-lifetime.md).
+The host owns assets and the control connection; each run owns its executor,
+receipts and data fault gate. The launcher owns only Chromium.
 
 ```mermaid
 flowchart TB
   vehicle["src/demos/vehicle/vehicle-browser.ts<br/>Vehicle asset and identity binding"]
-  session["src/browser/browser-session.ts<br/>Own Chromium and local host"]
-  host["src/browser/browser-host.ts<br/>Assets, control channel and data proxy"]
+  session["src/browser/browser-session.ts<br/>Compose owned verification session"]
+  launcher["src/browser/owned-browser.ts<br/>Own Chromium and page"]
+  host["src/browser/browser-host.ts<br/>Stable assets and control connection"]
+  run["src/browser/browser-run.ts<br/>Run identity, readiness and observations"]
+  route["src/browser/browser-data-route.ts<br/>Proxy connections and fault gate"]
   executor["src/browser/browser-client-executor.ts<br/>Send commands and check observations"]
   contract["src/execution/node-client-executor.ts<br/>ClientExecutor and ClientEntry types"]
   fleetAssets["src/demos/vehicle/fleet-assets.ts<br/>Fleet modules, Leaflet assets and tile configuration"]
   vehicle -->|loads fleet assets and declares image origin| fleetAssets
   vehicle -->|starts owned browser session| session
   vehicle -->|can start host alone| host
-  session -->|starts host and waits for app registration, not images| host
-  host -->|creates browser command executor| executor
+  session -->|starts and closes host| host
+  session -->|launches and closes Chromium| launcher
+  host -->|creates and retires run binding| run
+  run -->|owns data proxy and fault gate| route
+  run -->|binds commands and receipts to run identity| executor
   executor -.->|implements shared executor contract| contract
 ```
 
@@ -240,7 +245,7 @@ are authored JavaScript and the `.ts` modules compile to served JavaScript.
 ```mermaid
 flowchart TB
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and app to bridge"]
-  bridge["workbench/browser/bridge.js<br/>Control protocol and command dispatch"]
+  bridge["workbench/browser/bridge.js<br/>Control protocol and run replacement"]
   client["vehicle-tracker/src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
   subscription["vehicle-tracker/src/subscription-client.ts<br/>Socket, subscriptions and acknowledgements"]
   view["vehicle-tracker/src/view.ts<br/>Render vehicle data and status"]

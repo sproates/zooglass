@@ -3,11 +3,12 @@ export function startBrowserBridge({
   createClient,
   onStatus = () => {},
   onRunState = () => {},
+  onRunChanged = () => {},
   onControlRejected = () => {},
 }) {
   const registration = new URLSearchParams(location.hash.slice(1));
   history.replaceState(null, "", "/");
-  const runId = registration.get("runId");
+  let runId = registration.get("runId");
   const clientId = registration.get("clientId");
   if (!runId || !clientId || !registration.get("token")) {
     onStatus("unregistered");
@@ -19,8 +20,7 @@ export function startBrowserBridge({
       control.send(JSON.stringify({ ...message, runId, clientId }));
   };
   let client;
-  let busy = false;
-  const completed = new Map();
+  let binding;
   control.addEventListener("open", () => {
     send({
       type: "register",
@@ -32,15 +32,33 @@ export function startBrowserBridge({
   control.addEventListener("message", async (event) => {
     try {
       const message = JSON.parse(event.data);
-      if (message.runId !== runId || message.clientId !== clientId) return;
-      if (message.type === "registered" && !client) {
-        client = createClient(message.dataPath, send, (reason) =>
-          send({ type: "fatal", reason }),
+      if (message.clientId !== clientId) return;
+      if (
+        message.type === "run-changed" ||
+        (message.type === "registered" && !client)
+      ) {
+        if (
+          typeof message.runId !== "string" ||
+          typeof message.dataPath !== "string"
+        )
+          throw new Error("Invalid run binding.");
+        client?.close();
+        runId = message.runId;
+        const next = { runId, busy: false, completed: new Map() };
+        binding = next;
+        // Async work from an old client cannot be relabelled as the new run.
+        const report = (value) => {
+          if (binding === next) send(value);
+        };
+        onRunChanged();
+        client = createClient(message.dataPath, report, (reason) =>
+          report({ type: "fatal", reason }),
         );
         send({ type: "ready" });
         onStatus("ready");
         return;
       }
+      if (message.runId !== runId) return;
       if (message.type === "run-state") {
         onRunState(message.state, client);
         return;
@@ -63,6 +81,8 @@ export function startBrowserBridge({
         )
       )
         throw new Error("Invalid control command.");
+      const current = binding;
+      const { completed } = current;
       const signature = JSON.stringify([
         message.action,
         message.viewId,
@@ -75,13 +95,14 @@ export function startBrowserBridge({
         send(cached.result);
         return;
       }
-      if (busy || completed.size >= 256)
+      if (current.busy || completed.size >= 256)
         throw new Error(
           "Browser command limit reached or action already running.",
         );
-      busy = true;
+      current.busy = true;
       try {
         const generation = await client.execute(message);
+        if (binding !== current) return;
         const result = {
           type: "completed",
           commandId: message.commandId,
@@ -90,13 +111,14 @@ export function startBrowserBridge({
         completed.set(message.commandId, { signature, result });
         send(result);
       } catch (error) {
+        if (binding !== current) return;
         send({
           type: "failed",
           commandId: message.commandId,
           reason: error.message,
         });
       } finally {
-        busy = false;
+        current.busy = false;
       }
     } catch (error) {
       send({ type: "fatal", reason: error.message });

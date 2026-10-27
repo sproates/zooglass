@@ -92,6 +92,9 @@ the client; ZooGlass supplies the view contents.
 [`view.ts`](../src/fleet/view.ts) updates all fleet rows and the selected detail.
 Selection never calls the transport. [`client.ts`](../src/fleet/client.ts) rejects
 unknown view/entity pairs and binds actual receipts to this model and renderer.
+Closing that client releases its map, control listeners and tile timers. A run
+replacement creates a fresh model and renderer, clearing rows, history and
+selection before accepting new snapshots.
 The descriptive `fleet-manifest.json` contains only IDs and names. It cannot
 supply coordinates, operational values or history.
 

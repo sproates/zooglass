@@ -13,7 +13,12 @@ Play/Pause now share the Step cursor and freeze remaining delays. Scripted and
 manual viewer connection controls are implemented, with persistent exploratory
 labelling after manual intervention. Data-route interruption and bounded automatic
 recovery are implemented. The [recovery acceptance review](../verification/2026-10-26-recovery.md)
-records the evidence; final demo acceptance remains outstanding. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
+records the evidence; the [whole-demo completion record](../verification/2026-10-27-demo-completion.md)
+was accepted in PR #75. This extends the [vehicle demo plan](vehicle-tracker-demo.md).
+
+The proposed [fleet extension](extended-vehicle-demo.md) adds direct external
+browsers and a stable host across Reset. Those changes are not part of the
+implemented baseline described below.
 
 ## Decision
 

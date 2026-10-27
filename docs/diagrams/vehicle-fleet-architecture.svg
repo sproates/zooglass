@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="900" viewBox="0 0 1000 900" role="img" aria-labelledby="title desc"><title id="title">Proposed fleet demo architecture</title><desc id="desc">Vertical application stack with Workbench alongside. Concurrent owned browsers and paired phones use separate control and data connections. External map tiles supply background only.</desc><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#526a85"/></marker></defs><rect width="100%" height="100%" fill="#f5f7fb"/>
+<text x="30" y="42" font-family="Arial,sans-serif" font-size="27" font-weight="bold" fill="#20344a">One scenario, several independent viewers</text>
+<text x="30" y="73" font-family="Arial,sans-serif" font-size="17" font-weight="normal" fill="#20344a">Proposed extension • multiple viewers, one designated controller</text>
+<rect x="30" y="125" width="245" height="655" rx="12" fill="#eaf2fc" stroke="#87a4c7" stroke-width="2"/>
+<text x="50" y="159" font-family="Arial,sans-serif" font-size="23" font-weight="bold" fill="#20344a">Workbench</text>
+<text x="50" y="188" font-family="Arial,sans-serif" font-size="15" font-weight="normal" fill="#20344a">Scenario and lifecycle owner</text>
+<text x="50" y="240" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#20344a">Owned clients: Playwright</text>
+<text x="50" y="264" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">Optional rendered checks</text>
+<text x="50" y="345" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#20344a">External clients: pairing</text>
+<text x="50" y="369" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">Viewer identity + control role</text>
+<text x="50" y="467" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#20344a">Run handover / Reset</text>
+<text x="50" y="491" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">Target one viewer data route</text>
+<text x="50" y="604" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#20344a">Independent HTTP checks</text>
+<text x="50" y="628" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">View and entity assertions</text>
+<text x="50" y="715" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#20344a">Source events / timing</text>
+<text x="50" y="739" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">Expected results kept here</text>
+<rect x="450" y="125" width="510" height="155" rx="12" fill="#e8f5ed" stroke="#75a98c" stroke-width="2"/>
+<text x="470" y="159" font-family="Arial,sans-serif" font-size="23" font-weight="bold" fill="#20344a">Fleet application</text>
+<text x="470" y="190" font-family="Arial,sans-serif" font-size="17" font-weight="normal" fill="#20344a">Owned browsers + paired phones / desktops</text>
+<text x="470" y="221" font-family="Arial,sans-serif" font-size="16" font-weight="normal" fill="#20344a">Each: map, selection, subscriptions and receipts</text>
+<text x="470" y="251" font-family="Arial,sans-serif" font-size="15" font-weight="normal" fill="#20344a">Real subscriptions; expected values never render</text>
+<rect x="450" y="350" width="510" height="155" rx="12" fill="#eaf2fc" stroke="#87a4c7" stroke-width="2"/>
+<text x="470" y="385" font-family="Arial,sans-serif" font-size="23" font-weight="bold" fill="#20344a">Stable demo host</text>
+<text x="470" y="416" font-family="Arial,sans-serif" font-size="16" font-weight="normal" fill="#20344a">Viewer leases / one controller / control channels</text>
+<text x="470" y="446" font-family="Arial,sans-serif" font-size="16" font-weight="normal" fill="#20344a">Per-viewer data routes and fault gates</text>
+<text x="470" y="476" font-family="Arial,sans-serif" font-size="15" font-weight="normal" fill="#20344a">Shared Reset; pages survive, old routes retire</text>
+<rect x="450" y="565" width="510" height="100" rx="12" fill="#e8f5ed" stroke="#75a98c" stroke-width="2"/>
+<text x="470" y="600" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#20344a">ZooGlass • prebuilt Java process</text>
+<text x="470" y="631" font-family="Arial,sans-serif" font-size="17" font-weight="normal" fill="#20344a">Fleet state + received journey, per vehicle</text>
+<rect x="450" y="725" width="510" height="100" rx="12" fill="#e8f5ed" stroke="#75a98c" stroke-width="2"/>
+<text x="470" y="759" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#20344a">Independent simulated sources</text>
+<text x="470" y="790" font-family="Arial,sans-serif" font-size="16" font-weight="normal" fill="#20344a">Location sequence  |  operational-status sequence</text>
+<path d="M700 350 L700 280" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="715" y="320" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">data + separate control</text>
+<path d="M700 565 L700 505" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="715" y="540" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">snapshots / subscriptions</text>
+<path d="M700 725 L700 665" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="715" y="700" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">real source events</text>
+<path d="M275 235 L450 235" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="288" y="226" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">render checks</text>
+<path d="M275 365 L450 365" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="288" y="356" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">pair / command</text>
+<path d="M275 470 L450 470" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="288" y="461" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">reset / fault</text>
+<path d="M275 612 L450 612" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="288" y="603" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">read views</text>
+<path d="M275 757 L450 757" fill="none" stroke="#526a85" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="288" y="748" font-family="Arial,sans-serif" font-size="14" font-weight="normal" fill="#20344a">send events</text>
+<text x="30" y="850" font-family="Arial,sans-serif" font-size="16" font-weight="normal" fill="#20344a">Map tiles: external background only, requested by the app; local substitutes in CI.</text>
+<text x="30" y="878" font-family="Arial,sans-serif" font-size="15" font-weight="normal" fill="#20344a">Blue: verification/control machinery. Green: application/data path. Both are proposed here.</text>
+</svg>

@@ -1,5 +1,9 @@
 # Vehicle tracker demo
 
+This is the delivered single-vehicle baseline. The proposed
+[fleet experience](extended-vehicle-demo.md) extends it with a fuller application
+and direct phone access; it does not change the acceptance scope recorded here.
+
 Status: implemented design baseline. Merging
 [PR #75](https://github.com/sproates/zooglass/pull/75) records final acceptance and
 closes the bounded demo milestone.

@@ -199,8 +199,17 @@ keeping the current status and evidence together.
 
 ## Service test startup
 
-A prebuilt-launch change is under review: Workbench prepares the executable
+The prebuilt-launch change merged in [PR #77](https://github.com/sproates/zooglass/pull/77). Workbench prepares the executable
 ZooGlass JAR explicitly before tests, then starts isolated Java processes from
 that artifact for sessions and Reset. This removes build work from test startup
 rather than relying on retries of concurrent Maven compilation. See the
 [launch boundary and verification](docs/testing.md#prebuilt-service-launch-boundary).
+
+## Next demo: fleet experience
+
+The [fleet-demo design](docs/plans/extended-vehicle-demo.md) proposes a fuller
+application: six synthetic vehicles, a geographic map, independent location and
+status contributions, selectable history and direct local-network phone access.
+Delivery starts smaller and expands through usable increments. The design includes
+verification boundaries and an application-work comparison. It is under review;
+implementation and these broader demo capabilities are not yet delivered.

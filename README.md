@@ -29,6 +29,10 @@ the scope and evidence for final acceptance. Merging
 [PR #75](https://github.com/sproates/zooglass/pull/75) records acceptance and closes
 this bounded demo milestone.
 
+The [fleet-demo design](docs/plans/extended-vehicle-demo.md) proposes the next
+experience: multiple vehicles on a geographic map, independent source fields
+and direct phone access. It is a design for review, not implemented behaviour.
+
 The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
 which capabilities remain longer-term work, with links to the delivery evidence.
 

@@ -4,6 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ZooGlass · Vehicle tracker</title>
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/vehicle.css" />
     <script type="module" src="/vehicle-bootstrap.js"></script>
   </head>
@@ -51,6 +53,18 @@
           Select a vehicle. Every vehicle keeps receiving updates.
         </p>
         <ul id="fleet-list" aria-label="Vehicles"></ul>
+      </section>
+      <section class="map-panel" aria-labelledby="map-title">
+        <h2 id="map-title">Around Gibraltar</h2>
+        <p class="caption">
+          Synthetic vehicles on a real geographic map. Select a car or a fleet
+          row.
+        </p>
+        <div
+          id="fleet-map"
+          aria-label="Vehicle positions around Gibraltar"
+        ></div>
+        <p id="map-status" class="caption" role="status"></p>
       </section>
       <div class="layout" id="fleet-detail">
         <section class="route-panel" aria-labelledby="route-title">
@@ -103,9 +117,9 @@
         <ol id="activity" tabindex="0" aria-label="Recent run activity"></ol>
       </section>
       <footer>
-        Snapshots arrive independently. Coordinates are synthetic; a geographic
-        map will follow in a later increment. Workbench controls the scenario;
-        vehicle values come from ZooGlass snapshots.
+        Snapshots arrive independently. Coordinates are synthetic; lines connect
+        received positions without road snapping. Workbench controls the
+        scenario; vehicle values come from ZooGlass snapshots.
       </footer>
     </main>
   </body>

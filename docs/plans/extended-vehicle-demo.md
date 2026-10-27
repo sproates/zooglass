@@ -6,7 +6,9 @@ experience, not capabilities already implemented. The first
 [fleet contract scenario](../../incubator/workbench/docs/fleet-contracts.md)
 establishes three entities and independent feeds. The programme branch now adds
 a text-based fleet browser with local selection, independent received state and
-manual reconnect/reset; the geographic map and network viewers remain pending.
+manual reconnect/reset. Map integration adds a Gibraltar background, received
+markers and selected history; fit/follow, map failure handling, network viewers
+and the longer six-vehicle scenarios remain pending.
 
 ## What someone should be able to do
 

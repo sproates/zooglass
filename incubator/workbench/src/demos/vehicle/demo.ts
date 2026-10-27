@@ -3,6 +3,7 @@
  * or automatic playback, and own command-line shutdown.
  * See ../../../docs/source-map.md for the module relationships.
  */
+import { interactiveMapConfiguration } from "./fleet-assets.js";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { loadScenario } from "../../scenario/scenario.js";
@@ -106,6 +107,7 @@ async function main() {
   const demo = createVehicleDemo(scenario, {
     headless: args.includes("--headless"),
     fleet: args.includes("--fleet"),
+    map: args.includes("--fleet") ? interactiveMapConfiguration() : undefined,
   });
   let stopped = false;
   let finish!: () => void;

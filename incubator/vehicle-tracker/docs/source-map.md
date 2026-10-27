@@ -66,7 +66,14 @@ flowchart TB
   client -->|creates renderer and refreshes on protocol notifications| view
   client -->|supplies fleet validation and callbacks| recovery
   recovery -->|creates protocol attempts| protocol
-  view -.->|reads model and changes local selection| model
+  map["src/fleet/map.ts<br/>Geographic markers and selected received route"]
+  leaflet["Leaflet distribution<br/>Locally served map library"]
+  client -->|creates map and refreshes on received state| map
+  map -->|draws markers and polyline| leaflet
+  map -.->|reads received coordinates| model
+  map -.->|selection callback| client
+  view -.->|reads received details| model
+  view -.->|selection callback| client
 ```
 
 [`model.ts`](../src/fleet/model.ts) holds each pair's subscription, receipt and
@@ -110,14 +117,17 @@ flowchart TB
 The [bootstrap](../../workbench/browser/vehicle-bootstrap.js) wires page buttons
 and run status to the [bridge](../../workbench/browser/bridge.js), and passes it
 a vehicle-client factory. In fleet mode it loads the fleet module and manifest
-before starting the same bridge. The bridge dispatches commands to that supplied client
+and map configuration before starting the same bridge. The bridge dispatches commands to that supplied client
 and reports observations over Workbench's control connection; it does not import
 the vehicle implementation itself.
 
 On the Node side,
 [`vehicle-browser.ts`](../../workbench/src/demos/vehicle/vehicle-browser.ts)
 selects the page, scripts and stylesheet and supplies them to the shared browser
-host. This asset binding is separate from imports executed inside the browser.
+host. Its [fleet-assets.ts](../../workbench/src/demos/vehicle/fleet-assets.ts)
+dependency loads fleet modules, map configuration, local test tiles and the
+installed Leaflet distribution. The host admits only the configured image origin;
+map rendering stays in the demo app. This asset binding is separate from imports executed inside the browser.
 The app's data socket reaches ZooGlass through the host's data proxy, while the
 control connection carries Workbench commands and observations.
 
@@ -137,3 +147,5 @@ For the surrounding modules, see the [Workbench source map](../../workbench/docs
 For the service that produces the views, see the [ZooGlass source map](../../zooglass/docs/source-map.md).
 The [demo README](../README.md) explains how to run it and interpret its display.
 Update this map when module responsibilities, bindings or bootstrap paths change.
+
+The [map guide](fleet-map.md) explains tile configuration and geographic verification.

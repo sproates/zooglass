@@ -70,7 +70,7 @@ h2 {
   background: #edf2e8;
   border-radius: 20px;
 }
-svg {
+.route-panel > svg {
   width: 100%;
   height: auto;
   margin-top: 18px;
@@ -90,7 +90,7 @@ svg {
   stroke: white;
   stroke-width: 3;
 }
-svg text {
+.route-panel > svg text {
   fill: #597269;
   font-size: 12px;
 }
@@ -251,4 +251,54 @@ button:focus-visible {
   #fleet-list {
     grid-template-columns: 1fr;
   }
+}
+
+.map-panel {
+  margin-bottom: 20px;
+  min-width: 0;
+}
+#fleet-map {
+  height: 440px;
+  width: 100%;
+  border-radius: 10px;
+  background: #e6ebe1;
+  isolation: isolate;
+}
+#map-status {
+  overflow-wrap: anywhere;
+}
+.vehicle-map-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+  background: white;
+  color: #16664f;
+  border: 2px solid #16664f;
+  border-radius: 8px;
+  font:
+    700 13px system-ui,
+    sans-serif;
+  box-shadow: 0 2px 5px #0003;
+}
+.vehicle-map-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+.vehicle-map-marker.selected .vehicle-map-symbol {
+  background: #16664f;
+  color: white;
+}
+.vehicle-map-marker.retained .vehicle-map-symbol {
+  border-style: dashed;
+}
+.vehicle-map-marker:focus-visible {
+  outline: 3px solid #70411b;
+  outline-offset: 3px;
+}
+#fleet-map .leaflet-control-attribution {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }

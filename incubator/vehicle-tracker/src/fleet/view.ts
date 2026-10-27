@@ -5,7 +5,10 @@ export const coordinates = (p: Position) =>
   `${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}`;
 
 /** Render received state only; choosing a row never sends a protocol command. */
-export function createFleetView(model: FleetModel) {
+export function createFleetView(
+  model: FleetModel,
+  select: (entityId: string) => void,
+) {
   const rows = new Map<
     string,
     {
@@ -23,10 +26,7 @@ export function createFleetView(model: FleetModel) {
     button.type = "button";
     button.textContent = vehicle.name;
     button.setAttribute("aria-controls", "fleet-detail");
-    button.addEventListener("click", () => {
-      model.select(vehicle.id);
-      render();
-    });
+    button.addEventListener("click", () => select(vehicle.id));
     const position = document.createElement("p");
     position.className = "fleet-position";
     const operation = document.createElement("p");

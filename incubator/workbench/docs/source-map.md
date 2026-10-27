@@ -60,6 +60,10 @@ flowchart TB
   scenario["scenario/scenario.ts<br/>Load and validate fixtures"]
   playback["scenario/playback.ts<br/>Build and format ordered traces"]
   vehicle["demos/vehicle/vehicle-demo.ts<br/>Interactive demo composition"]
+  demo["demos/vehicle/demo.ts<br/>Interactive CLI"]
+  fleetAssets["demos/vehicle/fleet-assets.ts<br/>Map configuration and fleet assets"]
+  demo -->|chooses interactive tile configuration| fleetAssets
+  browser -->|loads fleet modules and Leaflet assets| fleetAssets
   automatic["demos/vehicle/automatic-demo.ts<br/>Automatic demo playback"]
   index -->|loads fixture| scenario
   index -->|prints ordered entries| playback
@@ -216,6 +220,8 @@ flowchart TB
   host["src/browser/browser-host.ts<br/>Assets, control channel and data proxy"]
   executor["src/browser/browser-client-executor.ts<br/>Send commands and check observations"]
   contract["src/execution/node-client-executor.ts<br/>ClientExecutor and ClientEntry types"]
+  fleetAssets["src/demos/vehicle/fleet-assets.ts<br/>Fleet modules, Leaflet assets and tile configuration"]
+  vehicle -->|loads fleet assets and declares image origin| fleetAssets
   vehicle -->|starts owned browser session| session
   vehicle -->|can start host alone| host
   session -->|starts and closes host| host
@@ -224,6 +230,10 @@ flowchart TB
 ```
 
 The host serves browser modules as assets; it does not import them into Node.
+Applications may declare exact HTTPS image origins; scripts and data connections
+remain local. Fleet composition supplies that declaration for the tile provider.
+The demo CLI chooses interactive tile configuration; programmatic sessions default
+to local synthetic tiles.
 The next diagram crosses into the browser source, where the two `.js` modules
 are authored JavaScript and the `.ts` modules compile to served JavaScript.
 
@@ -250,7 +260,14 @@ flowchart TB
   bootstrap -.->|fetches manifest for fleet factory| manifest
   fleet -->|creates model and validates subscriptions| model
   fleet -->|creates renderer and refreshes on receipts| fleetView
-  fleetView -.->|reads model and changes selection| model
+  fleetMap["vehicle-tracker/src/fleet/map.ts<br/>Received markers and selected geographic route"]
+  leaflet["Leaflet distribution<br/>Locally served map library"]
+  fleet -->|creates map and refreshes on receipts| fleetMap
+  fleetMap -->|draws geographic layers| leaflet
+  fleetMap -.->|reads received coordinates| model
+  fleetMap -.->|selection callback| fleet
+  fleetView -.->|reads model| model
+  fleetView -.->|selection callback| fleet
   fleet -->|reuses transport recovery| recovery
 ```
 

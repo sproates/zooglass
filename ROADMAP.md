@@ -223,8 +223,12 @@ PR to main after acceptance. The [three-vehicle contract scenario](incubator/wor
 merged into the programme branch in [PR #79](https://github.com/sproates/zooglass/pull/79).
 The text-based fleet list, selected detail/history and six independent
 subscriptions merged in [PR #80](https://github.com/sproates/zooglass/pull/80).
-[Fleet acceptance](docs/verification/2026-10-27-fleet-state.md) is proposed for
-review, including keyboard playback and recovery after offline source progress.
-The geographic map and network viewers remain pending.
+[Fleet acceptance](docs/verification/2026-10-27-fleet-state.md) merged in
+[PR #81](https://github.com/sproates/zooglass/pull/81), including keyboard playback
+and recovery after offline source progress.
+[Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) is now
+proposed for review: received markers, selected history and configurable background
+tiles. Fit/follow and map-failure handling, network viewers and the longer
+six-vehicle scenario remain pending.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

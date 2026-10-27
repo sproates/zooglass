@@ -32,6 +32,8 @@ export interface BrowserHostOptions {
 
 export interface BrowserApplication {
   clientId: string;
+  /** Optional HTTPS origins for external images; scripts and data stay local. */
+  imageOrigins?: readonly string[];
   /** Exact URL paths mapped to content type and bytes; no filesystem routing. */
   assets: ReadonlyMap<string, readonly [string, Buffer]>;
 }
@@ -43,6 +45,12 @@ export async function startBrowserHost(
 ) {
   const runId = randomUUID();
   const { clientId, assets } = options.application;
+  const imageOrigins = (options.application.imageOrigins ?? []).map((value) => {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.origin !== value)
+      throw new Error("Image origins must be exact HTTPS origins.");
+    return url.origin;
+  });
   const registrationToken = randomUUID();
   const routeToken = randomUUID();
   const controller = new AbortController();
@@ -81,8 +89,7 @@ export async function startBrowserHost(
         "Content-Type": asset[0],
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
-        "Content-Security-Policy":
-          "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+        "Content-Security-Policy": `default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' ${imageOrigins.join(" ")}; frame-ancestors 'none'`,
         "X-Content-Type-Options": "nosniff",
       })
       .end(asset[1]);

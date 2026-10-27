@@ -8,7 +8,12 @@
     "noEmitOnError": true,
     "rootDir": "src",
     "outDir": "dist",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "/vendor/leaflet/leaflet-src.esm.js": [
+        "../workbench/node_modules/@types/leaflet"
+      ]
+    }
   },
   "include": ["src/**/*.ts"]
 }

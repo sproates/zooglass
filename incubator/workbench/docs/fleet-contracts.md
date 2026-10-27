@@ -3,8 +3,8 @@
 This is the first executable part of the [extended vehicle demo](../../../docs/plans/extended-vehicle-demo.md).
 It establishes the data contracts through the existing Workbench scenario runner.
 The browser can now run this fixture with `npm run demo -- vehicle-tracker --fleet`,
-showing all three vehicles and selected detail. The geographic map and direct
-phone access are later increments. Existing single-vehicle variants are retained.
+showing all three vehicles, selected detail and the [Gibraltar map](../../vehicle-tracker/docs/fleet-map.md).
+Direct phone access is a later increment. Existing single-vehicle variants are retained.
 
 ## Run the contract scenario
 

@@ -21,7 +21,8 @@ npm run demo -- vehicle-tracker --fleet
 
 Step advances the existing short three-vehicle fixture. Play runs its timed
 sequence. Markers move directly to received coordinates; there is no interpolation
-or road snapping. Select a marker or fleet row to select the same vehicle in
+or road snapping. Each marker’s downward pointer ends at the received coordinate;
+the vehicle label sits above it so the location is unambiguous. Select a marker or fleet row to select the same vehicle in
 list, map and detail. Only that vehicle's received history is drawn as a line.
 The other vehicles remain subscribed. A delayed position can extend that line
 without moving the latest-position marker backwards.

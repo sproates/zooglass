@@ -11,7 +11,7 @@ async function markerOffset(page: Page, id: string) {
     .boundingBox())!;
   return {
     x: marker.x + marker.width / 2 - map.x - map.width / 2,
-    y: marker.y + marker.height / 2 - map.y - map.height / 2,
+    y: marker.y + marker.height - map.y - map.height / 2,
   };
 }
 

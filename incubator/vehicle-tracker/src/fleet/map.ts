@@ -1,11 +1,7 @@
 import * as L from "/vendor/leaflet/leaflet-src.esm.js";
+import { createMapControls } from "./map-controls.js";
+import { addMapTiles, type MapConfiguration } from "./map-tiles.js";
 import type { FleetModel } from "./model.js";
-
-export interface MapConfiguration {
-  tileUrl: string;
-  attribution: string;
-  attributionUrl?: string;
-}
 
 /** Geographic presentation of received facts; no interpolation or road matching. */
 export function createFleetMap(
@@ -13,25 +9,12 @@ export function createFleetMap(
   configuration: MapConfiguration,
   select: (entityId: string) => void,
 ) {
-  const map = L.map("fleet-map", { scrollWheelZoom: false }).setView(
-    [36.141, -5.3535],
-    16,
-  );
-  const credit = document.createElement(
-    configuration.attributionUrl ? "a" : "span",
-  );
-  credit.textContent = configuration.attribution;
-  if (credit instanceof HTMLAnchorElement) {
-    credit.href = configuration.attributionUrl!;
-    credit.rel = "noopener noreferrer";
-  }
-  L.tileLayer(configuration.tileUrl, {
-    attribution: credit.outerHTML,
-    maxZoom: 19,
-    referrerPolicy: "strict-origin-when-cross-origin",
-    updateWhenIdle: true,
-    keepBuffer: 0,
-  }).addTo(map);
+  const map = L.map("fleet-map", {
+    scrollWheelZoom: false,
+    attributionControl: false,
+  }).setView([36.141, -5.3535], 16);
+  addMapTiles(map, configuration);
+  const controls = createMapControls(map, model);
 
   const markers = new Map<string, L.Marker>();
   const route = L.polyline([], {
@@ -44,6 +27,7 @@ export function createFleetMap(
   const routeStatus = document.getElementById("map-status")!;
 
   function render() {
+    controls.render();
     for (const vehicle of model.vehicles) {
       const state = model.get("fleet-state", vehicle.id);
       const position = state.position;
@@ -68,11 +52,17 @@ export function createFleetMap(
           icon: L.divIcon({
             html: icon,
             className: "vehicle-map-marker",
-            iconSize: [52, 36],
-            iconAnchor: [26, 18],
+            iconSize: [52, 44],
+            iconAnchor: [26, 22],
           }),
         }).addTo(map);
         marker.on("click", () => select(vehicle.id));
+        marker.getElement()!.addEventListener("keydown", (event) => {
+          if (event.key === " " || event.key === "Enter") {
+            event.preventDefault();
+            select(vehicle.id);
+          }
+        });
         markers.set(vehicle.id, marker);
       }
       marker.setLatLng([position.latitude, position.longitude]);

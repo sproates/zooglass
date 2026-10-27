@@ -297,8 +297,34 @@ button:focus-visible {
   outline: 3px solid #70411b;
   outline-offset: 3px;
 }
-#fleet-map .leaflet-control-attribution {
-  white-space: normal;
+#map-attribution {
   overflow-wrap: anywhere;
+}
+
+.map-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.map-buttons button {
   max-width: 100%;
+  overflow-wrap: anywhere;
+}
+#follow-selected[aria-pressed="true"] {
+  outline: 3px solid #70411b;
+  outline-offset: 2px;
+}
+#map-background-status[data-state="unavailable"] {
+  color: #70411b;
+  font-weight: 650;
+}
+#fleet-map:focus-visible,
+#fleet-map .leaflet-control a:focus-visible {
+  outline: 3px solid #70411b;
+  outline-offset: 2px;
+}
+#fleet-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
 }

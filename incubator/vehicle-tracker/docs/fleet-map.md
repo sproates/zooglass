@@ -36,9 +36,20 @@ the scenario already loaded by the process; it does not reread the file. During 
 run a higher sequence supplies a new position. Resending an accepted sequence
 with different coordinates remains a duplicate, not a historical correction.
 
-The map supports ordinary panning and zooming. Explicit Fit fleet/Follow selected,
-tile-failure messaging and fuller interaction acceptance follow in the next
-increment. Direct phone access and the six-vehicle longer journeys are separate
+The map supports ordinary panning and zooming. **Fit fleet** frames all received
+latest positions, including retained positions while disconnected. **Follow selected**
+centres the selected car and follows subsequent received positions. Selecting
+another vehicle transfers follow to that vehicle. Mouse/touch panning, keyboard
+arrow panning or a two-finger gesture switches follow off. Fit fleet also switches
+it off. Incoming data will then leave your chosen view alone. Reset starts with
+follow off; controls wait for actual received positions before enabling.
+
+Tab reaches map controls and markers. Enter or Space selects a focused marker;
+arrow keys pan the focused map, and the zoom buttons support keyboard and touch.
+Controls wrap at narrow widths and enlarged text. Attribution stays immediately
+below the map so enlarged credits cannot cover cars or map controls.
+
+Direct phone access and the six-vehicle longer journeys are separate
 planned increments. The manifest determines the vehicle set; the renderer has no
 three-vehicle limit.
 
@@ -78,8 +89,12 @@ ZOOGLASS_MAP_TILE_URL=local npm run demo -- vehicle-tracker --fleet
 
 Programmatic demo sessions default to local tiles. Automated tests use this mode,
 never OpenStreetMap. The local tile is deliberately labelled as test imagery,
-not real geography. A failed or absent background does not change vehicle state;
-the explicit user-facing failure notice is still planned.
+not real geography. A failed tile, or one taking longer than ten seconds, shows
+**Map background unavailable**. Vehicle coordinates, history, selection, playback
+and data recovery remain usable. This is separate from the ZooGlass connection
+status. **Retry map** requests the current tiles again; a late successful response
+can also restore availability. No automatic retry loop or bulk download is added.
+The browser session waits for app registration, not optional image completion.
 
 ## Verification boundary
 
@@ -90,10 +105,18 @@ both directions, route changes, absence of subscription traffic on selection,
 retained markers, Reset and local-only resources. This caught and fixed a broad
 schematic SVG style that initially distorted the Leaflet route layer.
 
+Map navigation tests exercise fit, follow through received updates, selection
+changes, mouse/keyboard panning and Reset. A Chromium touch-emulation check taps a
+marker and drags the map. Local 404 and stalled-image cases verify continued fleet
+playback, retry and late background recovery. Browser clock control bounds the
+stall test without spending ten real seconds on every run. Keyboard tests caught
+and fixed the missing Enter/Space activation on custom markers. Enlarged-text
+review caught attribution covering a car; credits now sit outside the map area.
+
 The existing keyboard, enlarged-text, reconnect and single-vehicle tests remain.
 The screenshot above came from a bounded visual check using real background tiles;
-CI uses local synthetic tiles and does not assert provider availability. Full map
-interaction and map acceptance are still outstanding.
+CI uses local synthetic tiles and does not assert provider availability. The separate map
+acceptance review remains outstanding; emulated touch is not native iPhone evidence.
 
 Leaflet is distributed under its [BSD 2-Clause licence](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE),
 also served at `/vendor/leaflet/LICENSE` by the demo host. Map data and background

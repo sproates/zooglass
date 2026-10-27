@@ -100,7 +100,11 @@ export async function startBrowserSession(
         stop();
       }
     });
-    await page.goto(host.pageUrl, { timeout: 15_000 });
+    // Registration, not optional image loading, determines application readiness.
+    await page.goto(host.pageUrl, {
+      timeout: 15_000,
+      waitUntil: "domcontentloaded",
+    });
     await host.waitForReady(signal);
 
     return { host, page, signal, close };

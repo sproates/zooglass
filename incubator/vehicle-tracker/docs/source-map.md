@@ -69,6 +69,13 @@ flowchart TB
   map["src/fleet/map.ts<br/>Geographic markers and selected received route"]
   leaflet["Leaflet distribution<br/>Locally served map library"]
   client -->|creates map and refreshes on received state| map
+  navigation["src/fleet/map-controls.ts<br/>Fit, follow and manual navigation"]
+  tiles["src/fleet/map-tiles.ts<br/>Tile loading, attribution and retry"]
+  map -->|creates local camera controls| navigation
+  navigation -->|moves the camera| leaflet
+  navigation -.->|reads received positions and selection| model
+  map -->|adds optional background| tiles
+  tiles -->|loads tiles and observes failure events| leaflet
   map -->|draws markers and polyline| leaflet
   map -.->|reads received coordinates| model
   map -.->|selection callback| client

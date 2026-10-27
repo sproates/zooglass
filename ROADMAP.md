@@ -226,9 +226,10 @@ subscriptions merged in [PR #80](https://github.com/sproates/zooglass/pull/80).
 [Fleet acceptance](docs/verification/2026-10-27-fleet-state.md) merged in
 [PR #81](https://github.com/sproates/zooglass/pull/81), including keyboard playback
 and recovery after offline source progress.
-[Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) is now
-proposed for review: received markers, selected history and configurable background
-tiles. Fit/follow and map-failure handling, network viewers and the longer
-six-vehicle scenario remain pending.
+[Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) merged in
+[PR #82](https://github.com/sproates/zooglass/pull/82): received markers, selected
+history and configurable background tiles. Fit/follow navigation, keyboard/touch
+controls and background-failure handling are now proposed for review. Map acceptance,
+network viewers and the longer six-vehicle scenario remain pending.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

@@ -41,7 +41,9 @@ starts an empty run. The [Gibraltar map](docs/fleet-map.md) adds markers for all
 received latest positions and a line for the selected received history. Marker
 and row selection stay in sync. The map uses locally served Leaflet and
 configurable background tiles; automated tests use local synthetic tiles.
-Fit/follow controls and direct phone access remain later increments.
+Fit fleet and Follow selected support local navigation; panning releases follow.
+Tile failures show a separate message and Retry map while vehicle data stays usable.
+Direct phone access remains a later increment.
 
 ![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)
 

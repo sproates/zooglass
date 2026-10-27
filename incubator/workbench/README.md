@@ -227,7 +227,9 @@ definitions and source-specific processing barriers. Run the browser presentatio
 with `npm run demo -- vehicle-tracker --fleet`: choose a vehicle to inspect its
 received history while all vehicles keep updating. The [Gibraltar map guide](../vehicle-tracker/docs/fleet-map.md)
 explains the locally bundled map library, configurable tile background, synthetic
-coordinates and local-only automated tests.
+coordinates and local-only automated tests. Fit/follow, keyboard/touch navigation
+and tile-failure recovery are demo behaviour; map availability does not determine
+ZooGlass connectivity or browser registration.
 
 ### Focused scenarios
 

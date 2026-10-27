@@ -1,6 +1,10 @@
 # Vehicle tracker demo
 
-Status: accepted design baseline, partly implemented. The basic browser app
+Status: implemented design baseline. Merging
+[PR #75](https://github.com/sproates/zooglass/pull/75) records final acceptance and
+closes the bounded demo milestone.
+
+The basic browser app
 now renders short 40/42 and twenty-position journey fixtures through real
 ZooGlass subscriptions, with waiting, empty and retained/error states. The journey
 includes delayed 41. Step and reset now use the shared scenario session, with
@@ -17,7 +21,8 @@ and verifies the first recovery snapshots and rendering against real ZooGlass.
 Node-only execution rejects the fixture before service launch. The
 [recovery acceptance review](../verification/2026-10-26-recovery.md) records the
 requirement-by-requirement evidence accepted in PR #69.
-Final acceptance of the whole demo remains outstanding. The
+The [completion record](../verification/2026-10-27-demo-completion.md) brings
+together the scope and evidence for that acceptance. The
 [fresh-checkout walkthrough](../verification/2026-10-26-fresh-checkout.md)
 verifies setup and scenario completion, accepted in PR #70. The
 [cleanup review](../verification/2026-10-26-cleanup.md) records shutdown, Reset
@@ -27,7 +32,7 @@ enlarged-text overflow and records final usability evidence, accepted in PR #72.
 The [capability-claims review](../verification/2026-10-27-capabilities.md)
 reconciles demo labels and documentation with implementation, accepted in PR #73.
 The maintained [architecture diagram guide](../diagrams/README.md) preserves the
-vertical explanation beyond this plan; its final review is pending acceptance.
+vertical explanation beyond this plan, accepted in PR #74.
 
 The [browser orchestration design](browser-orchestration.md) defines client
 ownership, scenario actions, acknowledgements, checks and failure behaviour.
@@ -170,7 +175,7 @@ six deliberate-action steps above; it must not be implemented by sending the app
 a disconnect command. See the [orchestration design](browser-orchestration.md)
 for fault, retry, timeout and reset semantics.
 
-## Delivery in three PRs
+## Original delivery outline
 
 ### PR 1: shared Workbench sessions
 
@@ -202,9 +207,10 @@ connection-loss recovery are observable and checked.
 The late event fills in history without moving the marker backwards; reconnect
 gets current snapshots while the source has continued running.
 
-The three-PR split separates session extraction from the browser control
-connection and UI. All scenario client actions in this demo target the real
-browser. The existing Node executor remains available for headless scenarios.
+The original three-part outline separated session extraction from the browser
+control connection and UI. Delivery used smaller PRs with separate verification
+and readability work; the completion record links the accepted evidence. All
+scenario client actions in this demo target the real browser. The existing Node executor remains available for headless scenarios.
 
 ## Verification and completion
 

@@ -23,7 +23,11 @@ runner. A [basic browser demo](incubator/vehicle-tracker/README.md) now shows
 vehicle position and received history from real live views. Interactive controls,
 late delivery, duplicate handling and bounded connection recovery are implemented.
 The demo recovers current snapshots; it does not replay missed messages or
-establish that received history is complete. Final demo acceptance is underway.
+establish that received history is complete. The
+[completion record](docs/verification/2026-10-27-demo-completion.md) brings together
+the scope and evidence for final acceptance. Merging
+[PR #75](https://github.com/sproates/zooglass/pull/75) records acceptance and closes
+this bounded demo milestone.
 
 The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
 which capabilities remain longer-term work, with links to the delivery evidence.

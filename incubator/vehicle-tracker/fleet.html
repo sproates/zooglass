@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZooGlass · Vehicle tracker</title>
+    <link rel="stylesheet" href="/vehicle.css" />
+    <script type="module" src="/vehicle-bootstrap.js"></script>
+  </head>
+  <body data-fleet="true">
+    <main>
+      <header>
+        <p class="eyebrow">ZooGlass / live views</p>
+        <h1>Follow the received facts.</h1>
+        <p class="intro">
+          Three vehicles. Independent location and operational updates.
+        </p>
+      </header>
+      <div class="connection">
+        <span id="status" role="status">Connecting to Workbench…</span
+        ><span id="connection-status" role="status">ZooGlass disconnected</span>
+      </div>
+      <section
+        id="workbench-controls"
+        class="workbench-controls"
+        hidden
+        aria-label="Workbench scenario controls"
+      >
+        <div class="control-buttons">
+          <button id="step" type="button" disabled>Step</button>
+          <button id="play" type="button" disabled>Play</button>
+          <button id="pause" type="button" disabled>Pause</button>
+          <button id="disconnect" type="button" disabled>
+            Disconnect viewer
+          </button>
+          <button id="reconnect" type="button" disabled>
+            Reconnect viewer
+          </button>
+          <button id="interrupt" type="button" disabled>Interrupt data</button>
+          <button id="restore" type="button" disabled>Restore data</button>
+          <button id="reset" type="button" disabled>Reset</button>
+        </div>
+        <p id="run-progress" role="status">Starting…</p>
+        <p id="next-step" role="status"></p>
+        <p id="run-mode" role="status"></p>
+        <p id="control-error" role="alert"></p>
+      </section>
+      <section aria-labelledby="fleet-title" class="fleet-panel">
+        <h2 id="fleet-title">Fleet</h2>
+        <p class="caption">
+          Select a vehicle. Every vehicle keeps receiving updates.
+        </p>
+        <ul id="fleet-list" aria-label="Vehicles"></ul>
+      </section>
+      <div class="layout" id="fleet-detail">
+        <section class="route-panel" aria-labelledby="route-title">
+          <div class="panel-heading">
+            <h2 id="route-title">Selected vehicle</h2>
+            <span class="tag">Received facts</span>
+          </div>
+          <div class="current">
+            <div>
+              <p id="position-label" class="eyebrow">Current position</p>
+              <strong id="current-sequence">—</strong>
+            </div>
+            <div>
+              <p id="current-coordinates">No position received</p>
+              <p id="latest-status" class="caption">
+                Not subscribed · no snapshot received
+              </p>
+            </div>
+          </div>
+          <p class="eyebrow">Operational status</p>
+          <p id="current-operation">No operational status received</p>
+        </section>
+        <section
+          id="history-panel"
+          class="history-panel"
+          aria-labelledby="history-title"
+        >
+          <p class="eyebrow">History view</p>
+          <h2 id="history-title">Received so far</h2>
+          <p id="history-status" class="caption">
+            Not subscribed · no snapshot received
+          </p>
+          <ol id="history" tabindex="0" aria-label="Received positions"></ol>
+          <p class="note">
+            A gap in sequence numbers does not establish missing data. These are
+            the positions ZooGlass has received.
+          </p>
+        </section>
+      </div>
+      <section class="activity-panel" aria-labelledby="activity-title">
+        <h2 id="activity-title">Run activity</h2>
+        <p class="note">
+          Source sends and browser observations are separate evidence. Entries
+          appear in the order this page learns about them, not a global event
+          order.
+        </p>
+        <p id="activity-count">
+          No activity yet. The latest 100 entries will be retained.
+        </p>
+        <ol id="activity" tabindex="0" aria-label="Recent run activity"></ol>
+      </section>
+      <footer>
+        Snapshots arrive independently. Coordinates are synthetic; a geographic
+        map will follow in a later increment. Workbench controls the scenario;
+        vehicle values come from ZooGlass snapshots.
+      </footer>
+    </main>
+  </body>
+</html>

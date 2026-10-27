@@ -1,3 +1,4 @@
+import { observeFleetSession } from "./fleet-observer.js";
 import { createVehicleFaults } from "./vehicle-faults.js";
 import { DemoCleanupError } from "../../control/demo-controller.js";
 import { observeVehicleSession } from "./vehicle-observer.js";
@@ -94,7 +95,10 @@ export async function startVehicleRun(
               return ownedBrowser.host.executor;
             },
           });
-          const observed = observeVehicleSession(
+          const observe = options.fleet
+            ? observeFleetSession
+            : observeVehicleSession;
+          const observed = observe(
             session,
             ownedBrowser.page,
             ownedBrowser.signal,
@@ -110,6 +114,8 @@ export async function startVehicleRun(
                 ownedBrowser.host.publish({
                   kind: "vehicle-source-sent",
                   sourceName: entry.sourceName,
+                  eventType: entry.type,
+                  entityId: entry.entityId,
                   sequence: entry.payload.sequence,
                   simulationTime: entry.simulationTime,
                 });

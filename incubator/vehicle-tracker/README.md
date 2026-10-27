@@ -23,13 +23,31 @@ https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 The 11-second recording shows the short `--basic` fixture using real ZooGlass snapshots, with longer pauses between
 positions 40 and 42 so the changes are easy to follow.
 
-## Fleet extension in progress
+## Fleet selection
 
-The [fleet manifest](fleet-manifest.json) defines three initial vehicle IDs and
-names for the extension. Its [Workbench contract scenario](../workbench/docs/fleet-contracts.md)
-verifies independent location/status fields and received journeys through the
-real service. The existing browser does not consume this manifest yet; fleet
-selection and the geographic map remain subsequent work.
+On the fleet programme branch, use the existing demo with `--fleet`:
+
+```sh
+cd incubator/workbench
+npm run demo -- vehicle-tracker --fleet
+```
+
+Use the installation and preparation steps below first. The three-vehicle fleet
+list receives live positions and independent operational status. Select a vehicle
+by mouse, touch or keyboard to see its received history and detail. Selection
+changes presentation only; all six subscriptions remain active. Disconnect keeps
+received values visibly labelled, Reconnect restores each subscription, and Reset
+starts an empty run. The current fleet presentation is text-based; the geographic
+map and direct phone access are later increments.
+
+![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)
+
+The [manifest](fleet-manifest.json) supplies names and IDs only. Values come from
+ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).
+`--fleet` is an interactive variant and cannot be combined with `--basic`,
+`--recovery`, `--fault` or `--auto`. The existing default journey and short variants
+are retained. A narrow Chromium viewport is tested; this does not yet provide
+actual network phone access.
 
 ## Follow the run
 

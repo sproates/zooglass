@@ -2,8 +2,9 @@
 
 This is the first executable part of the [extended vehicle demo](../../../docs/plans/extended-vehicle-demo.md).
 It establishes the data contracts through the existing Workbench scenario runner.
-The browser still shows the existing single-vehicle demo; fleet selection, the
-geographic map and direct phone access are later increments.
+The browser can now run this fixture with `npm run demo -- vehicle-tracker --fleet`,
+showing all three vehicles and selected detail. The geographic map and direct
+phone access are later increments. Existing single-vehicle variants are retained.
 
 ## Run the contract scenario
 
@@ -42,9 +43,9 @@ a location at 42 is not older than an operation at 100. Sequence state is scoped
 to the view field and entity. All three vehicles deliberately start with the same
 numbers so accidental sharing between vehicles is observable.
 
-The Node client subscribes once to each of the six view/entity pairs. Future
-browser state must use both identifiers; selecting a vehicle must not replace
-other vehicles' subscriptions. The manifest is not yet loaded by the browser.
+The Node client subscribes once to each of the six view/entity pairs. Browser
+state uses both identifiers; selecting a vehicle does not replace other vehicles'
+subscriptions. The browser loads the manifest as descriptive metadata only.
 
 ## What the scenario establishes
 
@@ -70,4 +71,7 @@ coverage; the functional suite checks actual ZooGlass results.
 These checks do not establish atomic snapshots across views, source freshness,
 history completeness, correction support or durable recovery. Equal-sequence
 changed payloads remain duplicates. The short fixture does not implement the
-planned six-vehicle presentation or claim browser-rendering verification.
+planned six-vehicle presentation. The optional fleet observer adds checks of
+visible fleet rows and selected history; unselected histories are receipt-checked.
+The browser test independently selects each vehicle, checks its detail and
+records outgoing commands to verify selection creates no subscriptions.

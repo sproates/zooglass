@@ -2,6 +2,16 @@ import { startBrowserBridge } from "/bridge.js";
 import { createVehicleClient } from "/vehicle-client.js";
 import { recordObservation, recordSourceSend, recordFault } from "/activity.js";
 
+let createClient = createVehicleClient;
+if (document.body.dataset.fleet === "true") {
+  const { createFleetClient } = await import("/fleet/client.js");
+  const response = await fetch("/fleet-manifest.json");
+  if (!response.ok) throw new Error("Could not load fleet manifest.");
+  const manifest = await response.json();
+  createClient = (dataPath, report, fail) =>
+    createFleetClient(dataPath, report, fail, manifest);
+}
+
 const status = document.querySelector("#status");
 const step = document.querySelector("#step");
 const play = document.querySelector("#play");
@@ -32,7 +42,7 @@ for (const [button, action] of [
 const bridge = startBrowserBridge({
   createClient(dataPath, report, fail) {
     document.body.dataset.dataPath = dataPath;
-    return createVehicleClient(
+    return createClient(
       dataPath,
       (message) => {
         report(message);

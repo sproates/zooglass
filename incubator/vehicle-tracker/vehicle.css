@@ -212,3 +212,43 @@ button:focus-visible {
 #next-step {
   font-weight: 600;
 }
+
+.fleet-panel {
+  margin-bottom: 20px;
+}
+#fleet-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+#fleet-list li {
+  border: 1px solid #d7dfd3;
+  border-radius: 10px;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+#fleet-list button {
+  width: 100%;
+  background: white;
+  color: #16664f;
+}
+#fleet-list button[aria-pressed="true"] {
+  background: #16664f;
+  color: white;
+}
+.fleet-position,
+.fleet-operation {
+  font-size: 0.87rem;
+  font-variant-numeric: tabular-nums;
+}
+.fleet-status[data-state="retained"] {
+  font-weight: 650;
+  color: #70411b;
+}
+@media (max-width: 700px) {
+  #fleet-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -106,6 +106,8 @@ for (const failAt of [undefined, "execute"] as const) {
           {
             kind: "vehicle-source-sent",
             sourceName: "Location feed",
+            eventType: "location",
+            entityId: "car-17",
             sequence: 41,
             simulationTime: 300,
           },

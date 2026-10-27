@@ -174,6 +174,9 @@ flowchart TB
   run -->|injects fault callback| session
   run -->|wraps execution with page checks| observer
   observer -.->|wraps ScenarioSession contract| session
+  fleetObserver["demos/vehicle/fleet-observer.ts<br/>Check fleet rows and selected history"]
+  run -->|chooses fleet page checks in fleet mode| fleetObserver
+  fleetObserver -.->|wraps ScenarioSession contract| session
 ```
 
 The arrow back to `control/demo-controller.ts` is a real import of `DemoCleanupError`.
@@ -190,7 +193,10 @@ scenario expectation. The shared session dispatches fault entries through an
 injected callback and rejects unsupported scenarios before allocating resources;
 it does not import the vehicle adapter.
 
-The observer is optional demo verification assembled by `vehicle-run.ts`.
+The observers are optional demo verification assembled by `vehicle-run.ts`.
+Fleet mode checks list rows and selected history without changing selection;
+unselected histories are receipt-checked. The fleet browser test separately
+selects each vehicle to check its detail.
 It reads the rendered page independently of the vehicle app's rendering code.
 The shared scenario session and client executors do not depend on it.
 
@@ -236,6 +242,16 @@ flowchart TB
   client -->|creates recovery client with callbacks| recovery
   recovery -->|creates protocol client for each attempt| subscription
   client -->|supplies rendering callbacks| view
+  fleet["vehicle-tracker/src/fleet/client.ts<br/>Bind fleet model and renderer"]
+  model["vehicle-tracker/src/fleet/model.ts<br/>Received view/entity state and local selection"]
+  fleetView["vehicle-tracker/src/fleet/view.ts<br/>Fleet list and selected details"]
+  manifest["vehicle-tracker/fleet-manifest.json<br/>Descriptive vehicle identities"]
+  bootstrap -->|loads fleet factory in fleet mode| fleet
+  bootstrap -.->|fetches manifest for fleet factory| manifest
+  fleet -->|creates model and validates subscriptions| model
+  fleet -->|creates renderer and refreshes on receipts| fleetView
+  fleetView -.->|reads model and changes selection| model
+  fleet -->|reuses transport recovery| recovery
 ```
 
 The browser bridge knows the supplied client interface. It does not import the

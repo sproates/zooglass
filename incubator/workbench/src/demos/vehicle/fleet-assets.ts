@@ -44,7 +44,14 @@ export function interactiveMapConfiguration(
 /** Fleet-only assets, including the installed, locally served Leaflet distribution. */
 export async function fleetAssets(configuration = localTiles) {
   const assets = new Map<string, readonly [string, Buffer]>();
-  for (const module of ["client", "model", "view", "map"]) {
+  for (const module of [
+    "client",
+    "model",
+    "view",
+    "map",
+    "map-controls",
+    "map-tiles",
+  ]) {
     assets.set(`/fleet/${module}.js`, [
       "text/javascript; charset=utf-8",
       await readFile(

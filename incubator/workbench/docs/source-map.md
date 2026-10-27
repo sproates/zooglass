@@ -224,7 +224,7 @@ flowchart TB
   vehicle -->|loads fleet assets and declares image origin| fleetAssets
   vehicle -->|starts owned browser session| session
   vehicle -->|can start host alone| host
-  session -->|starts and closes host| host
+  session -->|starts host and waits for app registration, not images| host
   host -->|creates browser command executor| executor
   executor -.->|implements shared executor contract| contract
 ```
@@ -263,6 +263,13 @@ flowchart TB
   fleetMap["vehicle-tracker/src/fleet/map.ts<br/>Received markers and selected geographic route"]
   leaflet["Leaflet distribution<br/>Locally served map library"]
   fleet -->|creates map and refreshes on receipts| fleetMap
+  mapControls["vehicle-tracker/src/fleet/map-controls.ts<br/>Fit and follow navigation"]
+  mapTiles["vehicle-tracker/src/fleet/map-tiles.ts<br/>Background status, attribution and retry"]
+  fleetMap -->|creates local camera controls| mapControls
+  mapControls -->|pans and fits| leaflet
+  mapControls -.->|reads received positions and selection| model
+  fleetMap -->|adds background independently of data| mapTiles
+  mapTiles -->|loads tiles and observes availability| leaflet
   fleetMap -->|draws geographic layers| leaflet
   fleetMap -.->|reads received coordinates| model
   fleetMap -.->|selection callback| fleet

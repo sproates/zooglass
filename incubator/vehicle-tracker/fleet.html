@@ -60,10 +60,29 @@
           Synthetic vehicles on a real geographic map. Select a car or a fleet
           row.
         </p>
+        <div class="map-buttons" aria-label="Map controls">
+          <button id="fit-fleet" type="button" disabled>Fit fleet</button>
+          <button
+            id="follow-selected"
+            type="button"
+            aria-pressed="false"
+            disabled
+          >
+            Follow selected
+          </button>
+          <button id="retry-map" type="button" disabled>Retry map</button>
+        </div>
+        <p id="map-navigation-status" class="caption" role="status"></p>
+        <p id="map-background-status" class="caption" role="status"></p>
         <div
           id="fleet-map"
           aria-label="Vehicle positions around Gibraltar"
         ></div>
+        <p
+          id="map-attribution"
+          class="caption"
+          aria-label="Map attribution"
+        ></p>
         <p id="map-status" class="caption" role="status"></p>
       </section>
       <div class="layout" id="fleet-detail">

@@ -7,8 +7,9 @@ experience, not capabilities already implemented. The first
 establishes three entities and independent feeds. The programme branch now adds
 a text-based fleet browser with local selection, independent received state and
 manual reconnect/reset. Map integration adds a Gibraltar background, received
-markers and selected history; fit/follow, map failure handling, network viewers
-and the longer six-vehicle scenarios remain pending.
+markers and selected history. Fit/follow and map failure handling are implemented
+for review; map acceptance, network viewers and the longer six-vehicle scenarios
+remain pending.
 
 ## What someone should be able to do
 

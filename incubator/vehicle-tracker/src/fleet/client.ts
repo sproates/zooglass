@@ -1,4 +1,5 @@
-import { createFleetMap, type MapConfiguration } from "./map.js";
+import { createFleetMap } from "./map.js";
+import type { MapConfiguration } from "./map-tiles.js";
 import { createRecoveringClient } from "../recovering-client.js";
 import { createFleetModel, parseManifest } from "./model.js";
 import { createFleetView } from "./view.js";

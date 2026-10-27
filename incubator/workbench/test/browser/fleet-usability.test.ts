@@ -109,15 +109,21 @@ test(
             `${width}px at ${fontSize} must reflow`,
           );
           assert.equal(
-            await page.locator(".control-buttons").evaluate((container) => {
-              const bounds = container.getBoundingClientRect();
-              return [...container.querySelectorAll("button")].every(
-                (button) => {
-                  const rect = button.getBoundingClientRect();
-                  return rect.left >= bounds.left && rect.right <= bounds.right;
-                },
-              );
-            }),
+            await page
+              .locator(".control-buttons, .map-buttons")
+              .evaluateAll((containers) =>
+                containers.every((container) => {
+                  const bounds = container.getBoundingClientRect();
+                  return [...container.querySelectorAll("button")].every(
+                    (button) => {
+                      const rect = button.getBoundingClientRect();
+                      return (
+                        rect.left >= bounds.left && rect.right <= bounds.right
+                      );
+                    },
+                  );
+                }),
+              ),
             true,
             "controls stay inside their panel",
           );
@@ -125,6 +131,18 @@ test(
             path: `test-results/fleet-${width}-${fontSize.slice(0, -1)}.png`,
             fullPage: true,
           });
+          const mapBounds = (await page.locator("#fleet-map").boundingBox())!;
+          const attribution = (await page
+            .locator("#map-attribution")
+            .boundingBox())!;
+          assert.ok(
+            attribution.y >= mapBounds.y + mapBounds.height,
+            "attribution must not cover map controls or cars",
+          );
+          if (width === 320 && fontSize === "200%")
+            await page
+              .locator(".map-panel")
+              .screenshot({ path: "test-results/map-320-200.png" });
         }
       }
     } finally {

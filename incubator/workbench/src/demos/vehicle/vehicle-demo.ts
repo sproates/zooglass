@@ -1,3 +1,4 @@
+import type { FleetMapConfiguration } from "./fleet-assets.js";
 import {
   createDemoController,
   type DemoRun,
@@ -10,9 +11,15 @@ import { startVehicleRun } from "./vehicle-run.js";
 import type { TraceEntry } from "../../scenario/playback.js";
 import type { Scenario } from "../../scenario/scenario.js";
 
+export interface VehicleDemoOptions {
+  headless?: boolean;
+  fleet?: boolean;
+  map?: FleetMapConfiguration;
+}
+
 export function createVehicleDemo(
   scenario: Scenario,
-  options: { headless?: boolean; fleet?: boolean } = {},
+  options: VehicleDemoOptions = {},
 ) {
   const descriptions = vehicleStepDescriptions(scenario);
 
@@ -26,6 +33,7 @@ export function createVehicleDemo(
         signal,
         headless: options.headless,
         fleet: options.fleet,
+        map: options.map,
         keepOpenOnFailure: true,
         onControl: async (action, runId) => {
           if (browser?.host.runId !== runId)

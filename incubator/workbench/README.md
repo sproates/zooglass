@@ -225,7 +225,9 @@ updates and duplicate handling through real service and Node-client connections.
 See the [fleet contract guide](docs/fleet-contracts.md) for the manifest, view
 definitions and source-specific processing barriers. Run the browser presentation
 with `npm run demo -- vehicle-tracker --fleet`: choose a vehicle to inspect its
-received history while all vehicles keep updating.
+received history while all vehicles keep updating. The [Gibraltar map guide](../vehicle-tracker/docs/fleet-map.md)
+explains the locally bundled map library, configurable tile background, synthetic
+coordinates and local-only automated tests.
 
 ### Focused scenarios
 

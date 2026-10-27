@@ -37,10 +37,15 @@ list receives live positions and independent operational status. Select a vehicl
 by mouse, touch or keyboard to see its received history and detail. Selection
 changes presentation only; all six subscriptions remain active. Disconnect keeps
 received values visibly labelled, Reconnect restores each subscription, and Reset
-starts an empty run. The current fleet presentation is text-based; the geographic
-map and direct phone access are later increments.
+starts an empty run. The [Gibraltar map](docs/fleet-map.md) adds markers for all
+received latest positions and a line for the selected received history. Marker
+and row selection stay in sync. The map uses locally served Leaflet and
+configurable background tiles; automated tests use local synthetic tiles.
+Fit/follow controls and direct phone access remain later increments.
 
 ![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)
+
+![Synthetic fleet around Gibraltar, with OpenStreetMap attribution.](docs/fleet-map.png)
 
 The [manifest](fleet-manifest.json) supplies names and IDs only. Values come from
 ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).

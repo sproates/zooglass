@@ -8,8 +8,11 @@ if (document.body.dataset.fleet === "true") {
   const response = await fetch("/fleet-manifest.json");
   if (!response.ok) throw new Error("Could not load fleet manifest.");
   const manifest = await response.json();
+  const mapResponse = await fetch("/map-config.json");
+  if (!mapResponse.ok) throw new Error("Could not load map configuration.");
+  const mapConfiguration = await mapResponse.json();
   createClient = (dataPath, report, fail) =>
-    createFleetClient(dataPath, report, fail, manifest);
+    createFleetClient(dataPath, report, fail, manifest, mapConfiguration);
 }
 
 const status = document.querySelector("#status");

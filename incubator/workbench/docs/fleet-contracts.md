@@ -75,3 +75,7 @@ planned six-vehicle presentation. The optional fleet observer adds checks of
 visible fleet rows and selected history; unselected histories are receipt-checked.
 The browser test independently selects each vehicle, checks its detail and
 records outgoing commands to verify selection creates no subscriptions.
+
+The [fleet acceptance record](../../../docs/verification/2026-10-27-fleet-state.md)
+collects the evidence, including keyboard playback, enlarged-text layout and
+catch-up after the sources advance while the browser is disconnected.

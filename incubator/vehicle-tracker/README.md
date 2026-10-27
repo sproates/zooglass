@@ -88,6 +88,10 @@ and advances once; Play continues from there. Reset cancels playback and its tim
 Play stops on completion or a failed check. Step and repeated Play are unavailable
 during playback; Pause is available while a checkpoint is running.
 
+The terminal prints command descriptions at startup. Type `help` or `?` and
+press Enter to show them again; a blank line also shows help. For help without
+starting ZooGlass or a browser, run `npm run demo -- vehicle-tracker --help`.
+
 You can also type `step`, `play`, `pause`, `disconnect`, `reconnect`, `reset` or `quit` in the terminal. Terminal reset
 remains available after the browser page closes. `--headless` uses the same
 controls through the terminal without showing a window.

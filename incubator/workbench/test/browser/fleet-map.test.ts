@@ -56,8 +56,8 @@ test(
           `${id} longitude`,
         );
         assert.ok(
-          Math.abs(marker.y + marker.height / 2 - expected.y) <= 2,
-          `${id} latitude`,
+          Math.abs(marker.y + marker.height - expected.y) <= 2,
+          `${id} pointer tip latitude`,
         );
       }
 

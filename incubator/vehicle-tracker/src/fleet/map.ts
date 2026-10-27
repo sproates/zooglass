@@ -52,8 +52,9 @@ export function createFleetMap(
           icon: L.divIcon({
             html: icon,
             className: "vehicle-map-marker",
-            iconSize: [52, 44],
-            iconAnchor: [26, 22],
+            iconSize: [52, 56],
+            // The pointer tip, rather than the label centre, marks the coordinate.
+            iconAnchor: [26, 56],
           }),
         }).addTo(map);
         marker.on("click", () => select(vehicle.id));

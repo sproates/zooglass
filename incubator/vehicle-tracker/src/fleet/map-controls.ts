@@ -49,7 +49,8 @@ export function createMapControls(map: L.Map, model: FleetModel) {
     });
     if (positions.length)
       map.fitBounds(L.latLngBounds(positions), {
-        padding: [40, 40],
+        paddingTopLeft: [40, 64],
+        paddingBottomRight: [40, 40],
         maxZoom: 17,
         animate: false,
       });

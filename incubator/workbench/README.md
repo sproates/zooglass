@@ -476,6 +476,9 @@ outage must therefore finish within that interval.
 
 ## Browser verification environment
 
+The maintained [architecture diagram guide](../../docs/diagrams/README.md)
+explains this stack, its connections and the distinction from production.
+
 ![Browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)
 
 This shows the browser environment alongside the CLI execution path. Workbench

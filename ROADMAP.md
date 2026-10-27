@@ -138,8 +138,11 @@ signal interruption, resource release and fresh state after restart, accepted in
 enlarged-text fixes and keyboard coverage, accepted in
 [PR #72](https://github.com/sproates/zooglass/pull/72). The
 [capability-claims review](docs/verification/2026-10-27-capabilities.md) records
-what the demo establishes and corrects stale descriptions, pending acceptance.
-The lasting diagram and completion record remain ahead.
+what the demo establishes and corrects stale descriptions, accepted in
+[PR #73](https://github.com/sproates/zooglass/pull/73). The maintained
+[architecture diagram guide](docs/diagrams/README.md) preserves the vertical
+stack and explains the implemented test environment, pending acceptance.
+The final completion record remains ahead.
 
 ## Longer-term direction
 

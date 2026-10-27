@@ -14,7 +14,9 @@ ZooGlass aims to help keep event-driven views current, and clarify what data the
 [What we're trying to build](docs/what-is-zooglass.md) explains the intended
 product, the promises its views should make, and how Workbench will help us
 verify them. Separate diagrams show ZooGlass's intended production role and the
-Workbench environment used to build and test it.
+Workbench environment used to build and test it. The maintained
+[vertical architecture diagram](docs/diagrams/README.md) explains the implemented
+vehicle-demo stack and how Workbench controls and observes it.
 
 ZooGlass is an early prototype with a working in-memory service and scenario
 runner. A [basic browser demo](incubator/vehicle-tracker/README.md) now shows

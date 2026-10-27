@@ -148,13 +148,16 @@ still have to be designed for the workload.
 
 ## How we build and test it
 
-![Intended testing environment: Workbench sits alongside the vehicle stack, controlling source events and browser actions, inspecting results and breaking or restoring the data connection through a blue test proxy.](diagrams/zooglass-workbench.svg)
+![Implemented vehicle testing environment: Workbench sits alongside the vehicle stack, controlling source events and browser actions, inspecting results and breaking or restoring the data connection through a blue test proxy.](diagrams/zooglass-workbench.svg)
 
-This is a different view of the system: the environment we are building to
-exercise ZooGlass. The vehicle app and feed make a concrete scenario. Workbench
+This is a different view of the system: the implemented local environment used
+to exercise ZooGlass through the vehicle demo. The vehicle app and feed make a concrete scenario. Workbench
 runs alongside the stack, with a separate control path to each boundary. The
 browser bridge, Playwright observer and fault proxy are implemented test machinery
 for this bounded vehicle scenario. Wider application adapters remain future work.
+The [diagram guide](diagrams/README.md) explains its arrows, ownership and maintenance.
+Rendered UI checks belong to the demo; shared Workbench execution remains
+independent of vehicle presentation.
 
 Blue marks that machinery and its control connections; green marks the
 application components and data flow. The proxy is blue because it belongs to

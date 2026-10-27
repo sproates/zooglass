@@ -21,6 +21,7 @@ From `incubator/workbench`:
 
 ```sh
 npm ci
+npm run prepare:service
 npm run test:coverage
 npx playwright install chromium
 npm run test:browser:coverage
@@ -294,7 +295,7 @@ runner images, with Node 26 and JDK 25:
 | --- | --- |
 | Ubuntu / Chromium | Full standard and browser suites, plus bounded resource workloads. |
 | macOS / Chromium | Fifty real reconnects and five complete demo runs, including mouse/keyboard Reset and shutdown. |
-| Windows / Chromium | The same native lifecycle workload, including real Maven/JVM process-tree termination. Simulated Windows shutdown tests remain separate unit evidence. |
+| Windows / Chromium | The same native lifecycle workload, including real JVM process-tree termination. Simulated Windows shutdown tests remain separate unit evidence. |
 | Ubuntu / Chromium, Firefox, WebKit | Focused real-service recovery fixture: late and duplicate delivery, disconnect, updates while offline and current snapshots after reconnection, with independent rendered checks. |
 
 The engine probe uses the existing browser host and executor directly; it does
@@ -482,10 +483,10 @@ aligned with the pinned Playwright package when upgrading. This removes the
 per-job system package installation; pulling the image still depends on the
 network. Container Maven runs use GitHub's mounted home directory so dependency
 and wrapper downloads use the repository restored by `setup-java`. macOS and
-Windows lifecycle jobs continue to run natively. Each job initialises the Maven
-wrapper once before starting service tests, so parallel clients cannot race to
-unpack a missing distribution on a cold cache. This does not serialise the tests
-or claim to resolve concurrent Maven compilation of the shared service target.
+Windows lifecycle jobs continue to run natively. Each job packages ZooGlass once
+before starting service tests. Parallel sessions then launch the same JAR without
+Maven or compilation; the tests themselves remain concurrent. Native lifecycle
+jobs also check concurrent artifact-only launches from a path containing spaces.
 
 New PR revisions share a concurrency group and cancel obsolete runs for that PR.
 Each main-branch push uses its unique run ID, so neither running nor pending
@@ -554,3 +555,41 @@ The [recovery acceptance record](verification/2026-10-26-recovery.md) maps the
 six deliberate-action steps and unexpected connection-loss scenario to their
 service, transport and browser evidence. It records the checked source revision
 and keeps whole-demo acceptance and broader recovery guarantees separate.
+
+
+## Prebuilt service launch boundary
+
+Before running Workbench service, browser, resource or engine tests, run
+`npm run prepare:service` from `incubator/workbench`. It packages
+`incubator/zooglass/target/zooglass.jar` using the Maven wrapper, skipping Java
+test compilation/execution. Java tests remain a separate `./mvnw verify` step.
+The CI jobs each prepare once before their test commands; no test-session or
+Reset path invokes the build. The same boundary applies to connected CLI runs
+and the vehicle demo. Print-only simulation and demo-unit checks do not need it.
+
+Startup checks that the JAR exists, then launches Java directly with per-session
+ports and temporary view configuration. `JAVA_HOME/bin/java` is preferred when
+set, otherwise `java` must be on PATH. There is no freshness check against source
+files: rebuild explicitly after Java changes and stop sessions before replacing
+the artifact. A missing artifact produces preparation instructions, not a hidden
+build. Build failures therefore happen during preparation, before concurrent tests.
+
+`test/prebuilt-service.test.ts` copies only the JAR into a path containing spaces,
+starts two sessions concurrently with different definitions, checks state isolation,
+then replaces a session and checks fresh state. The directory has no Maven wrapper,
+POM or sources. It verifies the artifact is unchanged and no build outputs appear.
+Existing startup-failure, cancellation, forced shutdown and browser Reset/resource
+checks retain their responsibilities. Native Windows lifecycle results come from
+CI; POSIX process fixtures and mocked Windows decisions are separate evidence.
+
+Earlier verification records describe their historical Maven launch path. This
+change replaces that path rather than masking concurrent compilation with retries
+or serialising tests. The process launcher cannot write shared Java class files
+because it does not start a compiler.
+
+Local validation of this change on macOS with Node 26 and JDK 25: explicit JAR
+preparation, 138 standard tests, 46 browser tests, both resource workloads and
+106 Java tests passed. Type checks, lint, formatting and the Workbench build
+also passed. The artifact-only test passed again after its failure-cleanup
+handling was tightened. Native Windows and Linux engine evidence is supplied
+by the PR's CI; local results do not substitute for those runs.

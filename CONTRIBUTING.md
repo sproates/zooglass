@@ -74,6 +74,7 @@ For Workbench, from the repository root:
 ```sh
 cd incubator/workbench
 npm ci
+npm run prepare:service
 npm run lint
 npm run format:check
 npm test
@@ -97,6 +98,11 @@ On Linux, use `npx playwright install --with-deps chromium` if browser system
 packages are needed. These tests launch an owned Chromium session.
 
 The Workbench suite starts real ZooGlass processes, so it also needs JDK 25.
+`npm run prepare:service` packages the executable JAR without running or compiling
+Java tests. Run `./mvnw verify` separately for Java verification. Repeat preparation
+after Java source/resource/dependency changes and stop running sessions before
+replacing the shared JAR. Tests and Reset launch that artifact directly, never
+Maven; a missing artifact fails with preparation instructions.
 Use `npm run format` in that directory to apply formatting, then inspect the diff
 for unrelated edits. On Windows, use `mvnw.cmd` in place of `./mvnw`.
 

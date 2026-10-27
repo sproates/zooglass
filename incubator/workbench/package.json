@@ -7,6 +7,7 @@
     "node": ">=26 <27"
   },
   "scripts": {
+    "prepare:service": "node scripts/check-node-version.js && node scripts/prepare-service.js",
     "prebuild": "node scripts/check-node-version.js",
     "build": "tsc -p tsconfig.json && npm run build:browser",
     "prelint": "node scripts/check-node-version.js",

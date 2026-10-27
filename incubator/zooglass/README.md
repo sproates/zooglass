@@ -11,6 +11,19 @@ Requires JDK 25. The Maven Wrapper downloads the configured Maven version when n
 ./mvnw spring-boot:run
 ```
 
+For Workbench scenarios, tests and demos, build the executable application first:
+
+```sh
+./mvnw --batch-mode -Dmaven.test.skip=true package
+java -jar target/zooglass.jar
+```
+
+Workbench's `npm run prepare:service` performs that package step. Its sessions
+launch the JAR directly with isolated ports and configuration, including after
+Reset. They never invoke Maven or rebuild a missing artifact. Rebuild explicitly
+after Java source/resource/dependency changes, with active sessions stopped.
+Use `./mvnw verify` separately to run the Java tests.
+
 The health check is available at <http://localhost:8080/actuator/health>.
 
 ZooGlass also accepts WebSocket connections at `ws://localhost:8080/events`.

@@ -47,10 +47,8 @@ jobs:
           cache-dependency-path: incubator/zooglass/pom.xml
 
       - run: npm ci
-      - name: Initialise Maven wrapper before service tests
-        shell: bash
-        working-directory: incubator/zooglass
-        run: ./mvnw --version
+      - name: Build ZooGlass once before service tests
+        run: npm run prepare:service
       - run: npm run lint
       - run: npm run format:check
       - name: Verify core checks without a vehicle build or browser binaries
@@ -98,10 +96,8 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
-      - name: Initialise Maven wrapper before service tests
-        shell: bash
-        working-directory: incubator/zooglass
-        run: ./mvnw --version
+      - name: Build ZooGlass once before service tests
+        run: npm run prepare:service
       - run: npm run test:browser:coverage
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
@@ -141,11 +137,11 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
-      - name: Initialise Maven wrapper before service tests
-        shell: bash
-        working-directory: incubator/zooglass
-        run: ./mvnw --version
+      - name: Build ZooGlass once before service tests
+        run: npm run prepare:service
       - run: npx playwright install chromium
+      - name: Verify artifact-only concurrent launches and restart
+        run: npx tsx --test test/prebuilt-service.test.ts
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6
         if: failure()
@@ -184,10 +180,8 @@ jobs:
           cache: maven
           cache-dependency-path: incubator/zooglass/pom.xml
       - run: npm ci
-      - name: Initialise Maven wrapper before service tests
-        shell: bash
-        working-directory: incubator/zooglass
-        run: ./mvnw --version
+      - name: Build ZooGlass once before service tests
+        run: npm run prepare:service
       - name: Align container home ownership for Firefox
         if: matrix.engine == 'firefox'
         run: chown "$(id -u):$(id -g)" "$HOME"

@@ -30,8 +30,11 @@ composition lives under `src/demos/vehicle/`.
 ## Run a scenario
 
 Use Node 26 and install dependencies with `npm ci`. Connected runs and the full
-test suite also need JDK 25; Workbench starts the adjacent ZooGlass project with
-its Maven Wrapper. Maven dependencies may need downloading on the first run.
+test suite also need JDK 25. Run `npm run prepare:service` once before connected
+runs, demos or service tests, and again after changing Java sources, resources or
+dependencies. This explicit Maven build creates `../zooglass/target/zooglass.jar`.
+Preparation may download dependencies; session startup runs `java -jar` and never
+builds. Stop active sessions before rebuilding the shared artifact.
 Run the commands below from `incubator/workbench`.
 
 | Command                                                 | What it does                                                                                                  |
@@ -50,13 +53,14 @@ npm ci
 npm run simulate -- scenarios/live-match.json
 ```
 
-To start ZooGlass and play a scenario against it, run:
+To prepare ZooGlass and play a scenario against it, run:
 
 ```sh
+npm run prepare:service
 npm run integrate -- scenarios/live-match.json
 ```
 
-This starts ZooGlass with the Maven Wrapper, waits for its health check, opens a
+This launches the prebuilt ZooGlass JAR, waits for its health check, opens a
 WebSocket connection for each event source and scenario client, and sends each
 event at its scheduled simulation time. Client state changes open or close
 their WebSocket connections. The scenario's view definitions are loaded by
@@ -335,6 +339,7 @@ vehicle page over a separate control connection and step through the twenty-posi
 
 ```sh
 npm ci
+npm run prepare:service
 npx playwright install chromium
 npm run demo -- vehicle-tracker
 ```
@@ -688,7 +693,8 @@ resource framework.
 
 ## Independent core verification
 
-With Node 26 and JDK 25, run `npm ci` then `npm run test:core`. This command has
+With Node 26 and JDK 25, run `npm ci`, `npm run prepare:service`, then
+`npm run test:core`. This command has
 no browser build hook and needs no installed browser engines. It includes real
 ZooGlass scenarios, protocol/concurrency checks, controller lifecycle checks,
 and host/bridge checks using Node sockets or controlled clients. Vehicle scenario

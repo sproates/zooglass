@@ -19,6 +19,7 @@ test(
     const fixture = await serviceFixture(t, "stubborn");
     const session = await startZooGlassSession({
       serviceDirectory: fixture.directory,
+      javaExecutable: fixture.javaExecutable,
       views,
       shutdownTimeoutMs: 50,
     });
@@ -49,6 +50,7 @@ for (const mode of ["unhealthy", "exit"] as const) {
       await assert.rejects(
         startZooGlassSession({
           serviceDirectory: fixture.directory,
+          javaExecutable: fixture.javaExecutable,
           views,
           startupTimeoutMs: 3_000,
         }),
@@ -63,15 +65,32 @@ for (const mode of ["unhealthy", "exit"] as const) {
   );
 }
 
-test("spawn errors reject promptly and cancellation prevents startup", async () => {
+test("missing preparation fails clearly and cancellation prevents startup", async () => {
   await assert.rejects(
     startZooGlassSession({
       serviceDirectory: "/nonexistent/workbench-service",
     }),
-    /aborted|ENOENT/,
+    /Run npm run prepare:service/,
   );
   await assert.rejects(
     startZooGlassSession({ signal: AbortSignal.abort(new Error("cancelled")) }),
     /cancelled/,
   );
 });
+
+test(
+  "Java spawn errors clean up and reject promptly",
+  processTestOptions,
+  async (t) => {
+    const fixture = await serviceFixture(t, "healthy");
+
+    await assert.rejects(
+      startZooGlassSession({
+        serviceDirectory: fixture.directory,
+        javaExecutable: "/nonexistent/java",
+        views,
+      }),
+      /aborted|ENOENT/,
+    );
+  },
+);

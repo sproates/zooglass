@@ -99,3 +99,32 @@ for (const completed of [1, 2]) {
     });
   }
 }
+
+test("fleet descriptions keep ordering domains separate for entities and sources", async () => {
+  const fleet = await loadScenario(
+    fileURLToPath(
+      new URL("../../scenarios/vehicle-fleet-contracts.json", import.meta.url),
+    ),
+  );
+  const descriptions = vehicleStepDescriptions(fleet);
+  assert.ok(
+    descriptions.includes(
+      "Send position 40 from Vehicle locations for car-28.",
+    ),
+  );
+  assert.ok(
+    descriptions.includes(
+      "Send position 42 from Vehicle locations for car-17.",
+    ),
+  );
+  assert.ok(
+    descriptions.includes(
+      "Send late operation 101 from Vehicle operations for car-28.",
+    ),
+  );
+  assert.ok(
+    descriptions.includes(
+      "Send duplicate position 42 from Vehicle locations for car-17.",
+    ),
+  );
+});

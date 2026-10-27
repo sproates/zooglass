@@ -219,7 +219,10 @@ browser capabilities are not yet delivered.
 
 The [accepted fleet design](docs/plans/extended-vehicle-demo.md) is being developed
 on `feature/vehicle-fleet`, with slice PRs reviewed into that branch and a final
-PR to main after acceptance. The first slice adds a
-[three-vehicle contract scenario](incubator/workbench/docs/fleet-contracts.md),
-independent location/status feeds and exact HTTP/client checks. It is under
-review; the delivered single-vehicle browser remains unchanged.
+PR to main after acceptance. The [three-vehicle contract scenario](incubator/workbench/docs/fleet-contracts.md)
+merged into the programme branch in [PR #79](https://github.com/sproates/zooglass/pull/79).
+The next slice adds a text-based fleet list, selected detail/history and six
+independent subscriptions, with reconnect and Reset. It is under review on the
+programme branch; the geographic map and network viewers remain pending.
+The existing single-vehicle variants remain available. Main receives the complete
+programme only after final acceptance.

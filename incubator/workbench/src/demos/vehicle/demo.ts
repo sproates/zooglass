@@ -14,7 +14,7 @@ const terminalHelp = `Terminal commands (type a command and press Enter):
   play         Continue the scenario from the current checkpoint.
   pause        Stop future steps; let the current checkpoint finish.
   disconnect   Close the viewer's data socket; keep the source running.
-  reconnect    Open the viewer socket and subscribe to both views again.
+  reconnect    Open the viewer socket and restore the scenario subscriptions.
   interrupt    Break the data route and refuse connections until restored.
   restore      Reopen the route; the armed client retries automatically.
   reset        Close the old browser/service and start a fresh session.
@@ -35,7 +35,7 @@ async function main() {
     (args.length === 2 && args[0] === "vehicle-tracker" && args[1] === "--help")
   ) {
     console.log(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
     );
     console.log(
       "Interactive mode is the default; --auto has no terminal commands.\n",
@@ -56,11 +56,12 @@ async function main() {
             "--auto",
             "--recovery",
             "--fault",
+            "--fleet",
           ].includes(arg),
       )
   )
     throw new Error(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
     );
 
   if (
@@ -73,25 +74,38 @@ async function main() {
       "--recovery and --fault cannot be combined with each other, --basic or --auto.",
     );
 
+  if (
+    args.includes("--fleet") &&
+    ["--basic", "--recovery", "--fault", "--auto"].some((arg) =>
+      args.includes(arg),
+    )
+  )
+    throw new Error(
+      "--fleet cannot be combined with --basic, --recovery, --fault or --auto.",
+    );
+
   if (args.includes("--auto"))
     return runAutomaticDemo(args.filter((arg) => arg !== "--auto"));
 
   const scenario = await loadScenario(
     fileURLToPath(
       new URL(
-        args.includes("--fault")
-          ? "../../../scenarios/browser/vehicle-connection-loss.json"
-          : args.includes("--recovery")
-            ? "../../../scenarios/vehicle-browser-recovery.json"
-            : args.includes("--basic")
-              ? "../../../scenarios/vehicle-browser-basic.json"
-              : "../../../scenarios/vehicle-browser-journey.json",
+        args.includes("--fleet")
+          ? "../../../scenarios/vehicle-fleet-contracts.json"
+          : args.includes("--fault")
+            ? "../../../scenarios/browser/vehicle-connection-loss.json"
+            : args.includes("--recovery")
+              ? "../../../scenarios/vehicle-browser-recovery.json"
+              : args.includes("--basic")
+                ? "../../../scenarios/vehicle-browser-basic.json"
+                : "../../../scenarios/vehicle-browser-journey.json",
         import.meta.url,
       ),
     ),
   );
   const demo = createVehicleDemo(scenario, {
     headless: args.includes("--headless"),
+    fleet: args.includes("--fleet"),
   });
   let stopped = false;
   let finish!: () => void;

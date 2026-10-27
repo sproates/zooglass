@@ -1,6 +1,6 @@
 # Vehicle tracker source map
 
-The vehicle tracker is the browser UI for a ZooGlass demo. Its five TypeScript
+The vehicle tracker is the browser UI for a ZooGlass demo. Its TypeScript
 modules separate vehicle-specific policy, subscription handling, rendering and
 bounded recovery and run diagnostics.
 Workbench supplies the scenario and controls; vehicle values come from ZooGlass
@@ -49,6 +49,38 @@ receives actual browser observations and successful source-send notices from the
 bootstrap; it does not drive the vehicle views or infer service processing from
 a send. Its state lives for one page lifetime, so reset starts a new trace.
 
+## Fleet presentation
+
+The `--fleet` variant uses the same transport and recovery modules. Its additional
+modules are grouped under `src/fleet/`; the short single-vehicle fixtures continue
+to use `vehicle-client.ts` and `view.ts`.
+
+```mermaid
+flowchart TB
+  client["src/fleet/client.ts<br/>Bind fleet policy and rendering"]
+  model["src/fleet/model.ts<br/>Validate manifest and snapshots; store each view/entity pair"]
+  view["src/fleet/view.ts<br/>Render fleet rows and selected details"]
+  recovery["src/recovering-client.ts<br/>Existing recovery and desired subscriptions"]
+  protocol["src/subscription-client.ts<br/>Existing socket protocol"]
+  client -->|creates received-state model| model
+  client -->|creates renderer and refreshes on protocol notifications| view
+  client -->|supplies fleet validation and callbacks| recovery
+  recovery -->|creates protocol attempts| protocol
+  view -.->|reads model and changes local selection| model
+```
+
+[`model.ts`](../src/fleet/model.ts) holds each pair's subscription, receipt and
+current/retained state. Complete snapshots replace previous fields; invalid
+payloads cannot partially overwrite accepted state. Waiting for history and
+receiving an explicit empty array are distinct. No ordering is recalculated in
+the client; ZooGlass supplies the view contents.
+
+[`view.ts`](../src/fleet/view.ts) updates all fleet rows and the selected detail.
+Selection never calls the transport. [`client.ts`](../src/fleet/client.ts) rejects
+unknown view/entity pairs and binds actual receipts to this model and renderer.
+The descriptive `fleet-manifest.json` contains only IDs and names. It cannot
+supply coordinates, operational values or history.
+
 ## How Workbench starts the page
 
 The browser app is currently composed by Workbench. Paths below are relative to
@@ -57,7 +89,7 @@ its dependencies compile to JavaScript served by the host.
 
 ```mermaid
 flowchart TB
-  html["vehicle-tracker/index.html<br/>Page structure and app script"]
+  html["vehicle-tracker/index.html or fleet.html<br/>Page structure and app script"]
   css["vehicle-tracker/vehicle.css<br/>Page styling"]
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and client factory"]
   bridge["workbench/browser/bridge.js<br/>Control protocol and command dispatch"]
@@ -67,13 +99,18 @@ flowchart TB
   activity["vehicle-tracker/src/activity.ts<br/>Bounded activity rendering"]
   bootstrap -->|forwards observations and source-send notices| activity
   bootstrap -->|starts bridge with supplied client factory| bridge
-  bootstrap -->|creates vehicle client| client
+  bootstrap -->|creates single-vehicle client| client
+  fleet["vehicle-tracker/src/fleet/client.ts<br/>Fleet app composition"]
+  manifest["vehicle-tracker/fleet-manifest.json<br/>Descriptive IDs and names"]
+  bootstrap -->|dynamically imports fleet factory in fleet mode| fleet
+  bootstrap -.->|fetches descriptive manifest in fleet mode| manifest
 ```
 
 [`index.html`](../index.html) supplies the DOM and loads `/vehicle-bootstrap.js`.
 The [bootstrap](../../workbench/browser/vehicle-bootstrap.js) wires page buttons
 and run status to the [bridge](../../workbench/browser/bridge.js), and passes it
-a vehicle-client factory. The bridge dispatches commands to that supplied client
+a vehicle-client factory. In fleet mode it loads the fleet module and manifest
+before starting the same bridge. The bridge dispatches commands to that supplied client
 and reports observations over Workbench's control connection; it does not import
 the vehicle implementation itself.
 
@@ -91,7 +128,10 @@ ownership and independent page checks live in
 [`workbench/src/demos/vehicle/`](../../workbench/src/demos/vehicle/).
 In particular, the [page observer](../../workbench/src/demos/vehicle/vehicle-observer.ts)
 checks the rendered result without importing `view.ts` or reusing its projection
-function. Expected results stay outside the app.
+function. The [fleet observer](../../workbench/src/demos/vehicle/fleet-observer.ts)
+checks fleet rows and the currently selected history without changing selection.
+Unselected histories receive protocol checks; the fleet browser test selects
+each vehicle independently to verify the resulting detail. Expected results stay outside the app.
 
 For the surrounding modules, see the [Workbench source map](../../workbench/docs/source-map.md).
 For the service that produces the views, see the [ZooGlass source map](../../zooglass/docs/source-map.md).

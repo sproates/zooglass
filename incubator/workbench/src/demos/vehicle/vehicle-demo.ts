@@ -12,7 +12,7 @@ import type { Scenario } from "../../scenario/scenario.js";
 
 export function createVehicleDemo(
   scenario: Scenario,
-  options: { headless?: boolean } = {},
+  options: { headless?: boolean; fleet?: boolean } = {},
 ) {
   const descriptions = vehicleStepDescriptions(scenario);
 
@@ -25,6 +25,7 @@ export function createVehicleDemo(
       const run = await startVehicleRun(scenario, {
         signal,
         headless: options.headless,
+        fleet: options.fleet,
         keepOpenOnFailure: true,
         onControl: async (action, runId) => {
           if (browser?.host.runId !== runId)
@@ -64,7 +65,9 @@ export function createVehicleDemo(
   );
 
   const viewer = (action: "disconnect" | "reconnect") => {
-    const client = scenario.clients.find((item) => item.id === "rider-app");
+    const client = scenario.clients.find(
+      (item) => item.id === (options.fleet ? "fleet-viewer" : "rider-app"),
+    );
 
     if (!client)
       return Promise.reject(new Error("No vehicle viewer configured."));
@@ -80,15 +83,29 @@ export function createVehicleDemo(
     ];
 
     if (action === "reconnect") {
-      for (const viewId of ["live-map", "trip-history"])
+      const subscriptions = new Map<
+        string,
+        { viewId: string; entityId: string }
+      >();
+      for (const entry of scenario.timeline) {
+        if (
+          entry.kind === "client-subscription" &&
+          entry.clientId === client.id &&
+          entry.action === "subscribe"
+        )
+          subscriptions.set(JSON.stringify([entry.viewId, entry.entityId]), {
+            viewId: entry.viewId,
+            entityId: entry.entityId,
+          });
+      }
+      for (const subscription of subscriptions.values())
         entries.push({
           kind: "client-subscription",
           simulationTime: 0,
           clientId: client.id,
           clientName: client.name,
           action: "subscribe",
-          viewId,
-          entityId: "car-17",
+          ...subscription,
         });
     }
 
@@ -99,7 +116,9 @@ export function createVehicleDemo(
   };
 
   const fault = (action: "interrupt" | "restore") => {
-    const client = scenario.clients.find((item) => item.id === "rider-app");
+    const client = scenario.clients.find(
+      (item) => item.id === (options.fleet ? "fleet-viewer" : "rider-app"),
+    );
     if (!client)
       return Promise.reject(new Error("No vehicle viewer configured."));
     return controller.intervene(

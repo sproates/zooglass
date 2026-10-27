@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdir } from "node:fs/promises";
 import type { Route } from "playwright";
 import { createVehicleDemo } from "../../src/demos/vehicle/vehicle-demo.js";
 import { loadScenario } from "../../src/scenario/scenario.js";
@@ -36,6 +37,10 @@ test(
         await page.locator("#connection-status").innerText(),
         /ZooGlass connected/,
       );
+      await mkdir("test-results", { recursive: true });
+      await page
+        .locator(".map-panel")
+        .screenshot({ path: "test-results/map-unavailable.png" });
       await page
         .getByRole("button", { name: "Vehicle 28", exact: true })
         .click();

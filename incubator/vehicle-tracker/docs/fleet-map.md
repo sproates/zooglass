@@ -116,7 +116,8 @@ review caught attribution covering a car; credits now sit outside the map area.
 The existing keyboard, enlarged-text, reconnect and single-vehicle tests remain.
 The screenshot above came from a bounded visual check using real background tiles;
 CI uses local synthetic tiles and does not assert provider availability. The separate map
-acceptance review remains outstanding; emulated touch is not native iPhone evidence.
+acceptance record is [ready for review](../../../docs/verification/2026-10-27-fleet-map.md);
+emulated touch is not native iPhone evidence.
 
 Leaflet is distributed under its [BSD 2-Clause licence](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE),
 also served at `/vendor/leaflet/LICENSE` by the demo host. Map data and background

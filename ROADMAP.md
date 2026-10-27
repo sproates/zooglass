@@ -229,7 +229,10 @@ and recovery after offline source progress.
 [Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) merged in
 [PR #82](https://github.com/sproates/zooglass/pull/82): received markers, selected
 history and configurable background tiles. Fit/follow navigation, keyboard/touch
-controls and background-failure handling are now proposed for review. Map acceptance,
-network viewers and the longer six-vehicle scenario remain pending.
+controls and background-failure handling merged in
+[PR #83](https://github.com/sproates/zooglass/pull/83).
+[Map acceptance](docs/verification/2026-10-27-fleet-map.md) is proposed for review,
+with independent rendering, interaction and provider-boundary evidence. Network
+viewers and the longer six-vehicle scenario remain pending.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

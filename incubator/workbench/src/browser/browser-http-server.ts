@@ -2,13 +2,24 @@ import { createServer } from "node:http";
 import { isIP, type Socket } from "node:net";
 import type { BrowserApplication } from "./browser-host.js";
 
+/** Only RFC 1918 private networks and loopback belong to this HTTP demo mode. */
+export function requireLocalBindAddress(address: string) {
+  const [first, second] = address.split(".").map(Number);
+  const local =
+    first === 127 ||
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168);
+  if (isIP(address) !== 4 || !local)
+    throw new Error("Bind to an explicit private or loopback IPv4 address.");
+}
+
 /** Exact asset serving and network boundary shared by owned and external hosts. */
 export async function startBrowserHttpServer(
   application: BrowserApplication,
   bindAddress = "127.0.0.1",
 ) {
-  if (isIP(bindAddress) !== 4 || bindAddress === "0.0.0.0")
-    throw new Error("Bind to an explicit local IPv4 address, not a wildcard.");
+  requireLocalBindAddress(bindAddress);
   const imageOrigins = (application.imageOrigins ?? []).map((value) => {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.origin !== value)

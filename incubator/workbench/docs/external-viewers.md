@@ -12,8 +12,10 @@ npm run demo -- vehicle-tracker --fleet --bind=192.168.1.20
 ```
 
 Replace the example address with the computer's current local IPv4 address.
-Use the same network on the phone. The host binds only to that address; `0.0.0.0`
-and hostnames are rejected. ZooGlass itself stays on loopback. Without `--bind`,
+Use the same network on the phone. The host accepts only loopback (`127.0.0.0/8`) and RFC 1918 private ranges
+(`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Public addresses, wildcards,
+link-local/shared ranges, hostnames and IPv6 are rejected before listening.
+The operating system must also allow binding that address. ZooGlass itself stays on loopback. Without `--bind`,
 the existing owned-browser verification mode is unchanged.
 
 The terminal prints a controller pairing link. Open it on the first device
@@ -87,7 +89,8 @@ separate walkthrough; these tests do not claim to have completed it.
 
 Pairing is access control for the demo host, not ZooGlass product authorisation.
 HTTP on the local network is not confidential transport. Do not publish this
-endpoint on the internet or use it with sensitive data. The host serves only its
+endpoint on the internet or use it with sensitive data. Private-address binding
+does not prevent an operator from exposing it through port forwarding or a tunnel. The host serves only its
 asset allowlist and proxies only to its current loopback ZooGlass service; it is
 not a general URL proxy or browser-debugging endpoint.
 

@@ -113,6 +113,10 @@ test(
         "car-28",
       );
       await page.locator("#follow-selected").click();
+      assert.equal(
+        await page.locator("#follow-selected").getAttribute("aria-pressed"),
+        "true",
+      );
       await assertCentred(page, "car-28");
       await page.locator("#fleet-map").focus();
       await page.keyboard.press("ArrowLeft");
@@ -168,6 +172,10 @@ test(
         "car-39",
       );
       await page.locator("#follow-selected").click();
+      assert.equal(
+        await page.locator("#follow-selected").getAttribute("aria-pressed"),
+        "true",
+      );
       await page.locator("#fleet-map").scrollIntoViewIfNeeded();
       const bounds = (await page.locator("#fleet-map").boundingBox())!;
       await cdp.send("Input.dispatchTouchEvent", {
@@ -179,6 +187,32 @@ test(
           type: "touchMove",
           touchPoints: [{ x: bounds.x + 70 + distance, y: bounds.y + 140 }],
         });
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      assert.equal(
+        await page.locator("#follow-selected").getAttribute("aria-pressed"),
+        "false",
+      );
+      await cdp.send("Emulation.setTouchEmulationEnabled", {
+        enabled: true,
+        maxTouchPoints: 2,
+      });
+      await page.locator("#follow-selected").click();
+      assert.equal(
+        await page.locator("#follow-selected").getAttribute("aria-pressed"),
+        "true",
+      );
+      await page.locator("#fleet-map").scrollIntoViewIfNeeded();
+      const gestureBounds = (await page.locator("#fleet-map").boundingBox())!;
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [
+          { x: gestureBounds.x + 60, y: gestureBounds.y + 120 },
+          { x: gestureBounds.x + 130, y: gestureBounds.y + 140 },
+        ],
+      });
       await cdp.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
         touchPoints: [],

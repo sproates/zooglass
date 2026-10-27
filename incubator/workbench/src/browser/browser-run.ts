@@ -10,6 +10,7 @@ interface BrowserRunOptions {
   clientId: string;
   send: (message: Record<string, unknown>) => boolean;
   onControl?: BrowserControlHandler;
+  recordReceipts?: boolean;
 }
 
 /** Run-scoped commands, receipts and data route; no ownership of the HTTP host. */
@@ -36,6 +37,7 @@ export function createBrowserRun(baseUrl: string, options: BrowserRunOptions) {
       if (!ready || !send(message)) throw new Error("Browser is not ready.");
     },
     fail,
+    options.recordReceipts,
   );
 
   return {
@@ -49,8 +51,11 @@ export function createBrowserRun(baseUrl: string, options: BrowserRunOptions) {
     get ready() {
       return ready && !controller.signal.aborted;
     },
-    announce(type: "registered" | "run-changed") {
-      send({ type, dataPath: `/views/live?route=${routeToken}` });
+    announce(
+      type: "registered" | "run-changed",
+      details: Record<string, unknown> = {},
+    ) {
+      send({ ...details, type, dataPath: `/views/live?route=${routeToken}` });
     },
     receive(message: Record<string, unknown>) {
       // A delayed acknowledgement, receipt or control request belongs to its old run.
@@ -76,7 +81,13 @@ export function createBrowserRun(baseUrl: string, options: BrowserRunOptions) {
         )
           throw new Error("Unknown browser control action.");
         void options
-          .onControl(action as Parameters<BrowserControlHandler>[0], runId)
+          .onControl(
+            action as Parameters<BrowserControlHandler>[0],
+            runId,
+            typeof message.targetClientId === "string"
+              ? message.targetClientId
+              : undefined,
+          )
           .catch((error) =>
             send({
               type: "control-rejected",

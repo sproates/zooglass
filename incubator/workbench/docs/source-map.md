@@ -204,6 +204,47 @@ selects each vehicle to check its detail.
 It reads the rendered page independently of the vehicle app's rendering code.
 The shared scenario session and client executors do not depend on it.
 
+## Serve independent external viewers
+
+The `--bind=<IPv4>` path selects external mode explicitly. The terminal owns the
+demo lifetime; the demo composes shared playback with a source/HTTP-only scenario.
+Viewer setup and targeted actions stay in the vehicle adapter. The external host
+knows leases, roles, control connections and per-viewer run bindings, not vehicles.
+
+```mermaid
+flowchart TB
+  cli["src/demos/vehicle/demo.ts<br/>Choose owned or external mode"]
+  terminal["src/demos/vehicle/external-vehicle-terminal.ts<br/>Pairing links, handover and shutdown"]
+  demo["src/demos/vehicle/external-vehicle-demo.ts<br/>Compose external fleet demonstration"]
+  controls["src/demos/vehicle/external-vehicle-controls.ts<br/>Subscribe each viewer and target data faults"]
+  host["src/browser/external-browser-host.ts<br/>Viewer connections, admission and shared run replacement"]
+  leases["src/browser/viewer-leases.ts<br/>Pairing, refresh capabilities and controller authority"]
+  http["src/browser/browser-http-server.ts<br/>Asset allowlist and network boundary"]
+  run["src/browser/browser-run.ts<br/>Per-viewer commands, observations and data route"]
+  controller["src/control/demo-controller.ts<br/>Shared playback and Reset"]
+  session["src/execution/scenario-session.ts<br/>Dispatch sources and check HTTP views"]
+  service["src/service/zooglass-session.ts<br/>Own loopback service"]
+  assets["src/demos/vehicle/vehicle-browser.ts<br/>Supply fleet application assets"]
+  cli -->|selects explicit external mode| terminal
+  terminal -->|creates demo and invokes commands| demo
+  demo -->|supplies application and callbacks| host
+  demo -->|binds viewer subscriptions and faults| controls
+  demo -->|uses source playback lifecycle| controller
+  demo -->|opens source and HTTP checks| session
+  demo -->|starts and closes service per run| service
+  demo -->|loads fleet assets| assets
+  host -->|claims leases and checks controller revisions| leases
+  host -->|serves exact assets and validates upgrades| http
+  host -->|creates one binding per connected viewer| run
+  controls -.->|uses executor and fault API| run
+```
+
+Browser `bridge.js` consumes pairing or session-storage credentials, then keeps
+run-change handling independent of the demo. `vehicle-bootstrap.js` presents the
+controller role and target-viewer selector. External observers remain optional;
+owned-browser mode retains its required scripted client. See the
+[external-viewer guide](external-viewers.md) for the runtime contract and limits.
+
 ## Host the browser and bind the app
 
 [`browser/browser-session.ts`](../src/browser/browser-session.ts) composes an owned
@@ -228,6 +269,8 @@ flowchart TB
   vehicle -->|can start host alone| host
   session -->|starts and closes host| host
   session -->|launches and closes Chromium| launcher
+  http["src/browser/browser-http-server.ts<br/>Exact assets and Host/Origin boundary"]
+  host -->|serves assets and checks network boundary| http
   host -->|creates and retires run binding| run
   run -->|owns data proxy and fault gate| route
   run -->|binds commands and receipts to run identity| executor

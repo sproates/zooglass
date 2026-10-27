@@ -633,8 +633,9 @@ or resources.
 The [host and run lifecycle guide](docs/browser-lifetime.md) explains the separate
 application host, replaceable run binding and owned-browser launcher. The stable
 host supports a run-change/readiness handshake on the same page and control socket.
-The current CLI retains its fresh owned page on Reset; network pairing and
-multiple viewers remain planned work.
+The default CLI retains its fresh owned page on Reset.
+[External fleet mode](docs/external-viewers.md) adds explicit interface binding,
+pairing and independent viewers with one designated controller.
 
 `startBrowserHost` and `startBrowserSession` require an `application` containing
 `clientId` and an exact-path asset map. Each asset supplies its content type and

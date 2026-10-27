@@ -337,3 +337,11 @@ button:focus-visible {
   height: 44px;
   line-height: 44px;
 }
+
+#viewer-target {
+  font: inherit;
+  min-height: 44px;
+  max-width: 100%;
+  margin: 8px 0;
+  padding: 8px;
+}

@@ -50,8 +50,9 @@ arrow keys pan the focused map, and the zoom buttons support keyboard and touch.
 Controls wrap at narrow widths and enlarged text. Attribution stays immediately
 below the map so enlarged credits cannot cover cars or map controls.
 
-Direct phone access and the six-vehicle longer journeys are separate
-planned increments. The manifest determines the vehicle set; the renderer has no
+[External viewer mode](../../workbench/docs/external-viewers.md) serves the actual
+app to paired devices on the local network. Native phone acceptance and the
+six-vehicle longer journeys remain separate increments. The manifest determines the vehicle set; the renderer has no
 three-vehicle limit.
 
 ## Tile configuration

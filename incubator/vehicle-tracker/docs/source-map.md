@@ -100,7 +100,11 @@ supply coordinates, operational values or history.
 
 ## How Workbench starts the page
 
-The browser app is currently composed by Workbench. Paths below are relative to
+The browser app is composed by Workbench. In external mode the bridge registers
+one viewer lease per browser; the bootstrap shows its role and a target selector.
+The fleet model, selection and data client remain local to that page. The transport
+host enforces controller authority; disabling a button is only presentation.
+Paths below are relative to
 `incubator/`. The `.js` modules are authored JavaScript; `vehicle-client.ts` and
 its dependencies compile to JavaScript served by the host.
 

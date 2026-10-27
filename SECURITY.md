@@ -9,6 +9,15 @@ has no application authentication or access-control model, and holds view state
 in memory. These are documented limitations, not a basis for exposing it to
 untrusted networks or using it with sensitive data.
 
+The fleet demo also offers an explicit external-viewer mode, bound to one chosen
+private or loopback IPv4 address; other address ranges are rejected before
+listening. Do not expose it through port forwarding or tunnels. Its single-use pairing links, viewer-scoped refresh capability,
+Host/Origin checks and controller role protect demo operations; they do not add
+product authorisation to ZooGlass. This mode is for synthetic data on a trusted
+LAN using HTTP, not public hosting or confidential transport. See the
+[external-viewer guide](incubator/workbench/docs/external-viewers.md) for scope,
+revocation and connection limits.
+
 ## Report a vulnerability privately
 
 Use GitHub's [Report a vulnerability](https://github.com/sproates/zooglass/security/advisories/new)

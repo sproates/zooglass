@@ -1,9 +1,9 @@
 # Browser host and run lifetimes
 
 The application host can now outlive a browser launcher and a ZooGlass run.
-This is the lifecycle foundation for external viewers. The demo CLI still uses
-its existing owned-browser mode: Reset replaces the service, host and page.
-LAN binding, pairing, simultaneous viewers and controller roles are not exposed yet.
+The default CLI uses owned-browser mode: Reset replaces the service, host and
+page. [External fleet mode](external-viewers.md) uses the same run/data-route
+primitives with separate viewer leases; Reset retains the registered pages.
 
 ## Ownership
 
@@ -61,8 +61,8 @@ Old route URLs cannot reach the replacement service. Old acknowledgements,
 receipts and controls cannot affect the new run. An asynchronous command or
 receipt callback from the previous browser client retains its old binding and
 is discarded after replacement. A closed control connection still fails the
-single required client; reconnect leases and observer policies belong to the
-external-session increment.
+single required client in owned verification mode. External-session leases and
+observer policies are described in the [external-viewer guide](external-viewers.md).
 
 ## Evidence and limits
 

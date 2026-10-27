@@ -11,7 +11,9 @@ markers and selected history. Fit/follow and map failure handling are merged on
 the programme branch; [map acceptance](../verification/2026-10-27-fleet-map.md)
 merged in PR #84, with location pointers added in PR #85. The
 [host lifetime foundation](../../incubator/workbench/docs/browser-lifetime.md) is
-proposed for review; network viewers and the longer six-vehicle scenarios remain pending.
+merged in PR #86. [External viewer sessions](../../incubator/workbench/docs/external-viewers.md)
+are proposed for review; native phone acceptance and the longer six-vehicle scenarios
+remain pending.
 
 ## What someone should be able to do
 
@@ -164,7 +166,13 @@ queued commands are rejected. Owned-browser mode can retain its current fresh
 page behaviour. Keep this as ordinary session composition, not a generic host
 plugin system.
 
-Proposed external-session rules:
+External-session rules (implementation proposed for review):
+
+The external mode is exploratory: it checks source dispatch and HTTP views, while
+dynamic viewers are not declared required verification clients. The existing
+owned-browser mode retains scripted receipt/rendered verification and fails on
+loss of its required client. This avoids silently treating an optional observer's
+receipts as evidence for another client.
 
 - Multiple browsers may view the same run simultaneously, including a phone and
   a desktop. Each has its own identity, selection, subscriptions, receipt state

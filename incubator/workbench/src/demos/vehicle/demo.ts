@@ -30,23 +30,54 @@ An armed recovery has a 30-second deadline, even while paused; Reset after expir
 Reset remains available here if the browser page closes.`;
 
 async function main() {
-  const args = process.argv.slice(2);
+  let args = process.argv.slice(2);
 
   if (
     (args.length === 1 && args[0] === "--help") ||
-    (args.length === 2 && args[0] === "vehicle-tracker" && args[1] === "--help")
+    (args[0] === "vehicle-tracker" && args.includes("--help"))
   ) {
+    console.log("Fleet demos:");
     console.log(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
+      "  npm run demo -- vehicle-tracker --continuous [--bind=<private IPv4>]",
     );
     console.log(
-      "Interactive mode is the default; --auto has no terminal commands.\n",
+      "  npm run demo -- vehicle-tracker --interactive [--bind=<private IPv4>]",
+    );
+    console.log(
+      "Continuous: six cars driving automatically. Interactive: three-car fixture with Step/Play controls.",
+    );
+    console.log(
+      "Legacy aliases: demo:drive selects continuous; --fleet selects interactive.\n",
+    );
+    console.log(
+      "Other verification variants: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
+    );
+    console.log(
+      "Without a mode, the legacy single-vehicle demo runs; --auto runs its finite fixture automatically.\n",
     );
     console.log(terminalHelp);
     console.log(
-      "Direct phone mode: npm run demo -- vehicle-tracker --fleet --bind=<local IPv4 address>",
+      "Direct phone mode: add --bind=<private IPv4> to either fleet demo.",
     );
     return;
+  }
+
+  if (args[0] === "vehicle-tracker" && args.includes("--continuous")) {
+    const { runContinuousDemo } = await import("./continuous/main.js");
+    const continuousArgs = args.slice(1);
+    continuousArgs.splice(continuousArgs.indexOf("--continuous"), 1);
+    return runContinuousDemo(continuousArgs);
+  }
+
+  if (args.includes("--interactive")) {
+    if (
+      args.includes("--fleet") ||
+      args.filter((arg) => arg === "--interactive").length !== 1
+    )
+      throw new Error(
+        "Choose --interactive once; --fleet is its legacy alias.",
+      );
+    args = args.map((arg) => (arg === "--interactive" ? "--fleet" : arg));
   }
 
   if (args.some((arg) => arg.startsWith("--bind=")))

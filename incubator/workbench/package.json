@@ -42,7 +42,7 @@
     "pretest:demo-unit": "node scripts/check-node-version.js && npm run build:browser",
     "test:demo-unit": "tsx --test test/demo-unit/*.test.ts",
     "predemo:drive": "node scripts/check-node-version.js && npm run build:browser",
-    "demo:drive": "tsx src/demos/vehicle/continuous/main.ts"
+    "demo:drive": "tsx src/demos/vehicle/demo.ts vehicle-tracker --continuous"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -8,7 +8,7 @@ network. It is not a remote screenshot stream.
 After the usual installation and explicit service preparation, run:
 
 ```sh
-npm run demo -- vehicle-tracker --fleet --bind=192.168.1.20
+npm run demo -- vehicle-tracker --interactive --bind=192.168.1.20
 ```
 
 Replace the example address with the computer's current local IPv4 address.

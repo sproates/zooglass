@@ -20,11 +20,24 @@ product explanation.
 
 ## Watch six cars driving around Gibraltar
 
-Run `npm run demo:drive -- --bind=<private IPv4>` after the one-time service
+Run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` after the one-time service
 preparation below. Open the printed URL: six cars move continuously, with automatic
 late, lost and duplicate reports, source reconnects and reporting silence. There
 are no playback controls or pairing steps. [Run the continuous demo](docs/continuous-driving.md).
 The interactive fixtures below remain verification tools.
+
+Both fleet demos use the same entry point:
+
+| Mode                          | On this computer                                | On the private network      |
+| ----------------------------- | ----------------------------------------------- | --------------------------- |
+| Continuous six-car map        | `npm run demo -- vehicle-tracker --continuous`  | Add `--bind=<private IPv4>` |
+| Interactive three-car fixture | `npm run demo -- vehicle-tracker --interactive` | Add `--bind=<private IPv4>` |
+
+The continuous mode prints an ordinary viewer URL. Interactive mode opens a
+browser locally, or prints a pairing link when `--bind` is supplied. Use
+`npm run demo -- vehicle-tracker --help` for help. Existing `npm run demo:drive`
+and `--fleet` commands remain aliases; the single-vehicle verification variants
+are unchanged.
 
 ## Find your way around the source
 
@@ -232,7 +245,7 @@ and independent location/status sources. It checks six subscriptions, late
 updates and duplicate handling through real service and Node-client connections.
 See the [fleet contract guide](docs/fleet-contracts.md) for the manifest, view
 definitions and source-specific processing barriers. Run the browser presentation
-with `npm run demo -- vehicle-tracker --fleet`: choose a vehicle to inspect its
+with `npm run demo -- vehicle-tracker --interactive`: choose a vehicle to inspect its
 received history while all vehicles keep updating. The [Gibraltar map guide](../vehicle-tracker/docs/fleet-map.md)
 explains the locally bundled map library, configurable tile background, synthetic
 coordinates and local-only automated tests. Fit/follow, keyboard/touch navigation

@@ -354,13 +354,14 @@ and [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).
 
 ## Continuous Gibraltar demonstration
 
-`npm run demo:drive` uses this small demo-specific composition. There is no
+`npm run demo -- vehicle-tracker --continuous` selects this small demo-specific composition through `demos/vehicle/demo.ts`. There is no
 controller, pairing lease, browser command channel or dependence on a viewer's
 presence. The static host exposes assets and the live subscription proxy only.
 
 ```mermaid
 flowchart TD
-  main["continuous/main.ts"] -->|starts and shuts down| sim["continuous/simulation.ts"]
+  cli["demos/vehicle/demo.ts"] -->|selects continuous mode| main["continuous/main.ts"]
+  main -->|starts and shuts down| sim["continuous/simulation.ts"]
   sim -->|owns prebuilt service| service["service/zooglass-session.ts"]
   sim -->|serves read-only viewer| http["browser/browser-http-server.ts"]
   sim -->|forwards live subscriptions| proxy["browser/browser-data-route.ts"]

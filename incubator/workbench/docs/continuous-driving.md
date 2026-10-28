@@ -1,7 +1,7 @@
 # Continuous Gibraltar fleet
 
 Run `npm run prepare:service` once after changing ZooGlass, then
-`npm run demo:drive -- --bind=<private IPv4 address>` from `incubator/workbench`.
+`npm run demo -- vehicle-tracker --continuous --bind=<private IPv4 address>` from `incubator/workbench`.
 Without `--bind`, the viewer is local to the Mac. Open the printed URL in any
 browser. No pairing or playback controls are needed. Ctrl+C stops the run.
 

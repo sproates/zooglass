@@ -342,7 +342,7 @@ vehicle app explains presentation.
 These diagrams cover the production TypeScript modules and the JavaScript
 bootstrap needed to understand their browser boundary. Tests, fixtures, Java
 implementation and external libraries are outside this map. See the
-[verification map](../../../docs/testing.md) for the test structure and
+[verification map](../../docs/testing.md) for the test structure and
 [Workbench README](../README.md) for commands and scenarios.
 
 When a module is added or its responsibility or dependencies change, update the

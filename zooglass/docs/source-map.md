@@ -119,7 +119,7 @@ subscription index and outbound writer. For view definitions, start with
 
 This map covers all 13 production Java files. It describes the current in-memory
 prototype; it does not imply persistent storage, replay or authorisation features.
-Tests are described in the [verification map](../../../docs/testing.md). For the
+Tests are described in the [verification map](../../docs/testing.md). For the
 clients and orchestration around the service, see the
 [Workbench source map](../../workbench/docs/source-map.md) and
 [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).

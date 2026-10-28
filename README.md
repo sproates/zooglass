@@ -19,7 +19,7 @@ Workbench environment used to build and test it. The maintained
 vehicle-demo stack and how Workbench controls and observes it.
 
 ZooGlass is an early prototype with a working in-memory service and scenario
-runner. A [basic browser demo](incubator/vehicle-tracker/README.md) now shows
+runner. A [basic browser demo](vehicle-tracker/README.md) now shows
 vehicle position and received history from real live views. Interactive controls,
 late delivery, duplicate handling and bounded connection recovery are implemented.
 The demo recovers current snapshots; it does not replay missed messages or
@@ -29,7 +29,7 @@ the scope and evidence for final acceptance. Merging
 [PR #75](https://github.com/sproates/zooglass/pull/75) records acceptance and closes
 this bounded demo milestone.
 
-The [continuous six-car Gibraltar demo](incubator/workbench/docs/continuous-driving.md):
+The [continuous six-car Gibraltar demo](workbench/docs/continuous-driving.md):
 open a map and watch ZooGlass deliver positions under delayed, lost and duplicate
 reports, source reconnects and reporting silence. It runs automatically without
 playback controls. It was delivered in [PR #93](https://github.com/sproates/zooglass/pull/93).
@@ -41,11 +41,17 @@ explains what developers still need to build.
 The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
 which capabilities remain longer-term work, with links to the delivery evidence.
 
+The main components live at the repository root:
+
+- `zooglass/`: the live-view service.
+- `workbench/`: scenario execution and verification.
+- `vehicle-tracker/`: the browser demos.
+
 The service uses Java 25 and Spring Boot.
 
-The [Workbench Scenario Simulator](incubator/workbench/README.md) uses TypeScript and Node 26 to play JSON scenarios on a deterministic simulated timeline. It can run those scenarios through a local ZooGlass process and check the views it produces.
+The [Workbench Scenario Simulator](workbench/README.md) uses TypeScript and Node 26 to play JSON scenarios on a deterministic simulated timeline. It can run those scenarios through a local ZooGlass process and check the views it produces.
 
-See the [ZooGlass prototype](incubator/zooglass/README.md) and try the [live-match scenario](incubator/workbench/scenarios/live-match.json).
+See the [ZooGlass prototype](zooglass/README.md) and try the [live-match scenario](workbench/scenarios/live-match.json).
 
 ## Testing
 

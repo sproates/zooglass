@@ -2,19 +2,19 @@ name: Workbench CI
 
 on:
   push:
-    branches: [main, feature/vehicle-fleet]
+    branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
-      - "incubator/workbench/**"
-      - "incubator/vehicle-tracker/**"
-      - "incubator/zooglass/**"
+      - "workbench/**"
+      - "vehicle-tracker/**"
+      - "zooglass/**"
   pull_request:
-    branches: [main, feature/vehicle-fleet]
+    branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
-      - "incubator/workbench/**"
-      - "incubator/vehicle-tracker/**"
-      - "incubator/zooglass/**"
+      - "workbench/**"
+      - "vehicle-tracker/**"
+      - "zooglass/**"
 
 # PR revisions share a group; each main push gets its own independent group.
 concurrency:
@@ -29,22 +29,22 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: incubator/workbench
+        working-directory: workbench
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version-file: incubator/workbench/.nvmrc
+          node-version-file: workbench/.nvmrc
           cache: npm
-          cache-dependency-path: incubator/workbench/package-lock.json
+          cache-dependency-path: workbench/package-lock.json
 
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: incubator/zooglass/pom.xml
+          cache-dependency-path: zooglass/pom.xml
 
       - run: npm ci
       - name: Build ZooGlass once before service tests
@@ -67,7 +67,7 @@ jobs:
         if: always()
         with:
           name: workbench-standard-coverage
-          path: incubator/workbench/coverage/standard/
+          path: workbench/coverage/standard/
           if-no-files-found: warn
 
   browser-host:
@@ -81,20 +81,20 @@ jobs:
       MAVEN_OPTS: -Duser.home=/github/home
     defaults:
       run:
-        working-directory: incubator/workbench
+        working-directory: workbench
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version-file: incubator/workbench/.nvmrc
+          node-version-file: workbench/.nvmrc
           cache: npm
-          cache-dependency-path: incubator/workbench/package-lock.json
+          cache-dependency-path: workbench/package-lock.json
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: incubator/zooglass/pom.xml
+          cache-dependency-path: zooglass/pom.xml
       - run: npm ci
       - name: Build ZooGlass once before service tests
         run: npm run prepare:service
@@ -104,13 +104,13 @@ jobs:
         if: failure()
         with:
           name: browser-check-failures
-          path: incubator/workbench/test-results/
+          path: workbench/test-results/
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: workbench-browser-host-coverage
-          path: incubator/workbench/coverage/browser-host/
+          path: workbench/coverage/browser-host/
           if-no-files-found: warn
 
   native-lifecycle:
@@ -122,20 +122,20 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: incubator/workbench
+        working-directory: workbench
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version-file: incubator/workbench/.nvmrc
+          node-version-file: workbench/.nvmrc
           cache: npm
-          cache-dependency-path: incubator/workbench/package-lock.json
+          cache-dependency-path: workbench/package-lock.json
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: incubator/zooglass/pom.xml
+          cache-dependency-path: zooglass/pom.xml
       - run: npm ci
       - name: Build ZooGlass once before service tests
         run: npm run prepare:service
@@ -147,7 +147,7 @@ jobs:
         if: failure()
         with:
           name: lifecycle-failure-${{ matrix.os }}
-          path: incubator/workbench/test-results/
+          path: workbench/test-results/
           if-no-files-found: ignore
 
   browser-engines:
@@ -165,20 +165,20 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: incubator/workbench
+        working-directory: workbench
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version-file: incubator/workbench/.nvmrc
+          node-version-file: workbench/.nvmrc
           cache: npm
-          cache-dependency-path: incubator/workbench/package-lock.json
+          cache-dependency-path: workbench/package-lock.json
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: incubator/zooglass/pom.xml
+          cache-dependency-path: zooglass/pom.xml
       - run: npm ci
       - name: Build ZooGlass once before service tests
         run: npm run prepare:service
@@ -192,5 +192,5 @@ jobs:
         if: failure()
         with:
           name: engine-failure-${{ matrix.engine }}
-          path: incubator/workbench/test-results/
+          path: workbench/test-results/
           if-no-files-found: ignore

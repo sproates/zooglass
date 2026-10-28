@@ -15,7 +15,7 @@ listening. Do not expose it through port forwarding or tunnels. Its single-use p
 Host/Origin checks and controller role protect demo operations; they do not add
 product authorisation to ZooGlass. This mode is for synthetic data on a trusted
 LAN using HTTP, not public hosting or confidential transport. See the
-[external-viewer guide](incubator/workbench/docs/external-viewers.md) for scope,
+[external-viewer guide](workbench/docs/external-viewers.md) for scope,
 revocation and connection limits.
 
 ## Report a vulnerability privately

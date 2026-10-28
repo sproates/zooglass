@@ -82,7 +82,7 @@ losing that required client still fails the run. Automated external-mode tests
 use two independent Chromium pages with local tiles to check selection isolation,
 targeted recovery, refresh, revocation, controller handover/loss and shared Reset.
 Protocol tests cover host/origin checks, stale authority, readiness bounds and
-Reset during initial viewer setup. The [acceptance record](../../../docs/verification/2026-10-28-external-viewers.md)
+Reset during initial viewer setup. The [acceptance record](../../docs/verification/2026-10-28-external-viewers.md)
 summarises the tested desktop Chromium multi-viewer flow over loopback. Interactive
 phone/Safari and cross-device LAN validation remain deferred; a narrow viewport
 is not evidence of a real phone connection. Manual phone sign-off and physical-device

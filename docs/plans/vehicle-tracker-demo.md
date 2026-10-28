@@ -70,9 +70,9 @@ Workbench redesign.
 
 Proposed layout:
 
-- `incubator/workbench`: interactive session lifecycle, control endpoints and
+- `workbench`: interactive session lifecycle, control endpoints and
   simulated source, using the existing scenario format and playback ordering.
-- `incubator/vehicle-tracker`: browser app, view subscription handling and
+- `vehicle-tracker`: browser app, view subscription handling and
   rendering, with a short README.
 - Workbench scenario fixtures: the event sequence and expected view states,
   exercised by the existing functional scenario suite.
@@ -110,7 +110,7 @@ Use the existing `vehicle-feed` / `vehicle.location.updated` event shape with
 `entityId`, `sequence`, `latitude` and `longitude`. Configure two startup views:
 a `position` field using `latestBySequence`, and a `positions` field using
 `historyBySequence`. Use the definitions in the
-[vehicle ordering scenario](../../incubator/workbench/scenarios/vehicle-event-ordering.json)
+[vehicle ordering scenario](../../workbench/scenarios/vehicle-event-ordering.json)
 as the reference.
 
 Workbench sends source events through ZooGlass's `/events` WebSocket. The
@@ -246,7 +246,7 @@ visual design can follow once the interaction is useful.
 
 ## Basic scenario fixture
 
-The [basic vehicle fixture](../../incubator/workbench/scenarios/vehicle-browser-basic.json)
+The [basic vehicle fixture](../../workbench/scenarios/vehicle-browser-basic.json)
 contains the first two position steps. Startup definitions create `live-map`
 with latest-by-sequence ordering and `trip-history` with history-by-sequence
 ordering. The client starts disconnected; explicit timeline actions connect it
@@ -259,13 +259,13 @@ advancing. An empty view does not send a snapshot; subscription acknowledgements
 are the barrier before source delivery. The finite trace leaves the client
 connected for inspection until session cleanup.
 
-Run the fixture through the existing Node executor from `incubator/workbench`:
+Run the fixture through the existing Node executor from `workbench`:
 
 ```sh
 npm run integrate -- --fast scenarios/vehicle-browser-basic.json
 ```
 
-This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../incubator/workbench/README.md#browser-host-preview)
+This verifies real ZooGlass processing and WebSocket receipt. The [host preview](../../workbench/README.md#browser-host-preview)
 now launches and registers Chromium and binds `rider-app` to the browser
 executor. The demo command starts ready for Step (`--basic` selects the short
 fixture). Each step sends one position and awaits its following checks. Reset
@@ -282,7 +282,7 @@ up headless failures immediately.
 
 ## Late delivery and reconnect fixture
 
-[`vehicle-browser-recovery.json`](../../incubator/workbench/scenarios/vehicle-browser-recovery.json)
+[`vehicle-browser-recovery.json`](../../workbench/scenarios/vehicle-browser-recovery.json)
 is the focused fixture for the six deliberate-action steps above. The existing
 short fixture and twenty-position journey remain unchanged.
 
@@ -301,7 +301,7 @@ snapshots before any further source event can hide a stale result. The browser
 receipt test runs these exact actions through the existing executor. The interactive `--recovery` mode now adds independent rendering assertions
 and separate connection checkpoints. Manual viewer controls are available for
 exploration. Neither mode exercises the proxy fault gate; use `--fault` for the separate
-[connection-loss scenario](../../incubator/workbench/README.md#run-the-connection-loss-scenario).
+[connection-loss scenario](../../workbench/README.md#run-the-connection-loss-scenario).
 
 ### Activity and step explanation delivery
 

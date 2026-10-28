@@ -22,15 +22,15 @@ need network access for Maven and npm dependencies.
 From the repository root, install Workbench dependencies:
 
 ```sh
-cd incubator/workbench
+cd workbench
 npm ci
 ```
 
-The [prototype guide](incubator/zooglass/README.md) describes the service and
-protocol. The [Workbench guide](incubator/workbench/README.md) covers scenarios,
+The [prototype guide](zooglass/README.md) describes the service and
+protocol. The [Workbench guide](workbench/README.md) covers scenarios,
 CLI commands and shared sessions. Source and tests live under their respective
-`incubator/zooglass` and `incubator/workbench` directories; project explanations
-and designs live under `docs/`. The browser app lives in `incubator/vehicle-tracker`
+`zooglass` and `workbench` directories; project explanations
+and designs live under `docs/`. The browser app lives in `vehicle-tracker`
 and uses Workbench's build and check commands.
 
 ## Make a focused change
@@ -65,14 +65,14 @@ validate both when the shared protocol or view semantics change.
 For the Java service, from the repository root:
 
 ```sh
-cd incubator/zooglass
+cd zooglass
 ./mvnw --batch-mode verify
 ```
 
 For Workbench, from the repository root:
 
 ```sh
-cd incubator/workbench
+cd workbench
 npm ci
 npm run prepare:service
 npm run lint
@@ -114,7 +114,7 @@ If a check cannot run, say what remains unverified and why.
 
 ## Inspect coverage and verification gaps
 
-`./mvnw --batch-mode clean verify` in `incubator/zooglass` produces the JaCoCo
+`./mvnw --batch-mode clean verify` in `zooglass` produces the JaCoCo
 report at `target/site/jacoco/index.html`. In Workbench, `npm run test:coverage`
 and `npm run test:browser:coverage` produce separate reports in
 `coverage/standard/` and `coverage/browser-host/`. Both commands run their tests;

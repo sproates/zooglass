@@ -6,7 +6,7 @@ and how they depend on each other. Start there when reading the implementation.
 ## Continuous Gibraltar demonstration
 
 For the six-car map, run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` from
-`incubator/workbench` after preparing the service. Open the printed URL in your
+`workbench` after preparing the service. Open the printed URL in your
 usual browser. The simulation starts automatically and keeps running when browsers
 leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
 
@@ -41,7 +41,7 @@ positions 40 and 42 so the changes are easy to follow.
 On the fleet programme branch, select interactive mode:
 
 ```sh
-cd incubator/workbench
+cd workbench
 npm run demo -- vehicle-tracker --interactive
 ```
 
@@ -96,7 +96,7 @@ From a new terminal:
 
 ```sh
 git clone https://github.com/sproates/zooglass.git
-cd zooglass/incubator/workbench
+cd zooglass/workbench
 ```
 
 Then install and run:
@@ -338,8 +338,8 @@ remains outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
 not a full accessibility audit or a check of native mobile browsers. The
-[keyboard and layout review](../../docs/verification/2026-10-26-usability.md)
+[keyboard and layout review](../docs/verification/2026-10-26-usability.md)
 also checks Play/Pause, viewer and fault controls through the keyboard, and
 200% text reflow at 320 CSS pixels.
 The local host registration is not production authorisation. See the
-[demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.
+[demo plan](../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.

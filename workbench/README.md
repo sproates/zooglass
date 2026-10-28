@@ -15,7 +15,7 @@ expected values are only used to check it.
 Today Workbench supports connected CLI runs with Node WebSocket clients and a
 vehicle browser demo with interactive controls and real data-route interruption. See
 [browser verification environment](#browser-verification-environment) for that separate view, and
-[what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
+[what ZooGlass is trying to build](../docs/what-is-zooglass.md) for the wider
 product explanation.
 
 ## Watch six cars driving around Gibraltar
@@ -56,7 +56,7 @@ runs, demos or service tests, and again after changing Java sources, resources o
 dependencies. This explicit Maven build creates `../zooglass/target/zooglass.jar`.
 Preparation may download dependencies; session startup runs `java -jar` and never
 builds. Stop active sessions before rebuilding the shared artifact.
-Run the commands below from `incubator/workbench`.
+Run the commands below from `workbench`.
 
 | Command                                                 | What it does                                                                                                  |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -105,7 +105,7 @@ to avoid starting ZooGlass separately for every scenario.
 
 ## What a connected run owns
 
-![Current CLI execution: Workbench controls source connections and Node clients alongside a real ZooGlass service. Events flow up from sources to ZooGlass and view snapshots reach the subscribed clients. HTTP and WebSocket checks observe separate boundaries.](../../docs/diagrams/workbench-cli.svg)
+![Current CLI execution: Workbench controls source connections and Node clients alongside a real ZooGlass service. Events flow up from sources to ZooGlass and view snapshots reach the subscribed clients. HTTP and WebSocket checks observe separate boundaries.](../docs/diagrams/workbench-cli.svg)
 
 The source and viewer sockets are separate. Disconnecting a viewer doesn't
 stop a source from sending events. Node clients use the same live-view protocol
@@ -516,10 +516,10 @@ outage must therefore finish within that interval.
 
 ## Browser verification environment
 
-The maintained [architecture diagram guide](../../docs/diagrams/README.md)
+The maintained [architecture diagram guide](../docs/diagrams/README.md)
 explains this stack, its connections and the distinction from production.
 
-![Browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../../docs/diagrams/zooglass-workbench.svg)
+![Browser verification: Workbench launches and observes a real browser, commands its actual connection controller and interrupts the data path through a test proxy.](../docs/diagrams/zooglass-workbench.svg)
 
 This shows the browser environment alongside the CLI execution path. Workbench
 owns the scenario while a real browser performs its client actions. Playwright
@@ -539,7 +539,7 @@ The bridge now executes browser actions and reports actual receipts, and the
 display has rendered checks within interactive and automatic action completion,
 plus serialised Step/Play/Pause/Reset controls. The data-route gate and opt-in
 automatic recovery are implemented for the vehicle demo. Their detailed contracts are in the
-[browser orchestration design](../../docs/plans/browser-orchestration.md).
+[browser orchestration design](../docs/plans/browser-orchestration.md).
 
 ## Reusing a connected session
 
@@ -583,7 +583,7 @@ Apply formatting with `npm run format`.
 
 ## Test coverage
 
-See the [verification map](../../docs/testing.md) for coverage commands, report
+See the [verification map](../docs/testing.md) for coverage commands, report
 boundaries and the remaining behavioural gaps.
 
 ### Browser failure and lifecycle evidence
@@ -606,7 +606,7 @@ bounded automatic recovery through the real proxy gate and ZooGlass service.
 The interactive launcher uses Chromium. CI also runs bounded lifecycle workloads
 on native macOS and Windows, and a focused recovery fixture through Playwright
 Chromium, Firefox and WebKit on Ubuntu. These probes do not make every OS/browser
-combination a supported demo target. See the [verification guide](../../docs/testing.md#platform-and-browser-scope)
+combination a supported demo target. See the [verification guide](../docs/testing.md#platform-and-browser-scope)
 for commands, exact scope, limitations and failure artefacts.
 
 ## Scenario parsing code

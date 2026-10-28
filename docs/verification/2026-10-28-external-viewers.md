@@ -15,7 +15,7 @@ This documentation change reuses that evidence; it adds no test workload.
 
 ## What is covered
 
-Test paths below are relative to `incubator/workbench/test`.
+Test paths below are relative to `workbench/test`.
 
 | Behaviour | Evidence |
 | --- | --- |

@@ -9,8 +9,8 @@ export async function drivingApplication(
 ): Promise<BrowserApplication> {
   const assets = await fleetAssets(map);
   for (const [url, file, mime] of [
-    ["/", "driving.html", "text/html"],
-    ["/driving.css", "driving.css", "text/css"],
+    ["/", "pages/continuous/index.html", "text/html"],
+    ["/driving.css", "pages/continuous/styles.css", "text/css"],
     ["/driving/report-age.js", "dist/driving/report-age.js", "text/javascript"],
     ["/driving/app.js", "dist/driving/app.js", "text/javascript"],
   ]) {

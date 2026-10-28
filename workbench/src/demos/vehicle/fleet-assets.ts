@@ -66,7 +66,7 @@ export async function fleetAssets(configuration = localTiles) {
     "application/json; charset=utf-8",
     await readFile(
       new URL(
-        "../../../../vehicle-tracker/fleet-manifest.json",
+        "../../../../vehicle-tracker/pages/interactive/fleet-manifest.json",
         import.meta.url,
       ),
     ),

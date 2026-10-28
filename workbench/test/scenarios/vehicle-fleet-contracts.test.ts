@@ -15,7 +15,10 @@ interface FleetManifest {
 test("fleet manifest is descriptive and every vehicle receives both views", async () => {
   const manifest = JSON.parse(
     await readFile(
-      new URL("../../../vehicle-tracker/fleet-manifest.json", import.meta.url),
+      new URL(
+        "../../../vehicle-tracker/pages/interactive/fleet-manifest.json",
+        import.meta.url,
+      ),
       "utf8",
     ),
   ) as FleetManifest;

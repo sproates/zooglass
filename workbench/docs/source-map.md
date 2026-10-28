@@ -303,7 +303,7 @@ flowchart TB
   fleet["vehicle-tracker/src/fleet/client.ts<br/>Bind fleet model and renderer"]
   model["vehicle-tracker/src/fleet/model.ts<br/>Received view/entity state and local selection"]
   fleetView["vehicle-tracker/src/fleet/view.ts<br/>Fleet list and selected details"]
-  manifest["vehicle-tracker/fleet-manifest.json<br/>Descriptive vehicle identities"]
+  manifest["vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive vehicle identities"]
   bootstrap -->|loads fleet factory in fleet mode| fleet
   bootstrap -.->|fetches manifest for fleet factory| manifest
   fleet -->|creates model and validates subscriptions| model

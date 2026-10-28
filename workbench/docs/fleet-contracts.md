@@ -25,7 +25,7 @@ they never populate application state.
 
 ## Entities, sources and views
 
-The [fleet manifest](../../vehicle-tracker/fleet-manifest.json) lists three known
+The [fleet manifest](../../vehicle-tracker/pages/interactive/fleet-manifest.json) lists three known
 vehicle IDs and display names. It contains no coordinates, operational values or
 history. Both sources use these same canonical IDs; this is fixture preparation,
 not an entity discovery or join service. Coordinates are synthetic samples in

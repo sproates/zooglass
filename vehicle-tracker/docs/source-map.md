@@ -109,8 +109,8 @@ its dependencies compile to JavaScript served by the host.
 
 ```mermaid
 flowchart TB
-  html["vehicle-tracker/index.html or fleet.html<br/>Page structure and app script"]
-  css["vehicle-tracker/vehicle.css<br/>Page styling"]
+  html["vehicle-tracker/pages/basic/index.html or pages/interactive/index.html<br/>Page structure and app script"]
+  css["vehicle-tracker/pages/shared/styles.css<br/>Page styling"]
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and client factory"]
   bridge["workbench/browser/bridge.js<br/>Control protocol and command dispatch"]
   client["vehicle-tracker/src/vehicle-client.ts<br/>Vehicle app composition"]
@@ -121,12 +121,12 @@ flowchart TB
   bootstrap -->|starts bridge with supplied client factory| bridge
   bootstrap -->|creates single-vehicle client| client
   fleet["vehicle-tracker/src/fleet/client.ts<br/>Fleet app composition"]
-  manifest["vehicle-tracker/fleet-manifest.json<br/>Descriptive IDs and names"]
+  manifest["vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive IDs and names"]
   bootstrap -->|dynamically imports fleet factory in fleet mode| fleet
   bootstrap -.->|fetches descriptive manifest in fleet mode| manifest
 ```
 
-[`index.html`](../index.html) supplies the DOM and loads `/vehicle-bootstrap.js`.
+[`index.html`](../pages/basic/index.html) supplies the DOM and loads `/vehicle-bootstrap.js`.
 The [bootstrap](../../workbench/browser/vehicle-bootstrap.js) wires page buttons
 and run status to the [bridge](../../workbench/browser/bridge.js), and passes it
 a vehicle-client factory. In fleet mode it loads the fleet module and manifest
@@ -170,8 +170,8 @@ Workbench command bridge or require a browser controller.
 
 ```mermaid
 flowchart TD
-  html["driving.html"] -->|loads passive viewer| app["driving/app.ts"]
-  html -->|defines map-first layout| css["driving.css"]
+  html["pages/continuous/index.html"] -->|loads passive viewer| app["driving/app.ts"]
+  html -->|defines map-first layout| css["pages/continuous/styles.css"]
   app -->|renders received coordinates| leaflet["Leaflet"]
   app -->|loads attributed map imagery| tiles["fleet/map-tiles.ts"]
   app -->|labels accepted observation age| age["driving/report-age.ts"]

@@ -63,12 +63,6 @@ for (const engine of [chromium, webkit]) {
           assert.ok(box.x >= map.x && box.x + box.width <= map.x + map.width);
           assert.ok(box.y >= map.y && box.y + box.height <= map.y + map.height);
         }
-        // Markers move every 100ms in this accelerated fixture. Send a pointer
-        // click without waiting for two stationary animation frames.
-        await page
-          .getByRole("button", { name: "Inspect Car 2", exact: true })
-          .click({ force: true });
-        assert.match(await page.locator("#selection").innerText(), /Car 2/);
         const beforeOffline = await page
           .locator('.car[data-entity-id="car-1"]')
           .getAttribute("data-sequence");
@@ -79,6 +73,33 @@ for (const engine of [chromium, webkit]) {
         await page.waitForFunction(
           () => document.querySelectorAll(".car.stale").length === 6,
         );
+        // Offline markers are stationary. Choose a visible click target rather
+        // than forcing a click through a car which overlaps the intended marker.
+        const markerLabel = await page
+          .locator(".car")
+          .evaluateAll((markers) => {
+            const marker = markers.find((candidate) => {
+              const box = candidate.getBoundingClientRect();
+              const hit = document.elementFromPoint(
+                box.x + box.width / 2,
+                box.y + box.height / 2,
+              );
+              return hit?.closest(".car") === candidate;
+            });
+            return marker?.getAttribute("aria-label");
+          });
+        assert.ok(markerLabel, "at least one car can be selected by pointer");
+        await page
+          .getByRole("button", { name: markerLabel, exact: true })
+          .click();
+        const selectedName = markerLabel.replace(/^Inspect /, "");
+        assert.ok(
+          (await page.locator("#selection").innerText()).startsWith(
+            `${selectedName} ·`,
+          ),
+          "selection describes the car that received the pointer click",
+        );
+
         await page.context().setOffline(false);
         await page.waitForFunction(
           (sequence) =>

@@ -211,10 +211,11 @@ The programme branch now implements a focused [six-car continuous demo](incubato
 a read-only map, automatic source delivery faults and honest report-age labels.
 The simulation runs independently of viewers. Browser orchestration, interactive
 controls and general freshness infrastructure are not prerequisites for this demo.
-PR #88 merged into `feature/vehicle-fleet`, with consistent launch commands in
-PR #89. The [fresh-setup walkthrough](docs/verification/2026-10-28-continuous-walkthrough.md)
-records startup, source-outage recovery and map-failure behaviour. Final delivery
-to main remains pending acceptance and merge. Existing interactive fixtures remain separate verification tools.
+The programme was delivered to main in [PR #93](https://github.com/sproates/zooglass/pull/93),
+including the continuous demo and consistent launch commands. The [fresh-setup walkthrough](docs/verification/2026-10-28-continuous-walkthrough.md)
+records startup, source-outage recovery and map-failure behaviour. The
+[developer-value comparison](docs/developer-value.md) explains which application
+responsibilities the current prototype handles. Existing interactive fixtures remain separate verification tools.
 
 ## Next demo: fleet experience
 

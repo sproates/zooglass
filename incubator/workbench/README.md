@@ -18,6 +18,14 @@ vehicle browser demo with interactive controls and real data-route interruption.
 [what ZooGlass is trying to build](../../docs/what-is-zooglass.md) for the wider
 product explanation.
 
+## Watch six cars driving around Gibraltar
+
+Run `npm run demo:drive -- --bind=<private IPv4>` after the one-time service
+preparation below. Open the printed URL: six cars move continuously, with automatic
+late, lost and duplicate reports, source reconnects and reporting silence. There
+are no playback controls or pairing steps. [Run the continuous demo](docs/continuous-driving.md).
+The interactive fixtures below remain verification tools.
+
 ## Find your way around the source
 
 The [source map](docs/source-map.md) shows the TypeScript modules as boxes with

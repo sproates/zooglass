@@ -40,7 +40,9 @@
     "pretest:core": "node scripts/check-node-version.js",
     "test:core": "tsx --test test/*.test.ts test/scenarios/*.test.ts",
     "pretest:demo-unit": "node scripts/check-node-version.js && npm run build:browser",
-    "test:demo-unit": "tsx --test test/demo-unit/*.test.ts"
+    "test:demo-unit": "tsx --test test/demo-unit/*.test.ts",
+    "predemo:drive": "node scripts/check-node-version.js && npm run build:browser",
+    "demo:drive": "tsx src/demos/vehicle/continuous/main.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

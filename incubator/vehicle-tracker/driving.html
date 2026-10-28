@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZooGlass · Gibraltar live fleet</title>
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="/driving.css" />
+    <script type="module" src="/driving/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">ZooGlass · live fleet</span>
+        <h1>Six cars. Gibraltar.</h1>
+      </div>
+      <span id="connection" role="status">Connecting…</span>
+    </header>
+    <main>
+      <div id="map" aria-label="Live vehicle positions in Gibraltar"></div>
+      <div class="map-tools">
+        <button id="fit" type="button">Show all cars</button
+        ><button id="retry-map" type="button" disabled>Retry map</button>
+      </div>
+      <aside id="selection" hidden aria-live="polite"></aside>
+    </main>
+    <footer>
+      <p id="notice" role="status">
+        Six simulated cars. Positions delivered by ZooGlass.
+      </p>
+      <p id="map-background-status" role="status"></p>
+      <details>
+        <summary>What am I seeing?</summary>
+        <p>
+          Cars follow illustrative road routes automatically. Markers show
+          ZooGlass’s latest accepted positions, not predicted locations. Select
+          a car to inspect its report.
+        </p>
+      </details>
+      <p id="map-attribution"></p>
+    </footer>
+  </body>
+</html>

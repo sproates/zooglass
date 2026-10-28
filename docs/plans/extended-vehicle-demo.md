@@ -20,8 +20,11 @@ the programme branch; [map acceptance](../verification/2026-10-27-fleet-map.md)
 merged in PR #84, with location pointers added in PR #85. The
 [host lifetime foundation](../../incubator/workbench/docs/browser-lifetime.md) is
 merged in PR #86. [External viewer sessions](../../incubator/workbench/docs/external-viewers.md)
-are proposed for review; native phone acceptance and the longer six-vehicle scenarios
-remain pending.
+merged in PR #87. The continuous six-car implementation merged into the programme
+branch in PR #88, followed by consistent launch commands in PR #89. The
+[fresh-setup walkthrough](../verification/2026-10-28-continuous-walkthrough.md)
+records the current experience and its limits. Final delivery to main remains
+pending acceptance; the older interactive acceptance programme is deferred.
 
 ## What someone should be able to do
 

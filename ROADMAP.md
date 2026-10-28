@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 27 October 2026.
+Last reviewed: 28 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
@@ -207,12 +207,14 @@ rather than relying on retries of concurrent Maven compilation. See the
 
 ## Continuous Gibraltar demonstration
 
-The programme branch now proposes a focused [six-car continuous demo](incubator/workbench/docs/continuous-driving.md):
+The programme branch now implements a focused [six-car continuous demo](incubator/workbench/docs/continuous-driving.md):
 a read-only map, automatic source delivery faults and honest report-age labels.
 The simulation runs independently of viewers. Browser orchestration, interactive
 controls and general freshness infrastructure are not prerequisites for this demo.
-PR #88 targets `feature/vehicle-fleet`; final delivery to main remains pending
-acceptance and merge. Existing interactive fixtures remain separate verification tools.
+PR #88 merged into `feature/vehicle-fleet`, with consistent launch commands in
+PR #89. The [fresh-setup walkthrough](docs/verification/2026-10-28-continuous-walkthrough.md)
+records startup, source-outage recovery and map-failure behaviour. Final delivery
+to main remains pending acceptance and merge. Existing interactive fixtures remain separate verification tools.
 
 ## Next demo: fleet experience
 
@@ -244,9 +246,9 @@ controls and background-failure handling merged in
 [PR #84](https://github.com/sproates/zooglass/pull/84), followed by precise location
 pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
 [Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
-[External viewer sessions](incubator/workbench/docs/external-viewers.md) are proposed
-for review: explicit local-interface binding, single-use pairing, refresh leases,
-one controller and independent data routes. Native phone acceptance and the longer
-six-vehicle scenario remain pending.
+[External viewer sessions](incubator/workbench/docs/external-viewers.md) merged
+in PR #87: explicit local-interface binding, single-use pairing, refresh leases,
+one controller and independent data routes. Further interactive browser acceptance
+is deferred. The continuous six-car demo above is the current delivery focus.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

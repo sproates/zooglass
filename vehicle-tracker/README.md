@@ -64,7 +64,7 @@ The terminal issues separate pairing links; one viewer controls shared playback.
 
 ![Synthetic fleet around Gibraltar, with OpenStreetMap attribution.](docs/fleet-map.png)
 
-The [manifest](fleet-manifest.json) supplies names and IDs only. Values come from
+The [manifest](pages/interactive/fleet-manifest.json) supplies names and IDs only. Values come from
 ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).
 `--fleet` is an interactive variant and cannot be combined with `--basic`,
 `--recovery`, `--fault` or `--auto`. The existing default journey and short variants
@@ -343,3 +343,16 @@ also checks Play/Pause, viewer and fault controls through the keyboard, and
 200% text reflow at 320 CSS pixels.
 The local host registration is not production authorisation. See the
 [demo plan](../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.
+
+## Source layout
+
+`pages/` groups the browser entry points by experience:
+
+- `continuous/`: the six-car map page and its stylesheet.
+- `interactive/`: the three-car fleet page and descriptive fleet manifest.
+- `basic/`: the original single-vehicle page used by the bounded scenarios.
+- `shared/`: the stylesheet used by the basic and interactive pages.
+
+TypeScript stays in `src/`, with the existing `driving/` and `fleet/` groups.
+Workbench maps these files to browser URLs; moving a file does not change the
+served URL. The [source map](docs/source-map.md) shows those bindings.

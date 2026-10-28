@@ -26,7 +26,7 @@ export async function vehicleBrowserApplication(
         "text/html; charset=utf-8",
         await readFile(
           new URL(
-            `../../../../vehicle-tracker/${fleet ? "fleet" : "index"}.html`,
+            `../../../../vehicle-tracker/pages/${fleet ? "interactive" : "basic"}/index.html`,
             import.meta.url,
           ),
         ),
@@ -110,7 +110,10 @@ export async function vehicleBrowserApplication(
       [
         "text/css; charset=utf-8",
         await readFile(
-          new URL("../../../../vehicle-tracker/vehicle.css", import.meta.url),
+          new URL(
+            "../../../../vehicle-tracker/pages/shared/styles.css",
+            import.meta.url,
+          ),
         ),
       ],
     ],

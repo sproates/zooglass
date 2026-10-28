@@ -248,7 +248,9 @@ pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
 [Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
 [External viewer sessions](incubator/workbench/docs/external-viewers.md) merged
 in PR #87: explicit local-interface binding, single-use pairing, refresh leases,
-one controller and independent data routes. Further interactive browser acceptance
-is deferred. The continuous six-car demo above is the current delivery focus.
+one controller and independent data routes. A focused
+[acceptance record](docs/verification/2026-10-28-external-viewers.md) is now proposed
+for review for the tested desktop Chromium multi-viewer flow over loopback.
+Interactive phone/Safari and cross-device LAN validation remain deferred. The continuous six-car demo above is the current delivery focus.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

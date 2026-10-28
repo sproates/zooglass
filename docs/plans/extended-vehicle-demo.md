@@ -24,11 +24,18 @@ merged in PR #87. The continuous six-car implementation merged into the programm
 branch in PR #88, followed by consistent launch commands in PR #89. The
 [fresh-setup walkthrough](../verification/2026-10-28-continuous-walkthrough.md)
 records the current experience and its limits. Final delivery to main remains
-pending acceptance; the older interactive acceptance programme is deferred.
+pending final acceptance. The [interactive acceptance record](../verification/2026-10-28-external-viewers.md)
+proposes acceptance of the tested desktop Chromium multi-viewer flow over loopback.
+Interactive phone/Safari and cross-device LAN validation remain deferred; they
+are not established by narrow-viewport tests.
+Manual phone sign-off and physical-device qualification are outside scope.
 
-## What someone should be able to do
+## Original target experience (partly superseded)
 
-Open the demo on a laptop or directly on a phone on the same network. See a small
+The original target included opening the interactive demo on a laptop or directly
+on a phone on the same network. The implementation supports explicit network
+binding, but acceptance currently covers the tested Chromium flow described above;
+interactive phone/Safari and cross-device LAN validation remain deferred. See a small
 fleet on a geographic map, select a vehicle, inspect its received journey and
 operational status, and understand what changes when an update is late or the
 viewer loses its connection. Workbench supplies repeatable scenarios and controls;

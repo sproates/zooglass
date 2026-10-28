@@ -143,7 +143,7 @@ export async function startZooGlassSession(
       await access(artifact);
     } catch (error) {
       throw new Error(
-        `ZooGlass application is not available at ${artifact}. Run npm run prepare:service from incubator/workbench before starting sessions; rebuild after Java changes.`,
+        `ZooGlass application is not available at ${artifact}. Run npm run prepare:service from workbench before starting sessions; rebuild after Java changes.`,
         { cause: error },
       );
     }

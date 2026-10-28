@@ -12,7 +12,7 @@ an empty directory on macOS. No `node_modules`, browser output or Java build
 artifacts were copied from the working checkout. Node 26.0.0 and OpenJDK 25.0.5
 were already installed; the machine's npm/Maven caches were available.
 
-From `incubator/workbench`, these commands completed successfully:
+From `workbench`, these commands completed successfully:
 
 ```sh
 npm ci
@@ -49,10 +49,10 @@ selecting **Retry map** loaded the background without restarting the sources.
 The shared warning now refers to vehicle updates and map navigation, rather than
 promising history and playback controls in the continuous viewer.
 
-![Continuous viewer at desktop size](../../incubator/vehicle-tracker/docs/continuous-driving-desktop.png)
+![Continuous viewer at desktop size](../../vehicle-tracker/docs/continuous-driving-desktop.png)
 
-[Watch or download the normal-speed recording (MP4)](../../incubator/vehicle-tracker/docs/continuous-driving.mp4).
-The [guide retains its phone screenshot](../../incubator/workbench/docs/continuous-driving.md#verification).
+[Watch or download the normal-speed recording (MP4)](../../vehicle-tracker/docs/continuous-driving.mp4).
+The [guide retains its phone screenshot](../../workbench/docs/continuous-driving.md#verification).
 
 ## Supporting checks and limits
 

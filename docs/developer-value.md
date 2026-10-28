@@ -6,7 +6,7 @@ that decision. Someone opening the map later needs the latest known position
 without waiting for the next report. A viewer returning after a disconnect needs
 to catch up with the service.
 
-The [Gibraltar demo](../incubator/workbench/docs/continuous-driving.md) makes these
+The [Gibraltar demo](../workbench/docs/continuous-driving.md) makes these
 requirements visible with six cars. ZooGlass supplies the maintained views and
 subscription snapshots. The application supplies the events and the experience
 around them. This document compares those responsibilities with an equally scoped
@@ -38,7 +38,7 @@ saved or prove that adopting a separate service is worthwhile for every applicat
 The continuous demo defines a `driving` view with `position` and `notice` fields.
 Each matches its own event type from source `fleet`, and each has its own
 `latestBySequence` ordering policy. See the actual
-[view definition](../incubator/workbench/src/demos/vehicle/continuous/simulation.ts).
+[view definition](../workbench/src/demos/vehicle/continuous/simulation.ts).
 
 Suppose a car sends positions 40, 42 and then 41. ZooGlass retains 42 as its latest
 position. Another 42 is ignored, even if its payload differs. If 43 is lost
@@ -62,11 +62,11 @@ There is still substantial application work:
 - Workbench starts the service and sources and hosts the demo. Its pairing and
   playback controls belong to the interactive demonstration, not ZooGlass itself.
 
-The [browser implementation](../incubator/vehicle-tracker/src/driving/app.ts) and
-[report-age rule](../incubator/vehicle-tracker/src/driving/report-age.ts) make that
+The [browser implementation](../vehicle-tracker/src/driving/app.ts) and
+[report-age rule](../vehicle-tracker/src/driving/report-age.ts) make that
 boundary explicit. In the separate interactive fixture, location and operational
 status use separate fields and sequence domains; see the
-[fleet contracts](../incubator/workbench/docs/fleet-contracts.md).
+[fleet contracts](../workbench/docs/fleet-contracts.md).
 
 ## What changes when the application grows?
 
@@ -74,7 +74,7 @@ status use separate fields and sequence domains; see the
 for each car: the same definition is keyed by `entityId`. The application must send
 that ID and subscribe to it. In this demo, adding a seventh car means adding route
 geometry to `routes.json`, extending the six-element starting-offset list in
-[journeys.ts](../incubator/workbench/src/demos/vehicle/continuous/journeys.ts), and
+[journeys.ts](../workbench/src/demos/vehicle/continuous/journeys.ts), and
 updating six-car wording and expectations. The generated `/cars.json` manifest
 feeds the viewer's subscription list. There is no service-side fleet discovery API.
 
@@ -95,23 +95,23 @@ aggregation or reconciliation rule may require service code; configuration is
 limited to the policies implemented today.
 
 These examples identify concrete changes rather than promise that every extension
-is configuration-only. The [service guide](../incubator/zooglass/README.md) documents
+is configuration-only. The [service guide](../zooglass/README.md) documents
 the current API and ordering rules.
 
 ## Evidence and adoption limits
 
-The [continuous delivery checks](../incubator/workbench/test/browser/continuous-delivery.test.ts)
+The [continuous delivery checks](../workbench/test/browser/continuous-delivery.test.ts)
 exercise the real service with six source sockets through repeated faults.
-The [fleet recovery check](../incubator/workbench/test/browser/fleet-recovery.test.ts)
+The [fleet recovery check](../workbench/test/browser/fleet-recovery.test.ts)
 verifies snapshots after sources advance while a viewer is offline, with no later
 source events to hide a missing recovery snapshot. The
 [verification map](testing.md) links the wider service and client tests.
 
 The service implementation keeps ordering policies in
-[FieldUpdates](../incubator/zooglass/src/main/java/io/zooglass/FieldUpdates.java),
-entity views in [ViewStore](../incubator/zooglass/src/main/java/io/zooglass/ViewStore.java),
+[FieldUpdates](../zooglass/src/main/java/io/zooglass/FieldUpdates.java),
+entity views in [ViewStore](../zooglass/src/main/java/io/zooglass/ViewStore.java),
 and subscription/delivery coordination in
-[LiveViewBroadcaster](../incubator/zooglass/src/main/java/io/zooglass/LiveViewBroadcaster.java).
+[LiveViewBroadcaster](../zooglass/src/main/java/io/zooglass/LiveViewBroadcaster.java).
 Those are the reusable responsibilities demonstrated here.
 
 Adopting ZooGlass also means operating a service and accepting its contracts.

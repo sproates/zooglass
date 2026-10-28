@@ -14,7 +14,7 @@ it changes no application behaviour or module responsibilities.
 
 | Requirement | Evidence |
 | --- | --- |
-| Independent entities and source fields | The [contract fixture](../../incubator/workbench/docs/fleet-contracts.md) checks exact HTTP state and real socket receipts for three entities and two views. Location and operation use independent sequence domains. Later events on each source connection provide processing barriers before unchanged-state checks. |
+| Independent entities and source fields | The [contract fixture](../../workbench/docs/fleet-contracts.md) checks exact HTTP state and real socket receipts for three entities and two views. Location and operation use independent sequence domains. Later events on each source connection provide processing barriers before unchanged-state checks. |
 | Late and duplicate delivery | Car-17 retains latest position 42 while late 41 fills its received history. Car-28 retains operation 102 after late 101. Duplicate and changed-payload repeats at an accepted sequence preserve the first payload. These are fixture assertions, not values injected into the UI. |
 | Selection and subscription isolation | `test/browser/fleet.test.ts` runs the complete fixture with car-28 selected, then independently checks every vehicle's detail and history. Recorded data-socket sends show selection sends no subscription commands; reconnect sends six distinct subscriptions. |
 | Receipts and rendering are separate | The optional fleet observer checks visible fleet rows and selected history after real receipt checks. Removing a position element deliberately makes verification fail despite correct receipts. Unselected histories are receipt-checked during playback, then selected and inspected by the browser test. |
@@ -23,13 +23,13 @@ it changes no application behaviour or module responsibilities.
 | Keyboard playback and selection | `test/browser/fleet-usability.test.ts` operates Play/Pause by keyboard, selects a vehicle through tab order and resumes Play to complete all checks. Focus stays on the selected vehicle as background updates arrive. Tab/Enter then selects another vehicle with its own history. Only fixture timing is slowed for this test; events and expectations are unchanged. |
 | Responsive text presentation | The same test checks 1280px, 390px and 320px widths at 100% and 200% root font size, with no horizontal page overflow and controls contained in their panel. Desktop and narrow enlarged-text captures were visually inspected. At 320px with enlarged text, labels wrap substantially but remain available. This is not a native phone or accessibility audit. |
 
-The existing [fleet screenshot](../../incubator/vehicle-tracker/docs/fleet-selection.png)
+The existing [fleet screenshot](../../vehicle-tracker/docs/fleet-selection.png)
 illustrates the text-based presentation. The usability test writes reproducible
-captures under `incubator/workbench/test-results/fleet-*.png`.
+captures under `workbench/test-results/fleet-*.png`.
 
 ## Verification and reproduction
 
-From `incubator/workbench`, with dependencies installed and the current ZooGlass
+From `workbench`, with dependencies installed and the current ZooGlass
 executable JAR already prepared:
 
 ```sh

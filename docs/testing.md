@@ -7,7 +7,7 @@ that every event ordering is correct, or that the service is production ready.
 ## Reproduce the reports
 
 Use JDK 25 and Node 26, with dependencies installed as described in
-[CONTRIBUTING.md](../CONTRIBUTING.md). From `incubator/zooglass`:
+[CONTRIBUTING.md](../CONTRIBUTING.md). From `zooglass`:
 
 ```sh
 ./mvnw --batch-mode clean verify
@@ -17,7 +17,7 @@ Open `target/site/jacoco/index.html`. XML and CSV reports are alongside it.
 `clean` removes old execution data before collecting a local baseline. CI starts
 from a fresh checkout and uses `verify`.
 
-From `incubator/workbench`:
+From `workbench`:
 
 ```sh
 npm ci
@@ -90,8 +90,8 @@ for review, not a claim of exhaustive coverage.
 
 | Behaviour | Existing evidence | Remaining gap |
 | --- | --- | --- |
-| Entity-scoped matching, field replacement and sequence policies | `incubator/zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
-| Scenario execution through the service | `incubator/workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
+| Entity-scoped matching, field replacement and sequence policies | `zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
+| Scenario execution through the service | `workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. `test/browser/connection-loss.test.ts` checks automatic recovery against real ZooGlass, including source continuity and first snapshots. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
 | Controller and executor lifecycle | `test/controller-*.test.ts`, `scenario-session.test.ts`, `zooglass-session.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
@@ -128,7 +128,7 @@ check enumerates all 24 index permutations of three positions and one duplicate;
 a focused conflict example makes the first-accepted-payload rule visible.
 
 A failing generated case reports its seed and the first failing prefix. Reproduce
-one seed from `incubator/zooglass`:
+one seed from `zooglass`:
 
 ```sh
 ./mvnw --batch-mode -Dtest=ViewStoreOrderingTests -Dordering.seed=17 test
@@ -463,7 +463,7 @@ the controlled cases are not substitutes for those integration checks.
 Verified on 25 October 2026 in a fresh checkout before any vehicle build:
 `npm ci`, then `PLAYWRIGHT_BROWSERS_PATH=<fresh-absolute-directory> npm run test:core`.
 All 95 core tests passed. The temporary browser directory was empty before and
-after the run, and `incubator/vehicle-tracker/dist` did not exist before or after.
+after the run, and `vehicle-tracker/dist` did not exist before or after.
 No browser executable path or branded channel bypass occurs in the core execution
 path. The Playwright npm package can remain installed as a development dependency;
 the core command neither installs nor launches its engines.
@@ -560,8 +560,8 @@ and keeps whole-demo acceptance and broader recovery guarantees separate.
 ## Prebuilt service launch boundary
 
 Before running Workbench service, browser, resource or engine tests, run
-`npm run prepare:service` from `incubator/workbench`. It packages
-`incubator/zooglass/target/zooglass.jar` using the Maven wrapper, skipping Java
+`npm run prepare:service` from `workbench`. It packages
+`zooglass/target/zooglass.jar` using the Maven wrapper, skipping Java
 test compilation/execution. Java tests remain a separate `./mvnw verify` step.
 The CI jobs each prepare once before their test commands; no test-session or
 Reset path invokes the build. The same boundary applies to connected CLI runs

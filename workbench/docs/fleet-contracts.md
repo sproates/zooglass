@@ -1,6 +1,6 @@
 # Fleet fixture and view contracts
 
-This is the first executable part of the [extended vehicle demo](../../../docs/plans/extended-vehicle-demo.md).
+This is the first executable part of the [extended vehicle demo](../../docs/plans/extended-vehicle-demo.md).
 It establishes the data contracts through the existing Workbench scenario runner.
 The browser can now run this fixture with `npm run demo -- vehicle-tracker --fleet`,
 showing all three vehicles, selected detail and the [Gibraltar map](../../vehicle-tracker/docs/fleet-map.md).
@@ -8,7 +8,7 @@ Direct phone access is a later increment. Existing single-vehicle variants are r
 
 ## Run the contract scenario
 
-From `incubator/workbench`, install dependencies and explicitly prepare ZooGlass
+From `workbench`, install dependencies and explicitly prepare ZooGlass
 if its executable JAR has not been built from the current Java sources:
 
 ```sh
@@ -76,6 +76,6 @@ visible fleet rows and selected history; unselected histories are receipt-checke
 The browser test independently selects each vehicle, checks its detail and
 records outgoing commands to verify selection creates no subscriptions.
 
-The [fleet acceptance record](../../../docs/verification/2026-10-27-fleet-state.md)
+The [fleet acceptance record](../../docs/verification/2026-10-27-fleet-state.md)
 collects the evidence, including keyboard playback, enlarged-text layout and
 catch-up after the sources advance while the browser is disconnected.

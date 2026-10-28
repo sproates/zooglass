@@ -18,7 +18,7 @@ are intended outcomes, not release dates or claims of existing capability. The
 
 | Area | Available now | Evidence |
 | --- | --- | --- |
-| Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](incubator/zooglass/README.md) |
+| Live-view prototype | An in-memory service matches source events to entity-scoped view fields, exposes HTTP reads and delivers full snapshots to WebSocket subscribers. Reconnecting clients can resubscribe for current state. | [Prototype guide](zooglass/README.md) |
 | Ordering scenarios | Latest-position and received-history views can respond differently to the same out-of-order events. Scenarios explore duplicates and the limits of sequence-based completeness assumptions. | [Workbench ordering support, PR #18](https://github.com/sproates/zooglass/pull/18), [sequence guarantees, PR #20](https://github.com/sproates/zooglass/pull/20) |
 | Workbench sessions | The CLI executes real service, source and Node-client interactions. Shared sessions own startup, actions and cleanup, with bindings for Node and browser clients. | [PR #23](https://github.com/sproates/zooglass/pull/23) |
 | Browser design | The vehicle demo's browser control, independent rendered checks and data-connection fault behaviour are designed. The browser implementation includes data-route interruption and bounded recovery; the final completion record defines acceptance of the bounded demo. | [Design, PR #22](https://github.com/sproates/zooglass/pull/22) |
@@ -30,7 +30,7 @@ demonstrates their specific cases, not production readiness.
 
 ## Delivered: a working browser view
 
-The [basic vehicle app](incubator/vehicle-tracker/README.md) now receives actual
+The [basic vehicle app](vehicle-tracker/README.md) now receives actual
 ZooGlass views under Workbench control. The default journey connects and
 subscribes its browser, then sends twenty positions (40–59), with 41 delayed
 until after 42. The short 40/42 fixture remains available with `--basic`. Service and browser
@@ -104,7 +104,7 @@ Further delivery decisions follow project review.
 
 The vehicle demo also provides bounded run activity and current/next-step
 explanations, distinguishing source sends from actual browser receipts. See the
-[vehicle guide](incubator/vehicle-tracker/README.md#follow-the-run).
+[vehicle guide](vehicle-tracker/README.md#follow-the-run).
 
 ## Late delivery and recovery: accepted
 
@@ -162,7 +162,7 @@ After the browser work, the product still needs decisions and evidence around:
 
 - Source relationships, event identity and correction revisions.
 - Freshness, provenance and source progress, including when completeness can be
-  established. The [source progress exploration](incubator/zooglass/source-progress-signals.md)
+  established. The [source progress exploration](zooglass/source-progress-signals.md)
   records options without selecting a policy.
 - Durable state, retention and recovery contracts, including when replay is
   needed rather than a fresh snapshot.
@@ -207,7 +207,7 @@ rather than relying on retries of concurrent Maven compilation. See the
 
 ## Continuous Gibraltar demonstration
 
-The programme branch now implements a focused [six-car continuous demo](incubator/workbench/docs/continuous-driving.md):
+The programme branch now implements a focused [six-car continuous demo](workbench/docs/continuous-driving.md):
 a read-only map, automatic source delivery faults and honest report-age labels.
 The simulation runs independently of viewers. Browser orchestration, interactive
 controls and general freshness infrastructure are not prerequisites for this demo.
@@ -231,14 +231,14 @@ browser capabilities are not yet delivered.
 
 The [accepted fleet design](docs/plans/extended-vehicle-demo.md) is being developed
 on `feature/vehicle-fleet`, with slice PRs reviewed into that branch and a final
-PR to main after acceptance. The [three-vehicle contract scenario](incubator/workbench/docs/fleet-contracts.md)
+PR to main after acceptance. The [three-vehicle contract scenario](workbench/docs/fleet-contracts.md)
 merged into the programme branch in [PR #79](https://github.com/sproates/zooglass/pull/79).
 The text-based fleet list, selected detail/history and six independent
 subscriptions merged in [PR #80](https://github.com/sproates/zooglass/pull/80).
 [Fleet acceptance](docs/verification/2026-10-27-fleet-state.md) merged in
 [PR #81](https://github.com/sproates/zooglass/pull/81), including keyboard playback
 and recovery after offline source progress.
-[Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) merged in
+[Gibraltar map integration](vehicle-tracker/docs/fleet-map.md) merged in
 [PR #82](https://github.com/sproates/zooglass/pull/82): received markers, selected
 history and configurable background tiles. Fit/follow navigation, keyboard/touch
 controls and background-failure handling merged in
@@ -246,8 +246,8 @@ controls and background-failure handling merged in
 [Map acceptance](docs/verification/2026-10-27-fleet-map.md) merged in
 [PR #84](https://github.com/sproates/zooglass/pull/84), followed by precise location
 pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
-[Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
-[External viewer sessions](incubator/workbench/docs/external-viewers.md) merged
+[Host lifetime separation](workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
+[External viewer sessions](workbench/docs/external-viewers.md) merged
 in PR #87: explicit local-interface binding, single-use pairing, refresh leases,
 one controller and independent data routes. A focused
 [acceptance record](docs/verification/2026-10-28-external-viewers.md) is now proposed

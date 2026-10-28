@@ -12,7 +12,7 @@ an assertion that these short synthetic segments follow a road.
 
 ## Run and explore
 
-From `incubator/workbench`, after the normal installation and explicit service
+From `workbench`, after the normal installation and explicit service
 preparation steps in the [demo README](../README.md):
 
 ```sh
@@ -118,7 +118,7 @@ review caught attribution covering a car; credits now sit outside the map area.
 The existing keyboard, enlarged-text, reconnect and single-vehicle tests remain.
 The screenshot above came from a bounded visual check using real background tiles;
 CI uses local synthetic tiles and does not assert provider availability. The separate map
-acceptance record is [ready for review](../../../docs/verification/2026-10-27-fleet-map.md);
+acceptance record is [ready for review](../../docs/verification/2026-10-27-fleet-map.md);
 emulated touch is not native iPhone evidence.
 
 Leaflet is distributed under its [BSD 2-Clause licence](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE),

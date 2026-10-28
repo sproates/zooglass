@@ -62,7 +62,10 @@ npm run demo -- order-tracker
 npm run demo -- live-sports
 ```
 
-Each prints a viewer URL and stops cleanly on Ctrl+C. These are planned commands,
+Both commands default to **infinite mode**, like the continuous car demo: activity
+and fault scenes repeat automatically until Ctrl+C. There is no end-of-scenario
+stop or manual restart between cycles. Each prints an ordinary viewer URL; opening
+or closing a browser does not start or stop the simulation. These are planned commands,
 not commands available today. The existing vehicle commands remain supported.
 The launcher adds explicit cases for the two demos; no plugin system is needed.
 
@@ -200,7 +203,14 @@ The disallowed-goal scene demonstrates replacement by a newer source publication
 It does not implement historical retraction, correction propagation, event-time
 recomputation or a general revision model. Avoid presenting it as those features.
 
-## Repeating safely and describing uncertainty
+## Infinite mode and bounded verification
+
+Infinite mode is required for both demos and is their default public experience.
+Tests exercise the same producer and delivery logic with an explicit bounded
+number of cycles and accelerated timing; this is a verification option, not a
+second implementation or a requirement for playback controls. Acceptance checks
+that activity and injected faults continue across at least three cycles, including
+with no viewers, and that stopping releases the owned sources and service.
 
 Both demos should run continuously with bounded state. Use fixed demonstration
 slots (six order entities and three match entities), latest-value fields and a

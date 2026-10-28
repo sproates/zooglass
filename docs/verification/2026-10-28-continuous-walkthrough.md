@@ -23,8 +23,8 @@ npm run demo -- vehicle-tracker --continuous
 The viewer opened at the printed loopback URL in Chromium. The capture was then
 repeated with this slice’s map-warning wording correction applied. No browser was launched
 by the command itself. The explicit preparation produced the executable JAR;
-starting and stopping the demo left its modification time unchanged. Ctrl+C shut down the run and the npm wrapper exited successfully. The viewer
-port no longer accepted connections afterwards.
+starting and stopping the demo left its modification time unchanged. Ctrl+C shut down the run. Across the captures the npm wrapper returned either
+zero or its SIGINT exit status, 130; both runs released the viewer port.
 This is fresh source/dependency/build-output evidence, not a clean operating-system
 installation or a test of an empty dependency cache.
 

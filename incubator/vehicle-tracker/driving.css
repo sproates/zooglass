@@ -1,0 +1,148 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #173b34;
+  background: #f4f6f1;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+h1 {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.65rem;
+}
+#connection {
+  font-size: 0.75rem;
+  max-width: 35%;
+  text-align: right;
+}
+main {
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+}
+#map {
+  position: absolute;
+  inset: 0;
+  background: #e6ebe1;
+}
+.map-tools {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 500;
+  display: flex;
+  gap: 8px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #a3b6a9;
+  border-radius: 8px;
+  background: white;
+  color: #173b34;
+  min-height: 44px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 5px #0002;
+}
+button:focus-visible,
+summary:focus-visible,
+.car:focus-visible {
+  outline: 3px solid #d76b23;
+  outline-offset: 3px;
+}
+#retry-map:disabled {
+  display: none;
+}
+.car {
+  border: 0;
+  background: transparent;
+}
+.car span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: white;
+  background: #146b52;
+  border: 3px solid white;
+  border-radius: 50%;
+  font: 700 16px system-ui;
+  box-shadow: 0 2px 6px #0006;
+}
+.car::after {
+  content: "";
+  position: absolute;
+  top: 33px;
+  left: 12px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid #146b52;
+}
+.car.selected span {
+  outline: 3px solid #d76b23;
+}
+.car.stale span {
+  background: #697775;
+  border-style: dashed;
+}
+.car.stale::after {
+  border-top-color: #697775;
+}
+#selection {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 500;
+  padding: 10px 14px;
+  background: #fffffff2;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+footer {
+  padding: 8px 16px max(8px, env(safe-area-inset-bottom));
+  font-size: 0.75rem;
+}
+footer p {
+  margin: 4px 0;
+}
+#map-background-status[data-state="available"] {
+  display: none;
+}
+summary {
+  cursor: pointer;
+  padding: 5px 0;
+}
+a {
+  color: #146b52;
+}
+.leaflet-control-zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+}
+@media (min-width: 800px) {
+  #selection {
+    right: auto;
+    min-width: 280px;
+  }
+}

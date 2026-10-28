@@ -20,9 +20,11 @@ export async function startSimulation(options: SimulationOptions = {}) {
         id: "driving",
         fields: {
           position: [{ sourceId: "fleet", type: "position" }],
+          notice: [{ sourceId: "fleet", type: "notice" }],
         },
         ordering: {
           position: { mode: "latestBySequence", sequenceField: "sequence" },
+          notice: { mode: "latestBySequence", sequenceField: "sequence" },
         },
       },
     ],
@@ -34,9 +36,15 @@ export async function startSimulation(options: SimulationOptions = {}) {
   const close = () =>
     (closing ??= (async () => {
       await producer?.close();
-      await route.close();
-      await http?.close();
-      await service.close();
+      try {
+        await route.close();
+      } finally {
+        try {
+          await http?.close();
+        } finally {
+          await service.close();
+        }
+      }
     })());
   try {
     http = await startBrowserHttpServer(

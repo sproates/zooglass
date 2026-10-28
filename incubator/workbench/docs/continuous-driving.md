@@ -19,3 +19,27 @@ provider; tests use local synthetic tiles. Six latest positions are retained;
 this demo does not define an indefinitely growing history view.
 
 The existing interactive scenario fixtures remain separate development tools.
+
+## Imperfect delivery
+
+Each car repeats a staggered 180-report schedule: one report is held for five
+report intervals, one is duplicated exactly, one is dropped forever, the source
+socket closes for twenty reports, and later the connected source goes silent for
+twenty reports. Cars continue along their journeys during these gaps. Reconnecting
+sends new observations, not a replay of lost reports. Other cars continue reporting.
+The default cadence is one report per second. No fault depends on browser presence.
+
+ZooGlass retains the highest accepted sequence for each car. An older or equal
+sequence cannot replace it; equal-sequence conflicts are first-wins, not corrections.
+Permanent loss is not repaired. A grey, dashed marker means its observation is at
+least eight seconds old, the viewer is disconnected, or it is awaiting a new
+subscription snapshot. Reconnection does not change the observation timestamp.
+These are demo age labels, not a ZooGlass source-health or physical-location guarantee.
+The host and viewer clocks should be synchronised for meaningful age labels.
+
+The brief footer notices are labelled Simulator: they describe injected delivery
+conditions, not ZooGlass acknowledgements. Notices are also projected through
+ZooGlass, independently of position, so they cannot refresh an old position's age.
+Only the latest position and notice per car are stored. At most one delayed report
+per car is queued; no growing event history or browser activity list is maintained.
+ZooGlass state remains in memory and is lost when the application stops.

@@ -11,6 +11,7 @@ export async function drivingApplication(
   for (const [url, file, mime] of [
     ["/", "driving.html", "text/html"],
     ["/driving.css", "driving.css", "text/css"],
+    ["/driving/report-age.js", "dist/driving/report-age.js", "text/javascript"],
     ["/driving/app.js", "dist/driving/app.js", "text/javascript"],
   ]) {
     assets.set(url, [

@@ -25,9 +25,8 @@ late delivery, duplicate handling and bounded connection recovery are implemente
 The demo recovers current snapshots; it does not replay missed messages or
 establish that received history is complete. The
 [completion record](docs/verification/2026-10-27-demo-completion.md) brings together
-the scope and evidence for final acceptance. Merging
-[PR #75](https://github.com/sproates/zooglass/pull/75) records acceptance and closes
-this bounded demo milestone.
+the accepted scope and evidence for this bounded demo, delivered in
+[PR #75](https://github.com/sproates/zooglass/pull/75).
 
 The [continuous six-car Gibraltar demo](incubator/workbench/docs/continuous-driving.md):
 open a map and watch ZooGlass deliver positions under delayed, lost and duplicate

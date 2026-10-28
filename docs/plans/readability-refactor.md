@@ -24,7 +24,7 @@ baseline and identifies gaps that need protection before particular extractions.
 
 ## Findings at the original review baseline
 
-Paths in this table are relative to ``. Line counts include comments
+Paths in this table are relative to the repository root. Line counts include comments
 and blank lines. They identify review targets, not limits to enforce mechanically.
 
 | Area | Observed responsibility problem | Proposed treatment |

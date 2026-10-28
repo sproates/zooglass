@@ -351,3 +351,28 @@ relationship, rather than reducing them to “imports”.
 
 For the adjacent components, see the [ZooGlass source map](../../zooglass/docs/source-map.md)
 and [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).
+
+## Continuous Gibraltar demonstration
+
+`npm run demo:drive` uses this small demo-specific composition. There is no
+controller, pairing lease, browser command channel or dependence on a viewer's
+presence. The static host exposes assets and the live subscription proxy only.
+
+```mermaid
+flowchart TD
+  main["continuous/main.ts"] -->|starts and shuts down| sim["continuous/simulation.ts"]
+  sim -->|owns prebuilt service| service["service/zooglass-session.ts"]
+  sim -->|serves read-only viewer| http["browser/browser-http-server.ts"]
+  sim -->|forwards live subscriptions| proxy["browser/browser-data-route.ts"]
+  sim -->|loads assets| assets["continuous/application.ts"]
+  assets -->|reuses Leaflet and tile assets| fleet["demos/vehicle/fleet-assets.ts"]
+  sim -->|runs six independent sources| producer["continuous/producer.ts"]
+  sim -->|loads cars| journeys["continuous/journeys.ts"]
+  producer -->|samples distance along roads| journeys
+  journeys -->|reads attributed road geometry| routes["continuous/routes.json"]
+  producer -->|chooses automatic faults| delivery["continuous/delivery.ts"]
+  producer -->|opens and closes real sockets| sockets["execution/sockets.ts"]
+```
+
+[Behaviour and limits](continuous-driving.md). The browser source map describes
+its passive subscriber and map, separately from the scripted bridge.

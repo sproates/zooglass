@@ -1,5 +1,13 @@
 # Vehicle fleet demo
 
+> Scope revision, 28 October 2026: the immediate deliverable is the
+> [continuous six-car Gibraltar demo](../../incubator/workbench/docs/continuous-driving.md).
+> It runs automatically and presents a read-only map. The interactive controller,
+> pairing and browser-orchestration requirements below describe the earlier design
+> and are not gates for this demonstration. Existing implementations remain useful
+> verification tools; further expansion is deferred.
+
+
 Status: design accepted in [PR #78](https://github.com/sproates/zooglass/pull/78).
 The existing single-vehicle demo is delivered; this document describes the next
 experience, not capabilities already implemented. The first

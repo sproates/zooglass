@@ -43,3 +43,19 @@ ZooGlass, independently of position, so they cannot refresh an old position's ag
 Only the latest position and notice per car are stored. At most one delayed report
 per car is queued; no growing event history or browser activity list is maintained.
 ZooGlass state remains in memory and is lost when the application stops.
+
+## Verification
+
+Automated acceptance runs the real service and six real source sockets through
+two fault cycles. It checks monotonic accepted sequences, permanently absent
+reports, recovery after source disconnect/silence and all six independent entities.
+Route checks cover 10,000 simulated seconds per car, including wrap continuity.
+Chromium and WebKit checks cover phone layout, live markers, selection, late
+subscribers, network reconnection and cached-page lifecycle events. These checks
+are not a claim of an exhaustive native iPhone background/Wi-Fi test.
+
+The full-route default camera keeps future positions within the map; the user can
+pan, zoom or choose Show all cars. The real-map screenshot was inspected at phone
+width. Tile-provider availability remains separate from live position delivery.
+
+![Continuous Gibraltar viewer at phone width](../../vehicle-tracker/docs/continuous-driving.png)

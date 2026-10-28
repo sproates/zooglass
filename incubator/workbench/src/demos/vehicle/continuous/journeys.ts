@@ -23,7 +23,8 @@ export async function loadCars(): Promise<Car[]> {
     name: `Car ${index + 1}`,
     route,
     speed: 5 + index * 0.4,
-    offset: index / 6,
+    // Spread the first view across the road network rather than overlapping labels.
+    offset: [0, 0.1, 0, 0.4, 0.85, 0.4][index],
   }));
 }
 

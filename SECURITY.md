@@ -41,3 +41,12 @@ The maintainer will assess the report and, where a fix is appropriate, coordinat
 its publication and disclosure through the private advisory. Keep details private
 while that assessment is underway. Ordinary functional defects and requests for
 new security capabilities can follow [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Continuous read-only demonstration
+
+The `demo:drive` viewer binds to loopback or an explicit private IPv4 interface.
+It uses ordinary HTTP and has no viewer authentication: anyone on that trusted
+network who knows the URL can observe synthetic positions. It exposes static
+assets and the ZooGlass live-subscription proxy, not event ingestion, view
+administration or playback commands. Do not forward or tunnel this local demo
+onto the internet. Closing a browser does not stop its source simulation.

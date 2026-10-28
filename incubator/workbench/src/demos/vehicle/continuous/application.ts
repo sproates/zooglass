@@ -29,6 +29,16 @@ export async function drivingApplication(
           id: car.id,
           name: car.name,
           roads: car.route.roads,
+          bounds: [
+            [
+              Math.min(...car.route.points.map((p) => p[0])),
+              Math.min(...car.route.points.map((p) => p[1])),
+            ],
+            [
+              Math.max(...car.route.points.map((p) => p[0])),
+              Math.max(...car.route.points.map((p) => p[1])),
+            ],
+          ],
         })),
       ),
     ),

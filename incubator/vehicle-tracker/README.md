@@ -3,6 +3,17 @@
 The [source map](docs/source-map.md) explains the source files, their responsibilities
 and how they depend on each other. Start there when reading the implementation.
 
+## Continuous Gibraltar demonstration
+
+For the six-car map, run `npm run demo:drive -- --bind=<private IPv4>` from
+`incubator/workbench` after preparing the service. Open the printed URL in your
+usual browser. The simulation starts automatically and keeps running when browsers
+leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
+
+![Six continuously reporting cars on the Gibraltar map.](docs/continuous-driving.png)
+
+The remaining sections describe the separate interactive verification fixtures.
+
 A real browser receives two ZooGlass views for one vehicle: its latest position
 and the history received so far. Workbench drives a twenty-position journey through the
 same service and browser connections used by the app.

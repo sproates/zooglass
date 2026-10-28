@@ -163,3 +163,24 @@ The [demo README](../README.md) explains how to run it and interpret its display
 Update this map when module responsibilities, bindings or bootstrap paths change.
 
 The [map guide](fleet-map.md) explains tile configuration and geographic verification.
+
+## Continuous viewer
+
+The six-car demonstration has its own entry point. It does not import the
+Workbench command bridge or require a browser controller.
+
+```mermaid
+flowchart TD
+  html["driving.html"] -->|loads passive viewer| app["driving/app.ts"]
+  html -->|defines map-first layout| css["driving.css"]
+  app -->|renders received coordinates| leaflet["Leaflet"]
+  app -->|loads attributed map imagery| tiles["fleet/map-tiles.ts"]
+  app -->|labels accepted observation age| age["driving/report-age.ts"]
+  app -->|subscribes and resubscribes to snapshots| ws["ZooGlass live-view WebSocket"]
+```
+
+Six position records and six markers are retained. The map initially frames the
+whole route area so cars do not drive out of the default viewport. Report age is
+calculated from the accepted observation timestamp, independently of notices and
+socket activity. The eight-second threshold is a demo policy, not source-health
+inference by ZooGlass. No history subscription is created.

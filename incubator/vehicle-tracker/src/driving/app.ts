@@ -6,6 +6,7 @@ interface Car {
   id: string;
   name: string;
   roads: string[];
+  bounds: [number, number][];
 }
 interface Position {
   sequence: number;
@@ -40,16 +41,11 @@ const selection = document.getElementById("selection")!;
 
 function fit() {
   if (!positions.size) return;
-  map.fitBounds(
-    L.latLngBounds(
-      [...positions.values()].map((p) => L.latLng(p.latitude, p.longitude)),
-    ),
-    {
-      paddingTopLeft: [50, 70],
-      paddingBottomRight: [50, 90],
-      maxZoom: 16,
-    },
-  );
+  map.fitBounds(L.latLngBounds(cars.flatMap((car) => car.bounds)), {
+    paddingTopLeft: [40, 70],
+    paddingBottomRight: [40, 80],
+    maxZoom: 16,
+  });
 }
 document.getElementById("fit")!.addEventListener("click", fit);
 
@@ -190,27 +186,21 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pageshow", () => {
   if (!socket || socket.readyState > WebSocket.OPEN) connect();
 });
-window.addEventListener("pagehide", () => {
-  clearTimeout(retry);
-  socket?.close();
-});
-window.addEventListener("beforeunload", () => {
-  stopped = true;
-  clearTimeout(retry);
-  socket?.close();
-  tiles.close();
-  map.remove();
-});
 const resize = new ResizeObserver(() => map.invalidateSize());
 resize.observe(document.getElementById("map")!);
 connect();
 
 const ageTimer = setInterval(render, 1000);
-window.addEventListener("pagehide", () => {
+window.addEventListener("pagehide", (event) => {
+  clearTimeout(retry);
+  socket?.close();
   connected = false;
   render();
-});
-window.addEventListener("beforeunload", () => {
-  clearInterval(ageTimer);
-  resize.disconnect();
+  if (!event.persisted) {
+    stopped = true;
+    clearInterval(ageTimer);
+    resize.disconnect();
+    tiles.close();
+    map.remove();
+  }
 });

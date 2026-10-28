@@ -14,6 +14,12 @@ for (const engine of [chromium, webkit]) {
         const page = await browser.newPage({
           viewport: { width: 390, height: 744 },
         });
+        await page.addInitScript(`
+        const NativeWebSocket = window.WebSocket;
+        window.WebSocket = class extends NativeWebSocket {
+          constructor(...args) { super(...args); window.testDataSocket = this; }
+        };
+      `);
         const errors: string[] = [];
         page.on("pageerror", (error) => errors.push(error.message));
         await page.goto(simulation.origin);
@@ -44,6 +50,11 @@ for (const engine of [chromium, webkit]) {
           map.y < 100 && map.height > 400,
           "the map occupies the initial phone screen",
         );
+        const credit = (await page.locator("#map-attribution").boundingBox())!;
+        assert.ok(
+          credit.y + credit.height <= 744,
+          "map attribution remains visible on the phone",
+        );
         await page.getByRole("button", { name: "Show all cars" }).click();
         await page.waitForTimeout(300); // Leaflet's fit animation.
         for (const marker of await page.locator(".car").all()) {
@@ -55,6 +66,51 @@ for (const engine of [chromium, webkit]) {
           .getByRole("button", { name: "Inspect Car 2", exact: true })
           .click();
         assert.match(await page.locator("#selection").innerText(), /Car 2/);
+        const beforeOffline = await page
+          .locator('.car[data-entity-id="car-1"]')
+          .getAttribute("data-sequence");
+        await page.context().setOffline(true);
+        await page.evaluate("window.testDataSocket.close()");
+        await page
+          .locator("#connection")
+          .filter({ hasText: /Disconnected/ })
+          .waitFor();
+        assert.equal(await page.locator(".car.stale").count(), 6);
+        await page.context().setOffline(false);
+        await page.waitForFunction(
+          (sequence) =>
+            Number(
+              document
+                .querySelector('.car[data-entity-id="car-1"]')
+                ?.getAttribute("data-sequence"),
+            ) > Number(sequence),
+          beforeOffline,
+        );
+        await page.waitForFunction(
+          () => document.querySelectorAll(".car:not(.stale)").length > 0,
+        );
+
+        await page.evaluate(() =>
+          window.dispatchEvent(
+            new PageTransitionEvent("pagehide", { persisted: true }),
+          ),
+        );
+        await page
+          .locator("#connection")
+          .filter({ hasText: /Disconnected/ })
+          .waitFor();
+        await page.evaluate(() =>
+          window.dispatchEvent(
+            new PageTransitionEvent("pageshow", { persisted: true }),
+          ),
+        );
+        await page
+          .locator("#connection")
+          .filter({ hasText: "Receiving positions" })
+          .waitFor();
+        await page.waitForFunction(
+          () => document.querySelectorAll(".car:not(.stale)").length > 0,
+        );
         await page.close();
         const viewer = await browser.newPage();
         await viewer.goto(simulation.origin);

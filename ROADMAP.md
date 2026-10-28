@@ -205,6 +205,15 @@ that artifact for sessions and Reset. This removes build work from test startup
 rather than relying on retries of concurrent Maven compilation. See the
 [launch boundary and verification](docs/testing.md#prebuilt-service-launch-boundary).
 
+## Continuous Gibraltar demonstration
+
+The programme branch now proposes a focused [six-car continuous demo](incubator/workbench/docs/continuous-driving.md):
+a read-only map, automatic source delivery faults and honest report-age labels.
+The simulation runs independently of viewers. Browser orchestration, interactive
+controls and general freshness infrastructure are not prerequisites for this demo.
+PR #88 targets `feature/vehicle-fleet`; final delivery to main remains pending
+acceptance and merge. Existing interactive fixtures remain separate verification tools.
+
 ## Next demo: fleet experience
 
 The [fleet-demo design](docs/plans/extended-vehicle-demo.md) proposes a fuller

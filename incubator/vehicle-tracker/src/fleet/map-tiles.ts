@@ -48,7 +48,7 @@ export function addMapTiles(map: L.Map, configuration: MapConfiguration) {
     status.dataset.state = state;
     status.textContent =
       state === "unavailable"
-        ? "Map background unavailable. Some tiles failed or took too long; vehicle coordinates, history and controls still work."
+        ? "Map background unavailable. Some tiles failed or took too long; vehicle updates and map navigation remain available."
         : state === "loading"
           ? "Loading map background…"
           : "Map background loaded.";

@@ -12,6 +12,8 @@ leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
 
 ![Six continuously reporting cars on the Gibraltar map.](docs/continuous-driving.png)
 
+[Watch or download the continuous demo recording (MP4)](docs/continuous-driving.mp4).
+
 The remaining sections describe the separate interactive verification fixtures.
 
 A real browser receives two ZooGlass views for one vehicle: its latest position
@@ -36,7 +38,7 @@ positions 40 and 42 so the changes are easy to follow.
 
 ## Fleet selection
 
-On the fleet programme branch, use the existing demo with `--fleet`:
+On the fleet programme branch, select interactive mode:
 
 ```sh
 cd incubator/workbench

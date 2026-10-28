@@ -1,0 +1,16 @@
+{
+  "vehicles": [
+    {
+      "id": "car-17",
+      "name": "Vehicle 17"
+    },
+    {
+      "id": "car-28",
+      "name": "Vehicle 28"
+    },
+    {
+      "id": "car-39",
+      "name": "Vehicle 39"
+    }
+  ]
+}

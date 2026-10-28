@@ -3,14 +3,26 @@ export function startBrowserBridge({
   createClient,
   onStatus = () => {},
   onRunState = () => {},
+  onRunChanged = () => {},
   onControlRejected = () => {},
 }) {
   const registration = new URLSearchParams(location.hash.slice(1));
   history.replaceState(null, "", "/");
-  const runId = registration.get("runId");
-  const clientId = registration.get("clientId");
-  if (!runId || !clientId || !registration.get("token")) {
-    onStatus("unregistered");
+  let runId = registration.get("runId");
+  let clientId = registration.get("clientId");
+  const pair = registration.get("pair");
+  const saved =
+    runId || pair ? null : sessionStorage.getItem("workbench-viewer");
+  let lease;
+  try {
+    lease = saved ? JSON.parse(saved) : undefined;
+  } catch {
+    sessionStorage.removeItem("workbench-viewer");
+  }
+  const external = !!pair || (!runId && !!lease);
+  const status = (state) => onStatus(state, { external });
+  if (!external && (!runId || !clientId || !registration.get("token"))) {
+    status("unregistered");
     return { requestControl() {} };
   }
   const control = new WebSocket(`ws://${location.host}/control`);
@@ -19,28 +31,61 @@ export function startBrowserBridge({
       control.send(JSON.stringify({ ...message, runId, clientId }));
   };
   let client;
-  let busy = false;
-  const completed = new Map();
+  let binding;
   control.addEventListener("open", () => {
     send({
       type: "register",
       protocolVersion: 1,
       token: registration.get("token"),
+      ...(pair ? { pair } : external ? lease : {}),
     });
     registration.delete("token");
   });
   control.addEventListener("message", async (event) => {
     try {
       const message = JSON.parse(event.data);
-      if (message.runId !== runId || message.clientId !== clientId) return;
-      if (message.type === "registered" && !client) {
-        client = createClient(message.dataPath, send, (reason) =>
-          send({ type: "fatal", reason }),
+      if (external && message.type === "registered" && !client) {
+        if (
+          typeof message.lease !== "string" ||
+          typeof message.capability !== "string"
+        )
+          throw new Error("Invalid viewer session.");
+        clientId = message.clientId;
+        sessionStorage.setItem(
+          "workbench-viewer",
+          JSON.stringify({
+            lease: message.lease,
+            capability: message.capability,
+          }),
+        );
+      }
+      if (message.clientId !== clientId) return;
+      if (
+        message.type === "run-changed" ||
+        (message.type === "registered" && !client)
+      ) {
+        if (
+          typeof message.runId !== "string" ||
+          typeof message.dataPath !== "string"
+        )
+          throw new Error("Invalid run binding.");
+        client?.close();
+        runId = message.runId;
+        const next = { runId, busy: false, completed: new Map() };
+        binding = next;
+        // Async work from an old client cannot be relabelled as the new run.
+        const report = (value) => {
+          if (binding === next) send(value);
+        };
+        onRunChanged();
+        client = createClient(message.dataPath, report, (reason) =>
+          report({ type: "fatal", reason }),
         );
         send({ type: "ready" });
-        onStatus("ready");
+        status("ready");
         return;
       }
+      if (message.runId !== runId) return;
       if (message.type === "run-state") {
         onRunState(message.state, client);
         return;
@@ -51,7 +96,7 @@ export function startBrowserBridge({
       }
       if (message.type === "run-failed" && client) {
         client.fail(message.reason);
-        onStatus("failed");
+        status("failed");
         return;
       }
       if (
@@ -63,6 +108,8 @@ export function startBrowserBridge({
         )
       )
         throw new Error("Invalid control command.");
+      const current = binding;
+      const { completed } = current;
       const signature = JSON.stringify([
         message.action,
         message.viewId,
@@ -75,13 +122,14 @@ export function startBrowserBridge({
         send(cached.result);
         return;
       }
-      if (busy || completed.size >= 256)
+      if (current.busy || completed.size >= 256)
         throw new Error(
           "Browser command limit reached or action already running.",
         );
-      busy = true;
+      current.busy = true;
       try {
         const generation = await client.execute(message);
+        if (binding !== current) return;
         const result = {
           type: "completed",
           commandId: message.commandId,
@@ -90,13 +138,14 @@ export function startBrowserBridge({
         completed.set(message.commandId, { signature, result });
         send(result);
       } catch (error) {
+        if (binding !== current) return;
         send({
           type: "failed",
           commandId: message.commandId,
           reason: error.message,
         });
       } finally {
-        busy = false;
+        current.busy = false;
       }
     } catch (error) {
       send({ type: "fatal", reason: error.message });
@@ -105,14 +154,14 @@ export function startBrowserBridge({
   control.addEventListener("close", () => {
     client?.fail("Workbench control connection lost.");
     client?.close();
-    onStatus("closed");
+    status("closed");
   });
   control.addEventListener("error", () => {
-    onStatus("error");
+    status("error");
   });
   return {
-    requestControl(action) {
-      send({ type: "control-request", action });
+    requestControl(action, targetClientId) {
+      send({ type: "control-request", action, targetClientId });
     },
   };
 }

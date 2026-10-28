@@ -6,8 +6,7 @@ import type { DemoState } from "../../control/demo-controller.js";
 /** Describe planned actions, never inferred outcomes or received state. */
 export function vehicleStepDescriptions(scenario: Scenario): string[] {
   const { steps } = planDemoSteps(playScenario(scenario));
-  const sent = new Set<number>();
-  let highest = -Infinity;
+  const domains = new Map<string, { sent: Set<number>; highest: number }>();
 
   return steps.map(({ entries }) => {
     const action = entries[0];
@@ -30,16 +29,24 @@ export function vehicleStepDescriptions(scenario: Scenario): string[] {
     if (typeof sequence !== "number" || !Number.isFinite(sequence))
       return `Send ${action.type} from ${action.sourceName}.`;
 
-    const qualifier = sent.has(sequence)
+    const key = JSON.stringify([action.sourceId, action.type, action.entityId]);
+    const domain = domains.get(key) ?? {
+      sent: new Set<number>(),
+      highest: -Infinity,
+    };
+    domains.set(key, domain);
+    const qualifier = domain.sent.has(sequence)
       ? "duplicate "
-      : sequence < highest
+      : sequence < domain.highest
         ? "late "
         : "";
 
-    sent.add(sequence);
-    highest = Math.max(highest, sequence);
+    domain.sent.add(sequence);
+    domain.highest = Math.max(domain.highest, sequence);
 
-    return `Send ${qualifier}position ${sequence} from ${action.sourceName}.`;
+    const kind =
+      action.type === "vehicle.operation.updated" ? "operation" : "position";
+    return `Send ${qualifier}${kind} ${sequence} from ${action.sourceName} for ${action.entityId}.`;
   });
 }
 

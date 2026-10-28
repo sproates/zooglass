@@ -118,6 +118,11 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
         };
       },
     },
+    "./fleet-observer.js": {
+      observeFleetSession() {
+        throw new Error("Legacy run must not use the fleet observer.");
+      },
+    },
     "./vehicle-observer.js": {
       observeVehicleSession: () => ({
         async execute() {

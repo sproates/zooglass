@@ -60,6 +60,10 @@ flowchart TB
   scenario["scenario/scenario.ts<br/>Load and validate fixtures"]
   playback["scenario/playback.ts<br/>Build and format ordered traces"]
   vehicle["demos/vehicle/vehicle-demo.ts<br/>Interactive demo composition"]
+  demo["demos/vehicle/demo.ts<br/>Interactive CLI"]
+  fleetAssets["demos/vehicle/fleet-assets.ts<br/>Map configuration and fleet assets"]
+  demo -->|chooses interactive tile configuration| fleetAssets
+  browser -->|loads fleet modules and Leaflet assets| fleetAssets
   automatic["demos/vehicle/automatic-demo.ts<br/>Automatic demo playback"]
   index -->|loads fixture| scenario
   index -->|prints ordered entries| playback
@@ -174,6 +178,9 @@ flowchart TB
   run -->|injects fault callback| session
   run -->|wraps execution with page checks| observer
   observer -.->|wraps ScenarioSession contract| session
+  fleetObserver["demos/vehicle/fleet-observer.ts<br/>Check fleet rows and selected history"]
+  run -->|chooses fleet page checks in fleet mode| fleetObserver
+  fleetObserver -.->|wraps ScenarioSession contract| session
 ```
 
 The arrow back to `control/demo-controller.ts` is a real import of `DemoCleanupError`.
@@ -190,41 +197,98 @@ scenario expectation. The shared session dispatches fault entries through an
 injected callback and rejects unsupported scenarios before allocating resources;
 it does not import the vehicle adapter.
 
-The observer is optional demo verification assembled by `vehicle-run.ts`.
+The observers are optional demo verification assembled by `vehicle-run.ts`.
+Fleet mode checks list rows and selected history without changing selection;
+unselected histories are receipt-checked. The fleet browser test separately
+selects each vehicle to check its detail.
 It reads the rendered page independently of the vehicle app's rendering code.
 The shared scenario session and client executors do not depend on it.
 
+## Serve independent external viewers
+
+The `--bind=<IPv4>` path selects external mode explicitly. The terminal owns the
+demo lifetime; the demo composes shared playback with a source/HTTP-only scenario.
+Viewer setup and targeted actions stay in the vehicle adapter. The external host
+knows leases, roles, control connections and per-viewer run bindings, not vehicles.
+
+```mermaid
+flowchart TB
+  cli["src/demos/vehicle/demo.ts<br/>Choose owned or external mode"]
+  terminal["src/demos/vehicle/external-vehicle-terminal.ts<br/>Pairing links, handover and shutdown"]
+  demo["src/demos/vehicle/external-vehicle-demo.ts<br/>Compose external fleet demonstration"]
+  controls["src/demos/vehicle/external-vehicle-controls.ts<br/>Subscribe each viewer and target data faults"]
+  host["src/browser/external-browser-host.ts<br/>Viewer connections, admission and shared run replacement"]
+  leases["src/browser/viewer-leases.ts<br/>Pairing, refresh capabilities and controller authority"]
+  http["src/browser/browser-http-server.ts<br/>Asset allowlist and network boundary"]
+  run["src/browser/browser-run.ts<br/>Per-viewer commands, observations and data route"]
+  controller["src/control/demo-controller.ts<br/>Shared playback and Reset"]
+  session["src/execution/scenario-session.ts<br/>Dispatch sources and check HTTP views"]
+  service["src/service/zooglass-session.ts<br/>Own loopback service"]
+  assets["src/demos/vehicle/vehicle-browser.ts<br/>Supply fleet application assets"]
+  cli -->|selects explicit external mode| terminal
+  terminal -->|creates demo and invokes commands| demo
+  demo -->|supplies application and callbacks| host
+  demo -->|binds viewer subscriptions and faults| controls
+  demo -->|uses source playback lifecycle| controller
+  demo -->|opens source and HTTP checks| session
+  demo -->|starts and closes service per run| service
+  demo -->|loads fleet assets| assets
+  host -->|claims leases and checks controller revisions| leases
+  host -->|serves exact assets and validates upgrades| http
+  host -->|creates one binding per connected viewer| run
+  controls -.->|uses executor and fault API| run
+```
+
+Browser `bridge.js` consumes pairing or session-storage credentials, then keeps
+run-change handling independent of the demo. `vehicle-bootstrap.js` presents the
+controller role and target-viewer selector. External observers remain optional;
+owned-browser mode retains its required scripted client. See the
+[external-viewer guide](external-viewers.md) for the runtime contract and limits.
+
 ## Host the browser and bind the app
 
-[`browser/browser-session.ts`](../src/browser/browser-session.ts) owns Chromium, its context/page
-and the local host. [`browser/browser-host.ts`](../src/browser/browser-host.ts) serves supplied
-assets, accepts the browser control connection and proxies its data connection
-to ZooGlass. It also owns the run/client-scoped data fault gate, which retires
-active and pending routes before permitting restoration. It has no dependency
-on the vehicle app's implementation.
+[`browser/browser-session.ts`](../src/browser/browser-session.ts) composes an owned
+browser and local host for existing verification. The independent lifetimes and
+replacement handshake are described in [Browser host and run lifetimes](browser-lifetime.md).
+The host owns assets and the control connection; each run owns its executor,
+receipts and data fault gate. The launcher owns only Chromium.
 
 ```mermaid
 flowchart TB
   vehicle["src/demos/vehicle/vehicle-browser.ts<br/>Vehicle asset and identity binding"]
-  session["src/browser/browser-session.ts<br/>Own Chromium and local host"]
-  host["src/browser/browser-host.ts<br/>Assets, control channel and data proxy"]
+  session["src/browser/browser-session.ts<br/>Compose owned verification session"]
+  launcher["src/browser/owned-browser.ts<br/>Own Chromium and page"]
+  host["src/browser/browser-host.ts<br/>Stable assets and control connection"]
+  run["src/browser/browser-run.ts<br/>Run identity, readiness and observations"]
+  route["src/browser/browser-data-route.ts<br/>Proxy connections and fault gate"]
   executor["src/browser/browser-client-executor.ts<br/>Send commands and check observations"]
   contract["src/execution/node-client-executor.ts<br/>ClientExecutor and ClientEntry types"]
+  fleetAssets["src/demos/vehicle/fleet-assets.ts<br/>Fleet modules, Leaflet assets and tile configuration"]
+  vehicle -->|loads fleet assets and declares image origin| fleetAssets
   vehicle -->|starts owned browser session| session
   vehicle -->|can start host alone| host
   session -->|starts and closes host| host
-  host -->|creates browser command executor| executor
+  session -->|launches and closes Chromium| launcher
+  http["src/browser/browser-http-server.ts<br/>Exact assets and Host/Origin boundary"]
+  host -->|serves assets and checks network boundary| http
+  host -->|creates and retires run binding| run
+  run -->|owns data proxy and fault gate| route
+  run -->|binds commands and receipts to run identity| executor
   executor -.->|implements shared executor contract| contract
 ```
 
 The host serves browser modules as assets; it does not import them into Node.
+Applications may declare exact HTTPS image origins; scripts and data connections
+remain local. Fleet composition supplies that declaration for the tile provider.
+The demo CLI chooses interactive tile configuration; programmatic sessions default
+to local synthetic tiles.
 The next diagram crosses into the browser source, where the two `.js` modules
 are authored JavaScript and the `.ts` modules compile to served JavaScript.
 
 ```mermaid
 flowchart TB
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and app to bridge"]
-  bridge["workbench/browser/bridge.js<br/>Control protocol and command dispatch"]
+  bridge["workbench/browser/bridge.js<br/>Control protocol and run replacement"]
   client["vehicle-tracker/src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
   subscription["vehicle-tracker/src/subscription-client.ts<br/>Socket, subscriptions and acknowledgements"]
   view["vehicle-tracker/src/view.ts<br/>Render vehicle data and status"]
@@ -236,6 +300,30 @@ flowchart TB
   client -->|creates recovery client with callbacks| recovery
   recovery -->|creates protocol client for each attempt| subscription
   client -->|supplies rendering callbacks| view
+  fleet["vehicle-tracker/src/fleet/client.ts<br/>Bind fleet model and renderer"]
+  model["vehicle-tracker/src/fleet/model.ts<br/>Received view/entity state and local selection"]
+  fleetView["vehicle-tracker/src/fleet/view.ts<br/>Fleet list and selected details"]
+  manifest["vehicle-tracker/fleet-manifest.json<br/>Descriptive vehicle identities"]
+  bootstrap -->|loads fleet factory in fleet mode| fleet
+  bootstrap -.->|fetches manifest for fleet factory| manifest
+  fleet -->|creates model and validates subscriptions| model
+  fleet -->|creates renderer and refreshes on receipts| fleetView
+  fleetMap["vehicle-tracker/src/fleet/map.ts<br/>Received markers and selected geographic route"]
+  leaflet["Leaflet distribution<br/>Locally served map library"]
+  fleet -->|creates map and refreshes on receipts| fleetMap
+  mapControls["vehicle-tracker/src/fleet/map-controls.ts<br/>Fit and follow navigation"]
+  mapTiles["vehicle-tracker/src/fleet/map-tiles.ts<br/>Background status, attribution and retry"]
+  fleetMap -->|creates local camera controls| mapControls
+  mapControls -->|pans and fits| leaflet
+  mapControls -.->|reads received positions and selection| model
+  fleetMap -->|adds background independently of data| mapTiles
+  mapTiles -->|loads tiles and observes availability| leaflet
+  fleetMap -->|draws geographic layers| leaflet
+  fleetMap -.->|reads received coordinates| model
+  fleetMap -.->|selection callback| fleet
+  fleetView -.->|reads model| model
+  fleetView -.->|selection callback| fleet
+  fleet -->|reuses transport recovery| recovery
 ```
 
 The browser bridge knows the supplied client interface. It does not import the
@@ -263,3 +351,29 @@ relationship, rather than reducing them to “imports”.
 
 For the adjacent components, see the [ZooGlass source map](../../zooglass/docs/source-map.md)
 and [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).
+
+## Continuous Gibraltar demonstration
+
+`npm run demo -- vehicle-tracker --continuous` selects this small demo-specific composition through `demos/vehicle/demo.ts`. There is no
+controller, pairing lease, browser command channel or dependence on a viewer's
+presence. The static host exposes assets and the live subscription proxy only.
+
+```mermaid
+flowchart TD
+  cli["demos/vehicle/demo.ts"] -->|selects continuous mode| main["continuous/main.ts"]
+  main -->|starts and shuts down| sim["continuous/simulation.ts"]
+  sim -->|owns prebuilt service| service["service/zooglass-session.ts"]
+  sim -->|serves read-only viewer| http["browser/browser-http-server.ts"]
+  sim -->|forwards live subscriptions| proxy["browser/browser-data-route.ts"]
+  sim -->|loads assets| assets["continuous/application.ts"]
+  assets -->|reuses Leaflet and tile assets| fleet["demos/vehicle/fleet-assets.ts"]
+  sim -->|runs six independent sources| producer["continuous/producer.ts"]
+  sim -->|loads cars| journeys["continuous/journeys.ts"]
+  producer -->|samples distance along roads| journeys
+  journeys -->|reads attributed road geometry| routes["continuous/routes.json"]
+  producer -->|chooses automatic faults| delivery["continuous/delivery.ts"]
+  producer -->|opens and closes real sockets| sockets["execution/sockets.ts"]
+```
+
+[Behaviour and limits](continuous-driving.md). The browser source map describes
+its passive subscriber and map, separately from the scripted bridge.

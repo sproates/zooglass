@@ -37,13 +37,13 @@ test(
         .waitFor();
       await page
         .locator("#activity li")
-        .filter({ hasText: "trip-history: 3 received positions" })
+        .filter({ hasText: "trip-history (car-17): 3 received positions" })
         .waitFor();
 
       const trace = await page.locator("#activity").innerText();
       assert.match(trace, /Source sent: .*position 41/);
       assert.match(trace, /Processing is not confirmed/);
-      assert.match(trace, /View received: live-map: position 42/);
+      assert.match(trace, /View received: live-map \(car-17\): position 42/);
       assert.match(trace, /Connection: opened \(connection 1\)/);
 
       while (demo.state.phase === "ready") await demo.step();
@@ -61,7 +61,7 @@ test(
       );
       assert.match(
         await page.locator("#activity").innerText(),
-        /live-map: position 43 \(connection 2\)/,
+        /live-map \(car-17\): position 43 \(connection 2\)/,
       );
 
       await resetThroughBrowser(demo, () => page.locator("#reset").click());

@@ -9,6 +9,15 @@ has no application authentication or access-control model, and holds view state
 in memory. These are documented limitations, not a basis for exposing it to
 untrusted networks or using it with sensitive data.
 
+The fleet demo also offers an explicit external-viewer mode, bound to one chosen
+private or loopback IPv4 address; other address ranges are rejected before
+listening. Do not expose it through port forwarding or tunnels. Its single-use pairing links, viewer-scoped refresh capability,
+Host/Origin checks and controller role protect demo operations; they do not add
+product authorisation to ZooGlass. This mode is for synthetic data on a trusted
+LAN using HTTP, not public hosting or confidential transport. See the
+[external-viewer guide](incubator/workbench/docs/external-viewers.md) for scope,
+revocation and connection limits.
+
 ## Report a vulnerability privately
 
 Use GitHub's [Report a vulnerability](https://github.com/sproates/zooglass/security/advisories/new)
@@ -32,3 +41,12 @@ The maintainer will assess the report and, where a fix is appropriate, coordinat
 its publication and disclosure through the private advisory. Keep details private
 while that assessment is underway. Ordinary functional defects and requests for
 new security capabilities can follow [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Continuous read-only demonstration
+
+The `--continuous` viewer binds to loopback or an explicit private IPv4 interface.
+It uses ordinary HTTP and has no viewer authentication: anyone on that trusted
+network who knows the URL can observe synthetic positions. It exposes static
+assets and the ZooGlass live-subscription proxy, not event ingestion, view
+administration or playback commands. Do not forward or tunnel this local demo
+onto the internet. Closing a browser does not stop its source simulation.

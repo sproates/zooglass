@@ -3,6 +3,8 @@
  * or automatic playback, and own command-line shutdown.
  * See ../../../docs/source-map.md for the module relationships.
  */
+import { runExternalVehicleDemo } from "./external-vehicle-terminal.js";
+import { interactiveMapConfiguration } from "./fleet-assets.js";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { loadScenario } from "../../scenario/scenario.js";
@@ -14,7 +16,7 @@ const terminalHelp = `Terminal commands (type a command and press Enter):
   play         Continue the scenario from the current checkpoint.
   pause        Stop future steps; let the current checkpoint finish.
   disconnect   Close the viewer's data socket; keep the source running.
-  reconnect    Open the viewer socket and subscribe to both views again.
+  reconnect    Open the viewer socket and restore the scenario subscriptions.
   interrupt    Break the data route and refuse connections until restored.
   restore      Reopen the route; the armed client retries automatically.
   reset        Close the old browser/service and start a fresh session.
@@ -28,21 +30,58 @@ An armed recovery has a 30-second deadline, even while paused; Reset after expir
 Reset remains available here if the browser page closes.`;
 
 async function main() {
-  const args = process.argv.slice(2);
+  let args = process.argv.slice(2);
 
   if (
     (args.length === 1 && args[0] === "--help") ||
-    (args.length === 2 && args[0] === "vehicle-tracker" && args[1] === "--help")
+    (args[0] === "vehicle-tracker" && args.includes("--help"))
   ) {
+    console.log("Fleet demos:");
     console.log(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
+      "  npm run demo -- vehicle-tracker --continuous [--bind=<private IPv4>]",
     );
     console.log(
-      "Interactive mode is the default; --auto has no terminal commands.\n",
+      "  npm run demo -- vehicle-tracker --interactive [--bind=<private IPv4>]",
+    );
+    console.log(
+      "Continuous: six cars driving automatically. Interactive: three-car fixture with Step/Play controls.",
+    );
+    console.log(
+      "Legacy aliases: demo:drive selects continuous; --fleet selects interactive.\n",
+    );
+    console.log(
+      "Other verification variants: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
+    );
+    console.log(
+      "Without a mode, the legacy single-vehicle demo runs; --auto runs its finite fixture automatically.\n",
     );
     console.log(terminalHelp);
+    console.log(
+      "Direct phone mode: add --bind=<private IPv4> to either fleet demo.",
+    );
     return;
   }
+
+  if (args[0] === "vehicle-tracker" && args.includes("--continuous")) {
+    const { runContinuousDemo } = await import("./continuous/main.js");
+    const continuousArgs = args.slice(1);
+    continuousArgs.splice(continuousArgs.indexOf("--continuous"), 1);
+    return runContinuousDemo(continuousArgs);
+  }
+
+  if (args.includes("--interactive")) {
+    if (
+      args.includes("--fleet") ||
+      args.filter((arg) => arg === "--interactive").length !== 1
+    )
+      throw new Error(
+        "Choose --interactive once; --fleet is its legacy alias.",
+      );
+    args = args.map((arg) => (arg === "--interactive" ? "--fleet" : arg));
+  }
+
+  if (args.some((arg) => arg.startsWith("--bind=")))
+    return runExternalVehicleDemo(args);
 
   if (
     args[0] !== "vehicle-tracker" ||
@@ -56,11 +95,12 @@ async function main() {
             "--auto",
             "--recovery",
             "--fault",
+            "--fleet",
           ].includes(arg),
       )
   )
     throw new Error(
-      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault] [--auto]",
+      "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
     );
 
   if (
@@ -73,25 +113,39 @@ async function main() {
       "--recovery and --fault cannot be combined with each other, --basic or --auto.",
     );
 
+  if (
+    args.includes("--fleet") &&
+    ["--basic", "--recovery", "--fault", "--auto"].some((arg) =>
+      args.includes(arg),
+    )
+  )
+    throw new Error(
+      "--fleet cannot be combined with --basic, --recovery, --fault or --auto.",
+    );
+
   if (args.includes("--auto"))
     return runAutomaticDemo(args.filter((arg) => arg !== "--auto"));
 
   const scenario = await loadScenario(
     fileURLToPath(
       new URL(
-        args.includes("--fault")
-          ? "../../../scenarios/browser/vehicle-connection-loss.json"
-          : args.includes("--recovery")
-            ? "../../../scenarios/vehicle-browser-recovery.json"
-            : args.includes("--basic")
-              ? "../../../scenarios/vehicle-browser-basic.json"
-              : "../../../scenarios/vehicle-browser-journey.json",
+        args.includes("--fleet")
+          ? "../../../scenarios/vehicle-fleet-contracts.json"
+          : args.includes("--fault")
+            ? "../../../scenarios/browser/vehicle-connection-loss.json"
+            : args.includes("--recovery")
+              ? "../../../scenarios/vehicle-browser-recovery.json"
+              : args.includes("--basic")
+                ? "../../../scenarios/vehicle-browser-basic.json"
+                : "../../../scenarios/vehicle-browser-journey.json",
         import.meta.url,
       ),
     ),
   );
   const demo = createVehicleDemo(scenario, {
     headless: args.includes("--headless"),
+    fleet: args.includes("--fleet"),
+    map: args.includes("--fleet") ? interactiveMapConfiguration() : undefined,
   });
   let stopped = false;
   let finish!: () => void;

@@ -3,6 +3,19 @@
 The [source map](docs/source-map.md) explains the source files, their responsibilities
 and how they depend on each other. Start there when reading the implementation.
 
+## Continuous Gibraltar demonstration
+
+For the six-car map, run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` from
+`incubator/workbench` after preparing the service. Open the printed URL in your
+usual browser. The simulation starts automatically and keeps running when browsers
+leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
+
+![Six continuously reporting cars on the Gibraltar map.](docs/continuous-driving.png)
+
+[Watch or download the continuous demo recording (MP4)](docs/continuous-driving.mp4).
+
+The remaining sections describe the separate interactive verification fixtures.
+
 A real browser receives two ZooGlass views for one vehicle: its latest position
 and the history received so far. Workbench drives a twenty-position journey through the
 same service and browser connections used by the app.
@@ -22,6 +35,41 @@ https://github.com/user-attachments/assets/0c43837d-2f3d-4ccf-8b22-2e5cfcf958a0
 [Download the demo recording (MP4)](docs/basic-run.mp4).
 The 11-second recording shows the short `--basic` fixture using real ZooGlass snapshots, with longer pauses between
 positions 40 and 42 so the changes are easy to follow.
+
+## Fleet selection
+
+On the fleet programme branch, select interactive mode:
+
+```sh
+cd incubator/workbench
+npm run demo -- vehicle-tracker --interactive
+```
+
+Use the installation and preparation steps below first. The three-vehicle fleet
+list receives live positions and independent operational status. Select a vehicle
+by mouse, touch or keyboard to see its received history and detail. Selection
+changes presentation only; all six subscriptions remain active. Disconnect keeps
+received values visibly labelled, Reconnect restores each subscription, and Reset
+starts an empty run. The [Gibraltar map](docs/fleet-map.md) adds markers for all
+received latest positions and a line for the selected received history. Marker
+and row selection stay in sync. The map uses locally served Leaflet and
+configurable background tiles; automated tests use local synthetic tiles.
+Fit fleet and Follow selected support local navigation; panning releases follow.
+Tile failures show a separate message and Retry map while vehicle data stays usable.
+[Direct phone access](../workbench/docs/external-viewers.md) is available in the
+external fleet mode: `npm run demo -- vehicle-tracker --interactive --bind=<local IPv4 address>`.
+The terminal issues separate pairing links; one viewer controls shared playback.
+
+![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)
+
+![Synthetic fleet around Gibraltar, with OpenStreetMap attribution.](docs/fleet-map.png)
+
+The [manifest](fleet-manifest.json) supplies names and IDs only. Values come from
+ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).
+`--fleet` is an interactive variant and cannot be combined with `--basic`,
+`--recovery`, `--fault` or `--auto`. The existing default journey and short variants
+are retained. Automated tests exercise independent Chromium clients. Native
+iPhone/Safari acceptance remains a separate walkthrough.
 
 ## Follow the run
 

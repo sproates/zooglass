@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 27 October 2026.
+Last reviewed: 28 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. Our current focus is to make its behaviour visible in a real application,
@@ -205,11 +205,52 @@ that artifact for sessions and Reset. This removes build work from test startup
 rather than relying on retries of concurrent Maven compilation. See the
 [launch boundary and verification](docs/testing.md#prebuilt-service-launch-boundary).
 
+## Continuous Gibraltar demonstration
+
+The programme branch now implements a focused [six-car continuous demo](incubator/workbench/docs/continuous-driving.md):
+a read-only map, automatic source delivery faults and honest report-age labels.
+The simulation runs independently of viewers. Browser orchestration, interactive
+controls and general freshness infrastructure are not prerequisites for this demo.
+PR #88 merged into `feature/vehicle-fleet`, with consistent launch commands in
+PR #89. The [fresh-setup walkthrough](docs/verification/2026-10-28-continuous-walkthrough.md)
+records startup, source-outage recovery and map-failure behaviour. Final delivery
+to main remains pending acceptance and merge. Existing interactive fixtures remain separate verification tools.
+
 ## Next demo: fleet experience
 
 The [fleet-demo design](docs/plans/extended-vehicle-demo.md) proposes a fuller
 application: six synthetic vehicles, a geographic map, independent location and
 status contributions, selectable history and direct local-network phone access.
 Delivery starts smaller and expands through usable increments. The design includes
-verification boundaries and an application-work comparison. It is under review;
-implementation and these broader demo capabilities are not yet delivered.
+verification boundaries and an application-work comparison. The design was
+accepted in [PR #78](https://github.com/sproates/zooglass/pull/78); the broader
+browser capabilities are not yet delivered.
+
+## Fleet extension under development
+
+The [accepted fleet design](docs/plans/extended-vehicle-demo.md) is being developed
+on `feature/vehicle-fleet`, with slice PRs reviewed into that branch and a final
+PR to main after acceptance. The [three-vehicle contract scenario](incubator/workbench/docs/fleet-contracts.md)
+merged into the programme branch in [PR #79](https://github.com/sproates/zooglass/pull/79).
+The text-based fleet list, selected detail/history and six independent
+subscriptions merged in [PR #80](https://github.com/sproates/zooglass/pull/80).
+[Fleet acceptance](docs/verification/2026-10-27-fleet-state.md) merged in
+[PR #81](https://github.com/sproates/zooglass/pull/81), including keyboard playback
+and recovery after offline source progress.
+[Gibraltar map integration](incubator/vehicle-tracker/docs/fleet-map.md) merged in
+[PR #82](https://github.com/sproates/zooglass/pull/82): received markers, selected
+history and configurable background tiles. Fit/follow navigation, keyboard/touch
+controls and background-failure handling merged in
+[PR #83](https://github.com/sproates/zooglass/pull/83).
+[Map acceptance](docs/verification/2026-10-27-fleet-map.md) merged in
+[PR #84](https://github.com/sproates/zooglass/pull/84), followed by precise location
+pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
+[Host lifetime separation](incubator/workbench/docs/browser-lifetime.md) merged in [PR #86](https://github.com/sproates/zooglass/pull/86).
+[External viewer sessions](incubator/workbench/docs/external-viewers.md) merged
+in PR #87: explicit local-interface binding, single-use pairing, refresh leases,
+one controller and independent data routes. A focused
+[acceptance record](docs/verification/2026-10-28-external-viewers.md) is now proposed
+for review for the tested desktop Chromium multi-viewer flow over loopback.
+Interactive phone/Safari and cross-device LAN validation remain deferred. The continuous six-car demo above is the current delivery focus.
+The existing single-vehicle variants remain available. Main receives the complete
+programme only after final acceptance.

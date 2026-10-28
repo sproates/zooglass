@@ -40,10 +40,13 @@
     "pretest:core": "node scripts/check-node-version.js",
     "test:core": "tsx --test test/*.test.ts test/scenarios/*.test.ts",
     "pretest:demo-unit": "node scripts/check-node-version.js && npm run build:browser",
-    "test:demo-unit": "tsx --test test/demo-unit/*.test.ts"
+    "test:demo-unit": "tsx --test test/demo-unit/*.test.ts",
+    "predemo:drive": "node scripts/check-node-version.js && npm run build:browser",
+    "demo:drive": "tsx src/demos/vehicle/demo.ts vehicle-tracker --continuous"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/leaflet": "1.9.21",
     "@types/node": "^26.0.0",
     "@types/ws": "8.18.2",
     "c8": "12.0.0",
@@ -56,6 +59,7 @@
     "typescript-eslint": "^8.72.0"
   },
   "dependencies": {
+    "leaflet": "1.9.4",
     "playwright": "1.64.1",
     "ws": "8.22.0"
   }

@@ -1,3 +1,4 @@
+import { fleetAssets, type FleetMapConfiguration } from "./fleet-assets.js";
 import { readFile } from "node:fs/promises";
 import {
   startBrowserHost,
@@ -11,17 +12,23 @@ import {
 export type VehicleBrowserSessionOptions = Omit<
   BrowserSessionOptions,
   "application"
->;
+> & { fleet?: boolean; map?: FleetMapConfiguration };
 
 /** Vehicle assets and identity belong to demo composition, not the transport host. */
-export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
+export async function vehicleBrowserApplication(
+  fleet = false,
+  map?: FleetMapConfiguration,
+): Promise<BrowserApplication> {
   const assets = new Map<string, readonly [string, Buffer]>([
     [
       "/",
       [
         "text/html; charset=utf-8",
         await readFile(
-          new URL("../../../../vehicle-tracker/index.html", import.meta.url),
+          new URL(
+            `../../../../vehicle-tracker/${fleet ? "fleet" : "index"}.html`,
+            import.meta.url,
+          ),
         ),
       ],
     ],
@@ -108,7 +115,16 @@ export async function vehicleBrowserApplication(): Promise<BrowserApplication> {
       ],
     ],
   ] as const);
-  return { clientId: "rider-app", assets };
+  if (fleet)
+    for (const [path, asset] of await fleetAssets(map)) assets.set(path, asset);
+  return {
+    clientId: fleet ? "fleet-viewer" : "rider-app",
+    assets,
+    imageOrigins:
+      fleet && map?.tileUrl.startsWith("https://")
+        ? [new URL(map.tileUrl).origin]
+        : [],
+  };
 }
 
 export async function startVehicleBrowserSession(
@@ -117,7 +133,7 @@ export async function startVehicleBrowserSession(
 ) {
   return startBrowserSession(baseUrl, {
     ...options,
-    application: await vehicleBrowserApplication(),
+    application: await vehicleBrowserApplication(options.fleet, options.map),
   });
 }
 

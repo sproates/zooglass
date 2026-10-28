@@ -19,14 +19,18 @@ function append(category: string, detail: string) {
 }
 
 export function recordSourceSend(message: Record<string, unknown>) {
+  const kind =
+    message.eventType === "vehicle.operation.updated"
+      ? "operation"
+      : "position";
   const position =
     typeof message.sequence === "number"
-      ? `position ${message.sequence}`
+      ? `${kind} ${message.sequence}`
       : "event";
 
   append(
     "Source sent",
-    `${message.sourceName}: ${position} at scenario time ${message.simulationTime} ms. Processing is not confirmed by this send.`,
+    `${message.sourceName}: ${position}${message.entityId ? ` for ${message.entityId}` : ""} at scenario time ${message.simulationTime} ms. Processing is not confirmed by this send.`,
   );
 }
 
@@ -59,7 +63,7 @@ export function recordObservation(message: Record<string, unknown>) {
   if (message.event === "subscribed" || message.event === "unsubscribed") {
     append(
       "Subscription",
-      `${message.viewId}: ${message.event} (${connection}).`,
+      `${message.viewId}${message.entityId ? ` (${message.entityId})` : ""}: ${message.event} (${connection}).`,
     );
     return;
   }
@@ -70,13 +74,16 @@ export function recordObservation(message: Record<string, unknown>) {
   const position = data.position as { sequence?: number } | undefined;
   const history = data.positions;
   const detail =
-    message.viewId === "live-map"
+    message.viewId === "live-map" || message.viewId === "fleet-state"
       ? `position ${position?.sequence ?? "unavailable"}`
       : Array.isArray(history)
         ? `${history.length} received position${history.length === 1 ? "" : "s"}`
         : "snapshot";
 
-  append("View received", `${message.viewId}: ${detail} (${connection}).`);
+  append(
+    "View received",
+    `${message.viewId}${message.entityId ? ` (${message.entityId})` : ""}: ${detail} (${connection}).`,
+  );
 }
 
 export function recordFault(action: string) {
@@ -86,4 +93,11 @@ export function recordFault(action: string) {
       ? "Data route interrupted; upgrades refused."
       : "Data route restored; client recovery remains automatic.",
   );
+}
+
+export function resetActivity() {
+  count = 0;
+  document.getElementById("activity")!.replaceChildren();
+  document.getElementById("activity-count")!.textContent =
+    "No activity in this run.";
 }

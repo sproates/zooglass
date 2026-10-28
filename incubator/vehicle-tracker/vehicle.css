@@ -70,7 +70,7 @@ h2 {
   background: #edf2e8;
   border-radius: 20px;
 }
-svg {
+.route-panel > svg {
   width: 100%;
   height: auto;
   margin-top: 18px;
@@ -90,7 +90,7 @@ svg {
   stroke: white;
   stroke-width: 3;
 }
-svg text {
+.route-panel > svg text {
   fill: #597269;
   font-size: 12px;
 }
@@ -211,4 +211,137 @@ button:focus-visible {
 }
 #next-step {
   font-weight: 600;
+}
+
+.fleet-panel {
+  margin-bottom: 20px;
+}
+#fleet-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+#fleet-list li {
+  border: 1px solid #d7dfd3;
+  border-radius: 10px;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+#fleet-list button {
+  width: 100%;
+  background: white;
+  color: #16664f;
+}
+#fleet-list button[aria-pressed="true"] {
+  background: #16664f;
+  color: white;
+}
+.fleet-position,
+.fleet-operation {
+  font-size: 0.87rem;
+  font-variant-numeric: tabular-nums;
+}
+.fleet-status[data-state="retained"] {
+  font-weight: 650;
+  color: #70411b;
+}
+@media (max-width: 700px) {
+  #fleet-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.map-panel {
+  margin-bottom: 20px;
+  min-width: 0;
+}
+#fleet-map {
+  height: 440px;
+  width: 100%;
+  border-radius: 10px;
+  background: #e6ebe1;
+  isolation: isolate;
+}
+#map-status {
+  overflow-wrap: anywhere;
+}
+.vehicle-map-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 44px;
+  background: white;
+  color: #16664f;
+  border: 2px solid #16664f;
+  border-radius: 8px;
+  font:
+    700 13px system-ui,
+    sans-serif;
+  box-shadow: 0 2px 5px #0003;
+}
+.vehicle-map-marker::after {
+  content: "";
+  position: absolute;
+  top: 44px;
+  left: 16px;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 12px solid #16664f;
+}
+.vehicle-map-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+.vehicle-map-marker.selected .vehicle-map-symbol {
+  background: #16664f;
+  color: white;
+}
+.vehicle-map-marker.retained .vehicle-map-symbol {
+  border-style: dashed;
+}
+.vehicle-map-marker:focus-visible {
+  outline: 3px solid #70411b;
+  outline-offset: 3px;
+}
+#map-attribution {
+  overflow-wrap: anywhere;
+}
+
+.map-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.map-buttons button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+#follow-selected[aria-pressed="true"] {
+  outline: 3px solid #70411b;
+  outline-offset: 2px;
+}
+#map-background-status[data-state="unavailable"] {
+  color: #70411b;
+  font-weight: 650;
+}
+#fleet-map:focus-visible,
+#fleet-map .leaflet-control a:focus-visible {
+  outline: 3px solid #70411b;
+  outline-offset: 2px;
+}
+#fleet-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+
+#viewer-target {
+  font: inherit;
+  min-height: 44px;
+  max-width: 100%;
+  margin: 8px 0;
+  padding: 8px;
 }

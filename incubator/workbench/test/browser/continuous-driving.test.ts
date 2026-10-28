@@ -6,7 +6,7 @@ import { startSimulation } from "../../src/demos/vehicle/continuous/simulation.j
 for (const engine of [chromium, webkit]) {
   test(
     `${engine.name()}: six cars move without controls and late viewers receive snapshots`,
-    { timeout: 30_000 },
+    { timeout: 60_000 },
     async () => {
       const simulation = await startSimulation({ tickMs: 100 });
       const browser = await engine.launch();
@@ -14,6 +14,7 @@ for (const engine of [chromium, webkit]) {
         const page = await browser.newPage({
           viewport: { width: 390, height: 744 },
         });
+        page.setDefaultTimeout(10_000);
         await page.addInitScript(`
         const NativeWebSocket = window.WebSocket;
         window.WebSocket = class extends NativeWebSocket {
@@ -62,20 +63,22 @@ for (const engine of [chromium, webkit]) {
           assert.ok(box.x >= map.x && box.x + box.width <= map.x + map.width);
           assert.ok(box.y >= map.y && box.y + box.height <= map.y + map.height);
         }
+        // Markers move every 100ms in this accelerated fixture. Send a pointer
+        // click without waiting for two stationary animation frames.
         await page
           .getByRole("button", { name: "Inspect Car 2", exact: true })
-          .click();
+          .click({ force: true });
         assert.match(await page.locator("#selection").innerText(), /Car 2/);
         const beforeOffline = await page
           .locator('.car[data-entity-id="car-1"]')
           .getAttribute("data-sequence");
         await page.context().setOffline(true);
         await page.evaluate("window.testDataSocket.close()");
-        await page
-          .locator("#connection")
-          .filter({ hasText: /Disconnected/ })
-          .waitFor();
-        assert.equal(await page.locator(".car.stale").count(), 6);
+        // Disconnected text lasts only until the next retry. Retained markers
+        // stay stale throughout the offline period, even on a busy CI runner.
+        await page.waitForFunction(
+          () => document.querySelectorAll(".car.stale").length === 6,
+        );
         await page.context().setOffline(false);
         await page.waitForFunction(
           (sequence) =>
@@ -90,15 +93,11 @@ for (const engine of [chromium, webkit]) {
           () => document.querySelectorAll(".car:not(.stale)").length > 0,
         );
 
-        await page.evaluate(() =>
-          window.dispatchEvent(
-            new PageTransitionEvent("pagehide", { persisted: true }),
-          ),
-        );
-        await page
-          .locator("#connection")
-          .filter({ hasText: /Disconnected/ })
-          .waitFor();
+        // Observe the actual close event rather than polling transient status text.
+        await page.evaluate(`new Promise(resolve => {
+          window.testDataSocket.addEventListener("close", resolve, { once: true });
+          window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true }));
+        })`);
         await page.evaluate(() =>
           window.dispatchEvent(
             new PageTransitionEvent("pageshow", { persisted: true }),

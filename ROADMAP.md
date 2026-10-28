@@ -5,7 +5,7 @@ Last reviewed: 28 October 2026.
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. The vehicle-demo programme is complete and delivered to `main`, including
 the continuous six-car Gibraltar demo and the separate interactive demo.
-The next product increment has not yet been selected.
+The next planned demonstrations are order tracking followed by live sports.
 
 This page summarises delivered capabilities and outstanding product work. The
 [product explanation](docs/what-is-zooglass.md) describes the broader ambition;
@@ -48,6 +48,19 @@ pressure, network transitions and hardware qualification are outside demo
 acceptance. The continuous viewer has separate verification evidence in its
 walkthrough.
 
+## Next: order tracking, then live sports
+
+The [proposed design](docs/plans/order-and-sports-demos.md) sets out two automatic
+multi-source demonstrations. Order tracking combines order, payment and inventory
+facts; sports combines match and bookmaker publications. Each must show the
+projection, ordering and subscription work ZooGlass removes, alongside the work
+that remains in the application. Browser implementation has not begun.
+
+Deliver order tracking before sports, with bounded source/view, browser and
+acceptance slices. Authorisation remains required but is not the next delivery
+item. The design keeps simulation controls and browser orchestration out of the
+viewer experience.
+
 ## Required: authorisation over time
 
 ZooGlass must enforce permissions on snapshots, live subscriptions and recovery,
@@ -56,8 +69,8 @@ expires. Resource and tenant boundaries must hold throughout those paths.
 Reconnecting must not bypass a permission change.
 
 The [authorisation requirement](docs/requirements/authorisation.md) is published.
-Its enforcement contract, implementation and acceptance remain outstanding, with
-no delivery date or agreed position in the sequence. Design needs to settle
+Its enforcement contract, implementation and acceptance remain outstanding.
+The two planned demos come first; authorisation has no delivery date. Design needs to settle
 identity and policy integration, revocation bounds, queued and in-flight data,
 and behaviour when policy decisions are unavailable.
 

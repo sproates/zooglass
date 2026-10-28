@@ -28,17 +28,17 @@ they do not establish additional service behaviour.
 | Disconnected and failed states | Retained coordinates remain visible and are labelled Last received, with disconnected or connection-failed text. Failure is expressed in words rather than colour alone. |
 | Semantics | The document declares its language, uses native labelled buttons and named sections, exposes connection/run status and control-error roles, and provides textual coordinates and a description alongside the schematic SVG. |
 
-Run from `incubator/workbench`:
+Run from `workbench`:
 
 - `npm run test:browser`: **46 passed**.
 - `npm run typecheck`, `npm run lint` and `npm run format:check`: **passed**.
 
 The new regression checks are in
-[`keyboard-controls.test.ts`](../../incubator/workbench/test/browser/keyboard-controls.test.ts)
+[`keyboard-controls.test.ts`](../../workbench/test/browser/keyboard-controls.test.ts)
 and the extended
-[`usability.test.ts`](../../incubator/workbench/test/browser/usability.test.ts).
+[`usability.test.ts`](../../workbench/test/browser/usability.test.ts).
 State distinctions remain covered by
-[`states.test.ts`](../../incubator/workbench/test/browser/states.test.ts).
+[`states.test.ts`](../../workbench/test/browser/states.test.ts).
 
 ## Acceptance boundary
 

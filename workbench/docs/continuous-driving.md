@@ -10,7 +10,7 @@ positions, with older reports visibly distinguished from recent ones.
 Install Node 26 and JDK 25, with `java` on your PATH. From the repository root:
 
 ```sh
-cd incubator/workbench
+cd workbench
 npm ci
 npm run prepare:service
 npm run demo -- vehicle-tracker --continuous
@@ -135,5 +135,5 @@ The recording runs at normal speed and shows Car 3's report ageing during a sour
 outage, followed by a fresh position after reconnection. The screenshot above is
 retained as a quick preview.
 
-The [fresh-setup walkthrough record](../../../docs/verification/2026-10-28-continuous-walkthrough.md)
+The [fresh-setup walkthrough record](../../docs/verification/2026-10-28-continuous-walkthrough.md)
 describes the checked environment, map-failure recovery and remaining limits.

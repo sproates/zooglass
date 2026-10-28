@@ -1,7 +1,7 @@
 # Vehicle fleet demo
 
 > Scope revision, 28 October 2026: the immediate deliverable is the
-> [continuous six-car Gibraltar demo](../../incubator/workbench/docs/continuous-driving.md).
+> [continuous six-car Gibraltar demo](../../workbench/docs/continuous-driving.md).
 > It runs automatically and presents a read-only map. The interactive controller,
 > pairing and browser-orchestration requirements below describe the earlier design
 > and are not gates for this demonstration. Existing implementations remain useful
@@ -11,15 +11,15 @@
 Status: design accepted in [PR #78](https://github.com/sproates/zooglass/pull/78).
 The existing single-vehicle demo is delivered; this document describes the next
 experience, not capabilities already implemented. The first
-[fleet contract scenario](../../incubator/workbench/docs/fleet-contracts.md)
+[fleet contract scenario](../../workbench/docs/fleet-contracts.md)
 establishes three entities and independent feeds. The programme branch now adds
 a text-based fleet browser with local selection, independent received state and
 manual reconnect/reset. Map integration adds a Gibraltar background, received
 markers and selected history. Fit/follow and map failure handling are merged on
 the programme branch; [map acceptance](../verification/2026-10-27-fleet-map.md)
 merged in PR #84, with location pointers added in PR #85. The
-[host lifetime foundation](../../incubator/workbench/docs/browser-lifetime.md) is
-merged in PR #86. [External viewer sessions](../../incubator/workbench/docs/external-viewers.md)
+[host lifetime foundation](../../workbench/docs/browser-lifetime.md) is
+merged in PR #86. [External viewer sessions](../../workbench/docs/external-viewers.md)
 merged in PR #87. The continuous six-car implementation merged into the programme
 branch in PR #88, followed by consistent launch commands in PR #89. The
 [fresh-setup walkthrough](../verification/2026-10-28-continuous-walkthrough.md)

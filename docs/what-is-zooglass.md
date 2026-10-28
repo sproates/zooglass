@@ -117,7 +117,7 @@ positions were received. It only suggests a missing position if the source
 promises contiguous numbering for that entity. Even then, knowing whether more
 positions will arrive needs further information. We want ZooGlass to make those
 assumptions visible, and to say when it cannot establish completeness. The
-[source progress exploration](../incubator/zooglass/source-progress-signals.md)
+[source progress exploration](../zooglass/source-progress-signals.md)
 discusses possible signals; it doesn't select a policy.
 
 ## Reconciliation has to reach the screen
@@ -209,8 +209,8 @@ The distinction between that foundation and the intended product matters:
 | Permissions | [Authorisation over time](requirements/authorisation.md) is required: scope checks on reads and subscriptions, plus bounded cessation after revocation or expiry. Design and enforcement remain outstanding. |
 | Broader view contracts | General source relationships, correction revisions, freshness/provenance metadata, and completeness signals remain design and implementation work. |
 
-The [prototype guide](../incubator/zooglass/README.md) describes the behaviour
-available to try now, and the [Workbench guide](../incubator/workbench/README.md)
+The [prototype guide](../zooglass/README.md) describes the behaviour
+available to try now, and the [Workbench guide](../workbench/README.md)
 describes the scenario runner. The separate
 [browser orchestration design](plans/browser-orchestration.md) develops one
 concrete way to verify the journey shown in the testing diagram.

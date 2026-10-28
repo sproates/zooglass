@@ -13,7 +13,7 @@ map, not the order in which messages arrive.
 
 ## The app modules
 
-Paths in this diagram are relative to `incubator/vehicle-tracker`.
+Paths in this diagram are relative to `vehicle-tracker`.
 
 ```mermaid
 flowchart TB
@@ -104,8 +104,7 @@ The browser app is composed by Workbench. In external mode the bridge registers
 one viewer lease per browser; the bootstrap shows its role and a target selector.
 The fleet model, selection and data client remain local to that page. The transport
 host enforces controller authority; disabling a button is only presentation.
-Paths below are relative to
-`incubator/`. The `.js` modules are authored JavaScript; `vehicle-client.ts` and
+Paths below are relative to the repository root. The `.js` modules are authored JavaScript; `vehicle-client.ts` and
 its dependencies compile to JavaScript served by the host.
 
 ```mermaid
@@ -149,7 +148,7 @@ control connection carries Workbench commands and observations.
 
 The app code above displays the demo. Scenario scheduling, service/browser
 ownership and independent page checks live in
-[`workbench/src/demos/vehicle/`](../../workbench/src/demos/vehicle/).
+[`workbench/src/demos/vehicle/`](../../workbench/src/demos/vehicle).
 In particular, the [page observer](../../workbench/src/demos/vehicle/vehicle-observer.ts)
 checks the rendered result without importing `view.ts` or reusing its projection
 function. The [fleet observer](../../workbench/src/demos/vehicle/fleet-observer.ts)

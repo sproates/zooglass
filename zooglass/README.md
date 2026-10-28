@@ -168,7 +168,7 @@ Run the tests with:
 
 ## Test coverage
 
-See the [verification map](../../docs/testing.md) for coverage commands, report
+See the [verification map](../docs/testing.md) for coverage commands, report
 boundaries and the remaining behavioural gaps.
 
 

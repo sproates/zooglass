@@ -2,15 +2,15 @@ name: ZooGlass CI
 
 on:
   push:
-    branches: [main, feature/vehicle-fleet]
+    branches: [main]
     paths:
       - ".github/workflows/zooglass.yml"
-      - "incubator/zooglass/**"
+      - "zooglass/**"
   pull_request:
-    branches: [main, feature/vehicle-fleet]
+    branches: [main]
     paths:
       - ".github/workflows/zooglass.yml"
-      - "incubator/zooglass/**"
+      - "zooglass/**"
 
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: incubator/zooglass
+        working-directory: zooglass
     steps:
       - uses: actions/checkout@v7
 
@@ -29,7 +29,7 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: incubator/zooglass/pom.xml
+          cache-dependency-path: zooglass/pom.xml
 
       - run: ./mvnw --batch-mode verify
       - uses: actions/upload-artifact@v6
@@ -37,6 +37,6 @@ jobs:
         with:
           name: zooglass-coverage
           path: |
-            incubator/zooglass/target/site/jacoco/
-            incubator/zooglass/target/resource-observations.json
+            zooglass/target/site/jacoco/
+            zooglass/target/resource-observations.json
           if-no-files-found: warn

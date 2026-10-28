@@ -13,11 +13,11 @@ Verified on macOS on 26 October 2026, with Node 26.0.0, npm, Git and JDK
 into a new temporary directory. Before the first launch it had no ZooGlass
 `target/`, Workbench `dist/` or vehicle-client `dist/` output.
 
-Followed the [vehicle setup guide](../../incubator/vehicle-tracker/README.md#run-it):
+Followed the [vehicle setup guide](../../vehicle-tracker/README.md#run-it):
 
 ```sh
 git clone https://github.com/sproates/zooglass.git
-cd zooglass/incubator/workbench
+cd zooglass/workbench
 npm ci
 npx playwright install chromium
 npm run demo -- vehicle-tracker --headless
@@ -37,7 +37,7 @@ startup to use a prebuilt service remains separate work.
 
 ## Walkthrough results
 
-All commands below ran from `incubator/workbench` in the new checkout. Terminal
+All commands below ran from `workbench` in the new checkout. Terminal
 `step` commands were sent one at a time, waiting for each checkpoint's completion
 before continuing. A temporary driver automated typing and collecting output;
 it did not import application modules, send events or supply expected views.

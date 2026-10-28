@@ -82,8 +82,9 @@ losing that required client still fails the run. Automated external-mode tests
 use two independent Chromium pages with local tiles to check selection isolation,
 targeted recovery, refresh, revocation, controller handover/loss and shared Reset.
 Protocol tests cover host/origin checks, stale authority, readiness bounds and
-Reset during initial viewer setup. Native iPhone/Safari acceptance remains a
-separate walkthrough; these tests do not claim to have completed it.
+Reset during initial viewer setup. The [acceptance record](../../../docs/verification/2026-10-28-external-viewers.md)
+summarises the existing evidence. Manual phone sign-off and physical-device
+qualification are outside this demo's acceptance scope.
 
 ## Boundaries
 

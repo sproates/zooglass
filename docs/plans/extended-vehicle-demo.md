@@ -24,7 +24,9 @@ merged in PR #87. The continuous six-car implementation merged into the programm
 branch in PR #88, followed by consistent launch commands in PR #89. The
 [fresh-setup walkthrough](../verification/2026-10-28-continuous-walkthrough.md)
 records the current experience and its limits. Final delivery to main remains
-pending acceptance; the older interactive acceptance programme is deferred.
+pending final acceptance. The [interactive acceptance record](../verification/2026-10-28-external-viewers.md)
+proposes acceptance of existing viewer features using focused automated evidence.
+Manual phone sign-off and physical-device qualification are outside scope.
 
 ## What someone should be able to do
 

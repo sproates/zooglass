@@ -1,8 +1,9 @@
 # Interactive external-viewer acceptance
 
-The interactive fleet demo is sufficiently checked for demonstrating ZooGlass
-with multiple viewers. This record proposes acceptance of the existing viewer
-features on `feature/vehicle-fleet`; acceptance is pending review and merge.
+This record proposes acceptance of the interactive fleet demo’s tested Chromium
+multi-viewer flow on `feature/vehicle-fleet`. It covers browser pages connecting
+to a loopback host, including a narrow viewport. Acceptance is pending review
+and merge.
 The complete programme still needs its final PR to main.
 
 The audit reviewed the existing test assertions at `e3f3593`. The subsequent
@@ -32,8 +33,14 @@ we do not claim every combination is exercised in one browser run.
 ## Scope of acceptance
 
 These are demonstrations with synthetic data on a trusted private network.
-Browser clients and focused automated checks are sufficient for the stated
-behaviour. Manual phone sign-off, device suspension, memory-pressure testing,
+The paired-viewer tests use desktop Chromium pages, not a physical phone or
+Safari. They establish the behaviours in the table for that tested flow; they
+do not establish access from a separate device over the LAN. Interactive
+phone/Safari and cross-device LAN validation remain deferred and are not included
+in this acceptance. The continuous demo’s successful phone preview does not
+validate this separate pairing/controller flow.
+
+Manual phone sign-off, device suspension, memory-pressure testing,
 Wi-Fi/cellular transitions and hardware performance qualification are outside
 scope. The [continuous-demo walkthrough](2026-10-28-continuous-walkthrough.md)
 records the separate six-car experience and visual evidence.

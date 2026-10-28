@@ -250,6 +250,7 @@ pointers in [PR #85](https://github.com/sproates/zooglass/pull/85).
 in PR #87: explicit local-interface binding, single-use pairing, refresh leases,
 one controller and independent data routes. A focused
 [acceptance record](docs/verification/2026-10-28-external-viewers.md) is now proposed
-for review, based on the existing automated checks. The continuous six-car demo above is the current delivery focus.
+for review for the tested desktop Chromium multi-viewer flow over loopback.
+Interactive phone/Safari and cross-device LAN validation remain deferred. The continuous six-car demo above is the current delivery focus.
 The existing single-vehicle variants remain available. Main receives the complete
 programme only after final acceptance.

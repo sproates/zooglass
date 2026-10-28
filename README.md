@@ -29,10 +29,14 @@ the scope and evidence for final acceptance. Merging
 [PR #75](https://github.com/sproates/zooglass/pull/75) records acceptance and closes
 this bounded demo milestone.
 
-The programme branch adds a [continuous six-car Gibraltar demo](incubator/workbench/docs/continuous-driving.md):
+The [continuous six-car Gibraltar demo](incubator/workbench/docs/continuous-driving.md):
 open a map and watch ZooGlass deliver positions under delayed, lost and duplicate
 reports, source reconnects and reporting silence. It runs automatically without
-playback controls. Final acceptance and merge to main remain pending.
+playback controls. It was delivered in [PR #93](https://github.com/sproates/zooglass/pull/93).
+
+[What ZooGlass handles for your application](docs/developer-value.md) compares the
+implemented service responsibilities with an equally scoped custom service, and
+explains what developers still need to build.
 
 The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
 which capabilities remain longer-term work, with links to the delivery evidence.

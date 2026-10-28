@@ -44,7 +44,7 @@ new security capabilities can follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Continuous read-only demonstration
 
-The `demo:drive` viewer binds to loopback or an explicit private IPv4 interface.
+The `--continuous` viewer binds to loopback or an explicit private IPv4 interface.
 It uses ordinary HTTP and has no viewer authentication: anyone on that trusted
 network who knows the URL can observe synthetic positions. It exposes static
 assets and the ZooGlass live-subscription proxy, not event ingestion, view

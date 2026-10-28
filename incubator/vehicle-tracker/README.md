@@ -5,7 +5,7 @@ and how they depend on each other. Start there when reading the implementation.
 
 ## Continuous Gibraltar demonstration
 
-For the six-car map, run `npm run demo:drive -- --bind=<private IPv4>` from
+For the six-car map, run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` from
 `incubator/workbench` after preparing the service. Open the printed URL in your
 usual browser. The simulation starts automatically and keeps running when browsers
 leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
@@ -40,7 +40,7 @@ On the fleet programme branch, use the existing demo with `--fleet`:
 
 ```sh
 cd incubator/workbench
-npm run demo -- vehicle-tracker --fleet
+npm run demo -- vehicle-tracker --interactive
 ```
 
 Use the installation and preparation steps below first. The three-vehicle fleet
@@ -55,7 +55,7 @@ configurable background tiles; automated tests use local synthetic tiles.
 Fit fleet and Follow selected support local navigation; panning releases follow.
 Tile failures show a separate message and Retry map while vehicle data stays usable.
 [Direct phone access](../workbench/docs/external-viewers.md) is available in the
-external fleet mode: `npm run demo -- vehicle-tracker --fleet --bind=<local IPv4 address>`.
+external fleet mode: `npm run demo -- vehicle-tracker --interactive --bind=<local IPv4 address>`.
 The terminal issues separate pairing links; one viewer controls shared playback.
 
 ![Three vehicles with independent position/status and selected history.](docs/fleet-selection.png)

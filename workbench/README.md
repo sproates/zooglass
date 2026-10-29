@@ -46,7 +46,10 @@ labelled dependencies. It explains the CLI entry points, scenario execution and
 browser demo composition, including which parts are shared and which belong to
 the vehicle demo. Start there when reading `src/`. The source folders group CLI entry points, scenario definitions, execution,
 browser infrastructure, playback controls and service lifecycle. Concrete demo
-composition lives under `src/demos/vehicle/`.
+composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
+The [order source foundation](docs/order-sources.md) provides service-only
+verification of independent order, payment and inventory contributions. Its
+browser experiences and demo commands are subsequent work.
 
 ## Run a scenario
 

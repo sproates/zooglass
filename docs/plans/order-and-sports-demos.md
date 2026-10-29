@@ -1,6 +1,6 @@
 # Order tracking, then live sports
 
-Status: proposed design. Delivery order agreed: order tracking first, then sports.
+Status: accepted design. Delivery order agreed: order tracking first, then sports.
 Neither browser demo described here is implemented yet. The existing small
 [order](../../workbench/scenarios/order-fulfilment-live-order.json) and
 [sports](../../workbench/scenarios/sports-betting-live-market.json) scenarios are

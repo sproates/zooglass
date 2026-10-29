@@ -1,6 +1,6 @@
 # ZooGlass roadmap and progress
 
-Last reviewed: 28 October 2026.
+Last reviewed: 29 October 2026.
 
 ZooGlass is an early prototype for maintaining and delivering event-driven live
 views. The vehicle-demo programme is complete and delivered to `main`, including
@@ -50,7 +50,12 @@ walkthrough.
 
 ## Next: order tracking, then live sports
 
-The [proposed design](docs/plans/order-and-sports-demos.md) sets out two multi-source demonstrations, each with interactive Workbench controls and
+The order service foundation is in review: six synthetic orders, three independent
+source sockets, two views and a repeating fault schedule verified through real
+ZooGlass. The [source guide](workbench/docs/order-sources.md) describes this slice;
+the order browser experiences and launch commands are not implemented yet.
+
+The [accepted design](docs/plans/order-and-sports-demos.md) sets out two multi-source demonstrations, each with interactive Workbench controls and
 a continuous infinite mode. Order tracking combines order, payment and inventory
 facts; sports combines match and bookmaker publications. Each must show the
 projection, ordering and subscription work ZooGlass removes, alongside the work

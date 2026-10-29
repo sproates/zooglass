@@ -29,7 +29,8 @@ src/
 ├── control/         Stepping, playback controls, reset and cancellation
 ├── service/         ZooGlass process lifecycle
 └── demos/
-    └── vehicle/     Compose shared components for the vehicle demo
+    ├── vehicle/     Compose shared components for the vehicle demo
+    └── orders/      Order sources, delivery schedule and service composition
 ```
 
 `scenario/` describes and prepares the work; `execution/` performs it against
@@ -377,3 +378,26 @@ flowchart TD
 
 [Behaviour and limits](continuous-driving.md). The browser source map describes
 its passive subscriber and map, separately from the scripted bridge.
+
+## Order service foundation
+
+The [order source guide](order-sources.md) explains the schedule and verification.
+No order browser or CLI binding is advertised yet. Shared Workbench modules do
+not depend on this concrete demo.
+
+```mermaid
+flowchart TB
+  simulation["demos/orders/simulation.ts"]
+  contracts["demos/orders/contracts.ts"]
+  producer["demos/orders/producer.ts"]
+  timeline["demos/orders/timeline.ts"]
+  service["service/zooglass-session.ts"]
+  sockets["execution/sockets.ts"]
+  simulation -->|installs both view definitions| contracts
+  simulation -->|owns the prebuilt service| service
+  simulation -->|starts and closes sources| producer
+  producer -->|executes one bounded step at a time| timeline
+  producer -->|opens and closes independent source sockets| sockets
+  producer -->|enumerates source identities| contracts
+  timeline -->|builds domain events for six fixed slots| contracts
+```

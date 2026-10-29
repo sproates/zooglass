@@ -35,39 +35,67 @@ reported facts an atomic business transaction. The
 [developer-value comparison](../developer-value.md) is the baseline for these
 claims. We will add evidence from each demo, not estimates of hours saved.
 
-## Experience shared by both demos
+## Two experiences for each domain
 
-Open an ordinary URL and see useful activity immediately. The simulation runs
-without a browser and continues while viewers come and go. No pairing, manual
-stepping, Play/Pause/Reset controls, scenario editor or browser ownership roles.
-Selection and an optional explanation panel are ordinary viewing interactions.
+Orders and sports each provide the same pair of experiences as cars. The two
+modes demonstrate the same source/view contracts and reuse domain event builders,
+view definitions and rendering wherever practical.
+
+| Mode | Purpose | Behaviour |
+| --- | --- | --- |
+| Interactive | Inspect why the view changes at particular checkpoints. | A finite scenario with existing Workbench Step, Play, Pause and Reset controls, expected-state checks and a brief explanation of each checkpoint. |
+| Continuous (infinite) | Watch the application handling imperfect delivery over time. | Automatic repeating activity and faults until Ctrl+C, ordinary viewer URL, no playback controls or pairing. Simulation lifetime is independent of viewers. |
 
 The first screen should show the actual orders or matches, with a single short
-sentence explaining the benefit. Keep technical details below the main display
-or behind a small “How this view is built” disclosure. A compact activity line
-can explain an injected delay or source reconnection, but must identify simulator
-notices as such. Such a notice is not ZooGlass detecting a lost event.
+sentence explaining the benefit. Interactive controls should be compact; the
+continuous page has none. Keep technical details below the main display or behind
+a small “How this view is built” disclosure. Selection is a viewing interaction
+in both modes. Simulator notices must be labelled as such; they are not ZooGlass
+detecting a lost event.
 
-Use synthetic data and existing local HTTP/WebSocket hosting. Support several
-independent viewers and the established optional private-LAN bind argument.
+### Interactive behaviour
+
+Reuse the existing Workbench controller, playback, reset and browser bridge.
+Step advances a meaningful checkpoint and waits for its checks. Play follows the
+finite timeline; Pause stops future scheduled activity using existing semantics.
+The run stops at its final checkpoint, retains the result for inspection and does
+not loop automatically. Reset starts a fresh isolated scenario and service state.
+Help explains the available controls and the next checkpoint in plain language.
+
+Use the existing owned-browser/terminal flow for interactive inspection. Bind the
+new page and domain-specific assertions to it; do not import vehicle composition
+or add pairing, controller handover or session-management features. Reusing the
+controls is part of the demo, not a new browser-orchestration programme.
+Interactive and continuous runs are separately launched and own separate state;
+no live mode-switching is required.
+
+### Continuous behaviour
+
+Open an ordinary URL and see useful activity immediately. Several independent
+viewers can come and go while simulation and faults continue. Reuse the existing
+optional private-LAN bind argument. Closing every browser does not stop the run.
+There is no end-of-scenario stop or manual restart between cycles.
+
+Use synthetic data and existing local HTTP/WebSocket hosting for both modes.
 Phone-width layout is worth checking; manual phone sign-off and physical-device
 qualification are not delivery gates. No external source credentials, paid APIs
-or real orders, payments or betting are involved.
+or real orders, payments or betting are involved. No scenario editor is required.
 
 Proposed launch commands, after the existing setup and service preparation:
 
 ```sh
 cd workbench
-npm run demo -- order-tracker
-npm run demo -- live-sports
+npm run demo -- order-tracker --interactive
+npm run demo -- order-tracker --continuous
+npm run demo -- live-sports --interactive
+npm run demo -- live-sports --continuous
 ```
 
-Both commands default to **infinite mode**, like the continuous car demo: activity
-and fault scenes repeat automatically until Ctrl+C. There is no end-of-scenario
-stop or manual restart between cycles. Each prints an ordinary viewer URL; opening
-or closing a browser does not start or stop the simulation. These are planned commands,
-not commands available today. The existing vehicle commands remain supported.
-The launcher adds explicit cases for the two demos; no plugin system is needed.
+Require exactly one mode flag; missing or conflicting modes print clear usage.
+`--continuous` is infinite mode. Both modes stop cleanly on Ctrl+C; interactive
+also retains the existing Quit command. These are planned commands, not commands
+available today. Existing vehicle commands remain supported. The launcher adds
+explicit cases for the two domains; no plugin system is needed.
 
 ## Order tracking
 
@@ -119,7 +147,7 @@ flowchart TB
   projection -->|order-tracking snapshots| tracking["Tracking view<br/>Order and inventory"]
 ```
 
-### Automatic scenes
+### Scenes for both modes
 
 1. Normal activity establishes separate contributions for several orders.
 2. Payment arrives while inventory is missing. The combined view remains useful
@@ -133,13 +161,14 @@ flowchart TB
    reconnect it and publish its latest full state. No client-side feed assembly
    is involved in catching up the affected fields.
 
-Stagger scenes across orders. A roughly two-minute cycle is a starting pacing
+Interactive checkpoints expose each of these scenes with expected-state checks.
+Continuous mode staggers scenes across orders. A roughly two-minute cycle is a starting pacing
 choice, to be tuned once the experience is visible. Do not add a controls system
 just to tune fixture timing.
 
 ## Live sports
 
-Sports follows order-demo acceptance. It reuses proven composition and viewer
+Sports follows acceptance of both order-demo modes. It reuses proven composition and viewer
 lifecycle behaviour, then shows why different fields can change at different
 rates and why corrections must be interpreted carefully.
 
@@ -182,7 +211,7 @@ flowchart TB
   projection -->|scoreboard snapshots| scoreboard["Score-only view"]
 ```
 
-### Automatic scenes
+### Scenes for both modes
 
 1. Match and market sources update at different rates across three matches.
 2. A goal is reported. The market still references an earlier match sequence:
@@ -203,16 +232,20 @@ The disallowed-goal scene demonstrates replacement by a newer source publication
 It does not implement historical retraction, correction propagation, event-time
 recomputation or a general revision model. Avoid presenting it as those features.
 
-## Infinite mode and bounded verification
+## Infinite mode, interactive runs and bounded verification
 
-Infinite mode is required for both demos and is their default public experience.
-Tests exercise the same producer and delivery logic with an explicit bounded
-number of cycles and accelerated timing; this is a verification option, not a
-second implementation or a requirement for playback controls. Acceptance checks
-that activity and injected faults continue across at least three cycles, including
-with no viewers, and that stopping releases the owned sources and service.
+Both domains require an interactive finite run and a separate continuous infinite
+run. Tests bound the continuous runner by cycle count and accelerate its timing;
+this test facility does not replace the user-facing interactive demo. Share event
+meaning and view definitions across the two runners, with independent test
+expectations rather than two unrelated domain implementations.
 
-Both demos should run continuously with bounded state. Use fixed demonstration
+Acceptance checks that continuous activity and injected faults continue across at
+least three cycles, including with no viewers, and that stopping releases owned
+sources and service. Interactive acceptance covers Step completion, Play/Pause,
+end-of-run state, Reset and a repeat run, plus failure reporting and cleanup.
+
+The continuous modes run with bounded state. Use fixed demonstration
 slots (six order entities and three match entities), latest-value fields and a
 small capped activity display. Do not continually create new entity IDs or use
 unbounded `historyBySequence` to support an endless animation.
@@ -245,6 +278,7 @@ by these demos.
 | ZooGlass field matching, sequence policies, snapshots and subscriptions | Reuse without domain-specific Java branches. New behaviour must be identified as a product gap rather than hidden in a demo. |
 | Order and sports JSON scenarios | Keep their existing coverage; add explicit ordering and failure fixtures for the new contracts. The existing arrival-based fixtures do not already prove sequence rejection. |
 | Workbench service ownership, sockets, HTTP host and data route | Compose real producers and passive viewers with existing cleanup and private-LAN binding. |
+| Interactive vehicle demo | Reuse shared controller/bridge behaviour through explicit domain bindings, keeping vehicle-specific code separate. |
 | Continuous vehicle demo | Use its separation of simulation lifetime and viewers as a reference. Do not import vehicle composition into either new demo. |
 | Existing client connection code | Reuse narrowly where it is domain-independent. Extract a small shared client module only if both demos need the same code; retain direct-import checks and avoid a public SDK project. |
 
@@ -265,17 +299,19 @@ to work. Maintain source maps as concrete modules are added or moved.
 Deliver the complete order example before implementing sports. Each row is a
 reviewable slice with a visible or independently inspectable result. Aim for one
 PR per row; split only when implementation evidence justifies it. Allow roughly
-three implementation PRs for each demo, after this design PR. These are planning
+three to four implementation PRs for each domain, after this design PR.
+Split the browser slice into continuous and interactive delivery if needed; both
+are required before that domain is accepted. These are planning
 estimates, not a promise to combine unrelated changes to meet a count.
 
 | Slice | Deliverable | Completion evidence |
 | --- | --- | --- |
-| Order sources and views | Three independent sources, six bounded slots, two view definitions, automatic schedule and fault cases. | Node clients through real ZooGlass verify partial composition, independent ordering, duplicates, permanent omission, source recovery and cycle boundaries against explicit expectations. |
-| Order browser experience | Readable order dashboard and smaller tracking view, automatic launch, passive multiple viewers and retained/unknown state. | Browser checks confirm displayed service snapshots, selection, late subscription and reconnect; inspect desktop and phone-width presentation. |
-| Order acceptance and developer value | Fresh-start guide, representative screenshot, evidence map and concrete account of application code removed and still needed. | All claims map to evidence; repeat at least three accelerated cycles, verify bounded IDs/queues and cleanup, demonstrate first recovery snapshots with no following events. |
-| Sports sources and views | Two independent providers, three matches, scoreboard and market views, newer-publication score correction and all fault cases. | Independent service checks cover field isolation, market basis, correction followed by old delivery, source recovery and cycle boundaries. |
-| Sports browser experience | Automatic match board, second scoreboard view, honest market mismatch/age labels and passive viewers. | Rendered checks show accepted score/market facts and their limits, including a legitimate score decrease and recovery. Inspect desktop and phone-width presentation. |
-| Sports acceptance and developer value | Fresh-start guide, screenshot, evidence map and comparison with the order example. | Repeat the bounded-cycle and recovery checks; show the same service handling both domains through definitions, with any required core changes explicitly accounted for. |
+| Order sources and views | Three independent sources, six bounded slots, two view definitions, shared event contracts, finite checkpoints, continuous schedule and fault cases. | Node clients through real ZooGlass verify partial composition, independent ordering, duplicates, permanent omission, source recovery and cycle boundaries against explicit expectations. |
+| Order browser experience | Readable order dashboard and smaller tracking view, continuous passive viewers, interactive Workbench controls and retained/unknown state. | Browser checks confirm displayed service snapshots, selection, late subscription and reconnect; verify Step/Play/Pause, final state and Reset/repeat; inspect desktop and phone-width presentation. |
+| Order acceptance and developer value | Fresh-start guide for both modes, representative screenshots, evidence map and concrete account of application code removed and still needed. | All claims map to evidence; repeat at least three accelerated cycles, verify bounded IDs/queues and cleanup, demonstrate first recovery snapshots with no following events. |
+| Sports sources and views | Two independent providers, three matches, scoreboard and market views, newer-publication score correction, finite checkpoints, continuous delivery and all fault cases. | Independent service checks cover field isolation, market basis, correction followed by old delivery, source recovery and cycle boundaries. |
+| Sports browser experience | Automatic match board, second scoreboard view, honest market mismatch/age labels, continuous viewers and interactive Workbench controls. | Rendered checks show accepted score/market facts and their limits, including a legitimate score decrease and recovery. Verify interactive checkpoint completion and Reset/repeat. Inspect desktop and phone-width presentation. |
+| Sports acceptance and developer value | Fresh-start guide for both modes, screenshots, evidence map and comparison with the order example. | Repeat the bounded-cycle and recovery checks; show the same service handling both domains through definitions, with any required core changes explicitly accounted for. |
 
 For each demo, verify the domain contract primarily through independent Node
 clients and real ZooGlass. Use a few browser tests for the binding, rendering and

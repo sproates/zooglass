@@ -50,16 +50,16 @@ walkthrough.
 
 ## Next: order tracking, then live sports
 
-The [proposed design](docs/plans/order-and-sports-demos.md) sets out two automatic
-multi-source demonstrations. Order tracking combines order, payment and inventory
+The [proposed design](docs/plans/order-and-sports-demos.md) sets out two multi-source demonstrations, each with interactive Workbench controls and
+a continuous infinite mode. Order tracking combines order, payment and inventory
 facts; sports combines match and bookmaker publications. Each must show the
 projection, ordering and subscription work ZooGlass removes, alongside the work
 that remains in the application. Browser implementation has not begun.
 
 Deliver order tracking before sports, with bounded source/view, browser and
 acceptance slices. Authorisation remains required but is not the next delivery
-item. The design keeps simulation controls and browser orchestration out of the
-viewer experience.
+item. The continuous modes keep controls out of the viewer experience; interactive
+modes reuse existing Workbench controls without expanding browser orchestration.
 
 ## Required: authorisation over time
 

@@ -230,8 +230,11 @@ for unrelated edits. On Windows, use `mvnw.cmd` in place of `./mvnw`.
 
 For documentation-only changes, check local links and examples, inspect any
 changed diagrams after rendering, and run applicable formatting checks. There
-is no single root-level test command. CI runs the component checks selected by
-the workflow path filters; no reported check is not evidence that tests passed.
+is no single root-level application test command. CI selects checks by change
+impact and reports them through `validation-gate`. Read the selection summary:
+not-applicable and deliberately deferred suites have not passed. The
+[validation guide](docs/ci-validation.md) explains selection, bounded integration
+batches and full checkpoints. No reported check is not evidence of success.
 If a check cannot run, say what remains unverified and why.
 
 ## Inspect coverage and verification gaps

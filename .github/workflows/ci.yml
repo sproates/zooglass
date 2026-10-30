@@ -64,6 +64,8 @@ jobs:
       plan: ${{ needs.select.outputs.plan }}
 
   validation-gate:
+    # Manual selected runs must never satisfy the PR's required gate context.
+    name: ${{ github.event_name == 'workflow_dispatch' && 'manual-validation' || 'validation-gate' }}
     needs: [select, java, workbench]
     if: always()
     runs-on: ubuntu-latest

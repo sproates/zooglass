@@ -100,3 +100,22 @@ test("gate rejects failed, cancelled, skipped and missing selected jobs", () => 
     [],
   );
 });
+
+test("accepted update-strategy namespace keeps core validation on new modules", () => {
+  assert.deepEqual(
+    selected([
+      "zooglass/src/main/java/io/zooglass/strategy/update/LatestBySequence.java",
+    ]),
+    ["java", "core"],
+  );
+  assert.deepEqual(
+    selected([
+      "zooglass/src/main/java/io/zooglass/strategy/unknown/NewStrategy.java",
+    ]),
+    suites,
+  );
+});
+
+test("unclassified text fixtures are not mistaken for documentation", () => {
+  assert.deepEqual(selected(["workbench/test/fixtures/source.txt"]), suites);
+});

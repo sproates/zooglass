@@ -494,10 +494,10 @@ jobs also check concurrent artifact-only launches from a path containing spaces.
 
 New PR revisions share a concurrency group and cancel obsolete runs for that PR.
 Each main-branch push uses its unique run ID, so neither running nor pending
-main runs are superseded by this concurrency policy. The seven verification
-jobs and their test scopes remain unchanged.
-Existing path filters exclude changes confined to root documentation, but changes
-under the three component directories still run the full Workbench workflow.
+main runs are superseded by this concurrency policy. The available behavioural suites remain intact, but the
+[impact selector](ci-validation.md) now chooses which are required. Documentation
+inside components no longer launches the full Workbench matrix. Main pushes keep
+fast selected checks; slow suites run on relevant PRs and full checkpoints.
 
 Compare job setup time and test time separately when changing CI. Do not remove
 behavioural checks to improve a timing number. The PR #57 reference run took

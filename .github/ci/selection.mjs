@@ -26,7 +26,7 @@ const protocolJava = new Set([
 
 export function isDocumentation(path) {
   return (
-    /\.(md|txt)$/.test(path) ||
+    /\.md$/.test(path) ||
     /^(docs\/|(?:zooglass|workbench|demos\/[^/]+)\/docs\/).*\.(svg|png|jpg|jpeg|gif|webp|mp4)$/.test(
       path,
     ) ||
@@ -49,6 +49,13 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     if (isDocumentation(path)) continue;
     if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
       add(["java"], path);
+    } else if (
+      /^zooglass\/src\/main\/java\/io\/zooglass\/strategy\/update\/[^/]+\.java$/.test(
+        path,
+      )
+    ) {
+      // The accepted first strategy slice is pure field-update policy.
+      add(["java", "core"], path);
     } else if (
       /^zooglass\/src\/main\/java\/io\/zooglass\/[^/]+\.java$/.test(path)
     ) {

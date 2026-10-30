@@ -16,7 +16,7 @@ test("fleet manifest is descriptive and every vehicle receives both views", asyn
   const manifest = JSON.parse(
     await readFile(
       new URL(
-        "../../../vehicle-tracker/pages/interactive/fleet-manifest.json",
+        "../../../demos/vehicle-tracker/pages/interactive/fleet-manifest.json",
         import.meta.url,
       ),
       "utf8",

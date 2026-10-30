@@ -3,7 +3,7 @@
 This is the first executable part of the [extended vehicle demo](../../docs/plans/extended-vehicle-demo.md).
 It establishes the data contracts through the existing Workbench scenario runner.
 The browser can now run this fixture with `npm run demo -- vehicle-tracker --fleet`,
-showing all three vehicles, selected detail and the [Gibraltar map](../../vehicle-tracker/docs/fleet-map.md).
+showing all three vehicles, selected detail and the [Gibraltar map](../../demos/vehicle-tracker/docs/fleet-map.md).
 Direct phone access is a later increment. Existing single-vehicle variants are retained.
 
 ## Run the contract scenario
@@ -25,7 +25,7 @@ they never populate application state.
 
 ## Entities, sources and views
 
-The [fleet manifest](../../vehicle-tracker/pages/interactive/fleet-manifest.json) lists three known
+The [fleet manifest](../../demos/vehicle-tracker/pages/interactive/fleet-manifest.json) lists three known
 vehicle IDs and display names. It contains no coordinates, operational values or
 history. Both sources use these same canonical IDs; this is fixture preparation,
 not an entity discovery or join service. Coordinates are synthetic samples in

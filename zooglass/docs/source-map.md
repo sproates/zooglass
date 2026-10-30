@@ -122,7 +122,7 @@ prototype; it does not imply persistent storage, replay or authorisation feature
 Tests are described in the [verification map](../../docs/testing.md). For the
 clients and orchestration around the service, see the
 [Workbench source map](../../workbench/docs/source-map.md) and
-[vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).
+[vehicle-tracker source map](../../demos/vehicle-tracker/docs/source-map.md).
 
 Update the relevant diagram when class responsibilities or dependencies change.
 Keep framework wiring distinct from direct code dependencies.

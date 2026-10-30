@@ -463,7 +463,7 @@ the controlled cases are not substitutes for those integration checks.
 Verified on 25 October 2026 in a fresh checkout before any vehicle build:
 `npm ci`, then `PLAYWRIGHT_BROWSERS_PATH=<fresh-absolute-directory> npm run test:core`.
 All 95 core tests passed. The temporary browser directory was empty before and
-after the run, and `vehicle-tracker/dist` did not exist before or after.
+after the run, and `demos/vehicle-tracker/dist` did not exist before or after.
 No browser executable path or branded channel bypass occurs in the core execution
 path. The Playwright npm package can remain installed as a development dependency;
 the core command neither installs nor launches its engines.

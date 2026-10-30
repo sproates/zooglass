@@ -6,14 +6,14 @@ on:
     paths:
       - ".github/workflows/workbench.yml"
       - "workbench/**"
-      - "vehicle-tracker/**"
+      - "demos/vehicle-tracker/**"
       - "zooglass/**"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/workbench.yml"
       - "workbench/**"
-      - "vehicle-tracker/**"
+      - "demos/vehicle-tracker/**"
       - "zooglass/**"
 
 # PR revisions share a group; each main push gets its own independent group.
@@ -54,11 +54,11 @@ jobs:
       - name: Verify core checks without a vehicle build or browser binaries
         shell: bash
         run: |
-          test ! -d ../vehicle-tracker/dist
+          test ! -d ../demos/vehicle-tracker/dist
           core_browser_cache="$(mktemp -d)"
           test -z "$(ls -A "$core_browser_cache")"
           PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npx c8 --reports-dir=coverage/standard npm run test:core
-          test ! -d ../vehicle-tracker/dist
+          test ! -d ../demos/vehicle-tracker/dist
           test -z "$(ls -A "$core_browser_cache")"
       - name: Add demo-unit coverage without repeating core tests
         run: npx c8 --clean=false --reports-dir=coverage/standard npm run test:demo-unit

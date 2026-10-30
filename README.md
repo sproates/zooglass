@@ -19,7 +19,7 @@ Workbench environment used to build and test it. The maintained
 vehicle-demo stack and how Workbench controls and observes it.
 
 ZooGlass is an early prototype with a working in-memory service and scenario
-runner. A [basic browser demo](vehicle-tracker/README.md) now shows
+runner. A [basic browser demo](demos/vehicle-tracker/README.md) now shows
 vehicle position and received history from real live views. Interactive controls,
 late delivery, duplicate handling and bounded connection recovery are implemented.
 The demo recovers current snapshots; it does not replay missed messages or
@@ -44,7 +44,8 @@ The main components live at the repository root:
 
 - `zooglass/`: the live-view service.
 - `workbench/`: scenario execution and verification.
-- `vehicle-tracker/`: the browser demos.
+- `demos/`: demo applications, including `demos/vehicle-tracker/`.
+- `docs/`: project explanations, designs and verification records.
 
 The service uses Java 25 and Spring Boot.
 

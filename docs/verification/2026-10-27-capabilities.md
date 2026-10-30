@@ -21,8 +21,8 @@ and duplicate handling explicit in the viewer guide.
 
 The source review covered
 [`FieldUpdates.java`](../../zooglass/src/main/java/io/zooglass/FieldUpdates.java),
-[vehicle rendering](../../vehicle-tracker/src/view.ts), the
-[page labels](../../vehicle-tracker/pages/basic/index.html), and the documented
+[vehicle rendering](../../demos/vehicle-tracker/src/view.ts), the
+[page labels](../../demos/vehicle-tracker/pages/basic/index.html), and the documented
 [recovery evidence](2026-10-26-recovery.md). The current behaviour is distinct
 from the product intentions in [what we're trying to build](../what-is-zooglass.md)
 and the required but unimplemented [authorisation contract](../requirements/authorisation.md).

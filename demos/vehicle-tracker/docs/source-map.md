@@ -109,35 +109,35 @@ its dependencies compile to JavaScript served by the host.
 
 ```mermaid
 flowchart TB
-  html["vehicle-tracker/pages/basic/index.html or pages/interactive/index.html<br/>Page structure and app script"]
-  css["vehicle-tracker/pages/shared/styles.css<br/>Page styling"]
+  html["demos/vehicle-tracker/pages/basic/index.html or pages/interactive/index.html<br/>Page structure and app script"]
+  css["demos/vehicle-tracker/pages/shared/styles.css<br/>Page styling"]
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and client factory"]
   bridge["workbench/browser/bridge.js<br/>Control protocol and command dispatch"]
-  client["vehicle-tracker/src/vehicle-client.ts<br/>Vehicle app composition"]
+  client["demos/vehicle-tracker/src/vehicle-client.ts<br/>Vehicle app composition"]
   html -.->|loads stylesheet| css
   html -.->|loads module script| bootstrap
-  activity["vehicle-tracker/src/activity.ts<br/>Bounded activity rendering"]
+  activity["demos/vehicle-tracker/src/activity.ts<br/>Bounded activity rendering"]
   bootstrap -->|forwards observations and source-send notices| activity
   bootstrap -->|starts bridge with supplied client factory| bridge
   bootstrap -->|creates single-vehicle client| client
-  fleet["vehicle-tracker/src/fleet/client.ts<br/>Fleet app composition"]
-  manifest["vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive IDs and names"]
+  fleet["demos/vehicle-tracker/src/fleet/client.ts<br/>Fleet app composition"]
+  manifest["demos/vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive IDs and names"]
   bootstrap -->|dynamically imports fleet factory in fleet mode| fleet
   bootstrap -.->|fetches descriptive manifest in fleet mode| manifest
 ```
 
 [`index.html`](../pages/basic/index.html) supplies the DOM and loads `/vehicle-bootstrap.js`.
-The [bootstrap](../../workbench/browser/vehicle-bootstrap.js) wires page buttons
-and run status to the [bridge](../../workbench/browser/bridge.js), and passes it
+The [bootstrap](../../../workbench/browser/vehicle-bootstrap.js) wires page buttons
+and run status to the [bridge](../../../workbench/browser/bridge.js), and passes it
 a vehicle-client factory. In fleet mode it loads the fleet module and manifest
 and map configuration before starting the same bridge. The bridge dispatches commands to that supplied client
 and reports observations over Workbench's control connection; it does not import
 the vehicle implementation itself.
 
 On the Node side,
-[`vehicle-browser.ts`](../../workbench/src/demos/vehicle/vehicle-browser.ts)
+[`vehicle-browser.ts`](../../../workbench/src/demos/vehicle/vehicle-browser.ts)
 selects the page, scripts and stylesheet and supplies them to the shared browser
-host. Its [fleet-assets.ts](../../workbench/src/demos/vehicle/fleet-assets.ts)
+host. Its [fleet-assets.ts](../../../workbench/src/demos/vehicle/fleet-assets.ts)
 dependency loads fleet modules, map configuration, local test tiles and the
 installed Leaflet distribution. The host admits only the configured image origin;
 map rendering stays in the demo app. This asset binding is separate from imports executed inside the browser.
@@ -148,16 +148,16 @@ control connection carries Workbench commands and observations.
 
 The app code above displays the demo. Scenario scheduling, service/browser
 ownership and independent page checks live in
-[`workbench/src/demos/vehicle/`](../../workbench/src/demos/vehicle).
-In particular, the [page observer](../../workbench/src/demos/vehicle/vehicle-observer.ts)
+[`workbench/src/demos/vehicle/`](../../../workbench/src/demos/vehicle).
+In particular, the [page observer](../../../workbench/src/demos/vehicle/vehicle-observer.ts)
 checks the rendered result without importing `view.ts` or reusing its projection
-function. The [fleet observer](../../workbench/src/demos/vehicle/fleet-observer.ts)
+function. The [fleet observer](../../../workbench/src/demos/vehicle/fleet-observer.ts)
 checks fleet rows and the currently selected history without changing selection.
 Unselected histories receive protocol checks; the fleet browser test selects
 each vehicle independently to verify the resulting detail. Expected results stay outside the app.
 
-For the surrounding modules, see the [Workbench source map](../../workbench/docs/source-map.md).
-For the service that produces the views, see the [ZooGlass source map](../../zooglass/docs/source-map.md).
+For the surrounding modules, see the [Workbench source map](../../../workbench/docs/source-map.md).
+For the service that produces the views, see the [ZooGlass source map](../../../zooglass/docs/source-map.md).
 The [demo README](../README.md) explains how to run it and interpret its display.
 Update this map when module responsibilities, bindings or bootstrap paths change.
 

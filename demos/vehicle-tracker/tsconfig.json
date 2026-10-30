@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "paths": {
       "/vendor/leaflet/leaflet-src.esm.js": [
-        "../workbench/node_modules/@types/leaflet"
+        "../../workbench/node_modules/@types/leaflet"
       ]
     }
   },

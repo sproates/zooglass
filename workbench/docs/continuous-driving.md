@@ -128,9 +128,9 @@ The full-route default camera keeps future positions within the map; the user ca
 pan, zoom or choose Show all cars. The real-map screenshot was inspected at phone
 width. Tile-provider availability remains separate from live position delivery.
 
-![Continuous Gibraltar viewer at phone width](../../vehicle-tracker/docs/continuous-driving.png)
+![Continuous Gibraltar viewer at phone width](../../demos/vehicle-tracker/docs/continuous-driving.png)
 
-[Watch or download the continuous demo recording (MP4)](../../vehicle-tracker/docs/continuous-driving.mp4).
+[Watch or download the continuous demo recording (MP4)](../../demos/vehicle-tracker/docs/continuous-driving.mp4).
 The recording runs at normal speed and shows Car 3's report ageing during a source
 outage, followed by a fresh position after reconnection. The screenshot above is
 retained as a quick preview.

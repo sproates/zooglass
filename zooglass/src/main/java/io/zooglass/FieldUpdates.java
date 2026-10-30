@@ -1,7 +1,5 @@
 package io.zooglass;
 
-// Temporary CI selection acceptance probe.
-
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.JsonNodeFactory;

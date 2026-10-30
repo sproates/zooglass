@@ -4,6 +4,20 @@ These diagrams are maintained project documentation. The vehicle demo makes the
 implementation concrete, but its delivery plan is not needed to find or understand
 the diagrams.
 
+## README overview
+
+![ZooGlass, demo applications and Workbench](zooglass-overview.svg)
+
+The [README](../../README.md) uses this compact overview to show the roles at a
+glance: demo applications consume ZooGlass views, simulated sources publish real
+events, and Workbench coordinates scenarios and checks outcomes. Solid green
+arrows show the application data path; dashed blue arrows show scenario control
+and verification. UI checks belong to individual demos.
+
+This overview omits the transport proxy and browser-control details shown below.
+Keep its roles and labels aligned with the detailed diagram. Edit the SVG directly
+and render it when changing layout or text.
+
 ## Building and testing ZooGlass
 
 ![Implemented vehicle-demo stack with Workbench alongside and horizontal control and observation connections.](zooglass-workbench.svg)

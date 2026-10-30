@@ -40,4 +40,3 @@ validation remain deferred and unscheduled. Physical-device suspension, memory
 pressure, network transitions and hardware qualification are outside demo
 acceptance. The continuous viewer has separate verification evidence in its
 walkthrough.
-

@@ -1,110 +1,85 @@
-# ZooGlass roadmap and progress
+# ZooGlass roadmap
 
 Last reviewed: 30 October 2026.
 
-ZooGlass is an early prototype for maintaining and delivering event-driven live
-views. The vehicle-demo programme is complete and delivered to `main`, including
-the continuous six-car Gibraltar demo and the separate interactive demo.
-The next planned demonstrations are order tracking followed by live sports.
+We are building configurable ways to maintain useful live views when events
+arrive late, go missing, conflict or are corrected, and when services or clients
+reconnect. The next phase turns those behaviours into explicit strategy modules
+and demonstrates the application work they remove.
 
-This page summarises delivered capabilities and outstanding product work. The
-[product explanation](docs/what-is-zooglass.md) describes the broader ambition;
-the [developer-value comparison](docs/developer-value.md) explains which
-application responsibilities the current prototype handles and which remain
-with the application.
+## Next: configurable strategy modules
 
-## Delivered
+Start by extracting the existing arrival-replacement, latest-by-sequence and
+history-by-sequence policies into named modules. View configuration will select
+the implementation used at runtime, preserving existing behaviour.
 
-| Area | Available now | Evidence |
-| --- | --- | --- |
-| Live-view service | In-memory, entity-scoped views combine matching source contributions. Field policies support arrival replacement, latest by sequence and received history by sequence. HTTP reads and WebSocket subscriptions deliver full snapshots. | [Prototype guide](zooglass/README.md) |
-| Continuous Gibraltar demo | Six cars move automatically on a real map while source delivery introduces delayed, permanently lost and duplicate events, disconnects and reporting silence. The viewer shows latest-known positions and report-age labels. | [Run the demo](workbench/docs/continuous-driving.md), [walkthrough](docs/verification/2026-10-28-continuous-walkthrough.md), [PR #93](https://github.com/sproates/zooglass/pull/93) |
-| Interactive vehicle demo | A separate three-car scenario provides Step/Play controls, selection, received history, independent position/status contributions and connection-fault exploration. External viewers have independent selection and a shared controller. | [Vehicle guide](vehicle-tracker/README.md), [external-viewer guide](workbench/docs/external-viewers.md), [acceptance record](docs/verification/2026-10-28-external-viewers.md) |
-| Workbench Scenario Simulator | Repeatable scenarios drive real sources, ZooGlass and clients, with independent expectations, fault injection and owned process cleanup. Shared verification is separated from demo presentation. | [Workbench guide](workbench/README.md), [testing guide](docs/testing.md) |
-| Verification and readability | Ordering, recovery, concurrent clients, invalid traffic and resource lifecycle checks are in place. Production and test responsibilities were separated, with maintained source maps. Tests launch an explicitly prepared application JAR rather than building during session startup. | [Verification review](docs/verification/2026-10-25.md), [refactor acceptance](docs/verification/2026-10-26-refactor.md), [launch contract](docs/testing.md#prebuilt-service-launch-boundary) |
-| Developer-value comparison | A documented comparison with an equally scoped custom service identifies the responsibilities ZooGlass removes, concrete application changes and remaining costs. | [Comparison](docs/developer-value.md), [PR #94](https://github.com/sproates/zooglass/pull/94) |
+The [accepted strategy design](docs/design/strategy-modules.md) sets out the
+module responsibilities. The [behaviour contracts](docs/design/behaviour-contracts.md)
+and [delivery plan](docs/design/strategy-delivery.md) describe the subsequent work.
 
-The original bounded vehicle demo was accepted in
-[PR #75](https://github.com/sproates/zooglass/pull/75). The subsequent fleet and
-continuous-demo programme was delivered in
-[PR #93](https://github.com/sproates/zooglass/pull/93). Their design documents and
-verification records retain the detailed delivery history.
+## Build out the capabilities
 
-## What the evidence establishes
+The delivery sequence brings persistence forward so later strategies build on
+clear state ownership and recovery rules:
 
-The continuous demo demonstrates the configured sequence policy: a delayed older
-position does not replace a newer one. Received history is not proof of complete
-history. A permanently lost report remains missing, and report age does not prove
-that a source is current.
+1. **Identity and durable state:** explicit source identity, transactional updates
+   and recovery after a ZooGlass restart, using a single-instance SQLite store.
+2. **Relationships and conflicts:** map contributions to the same entity and
+   configure how independent sources are combined or prioritised.
+3. **Progress and freshness:** expose known gaps, reporting age and partial inputs,
+   with explicit choices for late events and publication.
+4. **Corrections:** revise or retract retained facts and update bounded derived
+   values when those facts change.
+5. **Client recovery and queues:** define fresh-snapshot recovery and bounded
+   delivery policies for slow or disconnected consumers.
 
-Reconnecting clients can obtain current snapshots. The service does not replay
-every missed message, persist state across restarts or provide a production
-retention policy. These remain product gaps.
+Each capability includes its configuration, runtime strategy, behavioural tests
+and documentation. The delivery plan breaks these areas into focused PRs.
 
-Interactive external-viewer acceptance covers the recorded desktop Chromium
-multi-viewer flow over loopback. Interactive phone/Safari and cross-device LAN
-validation remain deferred and unscheduled. Physical-device suspension, memory
-pressure, network transitions and hardware qualification are outside demo
-acceptance. The continuous viewer has separate verification evidence in its
-walkthrough.
+## Demonstrate the value: orders, then sports
 
-## Next: strategy contracts and multi-source demonstrations
+The next demonstrations make the capabilities visible in familiar multi-source
+applications:
 
-The order service foundation is delivered in [PR #99](https://github.com/sproates/zooglass/pull/99):
-six synthetic orders, three independent source sockets, two views and a repeating
-fault schedule verified through real ZooGlass. The [source guide](workbench/docs/order-sources.md)
-describes this slice. Order browser experiences and launch commands follow later.
+- **Order tracking:** combine order, payment and inventory facts into useful
+  views despite missing inputs and independently progressing sources.
+- **Live sports:** combine match and bookmaker publications, including corrections
+  and different update rates.
 
-The [strategy-module design](docs/design/strategy-modules.md) is now in review.
-It sets out concrete configurable modules, source contracts, transactional state
-ownership and a capability-led sequence for the demos. Further browser expansion
-waits for that design review; the interactive and continuous demo requirements
-remain in place.
+Each will have an interactive scenario and a continuously running mode. Together
+they should show what ZooGlass makes easier and which domain rules still belong
+in the application. The order-source foundation is already available; the browser
+experiences follow the service capabilities they demonstrate.
 
-The [accepted design](docs/plans/order-and-sports-demos.md) sets out two multi-source demonstrations, each with interactive Workbench controls and
-a continuous infinite mode. Order tracking combines order, payment and inventory
-facts; sports combines match and bookmaker publications. Each must show the
-projection, ordering and subscription work ZooGlass removes, alongside the work
-that remains in the application. Browser implementation has not begun.
+See the [demo design](docs/plans/order-and-sports-demos.md) and
+[capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage).
 
-Deliver order tracking before sports, with bounded source/view, browser and
-acceptance slices. Authorisation remains required but is not the next delivery
-item. The continuous modes keep controls out of the viewer experience; interactive
-modes reuse existing Workbench controls without expanding browser orchestration.
+## Authorisation over time
 
-## Required: authorisation over time
+After the planned demonstrations, implement permissions across snapshots, live
+subscriptions and recovery. Revocation and expiry must stop active delivery
+within a defined bound, and reconnecting must not bypass a permission change.
 
-ZooGlass must enforce permissions on snapshots, live subscriptions and recovery,
-and stop active delivery within a specified bound when access is revoked or
-expires. Resource and tenant boundaries must hold throughout those paths.
-Reconnecting must not bypass a permission change.
+The [authorisation requirement](docs/requirements/authorisation.md) covers resource
+and tenant boundaries. Its design will settle identity and policy integration,
+revocation bounds, queued data and unavailable policy decisions.
 
-The [authorisation requirement](docs/requirements/authorisation.md) is published.
-Its enforcement contract, implementation and acceptance remain outstanding.
-The two planned demos come first; authorisation has no delivery date. Design needs to settle
-identity and policy integration, revocation bounds, queued and in-flight data,
-and behaviour when policy decisions are unavailable.
+## Further direction
 
-## Further product work
+Independent source integrations will exercise ZooGlass with systems operated
+outside the simulated environment. Broader replay, query and distributed-storage
+capabilities can be considered separately as concrete needs emerge; they are not
+part of the current delivery sequence.
 
-These areas need concrete contracts and evidence before they can become supported
-capabilities. They are not a committed delivery sequence.
+## Background and progress
 
-- **Freshness, provenance and source progress:** define what clients can infer
-  about source activity and completeness. The
-  [source-progress exploration](zooglass/source-progress-signals.md)
-  records options without selecting a policy.
-- **Durability, retention and recovery:** define persistence, bounded history and
-  recovery after restart, including when replay is needed rather than a snapshot.
-- **Source relationships, event identity and correction revisions:** define how
-  independent sequence domains and corrections should affect projected state.
-- **Independent source integrations:** establish behaviour with sources operated
-  outside the simulated environment.
+The prototype already provides entity-scoped live views, configurable field
+ordering, HTTP snapshots and WebSocket subscriptions, with Workbench scenarios
+for verification. The [delivery retrospective](docs/retrospectives/2026-10-30-prototype-delivery.md)
+contains the detailed history and evidence.
 
-## Follow the work
-
-[Pull requests](https://github.com/sproates/zooglass/pulls) show proposed changes;
-[merged pull requests](https://github.com/sproates/zooglass/pulls?q=is%3Apr+is%3Amerged)
-provide the delivery record. [CI runs](https://github.com/sproates/zooglass/actions)
-show automated check results. The [architecture guide](docs/diagrams/README.md)
-and component source maps explain the implemented structure.
+The [product explanation](docs/what-is-zooglass.md) describes the ambition, and the
+[developer-value comparison](docs/developer-value.md) examines the work the
+prototype removes. Follow [open PRs](https://github.com/sproates/zooglass/pulls)
+and [merged changes](https://github.com/sproates/zooglass/pulls?q=is%3Apr+is%3Amerged)
+for progress, or [CI runs](https://github.com/sproates/zooglass/actions) for check results.

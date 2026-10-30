@@ -1,6 +1,9 @@
 # CI selection and development workflow
 
-Status: selection and batch checkpoints are delivered in PRs #107 and #109.
+Status: delivered in PRs #107, #109 and #112. Main requires the up-to-date
+validation gate; no batch deferral is currently enabled. The
+[rollout record](retrospectives/2026-10-30-ci-validation.md) contains the acceptance
+evidence, including the deferred slice and its full final checkpoint.
 The baseline audit below describes the former workflows at `2cc15cd`.
 [Validation](../.github/workflows/ci.yml) runs on PRs to main/integration branches,
 main pushes and manual dispatch. Java and Workbench are reusable selected suites.
@@ -81,8 +84,8 @@ all applicable jobs. A docs-only follow-up commit to a code PR can also restart
 all its jobs because PR path selection considers the PR diff, not just that commit.
 Merging a code PR starts another applicable run on main.
 
-Sources: [ZooGlass workflow](../.github/workflows/zooglass.yml),
-[Workbench workflow](../.github/workflows/workbench.yml),
+Baseline sources: [ZooGlass workflow](https://github.com/sproates/zooglass/blob/2cc15cd/.github/workflows/zooglass.yml),
+[Workbench workflow](https://github.com/sproates/zooglass/blob/2cc15cd/.github/workflows/workbench.yml),
 [commands](../workbench/package.json).
 
 ### Baseline jobs and responsibilities

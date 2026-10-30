@@ -1,5 +1,8 @@
 # CI rollout verification, 30 October 2026
 
+Historical record: the policy-based mechanism described below has been replaced
+by the [branch conventions](../ci-validation.md).
+
 Selection and checkpoint controls were delivered in PRs #107 and #109, followed
 by the acceptance corrections in #112. Main requires an up-to-date passing
 `validation-gate` and a PR, including for admins. Manual checks use a different

@@ -1,4 +1,4 @@
-// Keep policy selection separate from executing tests. Unknown code selects all suites.
+// Baseline change-to-check map. Unknown code selects all suites.
 export const suites = [
   "java",
   "static",
@@ -37,11 +37,9 @@ export function isDocumentation(path) {
 export function selectChecks(paths, { forceFull = false } = {}) {
   const plan = Object.fromEntries(suites.map((name) => [name, false]));
   const reasons = [];
-  const mandatory = new Set();
-  const add = (names, path, direct = false) => {
+  const add = (names, path) => {
     for (const name of names) {
       plan[name] = true;
-      if (direct) mandatory.add(name);
     }
     reasons.push(`${path}: ${names.join(", ")}`);
   };
@@ -62,34 +60,30 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       const name = path.split("/").at(-1).replace(".java", "");
       if (internalJava.has(name)) add(["java", "core"], path);
       else if (protocolJava.has(name)) add(["java", "core", "browser"], path);
-      else add(suites, path, true);
+      else add(suites, path);
     } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
     } else if (/^workbench\/src\/demos\/orders\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
     } else if (/^workbench\/src\/service\//.test(path)) {
-      add(["static", "core", "demo", "browser", "native"], path, true);
+      add(["static", "core", "demo", "browser", "native"], path);
     } else if (
       /^workbench\/(src\/(browser|control|demos\/vehicle)|browser)\//.test(path)
     ) {
-      add(
-        ["static", "core", "demo", "browser", "native", "engines"],
-        path,
-        true,
-      );
+      add(["static", "core", "demo", "browser", "native", "engines"], path);
     } else if (
       /^demos\/vehicle-tracker\/(src|pages)\//.test(path) ||
       /^workbench\/scenarios\//.test(path)
     ) {
-      add(["static", "core", "demo", "browser", "engines"], path, true);
+      add(["static", "core", "demo", "browser", "engines"], path);
     } else if (/^workbench\/test\/demo-unit\/[^/]+\.test\.ts$/.test(path)) {
-      add(["static", "demo"], path, true);
+      add(["static", "demo"], path);
     } else if (/^workbench\/test\/browser\/[^/]+\.test\.ts$/.test(path)) {
-      add(["static", "browser"], path, true);
+      add(["static", "browser"], path);
     } else if (/^workbench\/test\/platform\/[^/]+\.test\.ts$/.test(path)) {
-      add(["static", "engines"], path, true);
+      add(["static", "engines"], path);
     } else if (/^workbench\/test\/resources\/[^/]+\.test\.ts$/.test(path)) {
-      add(["static", "browser", "native"], path, true);
+      add(["static", "browser", "native"], path);
     } else if (
       /^workbench\/test\/(?:scenarios\/)?[^/]+\.test\.ts$/.test(path) &&
       path !== "workbench/test/prebuilt-service.test.ts"
@@ -97,11 +91,11 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       add(["static", "core"], path);
     } else {
       // Includes shared helpers, build files, lockfiles, CI and new/unmapped modules.
-      add(suites, path, true);
+      add(suites, path);
     }
   }
-  if (forceFull) add(suites, "Full validation requested", true);
-  return { ...plan, mandatory: [...mandatory], reasons, deferred: {}, paths };
+  if (forceFull) add(suites, "Full validation requested");
+  return { ...plan, reasons, paths };
 }
 
 export function requiredResultErrors(plan, results, groups) {

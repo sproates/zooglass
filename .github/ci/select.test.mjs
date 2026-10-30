@@ -37,7 +37,7 @@ test("real git diff includes both sides of renames, deletes, and mixed doc/code 
   git("add", ".");
   git("commit", "-qm", "change");
   const head = git("rev-parse", "HEAD");
-  const run = (event) => {
+  const run = (event, extra = {}) => {
     put("event.json", JSON.stringify(event));
     execFileSync(process.execPath, [script], {
       cwd: root,
@@ -50,6 +50,7 @@ test("real git diff includes both sides of renames, deletes, and mixed doc/code 
         GITHUB_EVENT_PATH: join(root, "event.json"),
         GITHUB_OUTPUT: join(root, "output"),
         GITHUB_STEP_SUMMARY: join(root, "summary"),
+        ...extra,
       },
     });
     return JSON.parse(readFileSync(join(root, "validation-plan.json")));
@@ -67,6 +68,44 @@ test("real git diff includes both sides of renames, deletes, and mixed doc/code 
     ]);
     assert.equal(plan.native, true);
   }
+  const request = (ref, target = "feature/strategies") => ({
+    pull_request: {
+      base: { sha: base, ref: target },
+      head: { sha: head, ref },
+    },
+  });
+  const core = run(request("feature/core-ci/strategies"));
+  assert.deepEqual(
+    Object.keys(core).filter((key) => core[key] === true),
+    ["java"],
+  );
+  const none = run(request("feature/no-ci/strategies"));
+  assert.equal(Object.values(none).includes(true), false);
+  for (const name of ["no-ci", "core-ci"]) {
+    assert.equal(
+      run(request(`feature/${name}/strategies`, "main")).browser,
+      true,
+    );
+  }
+  const manual = run(
+    { inputs: { mode: "full", compare_ref: base } },
+    { GITHUB_EVENT_NAME: "workflow_dispatch" },
+  );
+  assert.equal(manual.native, true);
+
+  // A docs-only diff still stays cheap when a shortcut branch targets main.
+  put("README.md", "documentation only");
+  git("add", "README.md");
+  git("commit", "-qm", "docs");
+  const docsHead = git("rev-parse", "HEAD");
+  const docs = run({
+    pull_request: {
+      base: { sha: head, ref: "main" },
+      head: { sha: docsHead, ref: "feature/no-ci/docs" },
+    },
+  });
+  assert.equal(Object.values(docs).includes(true), false);
+
   const fallback = run({ before: "0".repeat(40), after: head });
   assert.equal(fallback.java, true);
   assert.equal(fallback.browser, true);

@@ -7,11 +7,23 @@ ZooGlass is an early prototype, with direction set by the maintainer. Start with
 A proposed contribution doesn't by itself commit the project to supporting a
 new feature or integration.
 
-For a substantial feature, open a small draft PR with a written proposal before
-investing in the implementation. Explain the problem, intended behaviour,
+Keep PRs focused and manageable for reviewers. For a substantial contribution,
+including a large refactor, open a small draft PR with a written proposal and
+agree the scope with the maintainer before investing in the implementation. Explain the problem, intended behaviour,
 trade-offs and how the result could be demonstrated. Keep ordinary bug fixes
 and documentation changes proportionate. Suspected vulnerabilities must use the
 private route in [SECURITY.md](SECURITY.md).
+
+## AI-assisted contributions
+
+AI-assisted contributions are welcome. All contributions must meet the standards
+in this guide, regardless of how they were produced. Contributors are responsible
+for understanding, reviewing and validating what they submit, and for responding
+to review feedback. Check generated explanations, references and claims about
+test results for accuracy.
+
+You don't need to identify the tools you use or label AI-generated passages.
+Responsibility for the contribution remains with the contributor.
 
 ## Set up a checkout
 
@@ -40,21 +52,69 @@ For example, use `fix/client-reconnect`, `feature/view-metadata` or
 `docs/scenario-guide`. Keep unrelated formatting, renaming and behaviour changes
 out of the diff.
 
-Follow the surrounding Java conventions. Workbench uses TypeScript with ESLint
-and Prettier. Prefer names and comments that explain purpose, ownership and
-failure behaviour. Document assumptions about event identity, ordering and
-connection lifecycle when they affect callers.
+## Coding standards
+
+Write code for people to understand and maintain. Use clear names, cohesive
+modules and straightforward control flow. Keep functions and files focused;
+split unrelated responsibilities rather than imposing an arbitrary line limit.
+Prefer names and comments that explain purpose, ownership and failure behaviour.
+Document assumptions about event identity, ordering and connection lifecycle
+when they affect callers. Apply these standards to production and test code.
+
+### Java
+
+Follow the surrounding package structure, naming and formatting conventions.
+Use types that make domain contracts and ownership clear. Keep mutable state and
+synchronisation boundaries explicit, and handle failures where their meaning is
+understood. Avoid broad exception handling that hides errors or reports them as
+unrelated input problems.
+
+### TypeScript
+
+Follow the existing TypeScript compiler settings, ESLint rules and Prettier
+formatting. Give substantial options and data contracts meaningful type names;
+keep small, obvious shapes inline when a name would add little. Validate external
+input at its boundary rather than using type assertions to pretend it is safe.
+Don't bypass type checks or lint rules merely to make a change pass.
 
 Use blank lines to separate logical steps, such as setup, action and assertions,
-without separating every statement. Apply the same care to production and test
-code. Give substantial options and data contracts meaningful type names; keep
-small, obvious shapes inline when a name would add little.
+without separating every statement. Keep asynchronous control flow and cleanup
+clear to readers.
 
-Tests should assert observable behaviour. For a fix, include a focused regression
-case where practical. Use Workbench scenarios when the behaviour spans source
-events, service processing and client receipt; keep isolated component checks
-with the component. Bound waits and clean up processes and connections in tests.
-Do not manufacture received view state from the test's expected values.
+### Responsibilities and dependencies
+
+ZooGlass owns reusable view maintenance, reconciliation and delivery behaviour.
+Workbench generates scenario inputs and faults and verifies outcomes through
+ZooGlass's interfaces. Demos own presentation and domain-specific application
+rules; they must not recreate the ZooGlass behaviour they demonstrate.
+
+When introducing or changing configurable strategies, represent each strategy in
+a named, cohesive module. Configuration must select the implementation actually
+used at runtime. Keep selection separate from the strategy's behaviour.
+
+Explain why a new dependency is needed, consider its maintenance and runtime
+cost, and check licence compatibility. Only submit material you have the right
+to contribute. Never include secrets in code, fixtures, logs or documentation.
+
+## Tests and bug fixes
+
+Tests must assert observable behaviour with expected results independent of the
+implementation. Cover relevant failure paths, boundaries and interactions as well
+as the successful case. Keep tests deterministic, bound waits, and clean up
+processes and connections.
+
+For a bug fix, wherever practical, include a regression test and verify that it
+fails because of the original bug before the fix and passes afterwards. Record
+that evidence in the PR. If an automated regression test is impractical, explain
+why and describe the alternative verification.
+
+Use Workbench scenarios when behaviour spans source events, service processing
+and client receipt; keep isolated component checks with the component. Do not
+manufacture received view state from the test's expected values.
+
+Keep validation proportionate without weakening coverage. Reuse valid build
+artifacts and avoid duplicate test runs. If a change noticeably slows validation
+or CI, investigate and address the cause as part of the change.
 
 ## Validate your change
 
@@ -131,12 +191,14 @@ implementation they check.
 
 ## Open the pull request
 
+Write PR descriptions and review comments in clear, professional English.
 Explain the problem and resulting behaviour, with a concrete example where it
 helps. Include validation evidence and material limitations. Use the PR template
 as a prompt, keeping the description proportionate to the change.
 
-Update affected guides and examples in the same PR. If a milestone or delivery
-direction changes, update [ROADMAP.md](ROADMAP.md) with the status and evidence;
+Update affected guides, configuration examples and source/architecture diagrams
+in the same PR. Changes to [ROADMAP.md](ROADMAP.md) require repository-owner
+approval. Propose milestone or direction changes with their rationale and evidence;
 keep proposed work distinct from completed delivery. Preserve the distinction
 between current behaviour and planned capabilities in prose and diagrams.
 

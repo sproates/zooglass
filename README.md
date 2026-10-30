@@ -74,3 +74,5 @@ Report suspected vulnerabilities privately using [SECURITY.md](SECURITY.md).
 
 ZooGlass is licensed under the [MIT licence](LICENSE).
 Copyright (c) 2026 Ian Sproates.
+
+<!-- Temporary CI acceptance probe; not for merge. -->

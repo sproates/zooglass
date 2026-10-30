@@ -12,7 +12,9 @@ The [README](../../README.md) uses this compact overview to show the roles at a
 glance: demo applications consume ZooGlass views, simulated sources publish real
 events, and Workbench coordinates scenarios and checks outcomes. Solid green
 arrows show the application data path; dashed blue arrows show scenario control
-and verification. UI checks belong to individual demos.
+and verification. Purple highlights ZooGlass as the core service; the lighter
+boxes show the surrounding applications, sources and verification tooling.
+UI checks belong to individual demos.
 
 This overview omits the transport proxy and browser-control details shown below.
 Keep its roles and labels aligned with the detailed diagram. Edit the SVG directly

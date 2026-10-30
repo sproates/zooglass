@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="650" viewBox="0 0 960 650" role="img" aria-labelledby="title desc">
   <title id="title">ZooGlass, demo applications and Workbench</title>
-  <desc id="desc">Read the right-hand stack upwards: simulated sources send events to ZooGlass, which maintains live views and delivers snapshots to demo applications. Workbench sits alongside, generating source events, introducing delivery faults and checking the resulting views. Demo applications present real ZooGlass data; Workbench expectations do not populate the views. This is the demonstration and verification environment.</desc>
+  <desc id="desc">Read the right-hand stack upwards: simulated sources send events to ZooGlass, which maintains live views and delivers snapshots to demo applications. Workbench sits alongside, generating source events, introducing delivery faults and checking the resulting views. Demo applications present real ZooGlass data; Workbench expectations do not populate the views. ZooGlass is highlighted in purple as the core service. This is the demonstration and verification environment.</desc>
   <defs>
     <marker id="data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#286552"/></marker>
     <marker id="control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#496aaf"/></marker>
@@ -8,6 +8,7 @@
       text{font-family:Arial,Helvetica,sans-serif;fill:#182c40}
       .heading{font-size:26px;font-weight:700}.label{font-size:23px;font-weight:700}
       .body{font-size:19px}.note{font-size:17px;fill:#40566d}
+      .core text{fill:#fff}.core .label{font-size:26px}
       .flow{stroke:#286552;stroke-width:3;fill:none;marker-end:url(#data)}
       .check{stroke:#496aaf;stroke-width:2;stroke-dasharray:6 4;fill:none;marker-end:url(#control)}
     </style>
@@ -30,10 +31,12 @@
   <text x="584" y="177" class="body">Show the resulting live views</text>
   <text x="584" y="207" class="note">Presentation and domain experience</text>
 
-  <rect x="560" y="300" width="368" height="124" rx="14" fill="#f0f8f4" stroke="#43866e" stroke-width="2"/>
+  <g class="core">
+  <rect x="560" y="300" width="368" height="124" rx="14" fill="#56378a" stroke="#402568" stroke-width="3"/>
   <text x="584" y="340" class="label">ZooGlass</text>
   <text x="584" y="371" class="body">Maintains and delivers live views</text>
   <text x="584" y="401" class="note">Applies configured field policies</text>
+  </g>
 
   <rect x="560" y="484" width="368" height="76" rx="14" fill="#f0f8f4" stroke="#43866e" stroke-width="2"/>
   <text x="584" y="516" class="label">Simulated sources</text>

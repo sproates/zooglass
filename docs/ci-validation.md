@@ -1,8 +1,17 @@
 # CI selection and development workflow
 
-Status: proposal, 30 October 2026. This audit describes the workflows at `2cc15cd`
-and proposes how to make validation proportionate. It does not change which checks
-run today. [Verification contracts](testing.md) describe what the tests establish.
+Status: impact-based selection implemented; batch deferral is the next slice.
+The audit below describes the previous workflows at `2cc15cd`. The selection
+matrix now drives [Validation](../.github/workflows/ci.yml), which always reports
+`validation-gate` on PRs to main and pushes to main. Java and Workbench workflows
+are reusable suites called only when selected. No deferrals are active yet.
+
+The dependency-free [classifier](../.github/ci/selection.mjs) is the executable
+path map. Unknown code and shared helpers select all suites. The selection job
+checks changed Markdown links, runs classifier/gate tests and publishes its plan.
+The final gate rejects any failed, cancelled, skipped or missing selected job.
+
+[Verification contracts](testing.md) describe what the tests establish.
 
 ## Recommendation
 

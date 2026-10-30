@@ -1,0 +1,111 @@
+// Keep policy selection separate from executing tests. Unknown code selects all suites.
+export const suites = [
+  "java",
+  "static",
+  "core",
+  "demo",
+  "browser",
+  "native",
+  "engines",
+];
+const internalJava = new Set([
+  "FieldUpdates",
+  "ViewStore",
+  "ViewDefinitions",
+  "ViewConfiguration",
+]);
+const protocolJava = new Set([
+  "ViewSnapshot",
+  "ViewController",
+  "LiveViewWebSocketHandler",
+  "EventLoggingWebSocketHandler",
+  "LiveViewBroadcaster",
+  "OutboundWriter",
+  "SubscriptionIndex",
+]);
+
+export function isDocumentation(path) {
+  return (
+    /\.(md|txt)$/.test(path) ||
+    /^(docs\/|(?:zooglass|workbench|demos\/[^/]+)\/docs\/).*\.(svg|png|jpg|jpeg|gif|webp|mp4)$/.test(
+      path,
+    ) ||
+    ["LICENSE", "SECURITY.md"].includes(path)
+  );
+}
+
+export function selectChecks(paths, { forceFull = false } = {}) {
+  const plan = Object.fromEntries(suites.map((name) => [name, false]));
+  const reasons = [];
+  const mandatory = new Set();
+  const add = (names, path, direct = false) => {
+    for (const name of names) {
+      plan[name] = true;
+      if (direct) mandatory.add(name);
+    }
+    reasons.push(`${path}: ${names.join(", ")}`);
+  };
+  for (const path of paths) {
+    if (isDocumentation(path)) continue;
+    if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
+      add(["java"], path);
+    } else if (
+      /^zooglass\/src\/main\/java\/io\/zooglass\/[^/]+\.java$/.test(path)
+    ) {
+      const name = path.split("/").at(-1).replace(".java", "");
+      if (internalJava.has(name)) add(["java", "core"], path);
+      else if (protocolJava.has(name)) add(["java", "core", "browser"], path);
+      else add(suites, path, true);
+    } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
+      add(["static", "core"], path);
+    } else if (/^workbench\/src\/demos\/orders\/.*\.ts$/.test(path)) {
+      add(["static", "core"], path);
+    } else if (/^workbench\/src\/service\//.test(path)) {
+      add(["static", "core", "demo", "browser", "native"], path, true);
+    } else if (
+      /^workbench\/(src\/(browser|control|demos\/vehicle)|browser)\//.test(path)
+    ) {
+      add(
+        ["static", "core", "demo", "browser", "native", "engines"],
+        path,
+        true,
+      );
+    } else if (
+      /^demos\/vehicle-tracker\/(src|pages)\//.test(path) ||
+      /^workbench\/scenarios\//.test(path)
+    ) {
+      add(["static", "core", "demo", "browser", "engines"], path, true);
+    } else if (/^workbench\/test\/demo-unit\/[^/]+\.test\.ts$/.test(path)) {
+      add(["static", "demo"], path, true);
+    } else if (/^workbench\/test\/browser\/[^/]+\.test\.ts$/.test(path)) {
+      add(["static", "browser"], path, true);
+    } else if (/^workbench\/test\/platform\/[^/]+\.test\.ts$/.test(path)) {
+      add(["static", "engines"], path, true);
+    } else if (/^workbench\/test\/resources\/[^/]+\.test\.ts$/.test(path)) {
+      add(["static", "browser", "native"], path, true);
+    } else if (
+      /^workbench\/test\/(?:scenarios\/)?[^/]+\.test\.ts$/.test(path) &&
+      path !== "workbench/test/prebuilt-service.test.ts"
+    ) {
+      add(["static", "core"], path);
+    } else {
+      // Includes shared helpers, build files, lockfiles, CI and new/unmapped modules.
+      add(suites, path, true);
+    }
+  }
+  if (forceFull) add(suites, "Full validation requested", true);
+  return { ...plan, mandatory: [...mandatory], reasons, deferred: {}, paths };
+}
+
+export function requiredResultErrors(plan, results, groups) {
+  const errors = [];
+  for (const [job, selectedSuites] of Object.entries(groups)) {
+    if (
+      selectedSuites.some((name) => plan[name]) &&
+      results[job]?.result !== "success"
+    ) {
+      errors.push(`${job}: required but ${results[job]?.result ?? "missing"}`);
+    }
+  }
+  return errors;
+}

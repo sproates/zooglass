@@ -10,6 +10,8 @@ The [classifier](../.github/ci/selection.mjs) maps paths to checks. The
 `validation-gate` rejects failed, cancelled, skipped or missing selected jobs.
 Its summary distinguishes deferred checks from passed and not-applicable checks.
 The plan artifact records the compared revisions and actual tested commit.
+Manual runs report `manual-validation`, so they cannot satisfy the PR-required
+`validation-gate` in place of that PR's selected checks.
 
 [Verification contracts](testing.md) describe what the tests establish.
 

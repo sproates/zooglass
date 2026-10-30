@@ -1,8 +1,8 @@
 # Verification and coverage
 
 See the [CI selection and validation workflow](ci-validation.md) for current
-triggers, measured costs and impact-based check selection. Controlled deferral
-during core-development batches is described there as the next implementation slice.
+triggers, measured costs and impact-based check selection. It also documents controlled deferral
+during core-development batches and full validation checkpoints.
 
 The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,

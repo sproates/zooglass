@@ -17,7 +17,10 @@ export async function drivingApplication(
     assets.set(url, [
       mime,
       await readFile(
-        new URL(`../../../../../vehicle-tracker/${file}`, import.meta.url),
+        new URL(
+          `../../../../../demos/vehicle-tracker/${file}`,
+          import.meta.url,
+        ),
       ),
     ]);
   }

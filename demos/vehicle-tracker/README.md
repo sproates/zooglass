@@ -8,7 +8,7 @@ and how they depend on each other. Start there when reading the implementation.
 For the six-car map, run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` from
 `workbench` after preparing the service. Open the printed URL in your
 usual browser. The simulation starts automatically and keeps running when browsers
-leave. [Setup, behaviour and limits](../workbench/docs/continuous-driving.md).
+leave. [Setup, behaviour and limits](../../workbench/docs/continuous-driving.md).
 
 ![Six continuously reporting cars on the Gibraltar map.](docs/continuous-driving.png)
 
@@ -56,7 +56,7 @@ and row selection stay in sync. The map uses locally served Leaflet and
 configurable background tiles; automated tests use local synthetic tiles.
 Fit fleet and Follow selected support local navigation; panning releases follow.
 Tile failures show a separate message and Retry map while vehicle data stays usable.
-[Direct phone access](../workbench/docs/external-viewers.md) is available in the
+[Direct phone access](../../workbench/docs/external-viewers.md) is available in the
 external fleet mode: `npm run demo -- vehicle-tracker --interactive --bind=<local IPv4 address>`.
 The terminal issues separate pairing links; one viewer controls shared playback.
 
@@ -65,7 +65,7 @@ The terminal issues separate pairing links; one viewer controls shared playback.
 ![Synthetic fleet around Gibraltar, with OpenStreetMap attribution.](docs/fleet-map.png)
 
 The [manifest](pages/interactive/fleet-manifest.json) supplies names and IDs only. Values come from
-ZooGlass through the [fleet contract scenario](../workbench/docs/fleet-contracts.md).
+ZooGlass through the [fleet contract scenario](../../workbench/docs/fleet-contracts.md).
 `--fleet` is an interactive variant and cannot be combined with `--basic`,
 `--recovery`, `--fault` or `--auto`. The existing default journey and short variants
 are retained. Automated tests exercise independent Chromium clients. Native
@@ -119,7 +119,7 @@ A missing JAR produces a preparation error; startup and Reset never invoke Maven
 
 The demo command compiles the app's TypeScript, launches the prebuilt ZooGlass JAR and an owned Chromium
 session, connects the viewer and subscribes to both views. **Step** sends one position at a time, using positions
-40–59 from the [journey fixture](../workbench/scenarios/vehicle-browser-journey.json),
+40–59 from the [journey fixture](../../workbench/scenarios/vehicle-browser-journey.json),
 awaiting HTTP, browser receipt and independent rendered checks after each send. The page stays
 open at position 59 with twenty history entries. Add `--basic` to use the short
 40/42 fixture. Ctrl+C closes the owned resources.
@@ -154,7 +154,7 @@ keeps the result open; it has no interactive controls. The recording above shows
 this automatic mode. Use the interactive recovery fixture below for deliberate
 disconnection and duplicate delivery, or `--fault` for real data-route interruption
 and automatic recovery. See the
-[Workbench guide](../workbench/README.md#browser-host-preview) for installation
+[Workbench guide](../../workbench/README.md#browser-host-preview) for installation
 and host details.
 
 ![Step and Reset controls after completing the short fixture.](docs/step-reset.png)
@@ -338,11 +338,11 @@ remains outstanding.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
 not a full accessibility audit or a check of native mobile browsers. The
-[keyboard and layout review](../docs/verification/2026-10-26-usability.md)
+[keyboard and layout review](../../docs/verification/2026-10-26-usability.md)
 also checks Play/Pause, viewer and fault controls through the keyboard, and
 200% text reflow at 320 CSS pixels.
 The local host registration is not production authorisation. See the
-[demo plan](../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.
+[demo plan](../../docs/plans/vehicle-tracker-demo.md) for the remaining behaviour.
 
 ## Source layout
 

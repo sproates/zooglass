@@ -5,7 +5,7 @@ import { runInNewContext } from "node:vm";
 import type {
   ClientBinding,
   Command,
-} from "../../../vehicle-tracker/src/subscription-client.js";
+} from "../../../demos/vehicle-tracker/src/subscription-client.js";
 
 async function fixture(t: TestContext, hanging = false) {
   t.mock.timers.enable({ apis: ["setTimeout"] });
@@ -16,7 +16,7 @@ async function fixture(t: TestContext, hanging = false) {
   const source = (
     await readFile(
       new URL(
-        "../../../vehicle-tracker/dist/recovering-client.js",
+        "../../../demos/vehicle-tracker/dist/recovering-client.js",
         import.meta.url,
       ),
       "utf8",

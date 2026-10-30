@@ -249,7 +249,7 @@ updates and duplicate handling through real service and Node-client connections.
 See the [fleet contract guide](docs/fleet-contracts.md) for the manifest, view
 definitions and source-specific processing barriers. Run the browser presentation
 with `npm run demo -- vehicle-tracker --interactive`: choose a vehicle to inspect its
-received history while all vehicles keep updating. The [Gibraltar map guide](../vehicle-tracker/docs/fleet-map.md)
+received history while all vehicles keep updating. The [Gibraltar map guide](../demos/vehicle-tracker/docs/fleet-map.md)
 explains the locally bundled map library, configurable tile background, synthetic
 coordinates and local-only automated tests. Fit/follow, keyboard/touch navigation
 and tile-failure recovery are demo behaviour; map availability does not determine
@@ -395,7 +395,7 @@ not a recovery instruction.
 The command compiles the TypeScript vehicle app and runs the 40–59 journey
 fixture (or the short 40/42 fixture with `--basic`) through the shared scenario session and browser executor. It waits for
 actual socket and subscription acknowledgements, then checks service state and
-browser receipts. The [vehicle display](../vehicle-tracker/README.md) renders
+browser receipts. The [vehicle display](../demos/vehicle-tracker/README.md) renders
 latest position, a schematic route and received history from those snapshots.
 Step sends one position and awaits its following service, receipt and rendered
 checks. The same observer runs in automatic mode. It reads DOM/SVG output
@@ -412,7 +412,7 @@ and idle. They use the same executor as scenario commands and leave the source
 connection running. They record an intervention and mark the run exploratory
 until Reset. Server checks continue; fixture client/DOM checks are skipped and
 counted visibly. Exploratory completion is never reported as a scripted pass.
-See the [viewer walkthrough](../vehicle-tracker/README.md#viewer-controls-and-recovery-fixture).
+See the [viewer walkthrough](../demos/vehicle-tracker/README.md#viewer-controls-and-recovery-fixture).
 
 `--recovery` selects the late/duplicate/disconnected-viewer fixture. Connection
 changes form their own checkpoints after startup; Step stops at disconnect,
@@ -444,7 +444,7 @@ cleanup. The browser suite checks both rendered views for both fixtures,
 full-snapshot replacement on resubscription and a narrow layout. Controlled
 protocol peers additionally check waiting, explicit empty snapshots, retained
 values and visible failures. Both suites
-run in Workbench CI. The [first walkthrough](../vehicle-tracker/README.md#first-walkthrough)
+run in Workbench CI. The [first walkthrough](../demos/vehicle-tracker/README.md#first-walkthrough)
 covers installation, keyboard controls, reset and narrow-screen use. Final acceptance
 of the complete recovery demo remains outstanding.
 
@@ -702,7 +702,7 @@ imports or DOM selectors, and importing the module does not start a connection.
 
 ### Vehicle client binding
 
-`vehicle-tracker/src/subscription-client.ts` owns the data socket, connection
+`demos/vehicle-tracker/src/subscription-client.ts` owns the data socket, connection
 generations, subscription acknowledgements and receipt reporting. Its explicit
 `ClientBinding` supplies subscription validation, connection/subscription state
 callbacks, snapshot handling and the connection-loss message. It has no DOM
@@ -764,4 +764,4 @@ bounded activity panel distinguishes source sends from actual browser receipts,
 subscription acknowledgements and connection changes. The latest 100 entries
 are retained; reset replaces the page and clears the trace. These diagnostics
 are demo-specific and do not change scenario execution or verification. See the
-[vehicle guide](../vehicle-tracker/README.md#follow-the-run) for how to read them.
+[vehicle guide](../demos/vehicle-tracker/README.md#follow-the-run) for how to read them.

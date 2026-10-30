@@ -31,7 +31,7 @@ Disconnect retains the last received markers with dashed outlines and labels the
 selected history as retained. Reconnect refreshes each view independently. Reset
 opens a fresh page with no manufactured vehicle positions.
 
-Edit coordinates in the [scenario fixture](../../workbench/scenarios/vehicle-fleet-contracts.json)
+Edit coordinates in the [scenario fixture](../../../workbench/scenarios/vehicle-fleet-contracts.json)
 and its expected results, then restart the demo to load those edits. Reset reruns
 the scenario already loaded by the process; it does not reread the file. During a
 run a higher sequence supplies a new position. Resending an accepted sequence
@@ -50,7 +50,7 @@ arrow keys pan the focused map, and the zoom buttons support keyboard and touch.
 Controls wrap at narrow widths and enlarged text. Attribution stays immediately
 below the map so enlarged credits cannot cover cars or map controls.
 
-[External viewer mode](../../workbench/docs/external-viewers.md) serves the actual
+[External viewer mode](../../../workbench/docs/external-viewers.md) serves the actual
 app to paired devices on the local network. Native phone acceptance and the
 six-vehicle longer journeys remain separate increments. The manifest determines the vehicle set; the renderer has no
 three-vehicle limit.
@@ -118,7 +118,7 @@ review caught attribution covering a car; credits now sit outside the map area.
 The existing keyboard, enlarged-text, reconnect and single-vehicle tests remain.
 The screenshot above came from a bounded visual check using real background tiles;
 CI uses local synthetic tiles and does not assert provider availability. The separate map
-acceptance record is [ready for review](../../docs/verification/2026-10-27-fleet-map.md);
+acceptance record is [ready for review](../../../docs/verification/2026-10-27-fleet-map.md);
 emulated touch is not native iPhone evidence.
 
 Leaflet is distributed under its [BSD 2-Clause licence](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE),

@@ -49,9 +49,9 @@ selecting **Retry map** loaded the background without restarting the sources.
 The shared warning now refers to vehicle updates and map navigation, rather than
 promising history and playback controls in the continuous viewer.
 
-![Continuous viewer at desktop size](../../vehicle-tracker/docs/continuous-driving-desktop.png)
+![Continuous viewer at desktop size](../../demos/vehicle-tracker/docs/continuous-driving-desktop.png)
 
-[Watch or download the normal-speed recording (MP4)](../../vehicle-tracker/docs/continuous-driving.mp4).
+[Watch or download the normal-speed recording (MP4)](../../demos/vehicle-tracker/docs/continuous-driving.mp4).
 The [guide retains its phone screenshot](../../workbench/docs/continuous-driving.md#verification).
 
 ## Supporting checks and limits

@@ -6,7 +6,7 @@ import {
   metres,
 } from "../../src/demos/vehicle/continuous/journeys.js";
 import { deliveryAt } from "../../src/demos/vehicle/continuous/delivery.js";
-import { reportAge } from "../../../vehicle-tracker/dist/driving/report-age.js";
+import { reportAge } from "../../../demos/vehicle-tracker/dist/driving/report-age.js";
 
 test("six closed road journeys remain continuous across many laps", async () => {
   const cars = await loadCars();

@@ -290,30 +290,30 @@ are authored JavaScript and the `.ts` modules compile to served JavaScript.
 flowchart TB
   bootstrap["workbench/browser/vehicle-bootstrap.js<br/>Wire page controls and app to bridge"]
   bridge["workbench/browser/bridge.js<br/>Control protocol and run replacement"]
-  client["vehicle-tracker/src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
-  subscription["vehicle-tracker/src/subscription-client.ts<br/>Socket, subscriptions and acknowledgements"]
-  view["vehicle-tracker/src/view.ts<br/>Render vehicle data and status"]
-  activity["vehicle-tracker/src/activity.ts<br/>Render bounded run diagnostics"]
+  client["demos/vehicle-tracker/src/vehicle-client.ts<br/>Bind vehicle policy and presentation"]
+  subscription["demos/vehicle-tracker/src/subscription-client.ts<br/>Socket, subscriptions and acknowledgements"]
+  view["demos/vehicle-tracker/src/view.ts<br/>Render vehicle data and status"]
+  activity["demos/vehicle-tracker/src/activity.ts<br/>Render bounded run diagnostics"]
   bootstrap -->|forwards actual observations and source-send notices| activity
   bootstrap -->|starts control bridge with client factory| bridge
   bootstrap -->|creates vehicle client| client
-  recovery["vehicle-tracker/src/recovering-client.ts<br/>Bounded retry and snapshot recovery policy"]
+  recovery["demos/vehicle-tracker/src/recovering-client.ts<br/>Bounded retry and snapshot recovery policy"]
   client -->|creates recovery client with callbacks| recovery
   recovery -->|creates protocol client for each attempt| subscription
   client -->|supplies rendering callbacks| view
-  fleet["vehicle-tracker/src/fleet/client.ts<br/>Bind fleet model and renderer"]
-  model["vehicle-tracker/src/fleet/model.ts<br/>Received view/entity state and local selection"]
-  fleetView["vehicle-tracker/src/fleet/view.ts<br/>Fleet list and selected details"]
-  manifest["vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive vehicle identities"]
+  fleet["demos/vehicle-tracker/src/fleet/client.ts<br/>Bind fleet model and renderer"]
+  model["demos/vehicle-tracker/src/fleet/model.ts<br/>Received view/entity state and local selection"]
+  fleetView["demos/vehicle-tracker/src/fleet/view.ts<br/>Fleet list and selected details"]
+  manifest["demos/vehicle-tracker/pages/interactive/fleet-manifest.json<br/>Descriptive vehicle identities"]
   bootstrap -->|loads fleet factory in fleet mode| fleet
   bootstrap -.->|fetches manifest for fleet factory| manifest
   fleet -->|creates model and validates subscriptions| model
   fleet -->|creates renderer and refreshes on receipts| fleetView
-  fleetMap["vehicle-tracker/src/fleet/map.ts<br/>Received markers and selected geographic route"]
+  fleetMap["demos/vehicle-tracker/src/fleet/map.ts<br/>Received markers and selected geographic route"]
   leaflet["Leaflet distribution<br/>Locally served map library"]
   fleet -->|creates map and refreshes on receipts| fleetMap
-  mapControls["vehicle-tracker/src/fleet/map-controls.ts<br/>Fit and follow navigation"]
-  mapTiles["vehicle-tracker/src/fleet/map-tiles.ts<br/>Background status, attribution and retry"]
+  mapControls["demos/vehicle-tracker/src/fleet/map-controls.ts<br/>Fit and follow navigation"]
+  mapTiles["demos/vehicle-tracker/src/fleet/map-tiles.ts<br/>Background status, attribution and retry"]
   fleetMap -->|creates local camera controls| mapControls
   mapControls -->|pans and fits| leaflet
   mapControls -.->|reads received positions and selection| model
@@ -351,7 +351,7 @@ relevant view here alongside the code. Keep labels about the purpose of each
 relationship, rather than reducing them to “imports”.
 
 For the adjacent components, see the [ZooGlass source map](../../zooglass/docs/source-map.md)
-and [vehicle-tracker source map](../../vehicle-tracker/docs/source-map.md).
+and [vehicle-tracker source map](../../demos/vehicle-tracker/docs/source-map.md).
 
 ## Continuous Gibraltar demonstration
 

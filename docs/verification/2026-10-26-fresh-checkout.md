@@ -13,7 +13,7 @@ Verified on macOS on 26 October 2026, with Node 26.0.0, npm, Git and JDK
 into a new temporary directory. Before the first launch it had no ZooGlass
 `target/`, Workbench `dist/` or vehicle-client `dist/` output.
 
-Followed the [vehicle setup guide](../../vehicle-tracker/README.md#run-it):
+Followed the [vehicle setup guide](../../demos/vehicle-tracker/README.md#run-it):
 
 ```sh
 git clone https://github.com/sproates/zooglass.git

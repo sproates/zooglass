@@ -43,6 +43,10 @@ test("real git diff includes both sides of renames, deletes, and mixed doc/code 
       cwd: root,
       env: {
         ...process.env,
+        // Fixture events must not inherit the outer Actions trigger or branch.
+        GITHUB_EVENT_NAME: event.pull_request ? "pull_request" : "push",
+        GITHUB_REF: "refs/heads/fixture",
+        GITHUB_SHA: head,
         GITHUB_EVENT_PATH: join(root, "event.json"),
         GITHUB_OUTPUT: join(root, "output"),
         GITHUB_STEP_SUMMARY: join(root, "summary"),

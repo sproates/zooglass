@@ -1,6 +1,6 @@
 # CI selection and development workflow
 
-Status: selection is delivered in PR #107; this revision adds batch checkpoints.
+Status: selection and batch checkpoints are delivered in PRs #107 and #109.
 The baseline audit below describes the former workflows at `2cc15cd`.
 [Validation](../.github/workflows/ci.yml) runs on PRs to main/integration branches,
 main pushes and manual dispatch. Java and Workbench are reusable selected suites.
@@ -154,8 +154,8 @@ necessarily a second invocation of a suite already run for that revision.
 | Native lifecycle/process code | TS static checks; core; browser-host; macOS/Windows lifecycle | Engine matrix unless browser APIs also change |
 | Build tools, lockfiles, CI selection/policy, shared fixtures, moved paths or unclassified code | Full until dependencies are explicitly mapped | No blanket exclusions |
 
-The first classifier should be conservative: split known Java strategy/store
-files from protocol/lifecycle files; route unfamiliar Java files and resources to
+The classifier is conservative: split known Java strategy/store
+files and the accepted `strategy/update/` namespace from protocol/lifecycle files; route unfamiliar Java files and resources to
 full validation until their role is mapped. Shared test helpers select every suite
 that imports them. A `.json` file can be executable scenario/configuration, not
 just documentation. Markdown exclusion must not hide mixed code changes.

@@ -50,6 +50,13 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
       add(["java"], path);
     } else if (
+      /^zooglass\/src\/main\/java\/io\/zooglass\/strategy\/update\/[^/]+\.java$/.test(
+        path,
+      )
+    ) {
+      // The accepted first strategy slice is pure field-update policy.
+      add(["java", "core"], path);
+    } else if (
       /^zooglass\/src\/main\/java\/io\/zooglass\/[^/]+\.java$/.test(path)
     ) {
       const name = path.split("/").at(-1).replace(".java", "");

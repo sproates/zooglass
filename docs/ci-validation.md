@@ -1,17 +1,50 @@
 # CI selection and development workflow
 
-Status: impact-based selection implemented; batch deferral is the next slice.
-The audit below describes the previous workflows at `2cc15cd`. The selection
-matrix now drives [Validation](../.github/workflows/ci.yml), which always reports
-`validation-gate` on PRs to main and pushes to main. Java and Workbench workflows
-are reusable suites called only when selected. No deferrals are active yet.
+Status: selection is delivered in PR #107; this revision adds batch checkpoints.
+The baseline audit below describes the former workflows at `2cc15cd`.
+[Validation](../.github/workflows/ci.yml) runs on PRs to main/integration branches,
+main pushes and manual dispatch. Java and Workbench are reusable selected suites.
 
-The dependency-free [classifier](../.github/ci/selection.mjs) is the executable
-path map. Unknown code and shared helpers select all suites. The selection job
-checks changed Markdown links, runs classifier/gate tests and publishes its plan.
-The final gate rejects any failed, cancelled, skipped or missing selected job.
+The [classifier](../.github/ci/selection.mjs) maps paths to checks. The
+[batch policy](../.github/ci/batches.json) is read from trusted main. The final
+`validation-gate` rejects failed, cancelled, skipped or missing selected jobs.
+Its summary distinguishes deferred checks from passed and not-applicable checks.
+The plan artifact records the compared revisions and actual tested commit.
 
 [Verification contracts](testing.md) describe what the tests establish.
+
+## Using the workflow
+
+- Normal PRs get the selected checks automatically. No skip label is needed.
+- To start a core batch, submit a small policy PR naming the exact integration
+  branch, repository, owner, reason, expiry and final checkpoint. Merge that policy
+  before creating slice PRs. Configure `validation-gate` as required on the batch
+  branch, as on main. Policies expire automatically and never apply to forks.
+- Open small slice PRs into the named integration branch. Review the selection
+  summary: Java/Node checks still run; only eligible slow checks are deferred.
+- A PR from `integration/*` into main always selects all suites. Refresh it if main
+  changes, require the green gate, then merge and remove the policy entry.
+- Main pushes run selected fast checks without automatically repeating the slow
+  matrix. Releases and manual checkpoints run full verification at the exact SHA.
+
+Manual full checkpoint (also the default in GitHub's Run workflow form):
+
+```sh
+gh workflow run ci.yml --ref integration/strategy-core -f mode=full
+```
+
+For selected validation, provide the comparison ref explicitly when needed:
+
+```sh
+gh workflow run ci.yml --ref feature/example -f mode=selected -f compare_ref=origin/main
+```
+
+Run the classifier/policy/gate tests locally with
+`node --test .github/ci/*.test.mjs`. They need Node but no installed npm packages,
+JVM or browser. Use the existing component commands for selected behavioural work.
+Partial coverage reports describe only that selected run; compare full checkpoint
+coverage for overall coverage trends.
+
 
 ## Recommendation
 
@@ -25,9 +58,9 @@ there, then require full validation before the batch returns to main. End each
 batch at a useful, reviewed milestone rather than keeping one branch for the
 whole programme.
 
-## What runs today
+## Baseline before selection
 
-Both workflows run on pushes to `main` and PRs targeting `main`. There is no
+At the audited baseline, both workflows ran on pushes to `main` and PRs targeting `main`. There is no
 manual dispatch, scheduled sweep or configured integration-branch trigger.
 PR opened, reopened and synchronised events use GitHub's default PR activity types.
 
@@ -50,7 +83,7 @@ Sources: [ZooGlass workflow](../.github/workflows/zooglass.yml),
 [Workbench workflow](../.github/workflows/workbench.yml),
 [commands](../workbench/package.json).
 
-### Jobs and responsibilities
+### Baseline jobs and responsibilities
 
 | Job | Current work | Why it exists |
 | --- | --- | --- |
@@ -103,7 +136,7 @@ Do not infer that c8 alone causes the difference from local uninstrumented runs:
 hardware, concurrent service processes and scheduling differ. Compare coverage
 on/off and bounded test concurrency on the same runner before changing them.
 
-## Proposed selection matrix
+## Selection matrix
 
 Checks are additive for mixed changes. "Full" means all existing suites, not
 necessarily a second invocation of a suite already run for that revision.
@@ -232,7 +265,7 @@ judge the improvement by actual time from push to usable review evidence.
 
 ## Focused implementation and acceptance
 
-Implement this before the strategy stream in two reviewable PRs:
+The implementation is delivered in two reviewable slices:
 
 - **Selection and reporting:** a tested classifier, job-level selection, stable
   gate, scoped static checks and documentation. Retain current full checks for
@@ -247,8 +280,8 @@ expiry, forks, force-full, and integration-to-main override. Test the gate's
 failure/cancellation/missing-result paths. Compare selected suites with the matrix
 and inspect actual Actions runs; a unit test of a path glob alone is insufficient.
 
-No test deletion, coverage threshold reduction, global browser disablement or
-new test framework is needed for this proposal.
+No tests were deleted, coverage thresholds reduced or browser workflows globally
+disabled. No new test framework was introduced.
 
 ## GitHub mechanics consulted
 

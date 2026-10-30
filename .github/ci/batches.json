@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "batches": [
+    {
+      "branch": "integration/ci-validation-probe",
+      "repository": "sproates/zooglass",
+      "owner": "sproates",
+      "reason": "Temporary acceptance test of core-slice deferral",
+      "expiresAt": "2026-10-31T00:00:00Z",
+      "checkpoint": "Full integration-to-main validation probe; remove this entry after acceptance",
+      "defer": ["browser", "native", "engines"]
+    }
+  ]
+}

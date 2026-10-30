@@ -2,7 +2,18 @@ name: Validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "integration/**"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validation scope
+        type: choice
+        options: [full, selected]
+        default: full
+      compare_ref:
+        description: Base ref for selected mode (ignored by full scope)
+        type: string
+        default: origin/main
   push:
     branches: [main]
 
@@ -27,6 +38,8 @@ jobs:
         with:
           node-version-file: workbench/.nvmrc
       - run: node --test .github/ci/*.test.mjs
+      - name: Fetch trusted main policy
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
       - id: select
         run: node .github/ci/select.mjs
       - run: node .github/ci/docs.mjs

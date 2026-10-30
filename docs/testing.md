@@ -1,5 +1,9 @@
 # Verification and coverage
 
+See the [CI audit and proposed validation workflow](ci-validation.md) for current
+triggers, measured costs and a plan for selecting checks and deferring slow suites
+during bounded core-development batches. The proposal does not change CI yet.
+
 The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
 that every event ordering is correct, or that the service is production ready.

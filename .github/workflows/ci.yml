@@ -2,7 +2,7 @@ name: Validation
 
 on:
   pull_request:
-    branches: [main, "integration/**"]
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
     inputs:
       mode:
@@ -14,8 +14,6 @@ on:
         description: Base ref for selected mode (ignored by full scope)
         type: string
         default: origin/main
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -26,6 +24,11 @@ concurrency:
 
 jobs:
   select:
+    # no-ci starts no runners. Main PRs and explicit manual runs always take precedence.
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.base_ref == 'main' ||
+      (!contains(format('/{0}/', github.head_ref), '/no-ci/') &&
+       !contains(format('/{0}/', github.base_ref), '/no-ci/'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -38,8 +41,6 @@ jobs:
         with:
           node-version-file: workbench/.nvmrc
       - run: node --test .github/ci/*.test.mjs
-      - name: Fetch trusted main policy
-        run: git fetch --no-tags origin main:refs/remotes/origin/main
       - id: select
         run: node .github/ci/select.mjs
       - run: node .github/ci/docs.mjs
@@ -67,7 +68,7 @@ jobs:
     # Manual selected runs must never satisfy the PR's required gate context.
     name: ${{ github.event_name == 'workflow_dispatch' && 'manual-validation' || 'validation-gate' }}
     needs: [select, java, workbench]
-    if: always()
+    if: always() && needs.select.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

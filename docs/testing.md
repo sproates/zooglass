@@ -1,8 +1,7 @@
 # Verification and coverage
 
-See the [CI selection and validation workflow](ci-validation.md) for current
-triggers, measured costs and impact-based check selection. It also documents controlled deferral
-during core-development batches and full validation checkpoints.
+See the [CI selection and validation workflow](ci-validation.md) for the
+change-to-check baseline and optional development branch shortcuts.
 
 The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
@@ -493,11 +492,10 @@ Maven or compilation; the tests themselves remain concurrent. Native lifecycle
 jobs also check concurrent artifact-only launches from a path containing spaces.
 
 New PR revisions share a concurrency group and cancel obsolete runs for that PR.
-Each main-branch push uses its unique run ID, so neither running nor pending
-main runs are superseded by this concurrency policy. The available behavioural suites remain intact, but the
-[impact selector](ci-validation.md) now chooses which are required. Documentation
-inside components no longer launches the full Workbench matrix. Main pushes keep
-fast selected checks; slow suites run on relevant PRs and full checkpoints.
+The [baseline map](ci-validation.md) selects checks by changed files. Development
+PRs can use `core-ci` or `no-ci` branch segments. PRs into main ignore those
+shortcuts and must pass the baseline checks against current main. CI does not
+repeat them after merging.
 
 Compare job setup time and test time separately when changing CI. Do not remove
 behavioural checks to improve a timing number. The PR #57 reference run took

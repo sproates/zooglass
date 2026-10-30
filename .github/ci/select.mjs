@@ -1,11 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { selectChecks } from "./selection.mjs";
-import {
-  applyBatchPolicy,
-  applyMainPushPolicy,
-  isFinalCheckpoint,
-} from "./policy.mjs";
+import { validationMode } from "./branches.mjs";
 
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
 const eventName =
@@ -20,9 +16,8 @@ const revision = (...args) => git(...args).trim();
 let paths = [];
 let base;
 let head;
-let forceFull =
-  isFinalCheckpoint(event) ||
-  (eventName === "workflow_dispatch" && event.inputs?.mode !== "selected");
+const mode = validationMode(event, eventName);
+let forceFull = mode === "full";
 let fallback = "";
 try {
   if (event.pull_request) {
@@ -58,46 +53,16 @@ try {
 }
 let plan = selectChecks(paths, { forceFull });
 if (fallback) plan.reasons.unshift(fallback);
-if (isFinalCheckpoint(event))
-  plan.reasons.unshift("Integration-to-main checkpoint: all suites required.");
-
-if (event.pull_request?.base.ref?.startsWith("integration/") && !forceFull) {
-  let policy;
-  try {
-    // main is fetched separately by the workflow. Never load policy from the PR checkout.
-    revision("rev-parse", "--verify", "refs/remotes/origin/main");
-    const files = git(
-      "ls-tree",
-      "--name-only",
-      "refs/remotes/origin/main",
-      ".github/ci/batches.json",
-    );
-    policy = files.trim()
-      ? JSON.parse(
-          git("show", "refs/remotes/origin/main:.github/ci/batches.json"),
-        )
-      : { version: 1, batches: [] };
-  } catch (error) {
-    plan = selectChecks(paths, { forceFull: true });
-    plan.reasons.unshift(
-      `Cannot read trusted policy; all suites required: ${error.message}`,
-    );
-  }
-  if (policy) {
-    plan = applyBatchPolicy(plan, {
-      policy,
-      base: event.pull_request.base.ref,
-      repository: process.env.GITHUB_REPOSITORY,
-      headRepository: event.pull_request.head.repo?.full_name,
-    });
-  }
-}
-if (
-  eventName === "push" &&
-  process.env.GITHUB_REF === "refs/heads/main" &&
-  !fallback
-) {
-  plan = applyMainPushPolicy(plan);
+if (mode === "full") plan.reasons.unshift("Full validation required.");
+if (mode === "core" || mode === "none") {
+  plan = selectChecks([]);
+  plan.java = mode === "core";
+  plan.paths = paths;
+  plan.reasons = [
+    mode === "core"
+      ? "core-ci: ZooGlass tests only."
+      : "no-ci: checks disabled.",
+  ];
 }
 plan.evidence = {
   event: eventName,
@@ -114,7 +79,7 @@ appendFileSync(
       .filter(([, value]) => typeof value === "boolean")
       .map(
         ([name, required]) =>
-          `- **${name}**: ${required ? "required" : plan.deferred[name] ? `deferred: ${plan.deferred[name]}` : "not applicable"}`,
+          `- **${name}**: ${required ? "required" : mode === "core" ? "skipped by core-ci" : "not applicable"}`,
       )
       .join("\n") +
     `\n\nTested commit: ${plan.evidence.testedCommit}\n\n` +

@@ -115,3 +115,7 @@ test("accepted update-strategy namespace keeps core validation on new modules", 
     suites,
   );
 });
+
+test("unclassified text fixtures are not mistaken for documentation", () => {
+  assert.deepEqual(selected(["workbench/test/fixtures/source.txt"]), suites);
+});

@@ -26,7 +26,7 @@ const protocolJava = new Set([
 
 export function isDocumentation(path) {
   return (
-    /\.(md|txt)$/.test(path) ||
+    /\.md$/.test(path) ||
     /^(docs\/|(?:zooglass|workbench|demos\/[^/]+)\/docs\/).*\.(svg|png|jpg|jpeg|gif|webp|mp4)$/.test(
       path,
     ) ||

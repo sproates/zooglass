@@ -7,12 +7,33 @@ ZooGlass is an early prototype, with direction set by the maintainer. Start with
 A proposed contribution doesn't by itself commit the project to supporting a
 new feature or integration.
 
-Keep PRs focused and manageable for reviewers. For a substantial contribution,
-including a large refactor, open a small draft PR with a written proposal and
-agree the scope with the maintainer before investing in the implementation. Explain the problem, intended behaviour,
-trade-offs and how the result could be demonstrated. Keep ordinary bug fixes
-and documentation changes proportionate. Suspected vulnerabilities must use the
-private route in [SECURITY.md](SECURITY.md).
+## Contribution requirements
+
+These requirements apply to every contribution, including AI-assisted work.
+
+- **Roadmap changes require repository-owner approval.** Propose changes to
+  [ROADMAP.md](ROADMAP.md) with their rationale and evidence; approval is required
+  before they are merged or treated as agreed project direction.
+- **Discuss substantial contributions before implementing them.** Open a small
+  draft PR describing the problem, scope, trade-offs and intended verification,
+  and agree the scope with the maintainer. This includes large refactors.
+- **Keep PRs focused and manageable.** Make each PR reviewable as a coherent
+  change. Split larger work into agreed increments; exclude unrelated cleanup.
+- **Use clear, professional English** in PR descriptions and review comments.
+- **Follow the [Java](#java) and [TypeScript](#typescript) coding standards.**
+  The same readability requirements apply to production and test code.
+- **Bug fixes need a regression test that fails before the fix and passes after
+  it.** Verify that the failure demonstrates the original bug and record the
+  evidence. If automation is impractical, explain the exception and alternative
+  verification. See [Tests and bug fixes](#tests-and-bug-fixes).
+- **Validate the change and report the results.** Cover relevant behaviour,
+  failures and boundaries; state what could not be verified and why.
+- **Update affected documentation and diagrams in the same PR**, including guides,
+  configuration examples and source maps.
+- **Justify new dependencies and check licence compatibility.** Submit only
+  material you have the right to contribute, and never include secrets.
+
+Suspected vulnerabilities must use the private route in [SECURITY.md](SECURITY.md).
 
 ## AI-assisted contributions
 
@@ -63,23 +84,64 @@ when they affect callers. Apply these standards to production and test code.
 
 ### Java
 
-Follow the surrounding package structure, naming and formatting conventions.
-Use types that make domain contracts and ownership clear. Keep mutable state and
-synchronisation boundaries explicit, and handle failures where their meaning is
-understood. Avoid broad exception handling that hides errors or reports them as
-unrelated input problems.
+Use these conventions for Java changes:
+
+- **Layout:** use four spaces, no tabs, and opening braces on the declaration or
+  control-flow line. Use braces for conditional and loop bodies. Separate logical
+  steps with blank lines; wrap long expressions where it helps explain them.
+- **Names and imports:** use `UpperCamelCase` for types, `lowerCamelCase` for
+  methods and variables, and `UPPER_SNAKE_CASE` for constants. Package names are
+  lowercase. Import explicit types rather than using wildcard imports.
+- **Types and visibility:** use parameterised collections, not raw types. Keep
+  members private unless callers need access. Use records for value carriers
+  where appropriate; remember that a record does not make nested objects immutable.
+- **State:** prefer final fields and local variables where reassignment is not
+  needed. Make ownership of mutable collections and JSON explicit. Do not expose
+  internal mutable state through a returned value; copy or provide a suitable
+  immutable representation.
+- **Construction and resources:** supply service dependencies through constructors.
+  Use try-with-resources for owned `AutoCloseable` resources where their lifetime
+  fits the scope; otherwise make the close responsibility explicit.
+- **Failures and concurrency:** catch specific exceptions where recovery or useful
+  translation is possible. Do not swallow failures or misreport internal errors as
+  invalid input. Document which lock or thread owns shared state; avoid blocking
+  network I/O while holding shared state locks.
+
+The Maven verification command below compiles and tests Java. There is currently
+no configured Java formatter or style checker, so these conventions also require
+review; a successful build does not establish style compliance.
 
 ### TypeScript
 
-Follow the existing TypeScript compiler settings, ESLint rules and Prettier
-formatting. Give substantial options and data contracts meaningful type names;
-keep small, obvious shapes inline when a name would add little. Validate external
-input at its boundary rather than using type assertions to pretend it is safe.
-Don't bypass type checks or lint rules merely to make a change pass.
+Use these conventions for TypeScript changes:
 
-Use blank lines to separate logical steps, such as setup, action and assertions,
-without separating every statement. Keep asynchronous control flow and cleanup
-clear to readers.
+- **Formatting:** use Prettier's project formatting: two-space indentation, double
+  quotes and semicolons. Run the existing formatter rather than hand-tuning its
+  output. Use blank lines between logical steps without separating every statement.
+- **Names and modules:** use `UpperCamelCase` for types and interfaces,
+  `lowerCamelCase` for functions and variables, and descriptive kebab-case module
+  filenames. Group modules by responsibility and keep exports limited to what
+  callers need.
+- **Imports:** use ES modules and `import type` for type-only dependencies. Use
+  `.js` extensions in relative imports under the existing NodeNext configuration.
+- **Contracts:** name substantial options objects and shared data contracts.
+  Prefer union types for a closed set of states and discriminated unions when
+  those states carry different data. Use `readonly` where callers must not mutate
+  a contract. Keep obvious local shapes inline and allow inference when it is clear.
+- **Type safety:** keep strict compiler checking enabled. Use `unknown` and runtime
+  validation for untrusted input. Do not use `any`, non-null assertions or casts to
+  conceal a missing check. Any necessary suppression must be narrow and explain
+  why it is safe.
+- **Control flow:** prefer `const`; use `let` only for reassignment and avoid `var`.
+  Prefer straightforward branches over nested conditional expressions. Handle
+  promise failures and make ownership of background tasks, listeners and timers
+  explicit, including their cleanup.
+
+Run `npm run lint`, `npm run format:check` and `npm run typecheck` from `workbench`.
+The [ESLint configuration](workbench/eslint.config.js) and
+[compiler configuration](workbench/tsconfig.json) enforce part of these standards;
+review still needs to assess readability, ownership and correctness. Don't disable
+checks merely to make a change pass.
 
 ### Responsibilities and dependencies
 
@@ -197,9 +259,8 @@ helps. Include validation evidence and material limitations. Use the PR template
 as a prompt, keeping the description proportionate to the change.
 
 Update affected guides, configuration examples and source/architecture diagrams
-in the same PR. Changes to [ROADMAP.md](ROADMAP.md) require repository-owner
-approval. Propose milestone or direction changes with their rationale and evidence;
-keep proposed work distinct from completed delivery. Preserve the distinction
+in the same PR. Follow the owner-approval requirement above for roadmap changes,
+and keep proposed work distinct from completed delivery. Preserve the distinction
 between current behaviour and planned capabilities in prose and diagrams.
 
 Maintainer review determines whether a change fits the project and is ready to

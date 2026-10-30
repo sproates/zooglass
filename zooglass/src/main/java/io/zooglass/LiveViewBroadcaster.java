@@ -1,5 +1,7 @@
 package io.zooglass;
 
+// Temporary CI checkpoint acceptance probe.
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

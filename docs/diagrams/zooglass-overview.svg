@@ -8,7 +8,7 @@
       text{font-family:Arial,Helvetica,sans-serif;fill:#182c40}
       .heading{font-size:26px;font-weight:700}.label{font-size:23px;font-weight:700}
       .body{font-size:19px}.note{font-size:17px;fill:#40566d}
-      .core text{fill:#fff}.core .label{font-size:26px}
+      .core text{fill:#382b50}
       .flow{stroke:#286552;stroke-width:3;fill:none;marker-end:url(#data)}
       .check{stroke:#496aaf;stroke-width:2;stroke-dasharray:6 4;fill:none;marker-end:url(#control)}
     </style>
@@ -32,7 +32,7 @@
   <text x="584" y="207" class="note">Presentation and domain experience</text>
 
   <g class="core">
-  <rect x="560" y="300" width="368" height="124" rx="14" fill="#56378a" stroke="#402568" stroke-width="3"/>
+  <rect x="560" y="300" width="368" height="124" rx="14" fill="#eee8f6" stroke="#8c76a8" stroke-width="2"/>
   <text x="584" y="340" class="label">ZooGlass</text>
   <text x="584" y="371" class="body">Maintains and delivers live views</text>
   <text x="584" y="401" class="note">Applies configured field policies</text>

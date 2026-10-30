@@ -62,8 +62,8 @@ There is still substantial application work:
 - Workbench starts the service and sources and hosts the demo. Its pairing and
   playback controls belong to the interactive demonstration, not ZooGlass itself.
 
-The [browser implementation](../vehicle-tracker/src/driving/app.ts) and
-[report-age rule](../vehicle-tracker/src/driving/report-age.ts) make that
+The [browser implementation](../demos/vehicle-tracker/src/driving/app.ts) and
+[report-age rule](../demos/vehicle-tracker/src/driving/report-age.ts) make that
 boundary explicit. In the separate interactive fixture, location and operational
 status use separate fields and sequence domains; see the
 [fleet contracts](../workbench/docs/fleet-contracts.md).

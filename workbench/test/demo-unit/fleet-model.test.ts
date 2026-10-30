@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createFleetModel,
   parseManifest,
-} from "../../../vehicle-tracker/dist/fleet/model.js";
+} from "../../../demos/vehicle-tracker/dist/fleet/model.js";
 
 const vehicles = [
   { id: "a", name: "Alpha" },

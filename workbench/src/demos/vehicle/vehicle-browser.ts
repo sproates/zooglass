@@ -26,7 +26,7 @@ export async function vehicleBrowserApplication(
         "text/html; charset=utf-8",
         await readFile(
           new URL(
-            `../../../../vehicle-tracker/pages/${fleet ? "interactive" : "basic"}/index.html`,
+            `../../../../demos/vehicle-tracker/pages/${fleet ? "interactive" : "basic"}/index.html`,
             import.meta.url,
           ),
         ),
@@ -54,7 +54,7 @@ export async function vehicleBrowserApplication(
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../../vehicle-tracker/dist/vehicle-client.js",
+            "../../../../demos/vehicle-tracker/dist/vehicle-client.js",
             import.meta.url,
           ),
         ),
@@ -66,7 +66,7 @@ export async function vehicleBrowserApplication(
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../../vehicle-tracker/dist/subscription-client.js",
+            "../../../../demos/vehicle-tracker/dist/subscription-client.js",
             import.meta.url,
           ),
         ),
@@ -78,7 +78,7 @@ export async function vehicleBrowserApplication(
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../../vehicle-tracker/dist/recovering-client.js",
+            "../../../../demos/vehicle-tracker/dist/recovering-client.js",
             import.meta.url,
           ),
         ),
@@ -90,7 +90,7 @@ export async function vehicleBrowserApplication(
         "text/javascript; charset=utf-8",
         await readFile(
           new URL(
-            "../../../../vehicle-tracker/dist/activity.js",
+            "../../../../demos/vehicle-tracker/dist/activity.js",
             import.meta.url,
           ),
         ),
@@ -101,7 +101,10 @@ export async function vehicleBrowserApplication(
       [
         "text/javascript; charset=utf-8",
         await readFile(
-          new URL("../../../../vehicle-tracker/dist/view.js", import.meta.url),
+          new URL(
+            "../../../../demos/vehicle-tracker/dist/view.js",
+            import.meta.url,
+          ),
         ),
       ],
     ],
@@ -111,7 +114,7 @@ export async function vehicleBrowserApplication(
         "text/css; charset=utf-8",
         await readFile(
           new URL(
-            "../../../../vehicle-tracker/pages/shared/styles.css",
+            "../../../../demos/vehicle-tracker/pages/shared/styles.css",
             import.meta.url,
           ),
         ),

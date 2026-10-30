@@ -63,7 +63,7 @@ The [prototype guide](zooglass/README.md) describes the service and
 protocol. The [Workbench guide](workbench/README.md) covers scenarios,
 CLI commands and shared sessions. Source and tests live under their respective
 `zooglass` and `workbench` directories; project explanations
-and designs live under `docs/`. The browser app lives in `vehicle-tracker`
+and designs live under `docs/`. The browser app lives in `demos/vehicle-tracker`
 and uses Workbench's build and check commands.
 
 ## Make a focused change

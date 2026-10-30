@@ -23,7 +23,7 @@ it changes no application behaviour or module responsibilities.
 | Keyboard playback and selection | `test/browser/fleet-usability.test.ts` operates Play/Pause by keyboard, selects a vehicle through tab order and resumes Play to complete all checks. Focus stays on the selected vehicle as background updates arrive. Tab/Enter then selects another vehicle with its own history. Only fixture timing is slowed for this test; events and expectations are unchanged. |
 | Responsive text presentation | The same test checks 1280px, 390px and 320px widths at 100% and 200% root font size, with no horizontal page overflow and controls contained in their panel. Desktop and narrow enlarged-text captures were visually inspected. At 320px with enlarged text, labels wrap substantially but remain available. This is not a native phone or accessibility audit. |
 
-The existing [fleet screenshot](../../vehicle-tracker/docs/fleet-selection.png)
+The existing [fleet screenshot](../../demos/vehicle-tracker/docs/fleet-selection.png)
 illustrates the text-based presentation. The usability test writes reproducible
 captures under `workbench/test-results/fleet-*.png`.
 

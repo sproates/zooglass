@@ -11,6 +11,13 @@ Keeping that view useful gets harder when updates arrive late, out of order, are
 
 ZooGlass aims to help keep event-driven views current, and clarify what data they reflect.
 
+![ZooGlass architecture: events flow from simulated sources through ZooGlass to demo applications, with Workbench alongside generating faults and checking outcomes.](docs/diagrams/zooglass-overview.svg)
+
+Read the stack from bottom to top. ZooGlass maintains the views; demos make them
+visible. Workbench supplies scenarios and verifies the results through real service
+and client interfaces. In an application deployment, your source systems and apps
+fill those roles; Workbench is development and verification tooling.
+
 [What we're trying to build](docs/what-is-zooglass.md) explains the intended
 product, the promises its views should make, and how Workbench will help us
 verify them. Separate diagrams show ZooGlass's intended production role and the
@@ -37,8 +44,7 @@ playback controls. It was delivered in [PR #93](https://github.com/sproates/zoog
 implemented service responsibilities with an equally scoped custom service, and
 explains what developers still need to build.
 
-The [roadmap and progress](ROADMAP.md) records what has landed, what's next and
-which capabilities remain longer-term work, with links to the delivery evidence.
+The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 
 The main components live at the repository root:
 

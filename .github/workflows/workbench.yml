@@ -1,31 +1,19 @@
 name: Workbench CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/workbench.yml"
-      - "workbench/**"
-      - "demos/vehicle-tracker/**"
-      - "zooglass/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/workbench.yml"
-      - "workbench/**"
-      - "demos/vehicle-tracker/**"
-      - "zooglass/**"
-
-# PR revisions share a group; each main push gets its own independent group.
-concurrency:
-  group: workbench-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   test-and-build:
+    if: fromJSON(inputs.plan).static || fromJSON(inputs.plan).core || fromJSON(inputs.plan).demo
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,6 +28,7 @@ jobs:
           cache-dependency-path: workbench/package-lock.json
 
       - uses: actions/setup-java@v6
+        if: fromJSON(inputs.plan).core
         with:
           distribution: temurin
           java-version: "25"
@@ -48,10 +37,14 @@ jobs:
 
       - run: npm ci
       - name: Build ZooGlass once before service tests
+        if: fromJSON(inputs.plan).core
         run: npm run prepare:service
       - run: npm run lint
+        if: fromJSON(inputs.plan).static
       - run: npm run format:check
+        if: fromJSON(inputs.plan).static
       - name: Verify core checks without a vehicle build or browser binaries
+        if: fromJSON(inputs.plan).core
         shell: bash
         run: |
           test ! -d ../demos/vehicle-tracker/dist
@@ -60,9 +53,14 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npx c8 --reports-dir=coverage/standard npm run test:core
           test ! -d ../demos/vehicle-tracker/dist
           test -z "$(ls -A "$core_browser_cache")"
+      - name: Build demo assets once
+        if: fromJSON(inputs.plan).demo
+        run: npm run build:browser
       - name: Add demo-unit coverage without repeating core tests
-        run: npx c8 --clean=false --reports-dir=coverage/standard npm run test:demo-unit
-      - run: npm run build
+        if: fromJSON(inputs.plan).demo
+        run: npx c8 --clean=${{ !fromJSON(inputs.plan).core }} --reports-dir=coverage/standard npx tsx --test test/demo-unit/*.test.ts
+      - run: npx tsc -p tsconfig.json
+        if: fromJSON(inputs.plan).static
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -71,6 +69,8 @@ jobs:
           if-no-files-found: warn
 
   browser-host:
+    if: fromJSON(inputs.plan).browser
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     # Keep the image version aligned with package-lock.json's Playwright version.
     container:
@@ -114,6 +114,7 @@ jobs:
           if-no-files-found: warn
 
   native-lifecycle:
+    if: fromJSON(inputs.plan).native
     strategy:
       fail-fast: false
       matrix:
@@ -151,6 +152,7 @@ jobs:
           if-no-files-found: ignore
 
   browser-engines:
+    if: fromJSON(inputs.plan).engines
     strategy:
       fail-fast: false
       matrix:
@@ -194,3 +196,19 @@ jobs:
           name: engine-failure-${{ matrix.engine }}
           path: workbench/test-results/
           if-no-files-found: ignore
+
+  workbench-gate:
+    needs: [test-and-build, browser-host, native-lifecycle, browser-engines]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: workbench/.nvmrc
+      - run: node .github/ci/gate.mjs
+        env:
+          PLAN: ${{ inputs.plan }}
+          RESULTS: ${{ toJSON(needs) }}
+          GROUPS: '{"test-and-build":["static","core","demo"],"browser-host":["browser"],"native-lifecycle":["native"],"browser-engines":["engines"]}'

@@ -2,8 +2,7 @@
 
 ### Event-driven live views
 
-[![ZooGlass CI](https://github.com/sproates/zooglass/actions/workflows/zooglass.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/zooglass.yml)
-[![Workbench CI](https://github.com/sproates/zooglass/actions/workflows/workbench.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/workbench.yml)
+[![Validation](https://github.com/sproates/zooglass/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/ci.yml)
 
 Applications often need a live view built from updates owned by several independent systems.
 

@@ -1,0 +1,71 @@
+name: Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      plan: ${{ steps.select.outputs.plan }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: workbench/.nvmrc
+      - run: node --test .github/ci/*.test.mjs
+      - id: select
+        run: node .github/ci/select.mjs
+      - run: node .github/ci/docs.mjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: validation-plan
+          path: validation-plan.json
+
+  java:
+    needs: select
+    if: fromJSON(needs.select.outputs.plan).java
+    uses: ./.github/workflows/zooglass.yml
+
+  workbench:
+    needs: select
+    if: >-
+      fromJSON(needs.select.outputs.plan).static || fromJSON(needs.select.outputs.plan).core ||
+      fromJSON(needs.select.outputs.plan).demo || fromJSON(needs.select.outputs.plan).browser ||
+      fromJSON(needs.select.outputs.plan).native || fromJSON(needs.select.outputs.plan).engines
+    uses: ./.github/workflows/workbench.yml
+    with:
+      plan: ${{ needs.select.outputs.plan }}
+
+  validation-gate:
+    needs: [select, java, workbench]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: workbench/.nvmrc
+      - name: Require successful selection
+        env:
+          SELECTION: ${{ needs.select.result }}
+        run: test "$SELECTION" = success
+      - run: node .github/ci/gate.mjs
+        env:
+          PLAN: ${{ needs.select.outputs.plan }}
+          RESULTS: ${{ toJSON(needs) }}
+          GROUPS: '{"java":["java"],"workbench":["static","core","demo","browser","native","engines"]}'

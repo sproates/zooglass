@@ -28,7 +28,56 @@ identity, definition additions without backfill and exclusive ownership.
 `SqliteFailureTests` injects a SQL failure after the stream row is written but
 before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
-state corruption. Abrupt process termination remains a separate acceptance slice.
+state corruption.
+
+### Abrupt process termination
+
+`SqliteCrashRecoveryTests` launches the actual service in a child JVM, publishes
+over WebSocket, force-kills it and starts a new service against the same database.
+HTTP snapshots are checked before any republishing.
+
+| Kill boundary | Expected recovery |
+| --- | --- |
+| After writing the stream row, before the view rows | Previous views, identities and retention floor. |
+| After writing all rows, before commit | Previous state, with the interrupted publication still admissible. |
+| After commit, before memory installation or acknowledgement | New state; retry returns the original committed version. |
+| After the source receives its committed acknowledgement | New state; retry remains a duplicate. |
+
+Every case then sends a delayed publication, a conflicting retry and a new update.
+Latest values must not regress; history and arrival views must retain their own
+semantics. This checks restored strategy state as well as database contents.
+
+The test-only JDBC wrapper delegates to the real SQLite driver and signals exact
+boundaries to the parent. The parent waits for that signal before killing, rather
+than relying on sleeps. For the unacknowledged cases, it also waits for socket
+closure and verifies that no reply was received.
+
+```mermaid
+flowchart TB
+  test["SqliteCrashRecoveryTests"]
+  process["CrashServiceProcess<br/>Launch, wait for markers, force-kill"]
+  child["CrashTestService<br/>Real Spring application in a child JVM"]
+  driver["CrashBoundaryDriver<br/>Pause around real SQLite calls"]
+  client["PublicationTestClient<br/>Real source WebSocket"]
+  test -->|owns process lifecycle| process
+  process -->|starts from compiled test classpath| child
+  child -->|registers test-only instrumentation| driver
+  test -->|publishes and checks acknowledgements| client
+  client -->|sends publications to child service| child
+```
+
+The child uses compiled classes and dependencies; tests never launch Maven.
+Timeouts and cleanup bound child lifetimes. The instrumentation lives entirely
+under `src/test` and is absent from the application JAR. These are process-crash
+checks, not power-loss or faulty-filesystem tests. Child JVM execution is not
+included in the parent JVM's JaCoCo report; the acceptance assertions provide
+separate evidence.
+
+Run just these checks from `zooglass`:
+
+```sh
+./mvnw --batch-mode -Dtest=SqliteCrashRecoveryTests test
+```
 
 ## Field-update strategies
 

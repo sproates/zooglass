@@ -7,17 +7,18 @@ arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: durable state and restart recovery
+## Next: relationships and multi-source conflict strategies
 
-Exercise abrupt process termination around SQLite commits and source
-acknowledgements. Verify that recovery retains committed views and recognises
-retries without applying them again.
+Map source-specific keys to the same entity, then retain independent source
+contributions and select them through configured priority rules. Unknown or
+ambiguous mappings must have explicit outcomes.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)
 adds explicit publication identities and retry outcomes. Optional
 [SQLite storage](zooglass/docs/sqlite-storage.md) now restores these identities and
-views after an orderly service restart.
+views after restart. Automated process-crash checks cover partial writes and
+commit/acknowledgement boundaries.
 
 The [accepted strategy design](docs/design/strategy-modules.md) sets out the
 module responsibilities. The [behaviour contracts](docs/design/behaviour-contracts.md)

@@ -1,8 +1,11 @@
 # Behaviour contracts and safe combinations
 
 Companion to [strategy modules](strategy-modules.md). These are selected design
-choices for review. They distinguish the compatibility-preserving first slice
-from the richer contracts introduced afterwards.
+choices. They distinguish the compatibility-preserving first slice
+from the richer contracts introduced afterwards. The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md)
+describes the implemented memory subset: identity, bounded retention, source
+outcomes and HTTP snapshots. Durable recovery and the other contracts below
+remain subsequent delivery work.
 
 ## Compatibility and configuration lifecycle
 

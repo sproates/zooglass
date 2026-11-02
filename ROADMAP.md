@@ -1,17 +1,22 @@
 # ZooGlass roadmap
 
-Last reviewed: 30 October 2026.
+Last reviewed: 2 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: configurable strategy modules
+## Next: durable state and restart recovery
 
-Start by extracting the existing arrival-replacement, latest-by-sequence and
-history-by-sequence policies into named modules. View configuration will select
-the implementation used at runtime, preserving existing behaviour.
+Carry publication identities and view state across a ZooGlass restart, using a
+single-instance SQLite store. Verify that acknowledgement, retained identity and
+view updates share one transaction.
+
+Arrival, latest-by-sequence and history-by-sequence already have named strategy
+modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)
+adds explicit publication identities and retry outcomes as the foundation for
+durable recovery.
 
 The [accepted strategy design](docs/design/strategy-modules.md) sets out the
 module responsibilities. The [behaviour contracts](docs/design/behaviour-contracts.md)

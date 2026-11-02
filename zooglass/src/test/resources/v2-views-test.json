@@ -1,0 +1,13 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 5,
+  "identityWindow": 10,
+  "maxHistoryEntries": 3,
+  "sources": [{"id": "fleet", "epoch": "trip-1"}],
+  "views": [
+    {"id": "latest", "fields": {"position": {"sourceId": "fleet", "type": "position", "mode": "latestBySequence"}}},
+    {"id": "history", "fields": {"position": {"sourceId": "fleet", "type": "position", "mode": "historyBySequence"}}},
+    {"id": "arrival", "fields": {"position": {"sourceId": "fleet", "type": "position", "mode": "arrival"}}}
+  ]
+}

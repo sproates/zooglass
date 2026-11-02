@@ -132,6 +132,53 @@ policy. [`ViewSnapshot.java`](../src/main/java/io/zooglass/ViewSnapshot.java)
 is the snapshot representation used by the store, HTTP controller and broadcaster;
 the store copies values before returning them.
 
+## Versioned publication path
+
+The `v2/` package provides a separate identity-aware memory path. It reuses the
+update strategies above, while keeping v2 state and endpoints separate from the
+legacy demo APIs. See the [ingestion guide](v2-ingestion.md) for configuration and
+wire examples.
+
+Each box below is a file in
+[`src/main/java/io/zooglass/v2/`](../src/main/java/io/zooglass/v2/), except the
+shared strategy selector.
+
+```mermaid
+flowchart TB
+  endpoints["V2Endpoints.java<br/>HTTP snapshots and socket registration"]
+  ingress["EventIngress.java<br/>Source messages and acknowledgements"]
+  parser["PublicationJson.java<br/>Strict parsing and canonical comparison"]
+  publication["Publication.java<br/>Envelope and stream key"]
+  outcome["PublicationOutcome.java<br/>Structured source result"]
+  coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
+  config["V2Configuration.java<br/>Validate startup definitions"]
+  bound["BoundView.java<br/>Immutable field bindings"]
+  state["InMemoryState.java<br/>Installed state and identity receipts"]
+  selection["strategy/update/FieldStrategySelection.java"]
+
+  endpoints -->|registers at /v2/events| ingress
+  endpoints -->|reads detached snapshots| coordinator
+  ingress -->|parses input| parser
+  parser -.->|constructs| publication
+  ingress -->|applies publication| coordinator
+  ingress -.->|serialises| outcome
+  coordinator -->|loads definitions and limits| config
+  coordinator -->|compares retained content| parser
+  coordinator -->|evaluates affected fields| bound
+  coordinator -->|reads and atomically replaces image| state
+  coordinator -.->|returns| outcome
+  bound -->|binds configured update strategy| selection
+```
+
+`ViewCoordinator` serialises admission, staging and snapshot reads under one
+monitor. It prepares all view changes and retained identity records before
+installing one complete image in `InMemoryState`. `BoundView` holds configuration
+and strategy bindings, never entity state.
+
+`EventIngress` sends the outcome after leaving the coordinator's monitor. A
+transport failure cannot undo applied state; a retry can recover the retained
+result. There are no v2 live-subscription writers in this increment.
+
 ## Suggested reading paths
 
 For an incoming event, read `EventLoggingWebSocketHandler.java`,
@@ -140,7 +187,10 @@ delivery, start with `LiveViewWebSocketHandler.java`, then the broadcaster,
 subscription index and outbound writer. For view definitions, start with
 `ViewController.java`, then the store and `ViewDefinitions.java`.
 
-This map covers all 19 production Java files. It describes the current in-memory
+For v2 ingestion, start with `v2/EventIngress.java`, then `PublicationJson.java`,
+`ViewCoordinator.java`, `BoundView.java` and `InMemoryState.java`.
+
+This map covers all 28 production Java files. It describes the current in-memory
 prototype; it does not imply persistent storage, replay or authorisation features.
 Tests are described in the [verification map](../../docs/testing.md). For the
 clients and orchestration around the service, see the

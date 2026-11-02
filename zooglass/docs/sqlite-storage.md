@@ -69,5 +69,9 @@ and [local-host WAL requirements](https://sqlite.org/wal.html).
 Tests cover orderly service restart through real HTTP/WebSocket endpoints,
 retained retries and floors, delayed events, conflicting startup definitions,
 exclusive ownership, corrupted state and rollback after a partial transaction.
-Process termination at commit and acknowledgement boundaries is the next
-acceptance slice. Storage guarantees depend on functioning filesystem sync.
+Force-kill tests also cover partial writes, the boundary before commit, the
+boundary after commit but before acknowledgement, and termination after the
+acknowledgement is received. Each restarts the actual service and checks snapshots
+and retries. See the [verification guide](../../docs/testing.md#abrupt-process-termination).
+Storage guarantees still depend on functioning filesystem sync; these tests do
+not simulate power loss or defective hardware.

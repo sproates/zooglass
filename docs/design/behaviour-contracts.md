@@ -5,8 +5,8 @@ choices. They distinguish the compatibility-preserving first slice
 from the richer contracts introduced afterwards. The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md)
 describes the implemented subset: identity, bounded retention, source outcomes
 and HTTP snapshots, with memory or [SQLite storage](../../zooglass/docs/sqlite-storage.md).
-Orderly restart is covered; process-crash acceptance and the other contracts below
-remain subsequent delivery work.
+Orderly restart and process-crash acceptance are covered. The other contracts
+below remain subsequent delivery work.
 
 ## Compatibility and configuration lifecycle
 

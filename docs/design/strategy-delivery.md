@@ -160,4 +160,5 @@ ambiguous configuration.
 
 The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md) documents the current
 identity baseline, including SQLite storage and orderly restart recovery.
-Process-crash acceptance and v2 live delivery remain separate increments.
+Process-crash acceptance now covers partial writes and commit/acknowledgement
+boundaries. V2 live delivery remains a subsequent increment.

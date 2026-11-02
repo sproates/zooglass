@@ -4,7 +4,7 @@ The [source map](docs/source-map.md) explains the source files, their responsibi
 and how they depend on each other. Start there when reading the implementation.
 
 The opt-in [v2 ingestion API](docs/v2-ingestion.md) adds publication identities,
-retry outcomes and atomic in-memory views. The APIs below are the legacy contract
+retry outcomes and atomic views, with optional [SQLite recovery](docs/sqlite-storage.md). The APIs below are the legacy contract
 used by the current demos.
 
 ## Run locally

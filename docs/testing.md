@@ -19,6 +19,17 @@ floors, independent entities, concurrent retries, detached snapshots and process
 failures. A lost-acknowledgement test checks that retrying does not repeat effects.
 Capacity failures leave both projected state and identity admission unchanged.
 
+`SqliteServiceRestartTests` starts and closes the actual service twice against one
+database. HTTP snapshots recover before new input, and source socket retries
+receive the original committed version.
+
+`SqliteRecoveryTests` covers retention, delayed updates after restart, source
+identity, definition additions without backfill and exclusive ownership.
+`SqliteFailureTests` injects a SQL failure after the stream row is written but
+before the views complete. It verifies rollback, unavailable reads/writes, DOWN
+health and successful recovery. Startup tests reject schema, configuration and
+state corruption. Abrupt process termination remains a separate acceptance slice.
+
 ## Field-update strategies
 
 `ViewStoreAtomicityTests` injects failures during later field evaluation and

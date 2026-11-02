@@ -10,11 +10,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.WebSocket;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
+import static io.zooglass.v2.IdentityFixtures.envelope;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -22,14 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class V2FunctionalTests {
     @LocalServerPort
     private int port;
-    private final JsonMapper json = new JsonMapper();
+    private static final JsonMapper JSON = new JsonMapper();
 
     @Test
     void sourceReconnectRetryAndConflictsHaveExplicitOutcomesAndConsistentSnapshots() throws Exception {
         try (var http = HttpClient.newHttpClient()) {
             assertThat(read(http, "/v2/views/latest/car").path("data").isEmpty()).isTrue();
             long receipt;
-            try (var source = new Source(http)) {
+            try (var source = new PublicationTestClient(http, port)) {
                 assertThat(source.send("{}").path("reason").asText()).isEqualTo("invalidEnvelope");
                 assertThat(source.send(envelope(40, "{\"value\":40}")).path("status").asText()).isEqualTo("applied");
                 source.send(envelope(42, "{\"value\":42}"));
@@ -38,7 +35,7 @@ class V2FunctionalTests {
                 assertThat(late.path("changedViews")).extracting(JsonNode::asText).containsExactly("history", "arrival");
             }
             JsonNode before = read(http, "/v2/views/arrival/car");
-            try (var reconnected = new Source(http)) {
+            try (var reconnected = new PublicationTestClient(http, port)) {
                 JsonNode retry = reconnected.send(envelope(41, "{\"b\":2.0,\"a\":1.00}"));
                 assertThat(retry.path("status").asText()).isEqualTo("duplicate");
                 assertThat(retry.path("version").longValue()).isEqualTo(receipt);
@@ -56,13 +53,6 @@ class V2FunctionalTests {
         }
     }
 
-    private String envelope(int sequence, String payload) {
-        return """
-                {"sourceId":"fleet","epoch":"trip-1","sourceEntityId":"car",
-                 "publicationSequence":%d,"type":"position","payload":%s}
-                """.formatted(sequence, payload);
-    }
-
     private URI url(String path) {
         return URI.create("http://localhost:" + port + path);
     }
@@ -70,42 +60,7 @@ class V2FunctionalTests {
     private JsonNode read(HttpClient http, String path) throws Exception {
         var reply = http.send(HttpRequest.newBuilder(url(path)).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertThat(reply.statusCode()).isEqualTo(200);
-        return json.readTree(reply.body());
+        return JSON.readTree(reply.body());
     }
 
-    private final class Source implements AutoCloseable {
-        private final LinkedBlockingQueue<String> replies = new LinkedBlockingQueue<>();
-        private final WebSocket socket;
-
-        Source(HttpClient http) {
-            socket = http.newWebSocketBuilder().buildAsync(URI.create("ws://localhost:" + port + "/v2/events"),
-                    new WebSocket.Listener() {
-                        private final StringBuilder pending = new StringBuilder();
-
-                        @Override
-                        public void onOpen(WebSocket connection) { connection.request(1); }
-
-                        @Override
-                        public CompletionStage<?> onText(WebSocket connection, CharSequence text, boolean last) {
-                            pending.append(text);
-                            if (last) {
-                                replies.add(pending.toString());
-                                pending.setLength(0);
-                            }
-                            connection.request(1);
-                            return null;
-                        }
-                    }).join();
-        }
-
-        JsonNode send(String text) throws InterruptedException {
-            socket.sendText(text, true).join();
-            String reply = replies.poll(5, TimeUnit.SECONDS);
-            assertThat(reply).isNotNull();
-            return json.readTree(reply);
-        }
-
-        @Override
-        public void close() { socket.abort(); }
-    }
 }

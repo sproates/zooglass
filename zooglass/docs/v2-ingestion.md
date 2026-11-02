@@ -4,7 +4,7 @@ The v2 API gives each publication an identity. A source can retry after losing a
 acknowledgement without applying the same event twice. Reusing that identity for
 different content is rejected.
 
-This first implementation stores state in memory. It supports startup-defined
+The API supports memory or [SQLite storage](sqlite-storage.md), startup-defined
 views, source acknowledgements and HTTP snapshots. The existing demo APIs remain
 separate and unchanged.
 
@@ -84,6 +84,7 @@ A successful response looks like:
 | Status | Meaning |
 | --- | --- |
 | `applied` | Identity and all affected views were installed together in memory. |
+| `committed` | Identity and all affected views were committed together to SQLite. |
 | `duplicate` | The retained identity has the same type and content. No state changes. |
 | `rejected` | Invalid envelope, unknown source/epoch, conflicting identity, expired identity or capacity limit. No state changes. |
 | `failed` | Processing failed. Retry the same publication; the response does not claim successful application. |
@@ -129,11 +130,10 @@ publications are rejected, even after their identity records have been discarded
 publication, leaving views, identities and retention floors unchanged. History is
 not silently truncated. These are count limits, not a total byte-memory quota.
 
-A source can lose its acknowledgement after application. Retrying recovers a
-duplicate result while the identity remains retained. This is not durable
-acknowledgement: restarting ZooGlass loses all v2 state and starts a fresh memory
-run.
+A source can lose its acknowledgement after application or commit. Retrying recovers a
+duplicate result while the identity remains retained. In memory mode, this is not durable
+acknowledgement: restarting ZooGlass starts a fresh memory run. SQLite mode
+retains state and identities across restart; see the [storage guide](sqlite-storage.md).
 
-Persistent storage, v2 live subscriptions, runtime definitions and fact revisions
-follow in later increments. See the [accepted contracts](../../docs/design/behaviour-contracts.md)
+V2 live subscriptions, runtime definitions and fact revisions follow in later increments. See the [accepted contracts](../../docs/design/behaviour-contracts.md)
 for the wider design.

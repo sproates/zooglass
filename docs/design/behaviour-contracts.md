@@ -114,6 +114,11 @@ Selection constructs `LatestBySequence` for each source's retained contribution,
 `SourcePriority` for the visible field and `ReceiptAgeFreshness` for its metadata.
 This is a composable set of named modules, not one module with every concern.
 
+The [relationship and source-priority design](relationships-and-conflicts.md)
+proposes the concrete configuration, per-view mapping outcomes and persistence
+migration for the next increment. Its examples replace the illustrative fragment
+above for that implementation, while retaining the source-isolation rules here.
+
 ## Compatibility rules
 
 | Combination | Decision and observable result |

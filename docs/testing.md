@@ -9,6 +9,11 @@ that every event ordering is correct, or that the service is production ready.
 
 ## Field-update strategies
 
+`ViewStoreAtomicityTests` injects failures during later field evaluation and
+snapshot preparation. It checks that all views retain their prior state, new
+entities remain absent and a subsequent retry succeeds. All four cases fail
+against the earlier incremental installation and pass with staged updates.
+
 `SharedSourceStrategyTests` publishes one feed through `/events` and observes
 latest/history subscriptions through `/views/live`. It checks startup and HTTP
 registration, intermediate delayed-event results, duplicate/conflicting sequences,

@@ -204,6 +204,11 @@ registration. These modules live in `strategy/update/`; they evaluate values
 without mutating inputs or retaining entity state. The store installs their
 replacement under its lock.
 
+One input is staged across all affected fields and views before any replacement
+is installed. If evaluation or snapshot preparation fails, existing values remain
+unchanged and no partial entity is created. This is in-memory atomicity, not
+persistence across a service restart.
+
 Startup definitions are validated before registration. Runtime definitions still
 validate before checking for a duplicate ID. Ordering, first-accepted equal
 sequences, changed-view notifications and defensive snapshot copies retain their

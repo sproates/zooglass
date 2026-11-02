@@ -9,6 +9,18 @@ that every event ordering is correct, or that the service is production ready.
 
 ## Field-update strategies
 
+`SharedSourceStrategyTests` publishes one feed through `/events` and observes
+latest/history subscriptions through `/views/live`. It checks startup and HTTP
+registration, intermediate delayed-event results, duplicate/conflicting sequences,
+and entity isolation. HTTP reads confirm the final retained payloads.
+
+A separate marker event follows each tested input group on the same source socket.
+Each subscriber's FIFO marker receipt bounds the preceding updates, so no-update
+assertions use a processing boundary rather than a timed silence. The socket helper
+assembles fragmented messages. Store/reference tests additionally cover field and
+source scope, malformed values and precision boundaries.
+
+
 `FieldStrategyTests` checks concrete selection, unchanged results, exact numeric
 comparison, invalid sequences, equal-sequence conflicts and nested-value ownership.
 It also reuses strategy instances across independent field states.

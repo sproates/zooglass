@@ -99,6 +99,28 @@ If two sources match the same field, they share that sequence space; they aren't
 independently deduplicated by source. Use separate fields for independent sequence
 domains. This is the prototype's current behaviour, not a general conflict policy.
 
+### Update strategy contract
+
+| Configuration for a field | State and live notifications |
+| --- | --- |
+| No ordering entry | Replace on every matching arrival, even when the payload is identical. |
+| `latestBySequence` | Replace and notify only for a greater numeric sequence. |
+| `historyBySequence` | Insert and notify only for a sequence not already in that field's history. |
+
+The sequence strategies require a non-empty `sequenceField`. Unsupported modes,
+missing sequence keys in configuration and ordering entries for undefined fields
+are rejected: startup fails, or `POST /views` returns 400 without registering the
+view. Omit ordering to select arrival replacement; an explicit `arrival` mode is
+not part of the current configuration format.
+
+A registered definition cannot be changed in place. Use a new view ID to choose
+a different strategy; it starts with future events, without replaying prior input.
+
+[Shared-source acceptance tests](src/test/java/io/zooglass/SharedSourceStrategyTests.java)
+check both startup and runtime definitions through real WebSocket subscribers.
+For input 40, 42, 41, duplicate 41, latest stays at 42 while history becomes
+[40, 41, 42]. The duplicate produces no live update in either view.
+
 Trip history is held entirely in memory and grows without a bound, so it is an
 exploration of the view behavior rather than a production retention policy.
 

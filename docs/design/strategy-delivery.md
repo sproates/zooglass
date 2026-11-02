@@ -1,10 +1,17 @@
 # Strategy delivery and verification
 
 Companion to [module shapes](strategy-modules.md) and
-[behaviour contracts](behaviour-contracts.md). The sequence below is the proposed
-implementation order for review. Each slice must leave the existing service and
+[behaviour contracts](behaviour-contracts.md). The sequence below is the accepted
+implementation order. Each slice must leave the existing service and
 demos usable; a capability is advertised only when its implementation and evidence
 are delivered.
+
+## Initial strategy acceptance
+
+The named modules are implemented. The current configuration contract is in the
+[service guide](../../zooglass/README.md#update-strategy-contract). Shared-source
+acceptance now covers live subscribers for startup and runtime definitions; the
+[test guide](../testing.md#field-update-strategies) describes the evidence.
 
 ## A bounded first slice
 

@@ -7,6 +7,18 @@ The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
 that every event ordering is correct, or that the service is production ready.
 
+## Versioned publication ingestion
+
+`V2FunctionalTests` sends publications through the real `/v2/events` socket and
+reads HTTP snapshots. It checks delayed events, reconnect retries, numeric-equivalent
+duplicates, conflicting identities, history-limit rollback and separation from
+legacy views.
+
+The focused v2 tests cover strict parsing, configuration rejection, retention
+floors, independent entities, concurrent retries, detached snapshots and processing
+failures. A lost-acknowledgement test checks that retrying does not repeat effects.
+Capacity failures leave both projected state and identity admission unchanged.
+
 ## Field-update strategies
 
 `ViewStoreAtomicityTests` injects failures during later field evaluation and

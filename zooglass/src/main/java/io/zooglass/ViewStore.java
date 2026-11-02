@@ -1,5 +1,8 @@
 package io.zooglass;
 
+import io.zooglass.strategy.update.FieldStrategySelection;
+import io.zooglass.strategy.update.FieldUpdate;
+import io.zooglass.strategy.update.FieldUpdateStrategy;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,10 +57,11 @@ public class ViewStore {
             ViewConfiguration.Ordering ordering = view.ordering() == null
                     ? null
                     : view.ordering().get(field.getKey());
+            FieldUpdateStrategy strategy = FieldStrategySelection.select(ordering);
             for (ViewConfiguration.EventMatcher matcher : field.getValue()) {
                 targets.add(Map.entry(
                         new EventKey(matcher.sourceId(), matcher.type()),
-                        new FieldTarget(view.id(), field.getKey(), ordering)));
+                        new FieldTarget(view.id(), field.getKey(), strategy)));
             }
         }
 
@@ -77,8 +81,9 @@ public class ViewStore {
             if (newEntity) {
                 viewData = new LinkedHashMap<>();
             }
-            boolean changed = FieldUpdates.apply(viewData, target.fieldName(), target.ordering(), payload);
-            if (changed) {
+            FieldUpdate update = target.strategy().evaluate(viewData.get(target.fieldName()), payload);
+            if (update.changed()) {
+                viewData.put(target.fieldName(), update.replacement());
                 if (newEntity) {
                     entities.put(entityId, viewData);
                 }
@@ -108,6 +113,6 @@ public class ViewStore {
     private record EventKey(String sourceId, String type) {
     }
 
-    private record FieldTarget(String viewId, String fieldName, ViewConfiguration.Ordering ordering) {
+    private record FieldTarget(String viewId, String fieldName, FieldUpdateStrategy strategy) {
     }
 }

@@ -85,15 +85,31 @@ are delegated to smaller classes.
 flowchart TB
   store["ViewStore.java<br/>Register matchers and own entity state"]
   definitions["ViewDefinitions.java<br/>Load and validate definitions"]
-  fields["FieldUpdates.java<br/>Apply one field update policy"]
+  selection["strategy/update/FieldStrategySelection.java<br/>Select once at registration"]
+  strategy["strategy/update/FieldUpdateStrategy.java<br/>Evaluate current and incoming values"]
+  result["strategy/update/FieldUpdate.java<br/>Changed flag and owned replacement"]
+  arrival["strategy/update/ArrivalReplacement.java"]
+  latest["strategy/update/LatestBySequence.java"]
+  history["strategy/update/HistoryBySequence.java"]
+  numbers["strategy/update/SequenceValues.java<br/>Exact numeric comparison"]
   config["ViewConfiguration.java<br/>Definition, matcher and ordering records"]
   snapshot["ViewSnapshot.java<br/>View ID, entity ID and copied data"]
   store -->|loads and validates definitions| definitions
-  store -->|updates matched fields| fields
+  store -->|binds configured strategy| selection
+  store -->|evaluates matched fields| strategy
+  strategy -.->|returns| result
+  selection -->|constructs| arrival
+  selection -->|constructs| latest
+  selection -->|constructs| history
+  arrival -.->|implements| strategy
+  latest -.->|implements| strategy
+  history -.->|implements| strategy
+  latest -->|compares sequences| numbers
+  history -->|orders and deduplicates| numbers
   store -->|returns copied entity state| snapshot
   store -.->|registers definition records| config
   definitions -.->|deserialises and validates records| config
-  fields -.->|uses ordering policy| config
+  selection -.->|reads ordering record| config
 ```
 
 [`ViewDefinitions.java`](../src/main/java/io/zooglass/ViewDefinitions.java) loads
@@ -101,8 +117,13 @@ configuration from the configured resource, defaulting to
 [`src/main/resources/views.json`](../src/main/resources/views.json), and validates
 startup and runtime definitions. It does not own registered state.
 
-[`FieldUpdates.java`](../src/main/java/io/zooglass/FieldUpdates.java) implements
-replacement, latest-by-sequence and history-by-sequence field updates.
+The [`strategy/update/`](../src/main/java/io/zooglass/strategy/update/) package
+contains arrival replacement, latest-by-sequence and history-by-sequence modules.
+`FieldStrategySelection` binds the configured choice once per field. Each strategy
+reads the current value and incoming payload without mutating either, returning
+an owned replacement or an unchanged result. `ViewStore` installs replacements
+under its existing lock; strategy instances hold settings, never entity state.
+
 [`ViewConfiguration.java`](../src/main/java/io/zooglass/ViewConfiguration.java)
 defines the records shared by configuration loading, registration and update
 policy. [`ViewSnapshot.java`](../src/main/java/io/zooglass/ViewSnapshot.java)
@@ -112,12 +133,12 @@ the store copies values before returning them.
 ## Suggested reading paths
 
 For an incoming event, read `EventLoggingWebSocketHandler.java`,
-`LiveViewBroadcaster.java`, `ViewStore.java`, then `FieldUpdates.java`. For client
+`LiveViewBroadcaster.java`, `ViewStore.java`, then the selected module in `strategy/update/`. For client
 delivery, start with `LiveViewWebSocketHandler.java`, then the broadcaster,
 subscription index and outbound writer. For view definitions, start with
 `ViewController.java`, then the store and `ViewDefinitions.java`.
 
-This map covers all 13 production Java files. It describes the current in-memory
+This map covers all 19 production Java files. It describes the current in-memory
 prototype; it does not imply persistent storage, replay or authorisation features.
 Tests are described in the [verification map](../../docs/testing.md). For the
 clients and orchestration around the service, see the

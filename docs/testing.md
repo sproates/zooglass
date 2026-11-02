@@ -7,6 +7,16 @@ The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
 that every event ordering is correct, or that the service is production ready.
 
+## Field-update strategies
+
+`FieldStrategyTests` checks concrete selection, unchanged results, exact numeric
+comparison, invalid sequences, equal-sequence conflicts and nested-value ownership.
+It also reuses strategy instances across independent field states.
+
+`ViewStoreOrderingTests` retains the independent reference model, seeded delivery
+orders and duplicate permutations. Configuration, snapshot ownership and functional
+socket tests exercise the selected modules through the store and service.
+
 ## Reproduce the reports
 
 Use JDK 25 and Node 26, with dependencies installed as described in

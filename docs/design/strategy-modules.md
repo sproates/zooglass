@@ -1,6 +1,7 @@
 # Configurable behaviour through strategy modules
 
-Status: design for review, based on `main` at `3011f6e` (30 October 2026).
+Status: accepted design (PR #100), based on `main` at `3011f6e` (30 October 2026).
+The initial module extraction is implemented; later capabilities remain planned.
 This design chooses how ZooGlass's behaviours are represented, configured and
 executed. It starts with the working ordering policies and gives later source,
 correction and recovery behaviour explicit places to live.
@@ -39,7 +40,7 @@ and existing-test audit, not a new test execution or a coverage-percentage claim
 | Progress and revisions | No source-progress or general fact-revision contract; history retains received payloads. | Existing gap and score fixtures illustrate inputs. Add explicit progress and revision state before claiming those semantics. |
 | Persistence | Definitions and views are held in memory. Sources receive no commit acknowledgement. | Existing prebuilt-service tests check launch isolation, not durable restoration. Introduce a commit boundary before acknowledging durability. |
 
-Relevant current sources are in [the service source map](../../zooglass/docs/source-map.md)
+The baseline above records the pre-extraction code. Current sources are in [the service source map](../../zooglass/docs/source-map.md)
 and tests in [the verification guide](../testing.md). In particular, current numeric
 ordering treats `1` and `1.0` equally, keeps the first payload at an equal sequence,
 ignores missing/non-numeric sequences and allows negative/fractional values. These
@@ -138,9 +139,9 @@ flowchart TB
   broadcaster -->|coordinates update and snapshot delivery| store
 ```
 
-This is the proposed first-slice map. The existing source map continues to describe
-implemented code until these modules land. `FieldUpdates` is then removed once its
-callers use the selected modules; there is no second hidden implementation.
+The initial extraction now follows this shape. See the
+[implemented source map](../../zooglass/docs/source-map.md) for current dependencies.
+`FieldUpdates` has been removed; the selected modules own the behaviour.
 
 ## Later strategy inventory and shapes
 

@@ -134,7 +134,7 @@ the store copies values before returning them.
 
 ## Versioned publication path
 
-The `v2/` package provides a separate identity-aware memory path. It reuses the
+The `v2/` package provides a separate identity-aware path with memory or SQLite storage. It reuses the
 update strategies above, while keeping v2 state and endpoints separate from the
 legacy demo APIs. See the [ingestion guide](v2-ingestion.md) for configuration and
 wire examples.
@@ -153,7 +153,13 @@ flowchart TB
   coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
   config["V2Configuration.java<br/>Validate startup definitions"]
   bound["BoundView.java<br/>Immutable field bindings"]
-  state["InMemoryState.java<br/>Installed state and identity receipts"]
+  store["StateStore.java<br/>Current state and installation boundary"]
+  state["InMemoryState.java<br/>Memory-only installation"]
+  sqlite["SqliteState.java<br/>Commit before memory installation"]
+  rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
+  recovery["RecoveryValidation.java<br/>Definitions and recovered state"]
+  image["StateImage.java<br/>Views, identities and versions"]
+  health["V2StorageHealth.java<br/>Service health status"]
   selection["strategy/update/FieldStrategySelection.java"]
 
   endpoints -->|registers at /v2/events| ingress
@@ -165,15 +171,28 @@ flowchart TB
   coordinator -->|loads definitions and limits| config
   coordinator -->|compares retained content| parser
   coordinator -->|evaluates affected fields| bound
-  coordinator -->|reads and atomically replaces image| state
+  coordinator -->|selects storage at startup| store
+  state -.->|implements| store
+  sqlite -.->|implements| store
+  store -.->|owns installed image| image
+  sqlite -->|loads and saves rows in a transaction| rows
+  rows -->|checks restored state and configuration| recovery
+  health -->|checks storage availability| coordinator
   coordinator -.->|returns| outcome
   bound -->|binds configured update strategy| selection
 ```
 
 `ViewCoordinator` serialises admission, staging and snapshot reads under one
 monitor. It prepares all view changes and retained identity records before
-installing one complete image in `InMemoryState`. `BoundView` holds configuration
-and strategy bindings, never entity state.
+installing one complete `StateImage` through `StateStore`. `InMemoryState` installs
+it directly. `SqliteState` commits changed stream/view rows and the version first,
+then installs the prepared image. `BoundView` holds configuration and strategy
+bindings, never entity state.
+
+`SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
+checks stored definitions and state before the service becomes ready.
+`SqliteState` owns one exclusive connection and closes it on shutdown or storage
+failure. Failed storage blocks reads and writes; `V2StorageHealth` reports DOWN.
 
 `EventIngress` sends the outcome after leaving the coordinator's monitor. A
 transport failure cannot undo applied state; a retry can recover the retained
@@ -188,10 +207,11 @@ subscription index and outbound writer. For view definitions, start with
 `ViewController.java`, then the store and `ViewDefinitions.java`.
 
 For v2 ingestion, start with `v2/EventIngress.java`, then `PublicationJson.java`,
-`ViewCoordinator.java`, `BoundView.java` and `InMemoryState.java`.
+`ViewCoordinator.java`, `BoundView.java` and the selected `StateStore` implementation.
 
-This map covers all 28 production Java files. It describes the current in-memory
-prototype; it does not imply persistent storage, replay or authorisation features.
+This map covers all 34 production Java files. SQLite persistence applies to v2 only;
+legacy endpoints retain their memory-only behaviour. Replay and authorisation
+features are separate delivery work.
 Tests are described in the [verification map](../../docs/testing.md). For the
 clients and orchestration around the service, see the
 [Workbench source map](../../workbench/docs/source-map.md) and

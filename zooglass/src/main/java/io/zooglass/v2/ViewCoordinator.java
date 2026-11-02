@@ -1,10 +1,10 @@
 package io.zooglass.v2;
 
-import io.zooglass.v2.InMemoryState.Image;
-import io.zooglass.v2.InMemoryState.Receipt;
-import io.zooglass.v2.InMemoryState.StoredView;
-import io.zooglass.v2.InMemoryState.StreamState;
-import io.zooglass.v2.InMemoryState.ViewEntity;
+import io.zooglass.v2.StateImage.Receipt;
+import io.zooglass.v2.StateImage.StoredView;
+import io.zooglass.v2.StateImage.StreamState;
+import io.zooglass.v2.StateImage.ViewEntity;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ResourceLoader;
@@ -20,23 +20,28 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-/** Serialises admission, staging and snapshot reads; installs one complete memory state. */
+/** Serialises admission, storage commits and snapshot reads. */
 @Component
-public final class ViewCoordinator {
+public final class ViewCoordinator implements AutoCloseable {
     private final Map<String, String> epochs;
     private final List<BoundView> views;
     private final int maxStreams;
     private final int identityWindow;
     private final int historyLimit;
-    private final InMemoryState storage = new InMemoryState();
+    private final StateStore storage;
 
     @Autowired
     public ViewCoordinator(ResourceLoader resources,
-            @Value("${zooglass.v2.config:classpath:v2-views.json}") String location) {
-        this(V2Configuration.load(resources, location));
+            @Value("${zooglass.v2.config:classpath:v2-views.json}") String location,
+            @Value("${zooglass.v2.database:}") String database) {
+        this(V2Configuration.load(resources, location), database);
     }
 
     ViewCoordinator(V2Configuration configuration) {
+        this(configuration, "");
+    }
+
+    ViewCoordinator(V2Configuration configuration, String database) {
         configuration.validate();
         epochs = new HashMap<>();
         configuration.sources().forEach(source -> epochs.put(source.id(), source.epoch()));
@@ -44,10 +49,12 @@ public final class ViewCoordinator {
         maxStreams = configuration.maxStreams();
         identityWindow = configuration.identityWindow();
         historyLimit = configuration.maxHistoryEntries();
+        storage = configuration.storage().equals("sqlite")
+                ? new SqliteState(database, configuration) : new InMemoryState();
     }
 
     synchronized PublicationOutcome apply(Publication event) {
-        Image state = storage.current();
+        StateImage state = storage.current();
         String epoch = epochs.get(event.sourceId());
 
         if (epoch == null) {
@@ -68,22 +75,24 @@ public final class ViewCoordinator {
         Object content = PublicationJson.content(event.payload());
         Receipt previous = stream == null ? null : stream.receipts().get(event.publicationSequence());
         if (previous != null) {
-            if (!previous.type().equals(event.type()) || !previous.content().equals(content)) {
+            if (!previous.type().equals(event.type())
+                    || !PublicationJson.content(previous.content()).equals(content)) {
                 return rejected(event, "identityConflict");
             }
-            return new PublicationOutcome("duplicate", "alreadyApplied", event.stream(),
+            return new PublicationOutcome("duplicate",
+                    storage.durable() ? "alreadyCommitted" : "alreadyApplied", event.stream(),
                     event.publicationSequence(), previous.version(), List.of());
         }
 
         try {
-            return stageAndInstall(event, stream, content);
+            return stageAndInstall(event, stream);
         } catch (BoundView.CapacityExceeded exception) {
             return rejected(event, "historyLimit");
         }
     }
 
-    private PublicationOutcome stageAndInstall(Publication event, StreamState stream, Object content) {
-        Image state = storage.current();
+    private PublicationOutcome stageAndInstall(Publication event, StreamState stream) {
+        StateImage state = storage.current();
         long version = Math.incrementExact(state.version());
         JsonNode contribution = JsonNodeFactory.instance.objectNode()
                 .put("publicationSequence", event.publicationSequence())
@@ -109,23 +118,25 @@ public final class ViewCoordinator {
             receipts.putAll(stream.receipts());
         }
         receipts.headMap(floor).clear();
-        receipts.put(event.publicationSequence(), new Receipt(event.type(), content, version));
+        receipts.put(event.publicationSequence(), new Receipt(event.type(), event.payload().deepCopy(), version));
         var streams = new HashMap<>(state.streams());
         streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts)));
 
         // Build the response before the one installation point. No staged object escapes.
-        var result = new PublicationOutcome("applied", "memory", event.stream(),
+        var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
+                storage.durable() ? "sqlite" : "memory", event.stream(),
                 event.publicationSequence(), version, List.copyOf(changed));
-        Image next = new Image(version, Map.copyOf(streams), Map.copyOf(candidates));
+        StateImage next = new StateImage(version, Map.copyOf(streams), Map.copyOf(candidates));
         storage.install(next);
         return result;
     }
 
     public synchronized Optional<Snapshot> snapshot(String viewId, String entityId) {
+        StateImage state = storage.current();
         if (views.stream().noneMatch(view -> view.id().equals(viewId))) {
             return Optional.empty();
         }
-        StoredView stored = storage.current().views().get(new ViewEntity(viewId, entityId));
+        StoredView stored = state.views().get(new ViewEntity(viewId, entityId));
         Map<String, JsonNode> copy = new LinkedHashMap<>();
         if (stored != null) {
             stored.data().forEach((key, value) -> copy.put(key, value.deepCopy()));
@@ -136,6 +147,21 @@ public final class ViewCoordinator {
     private PublicationOutcome rejected(Publication event, String reason) {
         return new PublicationOutcome("rejected", reason, event.stream(), event.publicationSequence(),
                 storage.current().version(), List.of());
+    }
+
+    synchronized boolean healthy() {
+        try {
+            storage.current();
+            return true;
+        } catch (IllegalStateException failure) {
+            return false;
+        }
+    }
+
+    @Override
+    @PreDestroy
+    public synchronized void close() {
+        storage.close();
     }
 
     public record Snapshot(String viewId, String entityId, long version, Map<String, JsonNode> data) {}

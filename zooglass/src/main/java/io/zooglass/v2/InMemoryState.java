@@ -1,24 +1,24 @@
 package io.zooglass.v2;
 
-import tools.jackson.databind.JsonNode;
-import java.util.Map;
+/** Owns an installed memory image, with no durability claim. */
+final class InMemoryState implements StateStore {
+    private StateImage current = StateImage.empty();
 
-/** Owns the complete memory image. Only the coordinator reads or replaces it under its lock. */
-final class InMemoryState {
-    private Image current = new Image(0, Map.of(), Map.of());
-
-    Image current() {
+    @Override
+    public StateImage current() {
         return current;
     }
 
-    void install(Image next) {
+    @Override
+    public void install(StateImage next) {
         current = next;
     }
 
-    record ViewEntity(String viewId, String entityId) {}
-    record StoredView(long version, Map<String, JsonNode> data) {}
-    record Receipt(String type, Object content, long version) {}
-    record StreamState(long floor, Map<Long, Receipt> receipts) {}
-    record Image(long version, Map<Publication.StreamKey, StreamState> streams,
-            Map<ViewEntity, StoredView> views) {}
+    @Override
+    public boolean durable() {
+        return false;
+    }
+
+    @Override
+    public void close() {}
 }

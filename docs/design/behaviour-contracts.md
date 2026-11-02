@@ -3,8 +3,9 @@
 Companion to [strategy modules](strategy-modules.md). These are selected design
 choices. They distinguish the compatibility-preserving first slice
 from the richer contracts introduced afterwards. The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md)
-describes the implemented memory subset: identity, bounded retention, source
-outcomes and HTTP snapshots. Durable recovery and the other contracts below
+describes the implemented subset: identity, bounded retention, source outcomes
+and HTTP snapshots, with memory or [SQLite storage](../../zooglass/docs/sqlite-storage.md).
+Orderly restart is covered; process-crash acceptance and the other contracts below
 remain subsequent delivery work.
 
 ## Compatibility and configuration lifecycle

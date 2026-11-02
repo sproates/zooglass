@@ -159,5 +159,5 @@ be reconsidered through a new contract with evidence, rather than accepted as
 ambiguous configuration.
 
 The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md) documents the current
-memory implementation of the identity baseline. SQLite, restart recovery and v2
-live delivery remain separate increments.
+identity baseline, including SQLite storage and orderly restart recovery.
+Process-crash acceptance and v2 live delivery remain separate increments.

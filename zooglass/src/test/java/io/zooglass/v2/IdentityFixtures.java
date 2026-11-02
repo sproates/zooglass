@@ -29,4 +29,12 @@ final class IdentityFixtures {
                  "publicationSequence":%d,"type":"%s","payload":%s}
                 """.formatted(source, epoch, entity, sequence, type, payload));
     }
+    static String envelope(int sequence, String payload) {
+        return """
+                {"sourceId":"fleet","epoch":"trip-1","sourceEntityId":"car",
+                 "publicationSequence":%d,"type":"position","payload":%s}
+                """.formatted(sequence, payload);
+    }
+
+
 }

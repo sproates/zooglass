@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** The first v2 contract supports memory storage and independent single-source fields. */
+/** V2 startup definitions bind storage and independent single-source fields. */
 public record V2Configuration(int contractVersion, String storage, int maxStreams,
         int identityWindow, int maxHistoryEntries, List<Source> sources, List<View> views) {
     private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
@@ -40,8 +40,8 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     }
 
     void validate() {
-        if (contractVersion != 2 || !"memory".equals(storage)) {
-            throw new IllegalArgumentException("This v2 slice requires contractVersion 2 and storage memory");
+        if (contractVersion != 2 || !("memory".equals(storage) || "sqlite".equals(storage))) {
+            throw new IllegalArgumentException("V2 requires contractVersion 2 and storage memory or sqlite");
         }
         if (maxStreams < 1 || identityWindow < 1 || maxHistoryEntries < 1 || sources == null || views == null) {
             throw new IllegalArgumentException("V2 requires positive limits and source/view lists");

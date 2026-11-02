@@ -41,7 +41,7 @@ class ViewStoreAtomicityTests {
 
     @ParameterizedTest(name = "snapshot rollback, existing entity: {0}")
     @ValueSource(booleans = {false, true})
-    void snapshotCopyFailureDoesNotInstallCandidateState(boolean existing) {
+    void laterViewSnapshotFailureDoesNotInstallEarlierViewState(boolean existing) {
         ViewStore store = store();
         if (existing) store.apply("feed", "reading", "entity", original);
 
@@ -49,13 +49,15 @@ class ViewStoreAtomicityTests {
         JsonNode candidate = spy(replacement.deepCopy());
         AtomicInteger snapshotCopies = new AtomicInteger();
         doAnswer(invocation -> {
-            if (snapshotCopies.incrementAndGet() == 1) throw failure;
+            // The single-field view has a complete snapshot before the next view fails.
+            if (snapshotCopies.incrementAndGet() == 2) throw failure;
             return replacement.deepCopy();
         }).when(candidate).deepCopy();
         JsonNode incoming = spy(replacement.deepCopy());
         doAnswer(invocation -> candidate).when(incoming).deepCopy();
 
         assertThatThrownBy(() -> store.apply("feed", "reading", "entity", incoming)).isSameAs(failure);
+        assertThat(snapshotCopies.get()).isEqualTo(2);
         assertUnchanged(store, existing);
         assertRetrySucceeds(store);
     }

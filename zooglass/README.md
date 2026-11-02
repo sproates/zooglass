@@ -176,9 +176,11 @@ boundaries and the remaining behavioural gaps.
 
 `ViewStore` owns matcher registration, entity state and the synchronised access
 boundary. `ViewDefinitions` loads configuration and validates startup/runtime
-definitions without owning registered state. `FieldUpdates` applies arrival,
-latest-sequence and history-sequence policies to a field while the store holds
-its lock; it has no independent state or lifecycle.
+definitions without owning registered state. `FieldStrategySelection` binds each
+field to `ArrivalReplacement`, `LatestBySequence` or `HistoryBySequence` during
+registration. These modules live in `strategy/update/`; they evaluate values
+without mutating inputs or retaining entity state. The store installs their
+replacement under its lock.
 
 Startup definitions are validated before registration. Runtime definitions still
 validate before checking for a duplicate ID. Ordering, first-accepted equal

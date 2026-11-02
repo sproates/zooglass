@@ -73,26 +73,28 @@ public class ViewStore {
 
     public synchronized List<ViewSnapshot> apply(String sourceId, String type, String entityId, JsonNode payload) {
         List<FieldTarget> targets = targetsByEvent.getOrDefault(new EventKey(sourceId, type), List.of());
+        Map<String, Map<String, JsonNode>> stagedViews = new LinkedHashMap<>();
         Set<String> changedViews = new LinkedHashSet<>();
         for (FieldTarget target : targets) {
-            Map<String, Map<String, JsonNode>> entities = dataByView.get(target.viewId());
-            Map<String, JsonNode> viewData = entities.get(entityId);
-            boolean newEntity = viewData == null;
-            if (newEntity) {
-                viewData = new LinkedHashMap<>();
-            }
-            FieldUpdate update = target.strategy().evaluate(viewData.get(target.fieldName()), payload);
+            Map<String, JsonNode> candidate = stagedViews.computeIfAbsent(target.viewId(), viewId ->
+                    new LinkedHashMap<>(dataByView.get(viewId).getOrDefault(entityId, Map.of())));
+            // Strategies never mutate current values; only candidate field bindings change.
+            FieldUpdate update = target.strategy().evaluate(candidate.get(target.fieldName()), payload);
             if (update.changed()) {
-                viewData.put(target.fieldName(), update.replacement());
-                if (newEntity) {
-                    entities.put(entityId, viewData);
-                }
+                candidate.put(target.fieldName(), update.replacement());
                 changedViews.add(target.viewId());
             }
         }
-        return changedViews.stream()
-                .map(viewId -> get(viewId, entityId).orElseThrow())
+
+        // Prepare detached publication results before installing any state. Evaluation
+        // or snapshot-copy failures therefore leave every affected view unchanged.
+        List<ViewSnapshot> snapshots = changedViews.stream()
+                .map(viewId -> snapshot(viewId, entityId, stagedViews.get(viewId)))
                 .toList();
+        for (String viewId : changedViews) {
+            dataByView.get(viewId).put(entityId, stagedViews.get(viewId));
+        }
+        return snapshots;
     }
 
     public synchronized boolean containsView(String viewId) {
@@ -105,9 +107,13 @@ public class ViewStore {
             return Optional.empty();
         }
 
+        return Optional.of(snapshot(viewId, entityId, data));
+    }
+
+    private static ViewSnapshot snapshot(String viewId, String entityId, Map<String, JsonNode> data) {
         Map<String, JsonNode> copy = new LinkedHashMap<>();
         data.forEach((field, value) -> copy.put(field, value.deepCopy()));
-        return Optional.of(new ViewSnapshot(viewId, entityId, copy));
+        return new ViewSnapshot(viewId, entityId, copy);
     }
 
     private record EventKey(String sourceId, String type) {

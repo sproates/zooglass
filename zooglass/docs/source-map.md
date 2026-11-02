@@ -52,7 +52,7 @@ flowchart TB
   live["LiveViewWebSocketHandler.java<br/>Handle client protocol"]
   http["ViewController.java<br/>Define and query views"]
   broadcaster["LiveViewBroadcaster.java<br/>Coordinate projection and delivery"]
-  store["ViewStore.java<br/>Own definitions and entity state"]
+  store["ViewStore.java<br/>Stage updates and own entity state"]
   subscriptions["SubscriptionIndex.java<br/>Index clients by view and entity"]
   writer["OutboundWriter.java<br/>Bounded queue and writer per client"]
   events -->|applies accepted events| broadcaster
@@ -83,7 +83,7 @@ are delegated to smaller classes.
 
 ```mermaid
 flowchart TB
-  store["ViewStore.java<br/>Register matchers and own entity state"]
+  store["ViewStore.java<br/>Register matchers; stage then install state"]
   definitions["ViewDefinitions.java<br/>Load and validate definitions"]
   selection["strategy/update/FieldStrategySelection.java<br/>Select once at registration"]
   strategy["strategy/update/FieldUpdateStrategy.java<br/>Evaluate current and incoming values"]
@@ -106,7 +106,7 @@ flowchart TB
   history -.->|implements| strategy
   latest -->|compares sequences| numbers
   history -->|orders and deduplicates| numbers
-  store -->|returns copied entity state| snapshot
+  store -->|prepares detached results before installation| snapshot
   store -.->|registers definition records| config
   definitions -.->|deserialises and validates records| config
   selection -.->|reads ordering record| config
@@ -122,7 +122,9 @@ contains arrival replacement, latest-by-sequence and history-by-sequence modules
 `FieldStrategySelection` binds the configured choice once per field. Each strategy
 reads the current value and incoming payload without mutating either, returning
 an owned replacement or an unchanged result. `ViewStore` installs replacements
-under its existing lock; strategy instances hold settings, never entity state.
+under its existing lock, after all affected fields and result snapshots have been
+prepared successfully. An evaluation or snapshot-copy failure installs nothing.
+Strategy instances hold settings, never entity state.
 
 [`ViewConfiguration.java`](../src/main/java/io/zooglass/ViewConfiguration.java)
 defines the records shared by configuration loading, registration and update

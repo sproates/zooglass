@@ -48,7 +48,7 @@ that fails for that bug before the fix.
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |
 | 1. Named update modules | The first slice above; configuration demonstrably chooses executable modules. | One implementation PR. |
-| 2. Identity and durable baseline | Add explicit v2 source identity/outcomes and coordinator staging, then the local transactional state store and restart evidence. Persist the existing policies before adding many new kinds of state. | Separate ingress/state-ownership, SQLite/recovery, and acceptance changes as needed; design details stay within the agreed contracts. |
+| 2. Identity and durable baseline | Stage in-memory view updates first, then add explicit v2 source identity/outcomes and the local transactional state store with restart evidence. Persist the existing policies before adding many new kinds of state. | Separate ingress/state-ownership, SQLite/recovery, and acceptance changes as needed; design details stay within the agreed contracts. |
 | 3. Relationships and conflict | Explicit lookup keys, independently retained source candidates and priority selection. | Mapping/rejection, then contribution selection and combined tests. No retroactive mapping or arbitrary joins. |
 | 4. Progress and freshness | Scoped contiguous progress and gap metadata, late-policy selection, receipt-age and partial publication. | Progress/gaps first; freshness/publication separately. No event-time window engine. |
 | 5. Retained fact corrections | Stable fact revisions/tombstones and bounded active-fact sum with retirement. | Fact revision first; derived correction and retention acceptance separately. No arbitrary recomputation graph. |

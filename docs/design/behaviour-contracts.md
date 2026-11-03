@@ -97,22 +97,23 @@ explicit limit outcome rather than silently losing required metadata.
 | Slow client | `disconnectOnOverflow`, `coalesceLatestState` | Disconnect at configured message/byte bounds. Coalescing only for full current-state snapshots, never ordered deltas/control responses. |
 | Storage | `memory`, `sqlite` | Explicit runtime choice; memory acknowledgements say applied, durable acknowledgements say committed. |
 
-Illustrative v2 field fragment, separate from today's accepted JSON:
+### Configuration grammar and delivery scope
 
-```json
-{
-  "name": "deliveryStatus",
-  "inputs": ["courier-primary.status", "courier-backup.status"],
-  "update": { "mode": "latestBySequence" },
-  "conflict": { "mode": "sourcePriority", "sources": ["courier-primary", "courier-backup"] },
-  "freshness": { "mode": "receiptAge", "staleAfterMs": 10000 }
-}
-```
+The [canonical field grammar](relationships-and-conflicts.md#canonical-field-grammar)
+in the relationship design is the sole proposed grammar for that increment.
+It uses object inputs and a flat field-level `mode`, while retaining the existing
+single-source shorthand. The earlier string-input, nested-`update` illustration
+has been removed; it was not a second accepted configuration format.
 
-The enclosing source registry supplies identity/sequence contracts and bounds.
-Selection constructs `LatestBySequence` for each source's retained contribution,
-`SourcePriority` for the visible field and `ReceiptAgeFreshness` for its metadata.
-This is a composable set of named modules, not one module with every concern.
+The strategy choices above describe the wider design, not features all available
+in one increment. Receipt-age freshness remains planned, but `freshness` is
+unsupported and rejected by the relationship/priority increment. Its later
+configuration contract must be defined explicitly before implementation.
+
+The enclosing source registry still supplies identity/sequence contracts and
+bounds. Selection binds an update module per input and a contribution selector
+per field. Later freshness support will bind its own module, preserving that
+separation of responsibilities.
 
 ## Compatibility rules
 

@@ -146,7 +146,8 @@ The initial extraction now follows this shape. See the
 ## Later strategy inventory and shapes
 
 These are concrete responsibilities for subsequent slices, not files to create
-empty in the first PR. The contracts specify the supported combinations.
+empty in the first PR. The [relationship and source-priority design](relationships-and-conflicts.md)
+refines the identity/contribution module shapes and configuration for review. The contracts specify the supported combinations.
 
 | Group and modules | Input → output | State owner |
 | --- | --- | --- |

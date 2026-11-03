@@ -11,7 +11,9 @@ and demonstrates the application work they remove.
 
 Map source-specific keys to the same entity, then retain independent source
 contributions and select them through configured priority rules. Unknown or
-ambiguous mappings must have explicit outcomes.
+ambiguous mappings must have explicit outcomes. The
+[relationship design](docs/design/relationships-and-conflicts.md) sets out the
+proposed configuration and two implementation slices.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

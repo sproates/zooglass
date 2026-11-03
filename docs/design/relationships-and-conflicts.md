@@ -71,6 +71,50 @@ One input defaults to `independentFields`; an explicit conflict setting with tha
 mode is equivalent. Multiple inputs require `sourcePriority`. Each source may
 appear only once in a field's inputs, with one event type.
 
+### Canonical field grammar
+
+This document is the single field-grammar reference for the relationship and
+source-priority increment. Its expanded form uses an `inputs` array of objects
+with `sourceId` and `type`, a required field-level `mode`, and an optional
+`conflict` object. The enclosing `fields` map key supplies the field name.
+
+For compatibility, the existing single-source shorthand remains accepted and
+normalises to the expanded form. These definitions are equivalent:
+
+```json
+{
+  "sourceId": "payments",
+  "type": "payment.updated",
+  "mode": "latestBySequence"
+}
+```
+
+```json
+{
+  "inputs": [{"sourceId": "payments", "type": "payment.updated"}],
+  "mode": "latestBySequence",
+  "conflict": {"mode": "independentFields"}
+}
+```
+
+The earlier illustrative fragment in `behaviour-contracts.md` is superseded:
+
+| Earlier notation | Decision for this increment |
+| --- | --- |
+| String inputs such as `"courier-primary.status"` | Rejected. Use objects with explicit `sourceId` and `type`. |
+| Nested `update.mode` | Rejected. Use the field-level `mode`. |
+| A field's own `name` property | Rejected. Use its key in the `fields` map. |
+| `freshness` | Rejected as unsupported in this increment. It is not silently ignored. |
+
+Receipt-age freshness remains part of the accepted later capability design.
+Its configuration grammar will be specified when that capability is implemented;
+the old illustrative `freshness` fragment is not an alternative supported grammar.
+Omitting it makes no freshness claim and does not enable priority fallback.
+
+Unknown field properties remain startup errors. For `independentFields`,
+`conflict` contains only `mode`; for `sourcePriority`, it also requires
+`sources`. Input objects contain only `sourceId` and `type`.
+
 ## Entity resolution
 
 Resolution belongs to a view and source. The same publication can map to

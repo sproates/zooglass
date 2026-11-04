@@ -28,6 +28,28 @@ class RequiredPublicationConfigurationTests {
     }
 
     @Test
+    void explicitNullDoesNotSelectPartialPublication() {
+        assertThatThrownBy(() -> load("null")).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void defaultPolicyKeepsThePreviousStoredViewFormat() throws Exception {
+        var config = RequiredContributionTests.configuration("sqlite");
+        var database = directory.resolve("storage.db");
+        try (var runtime = new ViewCoordinator(config, database.toString())) {
+            runtime.apply(RequiredContributionTests.report("orders", "A", 1));
+        }
+        try (var connection = java.sql.DriverManager.getConnection("jdbc:sqlite:" + database);
+                var query = connection.createStatement();
+                var row = query.executeQuery("SELECT configuration FROM runtime WHERE id=1")) {
+            assertThat(row.next()).isTrue();
+            var views = json.readTree(row.getString(1)).get("views");
+            assertThat(views.get(0).has("publication")).isFalse();
+            assertThat(views.get(1).at("/publication/mode").asText()).isEqualTo("requireContributions");
+        }
+    }
+
+    @Test
     void rejectsUnknownFieldsDuplicatesAndMalformedLimits() {
         var valid = """
                 {"mode":"requireContributions","fields":["order"],"maxPendingEntities":2}

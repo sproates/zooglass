@@ -55,6 +55,7 @@ Receipt-age freshness remains a future slice.
 ## Wait for required fields
 
 By default a view uses `{"mode":"publishPartial"}` and exposes each field as it arrives.
+Omit the policy to use that default. An explicit `"publication": null` fails startup.
 To hold values until both order and payment have contributed, add this property to the view:
 
 ```json

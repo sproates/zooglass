@@ -54,7 +54,8 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         }
     }
 
-    public record View(String id, Map<String, Field> fields, Map<String, Entity> entities, Exposure publication) {
+    public record View(String id, Map<String, Field> fields, Map<String, Entity> entities,
+            Exposure publication) {
         public View(String id, Map<String, Field> fields, Map<String, Entity> entities) {
             this(id, fields, entities, null);
         }
@@ -141,7 +142,7 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
         try (var input = resources.getResource(location).getInputStream()) {
-            V2Configuration config = mapper.readValue(input, V2Configuration.class);
+            V2Configuration config = decode(mapper, mapper.readTree(input));
             if (config == null) {
                 throw new IllegalArgumentException("Missing v2 configuration");
             }
@@ -150,6 +151,15 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         } catch (java.io.IOException exception) {
             throw new IllegalStateException("Cannot load v2 configuration: " + location, exception);
         }
+    }
+
+    static V2Configuration decode(JsonMapper mapper, tools.jackson.databind.JsonNode document) {
+        for (var view : document.path("views")) {
+            if (view.path("publication").isNull()) {
+                throw new IllegalArgumentException("publication must be a policy object when supplied");
+            }
+        }
+        return mapper.treeToValue(document, V2Configuration.class);
     }
 
     void validate() {

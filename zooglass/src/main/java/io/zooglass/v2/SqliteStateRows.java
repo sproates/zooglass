@@ -7,6 +7,7 @@ import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.type.LogicalType;
 import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.cfg.CoercionAction;
@@ -55,7 +56,7 @@ final class SqliteStateRows {
                 var metadata = statement.executeQuery("SELECT version, configuration FROM runtime WHERE id=1")) {
             if (metadata.next()) {
                 version = metadata.getLong(1);
-                var previous = JSON.readValue(metadata.getString(2), V2Configuration.class);
+                var previous = V2Configuration.decode(JSON, JSON.readTree(metadata.getString(2)));
                 RecoveryValidation.configuration(previous, configuration);
             } else if (!fresh) {
                 throw new SQLException("Missing runtime metadata");
@@ -91,7 +92,7 @@ final class SqliteStateRows {
         try (var update = connection.prepareStatement(
                 "INSERT OR REPLACE INTO runtime(id, version, configuration) VALUES(1, ?, ?)")) {
             update.setLong(1, version);
-            update.setString(2, JSON.writeValueAsString(configuration));
+            update.setString(2, encodeConfiguration(configuration));
             update.executeUpdate();
         }
         if (schema > 0 && schema < SCHEMA_VERSION) {
@@ -102,6 +103,17 @@ final class SqliteStateRows {
             }
         }
         return restored;
+    }
+
+    private static String encodeConfiguration(V2Configuration configuration) {
+        var document = (ObjectNode) JSON.valueToTree(configuration);
+        for (var view : document.get("views")) {
+            // Schema-4 readers from before required views reject unknown properties.
+            if ("publishPartial".equals(view.at("/publication/mode").asText())) {
+                ((ObjectNode) view).remove("publication");
+            }
+        }
+        return JSON.writeValueAsString(document);
     }
 
     private int initialiseSchema() throws SQLException {

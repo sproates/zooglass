@@ -107,4 +107,7 @@ not simulate power loss or defective hardware.
 Required-field views retain their candidates and exposed data in the existing
 schema-4 view row. Recovery checks that waiting rows expose no data or provenance,
 recomputes required-field presence and validates the configured pending limit.
-Older definitions without a publication policy continue to expose partial values.
+Default-only configurations retain the previous schema-4 encoding, including when
+`publishPartial` is selected explicitly. The preceding schema-4 binary can reopen
+that database with its original configuration. Once a required view is configured,
+older binaries cannot read its policy; use a pre-upgrade backup to roll back.

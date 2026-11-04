@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.contribution.SelectedContribution;
+
 import io.zooglass.v2.StateImage.StoredView;
 import io.zooglass.v2.StateImage.ViewEntity;
 
@@ -11,6 +13,20 @@ import java.util.stream.Collectors;
 /** Schema 1 used envelope IDs and single-source fields; receipt outcomes were not recorded. */
 final class SchemaMigration {
     private SchemaMigration() {}
+
+    static Map<ViewEntity, StoredView> addCandidates(Map<ViewEntity, StoredView> old) {
+        var migrated = new HashMap<ViewEntity, StoredView>();
+        old.forEach((key, view) -> {
+            var candidates = new HashMap<String, Map<String, SelectedContribution>>();
+            view.data().forEach((field, value) -> {
+                var provenance = view.provenance().get(field);
+                candidates.put(field, Map.of(provenance.sourceId(),
+                        new SelectedContribution(value, provenance)));
+            });
+            migrated.put(key, new StoredView(view.version(), view.data(), view.provenance(), candidates));
+        });
+        return migrated;
+    }
 
     static Map<ViewEntity, StoredView> addProvenance(Map<ViewEntity, StoredView> old,
             V2Configuration configuration) {

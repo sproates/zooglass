@@ -152,7 +152,7 @@ flowchart TB
   outcome["PublicationOutcome.java<br/>Structured source result"]
   coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
   config["V2Configuration.java<br/>Validate startup definitions"]
-  bound["BoundView.java<br/>Immutable field and resolver bindings"]
+  bound["BoundView.java<br/>Bind resolvers, updates and selectors"]
   entitySelection["strategy/identity/EntityStrategySelection.java"]
   entityStrategy["strategy/identity/EntityResolutionStrategy.java"]
   envelope["strategy/identity/EnvelopeEntity.java"]
@@ -160,13 +160,13 @@ flowchart TB
   resolution["strategy/identity/EntityResolution.java"]
   target["TargetOutcome.java<br/>Original per-view result"]
   provenance["Provenance.java<br/>Original source identity"]
-  migration["SchemaMigration.java<br/>Enrich schema-1 view state"]
+  migration["SchemaMigration.java<br/>Migrate schema-1 and schema-2 state"]
   store["StateStore.java<br/>Current state and installation boundary"]
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
   recovery["RecoveryValidation.java<br/>Definitions and recovered state"]
-  image["StateImage.java<br/>Views, identities and versions"]
+  image["StateImage.java<br/>Candidates, views, identities and versions"]
   health["V2StorageHealth.java<br/>Service health status"]
   selection["strategy/update/FieldStrategySelection.java"]
 
@@ -187,6 +187,20 @@ flowchart TB
   rows -->|checks restored state and configuration| recovery
   health -->|checks storage availability| coordinator
   coordinator -.->|returns| outcome
+  contributionSelection["strategy/contribution/ContributionStrategySelection.java"]
+  contributionStrategy["strategy/contribution/ContributionSelectionStrategy.java"]
+  independent["strategy/contribution/IndependentFields.java"]
+  priority["strategy/contribution/SourcePriority.java"]
+  selected["strategy/contribution/SelectedContribution.java"]
+  bound -->|binds selector per field| contributionSelection
+  contributionSelection -->|constructs| independent
+  contributionSelection -->|constructs| priority
+  independent -.->|implements| contributionStrategy
+  priority -.->|implements| contributionStrategy
+  bound -->|selects from retained source candidates| contributionStrategy
+  contributionStrategy -.->|returns value and provenance| selected
+  image -.->|retains candidates by field and source| selected
+  selected -.->|records source identity| provenance
   bound -->|binds configured update strategy| selection
   bound -->|binds resolver per source| entitySelection
   entitySelection -->|constructs| envelope
@@ -205,11 +219,14 @@ monitor. It prepares all view changes and retained identity records before
 installing one complete `StateImage` through `StateStore`. `InMemoryState` installs
 it directly. `SqliteState` commits changed stream/view rows and the version first,
 then installs the prepared image. `BoundView` holds configuration and strategy
-bindings, never entity state.
+bindings, never entity state. Each update evaluates only its source-local candidate;
+the selected contribution module then chooses the visible value. Hidden changes
+replace stored candidates without advancing the snapshot version.
 
 `SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
-checks stored definitions, target outcomes and field provenance before the service
-becomes ready. `SchemaMigration` enriches schema-1 rows in that same transaction;
+checks stored definitions, target outcomes, candidate provenance and the selected
+winner before the service becomes ready. `SchemaMigration` enriches schema-1/2
+rows in that same transaction;
 old receipts retain unknown (`null`) target outcomes. `BoundView` invokes its
 source resolver only after matching the source/type. Unknown mappings produce
 view-local rejections; publication identity keeps the source's original key.

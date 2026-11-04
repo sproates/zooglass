@@ -2,10 +2,9 @@
 
 Status: accepted design. Builds on the accepted
 [behaviour contracts](behaviour-contracts.md) and the implemented v2 identity and
-SQLite baseline. The entity-mapping slice implements the resolver, single-input grammar, target
-outcome, provenance and migration contracts below. Multi-input source priority
-remains the subsequent implementation; its full example is not yet runnable.
-See the [ingestion guide](../../zooglass/docs/v2-ingestion.md) for supported examples.
+SQLite baseline. Entity mappings and source-priority selection implement the
+contracts below. See the [ingestion guide](../../zooglass/docs/v2-ingestion.md)
+for runnable configuration guidance.
 
 An order service calls a purchase `order-42`. Its payment provider calls the
 payment `payment-9`, and its stock service calls the reservation `reservation-7`.
@@ -23,7 +22,7 @@ There is no inferred join, database lookup or domain-specific Java rule. Mapping
 tables are startup configuration in this increment. Missing relationships are
 reported immediately; ZooGlass does not buffer events hoping for a later mapping.
 
-## Proposed configuration
+## Configuration
 
 This view combines order and payment fields, then chooses a delivery status from
 two couriers. The couriers also use their own entity identifiers.
@@ -252,7 +251,7 @@ counts by admitted streams and configured fields. This is not a byte-memory quot
 
 ## Strategy modules and runtime ownership
 
-These are planned modules, not additions to make as empty placeholders.
+These concrete modules are bound at startup and used during processing.
 
 | Module | Input and result |
 | --- | --- |

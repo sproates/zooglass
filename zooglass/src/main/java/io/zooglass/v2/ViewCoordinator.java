@@ -112,23 +112,14 @@ public final class ViewCoordinator implements AutoCloseable {
             }
             ViewEntity key = new ViewEntity(view.id(), resolution.entityId());
             StoredView current = state.views().get(key);
-            Map<String, JsonNode> data = current == null ? Map.of() : current.data();
-            Map<String, JsonNode> update = view.evaluate(event, contribution, data, historyLimit);
-            var changedFields = new ArrayList<String>();
-            if (update != null) {
-                var provenance = new HashMap<String, Provenance>(current == null ? Map.of() : current.provenance());
-                update.forEach((field, value) -> {
-                    // Strategies return the retained node unchanged when there is no update.
-                    if (value != data.get(field)) {
-                        changedFields.add(field);
-                        provenance.put(field, new Provenance(event.sourceId(), event.epoch(), event.sourceEntityId()));
-                    }
-                });
-                changedFields.sort(String::compareTo);
-                candidates.put(key, new StoredView(version, Map.copyOf(update), Map.copyOf(provenance)));
+            var update = view.evaluate(event, contribution, current, historyLimit, version);
+            if (update.stored() != current) {
+                candidates.put(key, update.stored());
+            }
+            if (!update.changedFields().isEmpty()) {
                 changed.add(view.id());
             }
-            targets.add(new TargetOutcome(view.id(), resolution.entityId(), "accepted", null, changedFields));
+            targets.add(new TargetOutcome(view.id(), resolution.entityId(), "accepted", null, update.changedFields()));
         }
 
         long floor = Math.max(stream == null ? 1 : stream.floor(),

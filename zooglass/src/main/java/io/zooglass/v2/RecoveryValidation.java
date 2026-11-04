@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.contribution.ContributionStrategySelection;
+
 import io.zooglass.strategy.identity.EntityStrategySelection;
 
 import java.util.HashSet;
@@ -57,34 +59,48 @@ final class RecoveryValidation {
             require(view.version() > 0 && view.version() <= image.version() && view.data() != null);
             require(definition.fields().keySet().containsAll(view.data().keySet()));
             require(view.provenance() != null && view.provenance().keySet().equals(view.data().keySet()));
-            for (var field : view.data().entrySet()) {
+            require(view.candidates() != null && view.candidates().keySet().equals(view.data().keySet()));
+            for (var field : view.candidates().entrySet()) {
                 var binding = definition.fields().get(field.getKey());
-                var provenance = view.provenance().get(field.getKey());
-                require(provenance != null && binding.sourceId().equals(provenance.sourceId())
-                        && epochs.get(binding.sourceId()).equals(provenance.epoch())
-                        && provenance.sourceEntityId() != null);
-                var resolver = definition.entities().get(binding.sourceId());
-                var resolved = EntityStrategySelection.select(resolver.mode(), resolver.keys())
-                        .resolve(provenance.sourceEntityId());
-                require(entry.getKey().entityId().equals(resolved.entityId()));
-                var streamKey = new Publication.StreamKey(provenance.sourceId(), provenance.epoch(),
-                        provenance.sourceEntityId());
-                require(image.streams().containsKey(streamKey));
-                var value = field.getValue();
-                require(value != null);
-                if (binding.mode().equals("historyBySequence")) {
-                    require(value.isArray() && !value.isEmpty()
-                            && value.size() <= configuration.maxHistoryEntries());
-                    long previous = 0;
-                    for (var contribution : value) {
-                        validateContribution(contribution);
-                        long sequence = contribution.path("publicationSequence").longValue();
-                        require(sequence > previous);
-                        previous = sequence;
+                var inputs = binding.allInputs().stream().map(V2Configuration.Input::sourceId)
+                        .collect(Collectors.toSet());
+                require(!field.getValue().isEmpty() && inputs.containsAll(field.getValue().keySet()));
+                for (var candidate : field.getValue().entrySet()) {
+                    var retained = candidate.getValue();
+                    require(retained != null);
+                    var provenance = retained.provenance();
+                    require(provenance != null && candidate.getKey().equals(provenance.sourceId())
+                            && epochs.get(candidate.getKey()).equals(provenance.epoch())
+                            && provenance.sourceEntityId() != null && !provenance.sourceEntityId().isBlank());
+                    var resolver = definition.entities().get(candidate.getKey());
+                    var resolved = EntityStrategySelection.select(resolver.mode(), resolver.keys())
+                            .resolve(provenance.sourceEntityId());
+                    require(entry.getKey().entityId().equals(resolved.entityId()));
+                    require(image.streams().containsKey(new Publication.StreamKey(provenance.sourceId(),
+                            provenance.epoch(), provenance.sourceEntityId())));
+                    var value = retained.value();
+                    require(value != null);
+                    if (binding.mode().equals("historyBySequence")) {
+                        require(value.isArray() && !value.isEmpty()
+                                && value.size() <= configuration.maxHistoryEntries());
+                        long previous = 0;
+                        for (var contribution : value) {
+                            validateContribution(contribution);
+                            long sequence = contribution.path("publicationSequence").longValue();
+                            require(sequence > previous);
+                            previous = sequence;
+                        }
+                    } else {
+                        validateContribution(value);
                     }
-                } else {
-                    validateContribution(value);
                 }
+                var conflict = binding.conflict();
+                var selection = ContributionStrategySelection.select(
+                        conflict == null ? "independentFields" : conflict.mode(),
+                        conflict == null ? null : conflict.sources(), inputs);
+                var selected = selection.select(field.getValue());
+                require(selected.value().equals(view.data().get(field.getKey()))
+                        && selected.provenance().equals(view.provenance().get(field.getKey())));
             }
         }
     }
@@ -97,8 +113,8 @@ final class RecoveryValidation {
             var definition = definitions.get(target.viewId());
             require(definition != null);
             var matching = definition.fields().entrySet().stream()
-                    .filter(field -> field.getValue().sourceId().equals(key.sourceId())
-                            && field.getValue().type().equals(type))
+                    .filter(field -> field.getValue().allInputs().stream().anyMatch(input ->
+                            input.sourceId().equals(key.sourceId()) && input.type().equals(type)))
                     .map(Map.Entry::getKey).sorted().toList();
             require(!matching.isEmpty());
             var resolver = definition.entities().get(key.sourceId());

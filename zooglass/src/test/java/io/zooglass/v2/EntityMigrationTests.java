@@ -31,12 +31,35 @@ class EntityMigrationTests {
             assertThat(runtime.apply(event(39)).reason()).isEqualTo("outsideRetention");
             assertThat(runtime.apply(event(41)).version()).isEqualTo(8);
         }
-        assertThat(query(file, "PRAGMA user_version")).isEqualTo("2");
+        assertThat(query(file, "PRAGMA user_version")).isEqualTo("3");
         try (var runtime = new ViewCoordinator(SqliteRecoveryTests.configuration(), file.toString())) {
             assertThat(runtime.apply(event(40)).targets()).isNull();
             assertThat(runtime.apply(event(41)).targets()).hasSize(3);
             assertThat(runtime.snapshot("latest", "car").orElseThrow().version()).isEqualTo(8);
         }
+    }
+
+    @Test
+    void schemaTwoSeedsCandidatesAndPreservesRecordedTargets() throws Exception {
+        Path file = directory.resolve("schema-two.db");
+        createSchemaOne(file);
+        execute(file, "PRAGMA user_version=2");
+        execute(file, """
+                UPDATE views SET state=json_set(state,'$.provenance',
+                json('{"position":{"sourceId":"fleet","epoch":"trip-1","sourceEntityId":"car"}}'))
+                """);
+        execute(file, """
+                UPDATE streams SET state=json_set(state,'$.receipts.40.targets',
+                json('[{"viewId":"latest","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]}]'))
+                """);
+        try (var runtime = new ViewCoordinator(SqliteRecoveryTests.configuration(), file.toString())) {
+            assertThat(runtime.snapshot("latest", "car").orElseThrow().version()).isEqualTo(7);
+            assertThat(runtime.apply(event(40)).targets()).containsExactly(
+                    new TargetOutcome("latest", "car", "accepted", null, List.of("position")));
+        }
+        assertThat(query(file, "PRAGMA user_version")).isEqualTo("3");
+        assertThat(query(file, "SELECT json_extract(state,'$.candidates.position.fleet.value.publicationSequence') FROM views"))
+                .isEqualTo("40");
     }
 
     @Test

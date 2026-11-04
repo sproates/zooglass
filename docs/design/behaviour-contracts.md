@@ -6,7 +6,9 @@ from the richer contracts introduced afterwards. The [v2 ingestion guide](../../
 describes the implemented subset: identity, bounded retention, source outcomes
 and HTTP snapshots, with memory or [SQLite storage](../../zooglass/docs/sqlite-storage.md).
 Orderly restart and process-crash acceptance are covered. The other contracts
-below remain subsequent delivery work.
+below remain subsequent delivery work. The proposed
+[progress, freshness and publication design](progress-and-publication.md) refines
+those strategy choices, configuration and acceptance for review.
 
 ## Compatibility and configuration lifecycle
 

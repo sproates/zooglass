@@ -7,17 +7,19 @@ arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: relationships and multi-source conflict strategies
+## Next: progress, freshness and publication strategies
 
-Map source-specific keys to the same entity, then retain independent source
-contributions and select them through configured priority rules. Unknown or
-ambiguous mappings must have explicit outcomes. The
-[relationship design](docs/design/relationships-and-conflicts.md) sets out the
-accepted configuration and two implementation slices. The entity-mapping slice
-is delivered: exact view-local mappings, per-view outcomes, source provenance and
-schema-1 migration. Source-priority selection is implemented for review, pending
-merge, including retained candidates, independent sequence domains and durable
-hidden updates. Progress and freshness design follows this relationship increment.
+View-local mappings and source-priority selection are delivered. ZooGlass retains
+independent source candidates, preserves hidden updates across restart and selects
+winners without comparing unrelated sequence numbers. See the
+[relationship design](docs/design/relationships-and-conflicts.md).
+
+The next [design proposal](docs/design/progress-and-publication.md) explains how
+configuration selects source-progress, late-event, receipt-age and publication
+policies. A view may publish partial values or wait for named fields; sources may
+declare scoped progress, while receipt age labels ageing contributions. These
+choices remain proposed, not implemented. Timeouts do not prove completeness,
+and staleness does not automatically change source priority.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

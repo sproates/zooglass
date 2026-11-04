@@ -143,8 +143,7 @@ shows how a shared feed can produce the same jump without an event missing from
 that entity's history. See the Workbench notes on [what a sequence
 guarantees](../workbench/README.md#what-a-sequence-guarantees). The v2 API now exposes
 [source progress and missing ranges](docs/source-progress.md) under an explicit
-per-entity source promise. Required-field waiting and receipt-age freshness remain
-later slices. The earlier [source progress exploration](source-progress-signals.md)
+per-entity source promise. Views can [wait for required contributions](docs/source-progress.md#wait-for-required-fields). Receipt-age freshness follows. The earlier [source progress exploration](source-progress-signals.md)
 compares the signals behind that design.
 
 Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a

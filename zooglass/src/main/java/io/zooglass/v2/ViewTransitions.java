@@ -11,8 +11,11 @@ final class ViewTransitions {
     private final List<Binding> bindings;
 
     ViewTransitions(V2Configuration configuration) {
-        bindings = configuration.views().stream().map(view -> new Binding(view.id(), new BoundView(view),
-                new ViewStatus(view, configuration.sources()))).toList();
+        bindings = configuration.views().stream().map(definition -> {
+            var view = new BoundView(definition);
+            var status = new ViewStatus(definition, configuration.sources(), view.exposure());
+            return new Binding(definition.id(), view, status);
+        }).toList();
     }
 
     ViewStatus.Status status(String view, String entity, StateImage.StoredView stored,
@@ -41,8 +44,13 @@ final class ViewTransitions {
             var current = state.views().get(key);
             var next = current;
             if (matched) {
-                var evaluated = binding.view.evaluate(event, contribution, current, historyLimit, version, watermark);
+                var evaluated = binding.view.evaluate(event, contribution, current, historyLimit, watermark);
                 next = evaluated.stored();
+                if (next != null && next.pending() && (current == null || !current.pending())) {
+                    long pending = state.views().entrySet().stream()
+                            .filter(entry -> entry.getKey().viewId().equals(binding.id) && entry.getValue().pending()).count();
+                    if (binding.view.exposure().atCapacity(pending)) throw new PendingLimit();
+                }
                 boolean accepted = evaluated.fields().stream().anyMatch(field -> field.status().equals("accepted"));
                 targets.add(new TargetOutcome(binding.id, resolution.entityId(), accepted ? "accepted" : "rejected",
                         accepted ? null : "behindWatermark", evaluated.changedFields(), evaluated.fields()));
@@ -60,6 +68,8 @@ final class ViewTransitions {
         }
         return new Result(Map.copyOf(candidates), List.copyOf(changed), List.copyOf(targets));
     }
+
+    static final class PendingLimit extends RuntimeException {}
 
     private record Binding(String id, BoundView view, ViewStatus status) {}
     record Result(Map<StateImage.ViewEntity, StateImage.StoredView> views, List<String> changedViews,

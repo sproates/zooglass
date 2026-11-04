@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.publication.PublicationStrategy;
+
 import io.zooglass.strategy.progress.ProgressState;
 import io.zooglass.strategy.progress.ProgressStrategy;
 import io.zooglass.strategy.progress.ProgressStrategySelection;
@@ -12,10 +14,12 @@ import java.util.TreeMap;
 /** Pure public metadata projection; neither queries nor status construction allocate retained entities. */
 public final class ViewStatus {
     private final V2Configuration.View definition;
+    private final PublicationStrategy exposure;
     private final Map<String, InputBinding> inputs;
 
-    ViewStatus(V2Configuration.View definition, List<V2Configuration.Source> sources) {
+    ViewStatus(V2Configuration.View definition, List<V2Configuration.Source> sources, PublicationStrategy exposure) {
         this.definition = definition;
+        this.exposure = exposure;
         var bindings = new HashMap<String, InputBinding>();
         for (var source : sources) {
             var resolver = definition.entities().get(source.id());
@@ -34,11 +38,12 @@ public final class ViewStatus {
     }
 
     Status project(String entity, StateImage.StoredView view, Map<Publication.StreamKey, StateImage.StreamState> streams) {
-        var data = view == null ? Map.of() : view.data();
-        var missing = definition.fields().keySet().stream().filter(field -> !data.containsKey(field)).sorted().toList();
+        var present = view == null ? java.util.Set.<String>of() : view.candidates().keySet();
+        var required = exposure.missingRequired(present);
+        var missing = definition.fields().keySet().stream().filter(field -> !present.contains(field)).sorted().toList();
         var fields = new TreeMap<String, FieldStatus>();
         definition.fields().forEach((name, field) -> fields.put(name, new FieldStatus(
-                data.containsKey(name) ? "unspecified" : "absent", null,
+                present.contains(name) ? "unspecified" : "absent", null,
                 field.allInputs().stream().map(V2Configuration.Input::sourceId).sorted().toList())));
         var statuses = new TreeMap<String, InputStatus>();
         inputs.forEach((source, binding) -> {
@@ -62,7 +67,8 @@ public final class ViewStatus {
                     stream == null ? null : stream.floor(), progress != null && progress.sourceContractViolated(),
                     progress == null ? List.of() : binding.strategy.missing(progress, stream.floor())));
         });
-        return new Status(missing.isEmpty() ? "ready" : "partial", missing, List.of(), fields, statuses);
+        String publication = required.isEmpty() ? (missing.isEmpty() ? "ready" : "partial") : "waiting";
+        return new Status(publication, missing, required, fields, statuses);
     }
 
     private record InputBinding(V2Configuration.Source source, Map<String, String> inverse, ProgressStrategy strategy) {}

@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.publication.PublicationStrategy;
+
 import io.zooglass.strategy.late.LateDeliveryStrategy;
 import io.zooglass.strategy.late.LateStrategySelection;
 
@@ -23,12 +25,14 @@ import java.util.Map;
 
 /** Immutable field bindings reuse the update modules; state belongs to the coordinator. */
 final class BoundView {
+    private final PublicationStrategy exposure;
     private final String id;
     private final List<Field> fields;
     private final Map<String, EntityResolutionStrategy> resolvers;
 
     BoundView(V2Configuration.View definition) {
         id = definition.id();
+        exposure = definition.publication().bind(definition.fields().keySet());
         var selected = new LinkedHashMap<String, EntityResolutionStrategy>();
         definition.entities().forEach((source, config) -> selected.put(source,
                 EntityStrategySelection.select(config.mode(), config.keys())));
@@ -47,6 +51,8 @@ final class BoundView {
         }).toList();
     }
 
+    PublicationStrategy exposure() { return exposure; }
+
     String id() {
         return id;
     }
@@ -63,12 +69,9 @@ final class BoundView {
     }
 
     Evaluation evaluate(Publication publication, JsonNode contribution,
-            StateImage.StoredView current, int historyLimit, long version, Long watermark) {
+            StateImage.StoredView current, int historyLimit, Long watermark) {
         var candidates = new HashMap<String, Map<String, SelectedContribution>>(
                 current == null ? Map.of() : current.candidates());
-        var data = new HashMap<String, JsonNode>(current == null ? Map.of() : current.data());
-        var provenance = new HashMap<String, Provenance>(current == null ? Map.of() : current.provenance());
-        var changedFields = new ArrayList<String>();
         var outcomes = new ArrayList<TargetOutcome.FieldOutcome>();
         boolean updated = false;
 
@@ -80,7 +83,6 @@ final class BoundView {
                 outcomes.add(new TargetOutcome.FieldOutcome(field.name, "rejected", "behindWatermark", false));
                 continue;
             }
-            int outcomeIndex = outcomes.size();
             outcomes.add(new TargetOutcome.FieldOutcome(field.name, "accepted", null, false));
             var sources = new HashMap<>(candidates.getOrDefault(field.name, Map.of()));
             var previous = sources.get(publication.sourceId());
@@ -95,17 +97,33 @@ final class BoundView {
                     new Provenance(publication.sourceId(), publication.epoch(), publication.sourceEntityId())));
             candidates.put(field.name, Map.copyOf(sources));
             updated = true;
-            var selected = field.selection.select(sources);
-            if (!selected.value().equals(data.get(field.name))
-                    || !selected.provenance().equals(provenance.get(field.name))) {
+        }
+        if (!updated) return new Evaluation(current, List.of(), List.copyOf(outcomes));
+
+        return publish(current, candidates, outcomes);
+    }
+
+    private Evaluation publish(StateImage.StoredView current, Map<String, Map<String, SelectedContribution>> candidates,
+            List<TargetOutcome.FieldOutcome> outcomes) {
+        var data = new HashMap<String, JsonNode>();
+        var provenance = new HashMap<String, Provenance>();
+        var changedFields = new ArrayList<String>();
+        if (exposure.missingRequired(candidates.keySet()).isEmpty()) {
+            for (var field : fields) {
+                var retained = candidates.get(field.name);
+                if (retained == null) continue;
+                var selected = field.selection.select(retained);
                 data.put(field.name, selected.value());
                 provenance.put(field.name, selected.provenance());
-                changedFields.add(field.name);
-                outcomes.set(outcomeIndex, new TargetOutcome.FieldOutcome(field.name, "accepted", null, true));
+                if (current == null || !selected.value().equals(current.data().get(field.name))
+                        || !selected.provenance().equals(current.provenance().get(field.name))) {
+                    changedFields.add(field.name);
+                }
             }
         }
-        var stored = updated ? new StateImage.StoredView(
-                changedFields.isEmpty() ? current.version() : version, data, provenance, candidates) : current;
+        outcomes.replaceAll(outcome -> new TargetOutcome.FieldOutcome(outcome.field(), outcome.status(),
+                outcome.reason(), changedFields.contains(outcome.field())));
+        var stored = new StateImage.StoredView(current == null ? 0 : current.version(), data, provenance, candidates);
         return new Evaluation(stored, List.copyOf(changedFields), List.copyOf(outcomes));
     }
 

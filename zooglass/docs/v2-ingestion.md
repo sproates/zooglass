@@ -190,7 +190,10 @@ processing failures return a null version.
 `targets` contains one record for each matched view, in configured view order.
 A resolved view reports `status: accepted`, its canonical `entityId`, a null
 `reason`, and visible `changedFields` sorted by field name. Acceptance does not
-promise a value change: a delayed latest-value event has empty `changedFields`.
+promise a value change. For a [view waiting for contributions](source-progress.md#wait-for-required-fields),
+the releasing target lists every newly exposed field in `changedFields`, including
+fields contributed by earlier events. Its `fields` outcomes cover only this event's
+matching fields. Outside release, a delayed latest-value event has empty `changedFields`.
 Each target also records sorted `fields` outcomes (`field`, `status`, `reason`,
 `changed`). Late-policy rejection may affect one field while another accepts it.
 All matching fields rejecting yields a rejected target with `behindWatermark`.

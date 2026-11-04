@@ -1,5 +1,9 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.publication.PublicationStrategy;
+
+import io.zooglass.strategy.publication.PublicationStrategySelection;
+
 import io.zooglass.strategy.progress.ProgressStrategySelection;
 import io.zooglass.strategy.late.LateStrategySelection;
 
@@ -40,12 +44,28 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         }
     }
 
-    public record View(String id, Map<String, Field> fields, Map<String, Entity> entities) {
+    public record Exposure(String mode, List<String> fields, Long maxPendingEntities) {
+        public Exposure {
+            fields = fields == null ? null : fields.stream().sorted().toList();
+        }
+
+        PublicationStrategy bind(Set<String> declaredFields) {
+            return PublicationStrategySelection.select(mode, fields, maxPendingEntities, declaredFields);
+        }
+    }
+
+    public record View(String id, Map<String, Field> fields, Map<String, Entity> entities,
+            Exposure publication) {
+        public View(String id, Map<String, Field> fields, Map<String, Entity> entities) {
+            this(id, fields, entities, null);
+        }
+
         public View(String id, Map<String, Field> fields) {
             this(id, fields, null);
         }
 
         public View {
+            publication = publication == null ? new Exposure("publishPartial", null, null) : publication;
             if (fields != null) {
                 fields = Collections.unmodifiableMap(new TreeMap<>(fields));
             }
@@ -122,7 +142,7 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
         try (var input = resources.getResource(location).getInputStream()) {
-            V2Configuration config = mapper.readValue(input, V2Configuration.class);
+            V2Configuration config = decode(mapper, mapper.readTree(input));
             if (config == null) {
                 throw new IllegalArgumentException("Missing v2 configuration");
             }
@@ -131,6 +151,15 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         } catch (java.io.IOException exception) {
             throw new IllegalStateException("Cannot load v2 configuration: " + location, exception);
         }
+    }
+
+    static V2Configuration decode(JsonMapper mapper, tools.jackson.databind.JsonNode document) {
+        for (var view : document.path("views")) {
+            if (view.path("publication").isNull()) {
+                throw new IllegalArgumentException("publication must be a policy object when supplied");
+            }
+        }
+        return mapper.treeToValue(document, V2Configuration.class);
     }
 
     void validate() {
@@ -162,6 +191,7 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                     || view.fields() == null || view.fields().isEmpty()) {
                 throw new IllegalArgumentException("Invalid or duplicate v2 view");
             }
+            view.publication().bind(view.fields().keySet());
             var usedSources = new HashSet<String>();
             for (var entry : view.fields().entrySet()) {
                 Field field = entry.getValue();

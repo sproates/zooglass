@@ -24,6 +24,10 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
             this(version, data, provenance, null);
         }
 
+        boolean pending() {
+            return !candidates.isEmpty() && data.isEmpty();
+        }
+
         StoredView {
             if (candidates != null) {
                 var copy = new HashMap<String, Map<String, SelectedContribution>>();

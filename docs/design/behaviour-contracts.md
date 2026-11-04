@@ -5,10 +5,11 @@ choices. They distinguish the compatibility-preserving first slice
 from the richer contracts introduced afterwards. The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md)
 describes the implemented subset: identity, bounded retention, source outcomes
 and HTTP snapshots, with memory or [SQLite storage](../../zooglass/docs/sqlite-storage.md).
-Orderly restart and process-crash acceptance are covered. The other contracts
-below remain subsequent delivery work. The proposed
-[progress, freshness and publication design](progress-and-publication.md) refines
-those strategy choices, configuration and acceptance for review.
+Orderly restart and process-crash acceptance are covered. Progress, freshness and required-field publication are also delivered; their
+[design](progress-and-publication.md) describes the selected policies. The proposed
+[fact-revision design](fact-revisions.md) specifies correction configuration,
+retirement and bounded derived results. Recovery delivery and access contracts
+below remain subsequent work.
 
 ## Compatibility and configuration lifecycle
 
@@ -108,14 +109,13 @@ single-source shorthand. The earlier string-input, nested-`update` illustration
 has been removed; it was not a second accepted configuration format.
 
 The strategy choices above describe the wider design, not features all available
-in one increment. Receipt-age freshness remains planned, but `freshness` is
-unsupported and rejected by the relationship/priority increment. Its later
-configuration contract must be defined explicitly before implementation.
+in one increment. Receipt-age freshness is now supported under the
+[progress and publication grammar](progress-and-publication.md). Fact-field modes
+remain proposed in the [revision design](fact-revisions.md).
 
 The enclosing source registry still supplies identity/sequence contracts and
 bounds. Selection binds an update module per input and a contribution selector
-per field. Later freshness support will bind its own module, preserving that
-separation of responsibilities.
+per field. Freshness binds its own module, preserving that separation of responsibilities.
 
 ## Compatibility rules
 
@@ -164,7 +164,8 @@ An independent maximum unresolved-gap count rejects overflow without pretending
 completeness; gaps below the retention floor remain reported as expired missing
 ranges rather than being described as repaired.
 
-Correction views additionally configure a maximum active-fact count and a minimum
+Correction views additionally configure a maximum retained-fact count (including
+tombstones, as specified in the revision design) and a minimum
 accepted birth-sequence floor. Active facts needed for an ongoing result are not
 silently evicted to make space: capacity rejects new facts until an explicit
 retention/retirement operation. Retired facts and tombstones are removed only with

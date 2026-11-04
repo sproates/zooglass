@@ -148,8 +148,10 @@ The initial extraction now follows this shape. See the
 These are concrete responsibilities for subsequent slices, not files to create
 empty in the first PR. The [relationship and source-priority design](relationships-and-conflicts.md)
 refines the delivered identity/contribution module shapes and configuration.
-The proposed [progress and publication design](progress-and-publication.md) explains
-the next configurable policies and their composition. The contracts specify the
+The [progress and publication design](progress-and-publication.md) explains
+the delivered policies and their composition. The proposed
+[fact-revision design](fact-revisions.md) defines the next module shapes,
+configuration and retirement rules. The contracts specify the
 supported combinations.
 
 | Group and modules | Input → output | State owner |

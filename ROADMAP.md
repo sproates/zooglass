@@ -25,8 +25,9 @@ alongside required-field publication. See the [verification guide](docs/testing.
 Timeouts do not prove completeness, and staleness does not automatically change
 source priority.
 
-The next design defines how to correct or retract retained facts and update
-bounded derived values when those facts change.
+The proposed [revision design](docs/design/fact-revisions.md) defines how to
+correct or retract retained facts, retire them explicitly and update bounded
+derived values when those facts change.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

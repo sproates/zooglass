@@ -6,7 +6,8 @@ different content is rejected.
 
 The API supports memory or [SQLite storage](sqlite-storage.md), startup-defined
 views, source acknowledgements and HTTP snapshots. The existing demo APIs remain
-separate and unchanged.
+separate and unchanged. [Source progress and late-event policies](source-progress.md)
+add scoped watermarks, bounded missing ranges and per-field late decisions.
 
 ## Configure and run
 
@@ -119,8 +120,10 @@ first. A later backup update is retained without displacing it. Delayed input is
 compared only against that source's candidate. Silence never removes a candidate:
 there is no timeout, freshness fallback or withdrawal in this increment.
 
-Hidden candidate updates advance the publication version and persist in SQLite,
-but leave the snapshot version, `changedViews` and target `changedFields` unchanged.
+Hidden candidate updates advance the publication version and persist in SQLite.
+They leave target `changedFields` unchanged. Snapshot versions and `changedViews`
+also reflect public status: a first source observation, retention-floor change or
+tracked progress change is visible even when the selected value stays unchanged.
 A winner change advances the snapshot version even if the new winner has identical
 payload and sequence, because its provenance changes. Different views may rank the
 same sources differently. Changing an existing priority requires a new view ID.
@@ -154,7 +157,7 @@ A successful response looks like:
   "publicationSequence": 41,
   "version": 1,
   "changedViews": ["latest"],
-  "targets": [{"viewId":"latest","entityId":"car-1","status":"accepted","reason":null,"changedFields":["position"]}]
+  "targets": [{"viewId":"latest","entityId":"car-1","status":"accepted","reason":null,"changedFields":["position"],"fields":[{"field":"position","status":"accepted","reason":null,"changed":true}]}]
 }
 ```
 
@@ -167,7 +170,8 @@ A successful response looks like:
 | `failed` | Processing failed. Retry the same publication; the response does not claim successful application. |
 
 Rejection reasons are `invalidEnvelope`, `unknownSource`, `unknownEpoch`,
-`identityConflict`, `outsideRetention`, `streamLimit` and `historyLimit`.
+`identityConflict`, `outsideRetention`, `streamLimit`, `historyLimit`,
+`beforeProgressStart` and `progressLimit`.
 Processing failures use `processingFailure`, without exposing payloads or internal
 exception messages.
 
@@ -175,7 +179,8 @@ Comparison ignores object-key order and numeric spelling: 1 and 1.0 are equal.
 Array order and JSON types matter. Duplicate object keys and extra envelope
 properties are rejected.
 
-The version counts accepted publications, including those matching no view.
+The runtime version counts admitted publications and advancing progress controls,
+including those matching no field. Snapshot versions also include status changes.
 Duplicates return their original version with an empty `changedViews` list.
 Valid-envelope rejections return the current version; malformed input and
 processing failures return a null version.
@@ -185,7 +190,10 @@ processing failures return a null version.
 `targets` contains one record for each matched view, in configured view order.
 A resolved view reports `status: accepted`, its canonical `entityId`, a null
 `reason`, and visible `changedFields` sorted by field name. Acceptance does not
-promise a visible change: a delayed latest-value event has an empty field list.
+promise a value change: a delayed latest-value event has empty `changedFields`.
+Each target also records sorted `fields` outcomes (`field`, `status`, `reason`,
+`changed`). Late-policy rejection may affect one field while another accepts it.
+All matching fields rejecting yields a rejected target with `behindWatermark`.
 An unknown mapping reports `status: rejected`, `reason: unknownEntityMapping`,
 a null entity and no changed fields.
 
@@ -198,7 +206,8 @@ identity changes share one installation or transaction boundary.
 Retained duplicates return their original `targets` and version without evaluating
 current mappings. Their top-level `changedViews` remains empty. Schema-1 receipts
 migrated from an older database return `targets: null`, meaning the original
-outcomes were not recorded. New receipts always contain an array.
+outcomes were not recorded. New receipts always contain an array. Targets retained from schemas 1–3 have
+`fields: null` because field-level outcome details were not recorded.
 
 Definitions are immutable. Use a new view ID for changed mappings; it starts
 empty. Retrying a retained identity cannot populate it. Publish the current fact
@@ -218,6 +227,8 @@ fields. History mode returns an ordered array of these contributions. Latest mod
 does not move backwards when an older publication arrives; arrival mode does.
 
 A snapshot includes its view ID, canonical entity ID and last changed version.
+Its `status` reports missing fields and source progress without claiming receipt-age
+freshness. See the [progress guide](source-progress.md#read-the-result).
 Its separate `provenance` map identifies each populated field's `sourceId`,
 `epoch` and original `sourceEntityId`. For example, the payment field above reports
 `{"sourceId":"payments","epoch":"v1","sourceEntityId":"payment-9"}` when

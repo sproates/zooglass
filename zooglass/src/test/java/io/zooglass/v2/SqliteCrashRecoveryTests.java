@@ -52,9 +52,9 @@ class SqliteCrashRecoveryTests {
                 assertThat(retry.path("status").asText()).isEqualTo(committed ? "duplicate" : "committed");
                 assertThat(retry.path("version").longValue()).isEqualTo(3);
                 assertThat(retry.path("targets")).isEqualTo(JSON.readTree("""
-                        [{"viewId":"latest","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]},
-                         {"viewId":"history","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]},
-                         {"viewId":"arrival","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]}]
+                        [{"viewId":"latest","entityId":"car","status":"accepted","reason":null,"changedFields":["position"],"fields":[{"field":"position","status":"accepted","reason":null,"changed":true}]},
+                         {"viewId":"history","entityId":"car","status":"accepted","reason":null,"changedFields":["position"],"fields":[{"field":"position","status":"accepted","reason":null,"changed":true}]},
+                         {"viewId":"arrival","entityId":"car","status":"accepted","reason":null,"changedFields":["position"],"fields":[{"field":"position","status":"accepted","reason":null,"changed":true}]}]
                         """));
                 assertHistory(http, port, 40L, 42L, 43L);
 

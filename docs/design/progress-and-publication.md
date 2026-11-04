@@ -1,9 +1,12 @@
 # Progress, freshness and publication strategies
 
-Status: proposed design for review. These settings and protocol additions are not
-implemented. Builds on the accepted [behaviour contracts](behaviour-contracts.md)
+Status: accepted design (PR #126). The progress/late-policy slice implements source
+progress, controls, field outcomes and status. Required-field publication and
+receipt-age freshness remain later slices; their settings are not yet supported.
+Builds on the accepted [behaviour contracts](behaviour-contracts.md)
 and delivered [relationships and priority](relationships-and-conflicts.md).
-The [ingestion guide](../../zooglass/docs/v2-ingestion.md) documents today's API.
+The [progress guide](../../zooglass/docs/source-progress.md) documents the
+implemented API.
 
 ## What this gives an application
 

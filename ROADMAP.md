@@ -14,12 +14,13 @@ independent source candidates, preserves hidden updates across restart and selec
 winners without comparing unrelated sequence numbers. See the
 [relationship design](docs/design/relationships-and-conflicts.md).
 
-The next [design proposal](docs/design/progress-and-publication.md) explains how
+The accepted [design](docs/design/progress-and-publication.md) explains how
 configuration selects source-progress, late-event, receipt-age and publication
-policies. A view may publish partial values or wait for named fields; sources may
-declare scoped progress, while receipt age labels ageing contributions. These
-choices remain proposed, not implemented. Timeouts do not prove completeness,
-and staleness does not automatically change source priority.
+policies. The first implementation slice is ready for review, pending merge:
+scoped source progress, bounded gaps, per-field late decisions and durable
+watermark outcomes. Required-field publication and receipt-age freshness follow.
+Timeouts do not prove completeness, and staleness does not automatically change
+source priority.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

@@ -30,6 +30,23 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Progress and late policy
+
+`ProgressStrategyTests` compares seeded arrivals against an independent received-set
+model and checks interval bounds and concrete policy selection. `ProgressTests`
+checks per-field late decisions, mapped source isolation, untracked feed offsets,
+control-only state and status versions. `ProgressConfigurationTests` covers strict
+grammar and rejects unsupported later policies. `ProgressFailureTests` covers
+atomic limits, expired gaps, corrupted recovery and SQL rollback.
+
+`ProgressMigrationTests` starts from literal schema-3 rows and checks preserved
+values/receipts, unknown historical field outcomes and transactional migration
+failure. Existing schema-1/2 migration tests remain active. `ProgressIngressTests`
+separates malformed controls, processing failures and lost acknowledgements.
+`ProgressCrashTests` uses the real control WebSocket and HTTP snapshots at all four
+existing process-crash barriers, verifying confirmed/provisional gaps before retry
+and field-specific late behaviour after restart.
+
 ### Source priority
 
 `SourcePriorityConfigurationTests` checks concrete selector binding, strict grammar

@@ -38,8 +38,8 @@ class EntityMappingFunctionalTests {
                     receipt = source.send(envelope("payments", "payment-9", 2));
                     assertThat(receipt.path("status").asText()).isEqualTo("committed");
                     assertThat(receipt.path("targets")).isEqualTo(JSON.readTree("""
-                            [{"viewId":"summary","entityId":"order-42","status":"accepted","reason":null,"changedFields":["payment"]},
-                             {"viewId":"detail","entityId":"payment-9","status":"accepted","reason":null,"changedFields":["payment"]}]
+                            [{"viewId":"summary","entityId":"order-42","status":"accepted","reason":null,"changedFields":["payment"],"fields":[{"field":"payment","status":"accepted","reason":null,"changed":true}]},
+                             {"viewId":"detail","entityId":"payment-9","status":"accepted","reason":null,"changedFields":["payment"],"fields":[{"field":"payment","status":"accepted","reason":null,"changed":true}]}]
                             """));
                     var unknown = source.send(envelope("payments", "unmapped", 1));
                     assertThat(unknown.at("/targets/0/reason").asText()).isEqualTo("unknownEntityMapping");

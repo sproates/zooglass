@@ -21,7 +21,11 @@ final class PublicationTestClient implements AutoCloseable {
     private final CompletableFuture<Void> disconnected = new CompletableFuture<>();
 
     PublicationTestClient(HttpClient http, int port) {
-        socket = http.newWebSocketBuilder().buildAsync(URI.create("ws://localhost:" + port + "/v2/events"),
+        this(http, port, "/v2/events");
+    }
+
+    PublicationTestClient(HttpClient http, int port, String endpoint) {
+        socket = http.newWebSocketBuilder().buildAsync(URI.create("ws://localhost:" + port + endpoint),
                 new WebSocket.Listener() {
                     private final StringBuilder pending = new StringBuilder();
 

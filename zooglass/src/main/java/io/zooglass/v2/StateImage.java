@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.progress.ProgressState;
+
 import io.zooglass.strategy.contribution.SelectedContribution;
 
 import tools.jackson.databind.JsonNode;
@@ -39,5 +41,9 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
         }
     }
 
-    record StreamState(long floor, Map<Long, Receipt> receipts) {}
+    record StreamState(long floor, Map<Long, Receipt> receipts,
+            ProgressState progress) {
+        StreamState(long floor, Map<Long, Receipt> receipts) { this(floor, receipts, null); }
+        StreamState { receipts = Map.copyOf(receipts); }
+    }
 }

@@ -178,7 +178,11 @@ flowchart TB
   ingress -.->|serialises| outcome
   coordinator -->|loads definitions and limits| config
   coordinator -->|compares retained content| parser
-  coordinator -->|evaluates affected fields| bound
+  transitions["ViewTransitions.java<br/>Stage values and status across views"]
+  status["ViewStatus.java<br/>Project public metadata"]
+  coordinator -->|stages one source transition| transitions
+  transitions -->|evaluates matched fields| bound
+  transitions -->|compares public status| status
   coordinator -->|selects storage at startup| store
   state -.->|implements| store
   sqlite -.->|implements| store
@@ -209,19 +213,23 @@ flowchart TB
   lookup -.->|implements| entityStrategy
   bound -->|resolves original source key| entityStrategy
   entityStrategy -.->|returns| resolution
-  coordinator -.->|stages and retains| target
-  coordinator -.->|records selected field source| provenance
+  transitions -.->|stages per-field and per-view outcomes| target
+  bound -.->|records selected field source| provenance
   rows -->|migrates before readiness| migration
 ```
 
 `ViewCoordinator` serialises admission, staging and snapshot reads under one
-monitor. It prepares all view changes and retained identity records before
+monitor. `ViewTransitions` stages value and status changes across views, while
+`ViewStatus` projects immutable metadata without allocating retained entities.
+The coordinator prepares all view changes and retained identity records before
 installing one complete `StateImage` through `StateStore`. `InMemoryState` installs
 it directly. `SqliteState` commits changed stream/view rows and the version first,
 then installs the prepared image. `BoundView` holds configuration and strategy
 bindings, never entity state. Each update evaluates only its source-local candidate;
 the selected contribution module then chooses the visible value. Hidden changes
-replace stored candidates without advancing the snapshot version.
+replace stored candidates without advancing the snapshot version when exposed
+status is unchanged. Progress, source observation and floor changes are visible
+metadata and can advance the version without changing selected values.
 
 `SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
 checks stored definitions, target outcomes, candidate provenance and the selected
@@ -236,6 +244,57 @@ failure. Failed storage blocks reads and writes; `V2StorageHealth` reports DOWN.
 `EventIngress` sends the outcome after leaving the coordinator's monitor. A
 transport failure cannot undo applied state; a retry can recover the retained
 result. There are no v2 live-subscription writers in this increment.
+
+## Track source progress and apply late policy
+
+The progress strategy binds per source; state remains per original stream key.
+Late policy binds per field and uses the watermark from before this publication.
+A source promise violation is recorded even if every target rejects its values.
+
+```mermaid
+flowchart TB
+  endpoints["v2/V2Endpoints.java"]
+  ingress["v2/ProgressIngress.java"]
+  control["v2/ProgressControl.java<br/>Strict watermark parser"]
+  outcome["v2/ProgressOutcome.java"]
+  coordinator["v2/ViewCoordinator.java"]
+  selection["strategy/progress/ProgressStrategySelection.java"]
+  strategy["strategy/progress/ProgressStrategy.java"]
+  untracked["strategy/progress/UntrackedProgress.java"]
+  contiguous["strategy/progress/ContiguousSequenceProgress.java"]
+  state["strategy/progress/ProgressState.java<br/>Prefix, intervals and watermark receipt"]
+  rejected["strategy/progress/ProgressRejected.java"]
+  bound["v2/BoundView.java"]
+  lateSelection["strategy/late/LateStrategySelection.java"]
+  late["strategy/late/LateDeliveryStrategy.java"]
+  accept["strategy/late/AcceptLate.java"]
+  reject["strategy/late/RejectBehindWatermark.java"]
+  endpoints -->|registers /v2/progress| ingress
+  ingress -->|parses control| control
+  ingress -->|advances scoped watermark| coordinator
+  ingress -.->|serialises| outcome
+  coordinator -->|binds source policy| selection
+  selection -->|constructs| untracked
+  selection -->|constructs| contiguous
+  untracked -.->|implements| strategy
+  contiguous -.->|implements| strategy
+  coordinator -->|evaluates admitted data and controls| strategy
+  strategy -.->|returns next immutable state| state
+  contiguous -.->|reports expected capacity or contract rejection| rejected
+  bound -->|binds per-field policy| lateSelection
+  lateSelection -->|constructs| accept
+  lateSelection -->|constructs| reject
+  accept -.->|implements| late
+  reject -.->|implements| late
+  bound -->|checks before updating a candidate| late
+```
+
+`ViewStatus` derives bounded missing ranges through the selected progress module;
+received ranges and violation flags are persisted in `StateImage.StreamState`.
+`RecoveryValidation` validates progress and retained field outcomes before readiness.
+Schema 4 accepts control-only streams and migrates old rows with unknown field-level
+outcomes rather than invented processing history. Both ingress handlers write socket
+responses after the coordinator releases its lock.
 
 ## Suggested reading paths
 

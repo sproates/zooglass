@@ -31,7 +31,7 @@ class EntityMigrationTests {
             assertThat(runtime.apply(event(39)).reason()).isEqualTo("outsideRetention");
             assertThat(runtime.apply(event(41)).version()).isEqualTo(8);
         }
-        assertThat(query(file, "PRAGMA user_version")).isEqualTo("3");
+        assertThat(query(file, "PRAGMA user_version")).isEqualTo("4");
         try (var runtime = new ViewCoordinator(SqliteRecoveryTests.configuration(), file.toString())) {
             assertThat(runtime.apply(event(40)).targets()).isNull();
             assertThat(runtime.apply(event(41)).targets()).hasSize(3);
@@ -55,9 +55,9 @@ class EntityMigrationTests {
         try (var runtime = new ViewCoordinator(SqliteRecoveryTests.configuration(), file.toString())) {
             assertThat(runtime.snapshot("latest", "car").orElseThrow().version()).isEqualTo(7);
             assertThat(runtime.apply(event(40)).targets()).containsExactly(
-                    new TargetOutcome("latest", "car", "accepted", null, List.of("position")));
+                    new TargetOutcome("latest", "car", "accepted", null, List.of("position"), null));
         }
-        assertThat(query(file, "PRAGMA user_version")).isEqualTo("3");
+        assertThat(query(file, "PRAGMA user_version")).isEqualTo("4");
         assertThat(query(file, "SELECT json_extract(state,'$.candidates.position.fleet.value.publicationSequence') FROM views"))
                 .isEqualTo("40");
     }

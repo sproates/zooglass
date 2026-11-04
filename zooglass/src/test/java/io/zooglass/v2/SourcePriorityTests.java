@@ -41,10 +41,10 @@ class SourcePriorityTests {
             runtime.apply(event("backup", 900));
             assertWinner(runtime, "primary-first", "backup", 900, 1);
             var primary = runtime.apply(event("primary", 2));
-            assertThat(primary.changedViews()).containsExactly("primary-first");
+            assertThat(primary.changedViews()).containsExactly("primary-first", "backup-first");
             assertThat(primary.targets().get(1).changedFields()).isEmpty();
             assertWinner(runtime, "primary-first", "primary", 2, 2);
-            assertWinner(runtime, "backup-first", "backup", 900, 1);
+            assertWinner(runtime, "backup-first", "backup", 900, 2);
             runtime.apply(event("backup", 901));
             assertWinner(runtime, "primary-first", "primary", 2, 2);
             assertWinner(runtime, "backup-first", "backup", 901, 3);
@@ -92,7 +92,7 @@ class SourcePriorityTests {
             runtime.apply(event("backup", 2));
             var before = runtime.snapshot("primary-first", "order").orElseThrow();
             var result = runtime.apply(event("primary", 2));
-            assertThat(result.changedViews()).containsExactly("primary-first");
+            assertThat(result.changedViews()).containsExactly("primary-first", "backup-first");
             var after = runtime.snapshot("primary-first", "order").orElseThrow();
             assertThat(after.data()).isEqualTo(before.data());
             assertThat(after.provenance()).isNotEqualTo(before.provenance());
@@ -108,13 +108,14 @@ class SourcePriorityTests {
         PublicationOutcome hidden;
         try (var runtime = new ViewCoordinator(config, database.toString())) {
             runtime.apply(event("primary", 2));
+            runtime.apply(event("backup", 899)); // First source observation changes public status.
             hidden = runtime.apply(event("backup", 900));
-            assertThat(hidden.version()).isEqualTo(2);
+            assertThat(hidden.version()).isEqualTo(3);
             assertThat(hidden.changedViews()).isEmpty();
             assertThat(hidden.targets().getFirst().changedFields()).isEmpty();
         }
         try (var runtime = new ViewCoordinator(config, database.toString())) {
-            assertWinner(runtime, "primary-first", "primary", 2, 1);
+            assertWinner(runtime, "primary-first", "primary", 2, 2);
             assertThat(runtime.apply(event("backup", 900)).targets()).isEqualTo(hidden.targets());
             assertThat(runtime.apply(event("backup", 899)).changedViews()).isEmpty();
         }

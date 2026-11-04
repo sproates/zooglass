@@ -50,6 +50,18 @@ commit that releases a waiting view, then verifies the snapshot and retry receip
 
 ### Progress and late policy
 
+`ProgressAcceptanceTests` uses real event/control WebSockets and HTTP snapshots
+to contrast a delayed report, a report still missing after a watermark, and a
+shared feed whose intervening sequence belongs to another entity. It checks
+both the retained values and the service's gap/completeness metadata.
+
+`ProgressCompositionTests` combines independent source progress, required-field
+publication and receipt age in memory and SQLite. A silent order source becomes
+stale while payment arrives and releases the view. Publication becomes ready,
+but the order remains stale and its confirmed gap remains visible. Payment's
+progress cannot close that gap, and retries cannot refresh the order. SQLite
+recovery preserves the combined result. An injected clock avoids timed sleeps.
+
 `ProgressStrategyTests` compares seeded arrivals against an independent received-set
 model and checks interval bounds and concrete policy selection. `ProgressTests`
 checks per-field late decisions, mapped source isolation, untracked feed offsets,

@@ -1,13 +1,13 @@
 # ZooGlass roadmap
 
-Last reviewed: 4 November 2026.
+Last reviewed: 5 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: progress, freshness and publication strategies
+## Next: corrections and retractions
 
 View-local mappings and source-priority selection are delivered. ZooGlass retains
 independent source candidates, preserves hidden updates across restart and selects
@@ -18,9 +18,15 @@ The accepted [design](docs/design/progress-and-publication.md) explains how
 configuration selects source-progress, late-event, receipt-age and publication
 policies. Source progress, bounded gaps, per-field late decisions and durable
 watermark outcomes are implemented. Views can now wait for required fields before
-exposing their values. Fields can also classify the age of their last accepted contribution and become stale during silence. Combined progress, publication and freshness acceptance is next.
+exposing their values. Fields can also classify the age of their last accepted
+contribution and become stale during silence. Combined acceptance checks cover
+late and missing reports, shared feeds, independent source progress and silence
+alongside required-field publication. See the [verification guide](docs/testing.md#progress-and-late-policy).
 Timeouts do not prove completeness, and staleness does not automatically change
 source priority.
+
+The next design defines how to correct or retract retained facts and update
+bounded derived values when those facts change.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

@@ -1,5 +1,8 @@
 package io.zooglass.v2;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.zooglass.strategy.freshness.FreshnessStrategy;
+import io.zooglass.strategy.freshness.FreshnessStrategySelection;
 import io.zooglass.strategy.publication.PublicationStrategy;
 
 import io.zooglass.strategy.publication.PublicationStrategySelection;
@@ -31,6 +34,17 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
 
     public record Progress(String mode, Long startSequence, Long maxReceivedRanges, Long maxMissingRanges) {}
+    public record Freshness(String mode, @JsonInclude(JsonInclude.Include.NON_NULL) Long staleAfterMillis) {
+        FreshnessStrategy bind() {
+            return FreshnessStrategySelection.select(mode, staleAfterMillis);
+        }
+    }
+
+    boolean tracksAge() {
+        return views.stream().flatMap(view -> view.fields().values().stream())
+                .anyMatch(field -> "receiptAge".equals(field.freshness().mode()));
+    }
+
     public record Late(String mode) {}
     public record Source(String id, String epoch, Progress progress) {
         public Source(String id, String epoch) { this(id, epoch, null); }
@@ -93,7 +107,11 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     }
 
     /** Single inputs normalise to shorthand; multi-input order is canonical, priority order is retained. */
-    public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late) {
+    public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late,
+            Freshness freshness) {
+        public Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late) {
+            this(sourceId, type, mode, inputs, conflict, late, null);
+        }
         public Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict) {
             this(sourceId, type, mode, inputs, conflict, null);
         }
@@ -102,6 +120,7 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         }
 
         public Field {
+            freshness = freshness == null ? new Freshness("unspecified", null) : freshness;
             late = late == null ? new Late("acceptLate") : late;
             if (inputs != null) {
                 if (sourceId != null || type != null || inputs.isEmpty()) {
@@ -155,6 +174,13 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
 
     static V2Configuration decode(JsonMapper mapper, tools.jackson.databind.JsonNode document) {
         for (var view : document.path("views")) {
+            for (var field : view.path("fields")) {
+                var freshness = field.path("freshness");
+                if (!freshness.isMissingNode() && (!freshness.isObject()
+                        || ("unspecified".equals(freshness.path("mode").asText()) && freshness.has("staleAfterMillis")))) {
+                    throw new IllegalArgumentException("Invalid freshness settings");
+                }
+            }
             if (view.path("publication").isNull()) {
                 throw new IllegalArgumentException("publication must be a policy object when supplied");
             }
@@ -213,6 +239,7 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                 if (conflict != null && !"latestBySequence".equals(field.mode())) {
                     throw new IllegalArgumentException("Source priority requires latestBySequence");
                 }
+                field.freshness().bind();
                 LateStrategySelection.select(field.late().mode());
                 if ("rejectBehindWatermark".equals(field.late().mode()) && inputSources.stream()
                         .anyMatch(source -> !"contiguousSequence".equals(progressBySource.get(source).mode()))) {

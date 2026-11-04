@@ -50,7 +50,31 @@ sequence comparison. Original source keys and epochs scope progress even when
 Starting sequences and range bounds are positive integers up to 9007199254740991.
 Unknown settings and coercion are rejected. Source contracts and view policies
 remain immutable; changing them requires new IDs or a separate run/database.
-Receipt-age freshness remains a future slice.
+## Classify a field by receipt age
+
+Add a freshness policy to a v2 field definition:
+
+```json
+{"sourceId":"fleet","type":"position","mode":"latestBySequence",
+ "freshness":{"mode":"receiptAge","staleAfterMillis":30000}}
+```
+
+The field becomes fresh when ZooGlass accepts a change to the selected source's
+contribution. At 30 seconds it becomes stale, even if no further event arrives.
+A duplicate, watermark or ignored older position cannot refresh it. For history
+fields the clock starts again when an event adds a history entry. A lower-priority
+source has its own receipt time and cannot refresh the selected source.
+
+Read `status.fields.<field>.freshness` and `receivedAtMillis` in the v2 HTTP snapshot.
+The timestamp records when ZooGlass received the update, in UTC Unix milliseconds.
+It says nothing about when the event occurred or whether the source is connected.
+A timer changes the snapshot version and status while preserving values, provenance
+and source receipts. Waiting views still withhold their values.
+
+An absent field reports `absent`. Omit the policy or use `{"mode":"unspecified"}`
+to leave populated fields unclassified. After restart, a missing timestamp or a
+backwards wall clock yields `ageUnknown` with a null timestamp until a new accepted
+change. The threshold must be an integer from 1 through 9007199254740991.
 
 ## Wait for required fields
 
@@ -150,7 +174,7 @@ with an unseen entity remains an empty version-zero snapshot; reads allocate no 
 when values are exposed with some fields absent, and `ready` when every field is
 present. `missingFields` lists all absent fields and `missingRequiredFields`
 lists the absent required ones, both in name order. `status.fields` lists input sources and
-`freshness: absent|unspecified`, with null receipt time. There is no age or health claim.
+the selected contribution’s [receipt-age classification](#classify-a-field-by-receipt-age).
 
 ## Outcomes, versions and bounds
 

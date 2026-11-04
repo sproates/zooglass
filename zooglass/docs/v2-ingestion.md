@@ -230,8 +230,8 @@ fields. History mode returns an ordered array of these contributions. Latest mod
 does not move backwards when an older publication arrives; arrival mode does.
 
 A snapshot includes its view ID, canonical entity ID and last changed version.
-Its `status` reports missing fields and source progress without claiming receipt-age
-freshness. See the [progress guide](source-progress.md#read-the-result).
+Its `status` reports missing fields, source progress and, for configured fields,
+[receipt-age freshness](source-progress.md#classify-a-field-by-receipt-age).
 Its separate `provenance` map identifies each populated field's `sourceId`,
 `epoch` and original `sourceEntityId`. For example, the payment field above reports
 `{"sourceId":"payments","epoch":"v1","sourceEntityId":"payment-9"}` when

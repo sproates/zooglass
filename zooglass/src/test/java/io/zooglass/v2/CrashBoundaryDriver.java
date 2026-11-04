@@ -23,6 +23,7 @@ final class CrashBoundaryDriver implements Driver {
     private final Driver sqlite = new JDBC();
     private final Boundary boundary;
     private volatile boolean armed;
+    private boolean timerOnly;
 
     CrashBoundaryDriver(Boundary boundary) throws SQLException {
         this.boundary = boundary;
@@ -34,7 +35,8 @@ final class CrashBoundaryDriver implements Driver {
         DriverManager.registerDriver(this);
     }
 
-    void arm() {
+    void arm(boolean timerOnly) {
+        this.timerOnly = timerOnly;
         armed = true;
     }
 
@@ -73,7 +75,7 @@ final class CrashBoundaryDriver implements Driver {
     }
 
     private void pause(Boundary reached) throws InterruptedException {
-        if (armed && boundary == reached) {
+        if (armed && boundary == reached && (!timerOnly || Thread.currentThread().getName().equals("zooglass-receipt-age"))) {
             System.out.println("CRASH_BOUNDARY " + reached);
             System.out.flush();
             new CountDownLatch(1).await(); // Parent must force-kill, not release or close us.

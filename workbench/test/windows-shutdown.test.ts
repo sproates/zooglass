@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import childProcess, { type ChildProcess } from "node:child_process";
+import { writeFileSync } from "node:fs";
 import { EventEmitter } from "node:events";
 import { syncBuiltinESMExports } from "node:module";
 import test from "node:test";
@@ -30,11 +31,11 @@ for (const outcome of [
       syncBuiltinESMExports();
     });
     Object.defineProperty(process, "platform", { value: "win32" });
-    t.mock.method(
-      childProcess,
-      "spawn",
-      () => child as unknown as ChildProcess,
-    );
+    t.mock.method(childProcess, "spawn", (_command: string, args: string[]) => {
+      const file = args.find((arg) => arg.startsWith("-DPORTFILE="))!;
+      writeFileSync(file.slice("-DPORTFILE=".length), "12345");
+      return child as unknown as ChildProcess;
+    });
     t.mock.method(
       childProcess,
       "execFile",

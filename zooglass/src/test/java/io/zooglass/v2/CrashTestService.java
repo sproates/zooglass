@@ -27,10 +27,10 @@ public final class CrashTestService {
             System.out.println("CRASH_READY " + port);
             System.out.flush();
             for (String command; (command = commands.readLine()) != null;) {
-                if (!command.equals("ARM")) {
+                if (!command.equals("ARM") && !command.equals("ARM_TIMER")) {
                     throw new IllegalArgumentException("Unknown test command");
                 }
-                driver.arm();
+                driver.arm(command.equals("ARM_TIMER"));
                 System.out.println("CRASH_ARMED");
                 System.out.flush();
             }

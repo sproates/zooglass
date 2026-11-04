@@ -13,7 +13,7 @@ final class SqliteState implements StateStore {
     private StateImage current;
     private boolean available;
 
-    SqliteState(String location, V2Configuration configuration) {
+    SqliteState(String location, V2Configuration configuration, java.util.function.UnaryOperator<StateImage> recover) {
         if (location == null || location.isBlank()) {
             throw new IllegalArgumentException("SQLite requires zooglass.v2.database");
         }
@@ -22,7 +22,9 @@ final class SqliteState implements StateStore {
         try {
             configure();
             connection.setAutoCommit(false);
-            current = rows.restore(configuration);
+            var restored = rows.restore(configuration);
+            current = recover.apply(restored);
+            if (current != restored) rows.writeChanges(restored, current);
             connection.commit();
             available = true;
         } catch (SQLException | RuntimeException failure) {

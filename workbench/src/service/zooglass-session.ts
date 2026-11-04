@@ -1,7 +1,6 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
@@ -22,31 +21,6 @@ export interface ZooGlassSessionOptions {
   javaExecutable?: string;
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
-}
-
-function getPort(): Promise<number> {
-  return new Promise((resolvePort, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-
-      if (address === null || typeof address === "string") {
-        server.close();
-        reject(new Error("Could not reserve a local port for ZooGlass."));
-
-        return;
-      }
-
-      server.close((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolvePort(address.port);
-        }
-      });
-    });
-  });
 }
 
 /** Start one owned service. A failed start cleans up before rejecting. */
@@ -148,12 +122,11 @@ export async function startZooGlassSession(
       );
     }
 
-    const port = await getPort();
+    configDirectory = await mkdtemp(join(tmpdir(), "zooglass-workbench-"));
+    const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
     if (options.views?.length) {
-      configDirectory = await mkdtemp(join(tmpdir(), "zooglass-workbench-"));
-
       const configPath = join(configDirectory, "views.json");
 
       await writeFile(configPath, JSON.stringify({ views: options.views }));
@@ -172,10 +145,12 @@ export async function startZooGlassSession(
           )
         : "java");
     const args = [
+      `-DPORTFILE=${portFile}`,
       "-jar",
       artifact,
       "--server.address=127.0.0.1",
-      `--server.port=${port}`,
+      "--server.port=0",
+      "--zooglass.report-port=true",
     ];
 
     child = spawn(java, args, {
@@ -216,7 +191,7 @@ export async function startZooGlassSession(
       process.stderr.write(`[ZooGlass] ${chunk.toString()}`),
     );
 
-    const baseUrl = `http://127.0.0.1:${port}`;
+    let baseUrl: string | undefined;
     const timeoutMs = options.startupTimeoutMs ?? 60_000;
     const deadline = Date.now() + timeoutMs;
 
@@ -224,6 +199,13 @@ export async function startZooGlassSession(
       signal.throwIfAborted();
 
       try {
+        if (!baseUrl) {
+          const port = Number(await readFile(portFile, "utf8"));
+          if (!Number.isInteger(port) || port < 1 || port > 65535) {
+            throw new Error("Waiting for ZooGlass to report its bound port.");
+          }
+          baseUrl = `http://127.0.0.1:${port}`;
+        }
         const response = await fetch(`${baseUrl}/actuator/health`, {
           signal: AbortSignal.any([signal, AbortSignal.timeout(1_000)]),
         });

@@ -13,9 +13,13 @@ final class ViewTransitions {
     ViewTransitions(V2Configuration configuration) {
         bindings = configuration.views().stream().map(definition -> {
             var view = new BoundView(definition);
-            var status = new ViewStatus(definition, configuration.sources(), view.exposure());
+            var status = new ViewStatus(definition, configuration.sources(), view);
             return new Binding(definition.id(), view, status);
         }).toList();
+    }
+
+    Map<String, BoundView> byId() {
+        return bindings.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Binding::id, Binding::view));
     }
 
     ViewStatus.Status status(String view, String entity, StateImage.StoredView stored,
@@ -25,8 +29,9 @@ final class ViewTransitions {
     }
 
     Result stage(StateImage state, Map<Publication.StreamKey, StateImage.StreamState> streams,
-            Publication.StreamKey source, Publication event, JsonNode contribution, int historyLimit, long version) {
+            Publication.StreamKey source, Publication event, JsonNode contribution, int historyLimit, long version, long wallMillis) {
         var candidates = new HashMap<>(state.views());
+        var touched = new ArrayList<StateImage.ViewEntity>();
         var changed = new ArrayList<String>();
         var targets = new ArrayList<TargetOutcome>();
         var previousStream = state.streams().get(source);
@@ -44,7 +49,7 @@ final class ViewTransitions {
             var current = state.views().get(key);
             var next = current;
             if (matched) {
-                var evaluated = binding.view.evaluate(event, contribution, current, historyLimit, watermark);
+                var evaluated = binding.view.evaluate(event, contribution, current, historyLimit, watermark, wallMillis);
                 next = evaluated.stored();
                 if (next != null && next.pending() && (current == null || !current.pending())) {
                     long pending = state.views().entrySet().stream()
@@ -64,14 +69,17 @@ final class ViewTransitions {
                 next = new StateImage.StoredView(version, next == null ? Map.of() : next.data(),
                         next == null ? Map.of() : next.provenance(), next == null ? Map.of() : next.candidates());
             }
-            if (next != current) candidates.put(key, next);
+            if (next != current) {
+                candidates.put(key, next);
+                touched.add(key);
+            }
         }
-        return new Result(Map.copyOf(candidates), List.copyOf(changed), List.copyOf(targets));
+        return new Result(Map.copyOf(candidates), List.copyOf(changed), List.copyOf(targets), List.copyOf(touched));
     }
 
     static final class PendingLimit extends RuntimeException {}
 
     private record Binding(String id, BoundView view, ViewStatus status) {}
     record Result(Map<StateImage.ViewEntity, StateImage.StoredView> views, List<String> changedViews,
-            List<TargetOutcome> targets) {}
+            List<TargetOutcome> targets, List<StateImage.ViewEntity> touched) {}
 }

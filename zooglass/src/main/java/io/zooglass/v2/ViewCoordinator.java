@@ -33,6 +33,9 @@ public final class ViewCoordinator implements AutoCloseable {
     private final int identityWindow;
     private final int historyLimit;
     private final StateStore storage;
+    private final ReceiptClock clock;
+    private final FreshnessRuntime freshness;
+    private boolean closed;
 
     @Autowired
     public ViewCoordinator(ResourceLoader resources,
@@ -46,6 +49,11 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     ViewCoordinator(V2Configuration configuration, String database) {
+        this(configuration, database, ReceiptClock.SYSTEM);
+    }
+
+    ViewCoordinator(V2Configuration configuration, String database, ReceiptClock clock) {
+        this.clock = clock;
         configuration.validate();
         epochs = new HashMap<>();
         configuration.sources().forEach(source -> epochs.put(source.id(), source.epoch()));
@@ -60,11 +68,24 @@ public final class ViewCoordinator implements AutoCloseable {
         maxStreams = configuration.maxStreams();
         identityWindow = configuration.identityWindow();
         historyLimit = configuration.maxHistoryEntries();
-        storage = configuration.storage().equals("sqlite")
-                ? new SqliteState(database, configuration) : new InMemoryState();
+        freshness = configuration.tracksAge() ? new FreshnessRuntime(views.byId(), clock, this::expire) : null;
+        try {
+            if (configuration.storage().equals("sqlite")) {
+                storage = new SqliteState(database, configuration, freshness == null
+                        ? java.util.function.UnaryOperator.identity() : freshness::recover);
+            } else {
+                storage = new InMemoryState();
+                if (freshness != null) storage.install(freshness.recover(storage.current()));
+            }
+        } catch (RuntimeException failure) {
+            if (freshness != null) freshness.close();
+            throw failure;
+        }
+        if (freshness != null) freshness.arm();
     }
 
     synchronized PublicationOutcome apply(Publication event) {
+        expire();
         StateImage state = storage.current();
         String epoch = epochs.get(event.sourceId());
 
@@ -119,7 +140,8 @@ public final class ViewCoordinator implements AutoCloseable {
                 event.publicationSequence(), floor);
         var streams = new HashMap<>(state.streams());
         streams.put(event.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
-        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version);
+        var sample = clock.sample();
+        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version, sample.wall());
 
         var receipts = new TreeMap<Long, Receipt>();
         if (stream != null) {
@@ -134,12 +156,12 @@ public final class ViewCoordinator implements AutoCloseable {
         var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
                 storage.durable() ? "sqlite" : "memory", event.stream(),
                 event.publicationSequence(), version, staged.changedViews(), staged.targets());
-        StateImage next = new StateImage(version, Map.copyOf(streams), staged.views());
-        storage.install(next);
+        install(state, version, streams, staged, sample);
         return result;
     }
 
     synchronized ProgressOutcome advance(ProgressControl control) {
+        expire();
         var state = storage.current();
         String epoch = epochs.get(control.sourceId());
         if (epoch == null) return rejected(control, "unknownSource");
@@ -159,14 +181,32 @@ public final class ViewCoordinator implements AutoCloseable {
             var nextProgress = strategy.advance(previous, control.throughSequence(), version, floor);
             var streams = new HashMap<>(state.streams());
             streams.put(control.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
-            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version);
+            var sample = clock.sample();
+            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version, sample.wall());
             var result = new ProgressOutcome(storage.durable() ? "committed" : "applied", storage.durable() ? "sqlite" : "memory",
                     control, version, staged.changedViews());
-            storage.install(new StateImage(version, Map.copyOf(streams), staged.views()));
+            install(state, version, streams, staged, sample);
             return result;
         } catch (ProgressRejected rejection) {
             return rejected(control, rejection.reason());
         }
+    }
+
+    private void install(StateImage old, long version, Map<Publication.StreamKey, StreamState> streams,
+            ViewTransitions.Result staged, ReceiptClock.Sample sample) {
+        var next = new StateImage(version, Map.copyOf(streams), staged.views(),
+                freshness == null ? null : FreshnessRuntime.highWater(old, sample.wall()));
+        if (freshness == null) {
+            storage.install(next);
+            return;
+        }
+        var deadlines = freshness.plan(old, next, staged.touched(), sample.after());
+        freshness.install(storage, old, next, sample);
+        freshness.installed(deadlines);
+    }
+
+    private synchronized void expire() {
+        if (!closed && freshness != null) freshness.reconcile(storage);
     }
 
     private ProgressOutcome rejected(ProgressControl control, String reason) {
@@ -174,6 +214,7 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     public synchronized Optional<Snapshot> snapshot(String viewId, String entityId) {
+        expire();
         StateImage state = storage.current();
         StoredView stored = state.views().get(new ViewEntity(viewId, entityId));
         var status = views.status(viewId, entityId, stored, state.streams());
@@ -203,6 +244,8 @@ public final class ViewCoordinator implements AutoCloseable {
     @Override
     @PreDestroy
     public synchronized void close() {
+        closed = true;
+        if (freshness != null) freshness.close();
         storage.close();
     }
 

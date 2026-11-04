@@ -1,6 +1,7 @@
 package io.zooglass.v2;
 
 import io.zooglass.strategy.publication.PublicationStrategy;
+import io.zooglass.strategy.freshness.FreshnessStrategy;
 
 import io.zooglass.strategy.late.LateDeliveryStrategy;
 import io.zooglass.strategy.late.LateStrategySelection;
@@ -47,7 +48,7 @@ final class BoundView {
                     ContributionStrategySelection.select(conflict == null ? "independentFields" : conflict.mode(),
                             conflict == null ? null : conflict.sources(), config.allInputs().stream()
                                     .map(V2Configuration.Input::sourceId).collect(Collectors.toSet())),
-                    LateStrategySelection.select(config.late().mode()));
+                    LateStrategySelection.select(config.late().mode()), config.freshness().bind());
         }).toList();
     }
 
@@ -69,7 +70,7 @@ final class BoundView {
     }
 
     Evaluation evaluate(Publication publication, JsonNode contribution,
-            StateImage.StoredView current, int historyLimit, Long watermark) {
+            StateImage.StoredView current, int historyLimit, Long watermark, long wallMillis) {
         var candidates = new HashMap<String, Map<String, SelectedContribution>>(
                 current == null ? Map.of() : current.candidates());
         var outcomes = new ArrayList<TargetOutcome.FieldOutcome>();
@@ -94,7 +95,8 @@ final class BoundView {
                 throw new CapacityExceeded();
             }
             sources.put(publication.sourceId(), new SelectedContribution(update.replacement(),
-                    new Provenance(publication.sourceId(), publication.epoch(), publication.sourceEntityId())));
+                    new Provenance(publication.sourceId(), publication.epoch(), publication.sourceEntityId()),
+                    field.freshness.received(wallMillis)));
             candidates.put(field.name, Map.copyOf(sources));
             updated = true;
         }
@@ -129,8 +131,16 @@ final class BoundView {
 
     record Evaluation(StateImage.StoredView stored, List<String> changedFields, List<TargetOutcome.FieldOutcome> fields) {}
 
-    private record Field(String name, List<V2Configuration.Input> inputs, boolean history,
-            FieldUpdateStrategy strategy, ContributionSelectionStrategy selection, LateDeliveryStrategy late) {
+    List<Field> fields() { return fields; }
+
+    record Field(String name, List<V2Configuration.Input> inputs, boolean history,
+            FieldUpdateStrategy strategy, ContributionSelectionStrategy selection, LateDeliveryStrategy late,
+            FreshnessStrategy freshness) {
+        SelectedContribution selected(StateImage.StoredView row) {
+            var retained = row == null ? null : row.candidates().get(name);
+            return retained == null ? null : selection.select(retained);
+        }
+
         boolean matches(Publication publication) {
             return inputs.stream().anyMatch(input -> input.sourceId().equals(publication.sourceId())
                     && input.type().equals(publication.type()));

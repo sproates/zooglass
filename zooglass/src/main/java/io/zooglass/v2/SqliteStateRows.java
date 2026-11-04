@@ -20,7 +20,8 @@ import java.util.List;
 
 /** Schema and row encoding. Transaction boundaries belong to SqliteState. */
 final class SqliteStateRows {
-    private static final int SCHEMA_VERSION = 4;
+    private static final int PROGRESS_SCHEMA = 4;
+    private static final int RECEIPT_AGE_SCHEMA = 5;
     private static final JsonMapper JSON = JsonMapper.builder()
             .withCoercionConfig(LogicalType.Textual, coercion -> {
                 for (var shape : List.of(CoercionInputShape.Integer,
@@ -44,6 +45,8 @@ final class SqliteStateRows {
     StateImage restore(V2Configuration configuration) throws SQLException {
         int schema = initialiseSchema();
         boolean fresh = schema == 0;
+        int targetSchema = configuration.tracksAge() ? RECEIPT_AGE_SCHEMA : PROGRESS_SCHEMA;
+        if (schema > targetSchema) throw new SQLException("Stored freshness configuration is required");
         try (var statement = connection.createStatement();
                 var check = statement.executeQuery("PRAGMA quick_check")) {
             if (!check.next() || !"ok".equals(check.getString(1))) {
@@ -87,19 +90,34 @@ final class SqliteStateRows {
         if (schema == 1 || schema == 2) {
             views = SchemaMigration.addCandidates(views);
         }
-        var restored = new StateImage(version, Map.copyOf(streams), Map.copyOf(views));
+        Long lastWall = null;
+        if (schema == RECEIPT_AGE_SCHEMA) {
+            try (var statement = connection.createStatement();
+                    var row = statement.executeQuery("SELECT last_wall, typeof(last_wall) FROM runtime WHERE id=1")) {
+                if (!row.next()) throw new SQLException("Missing receipt clock metadata");
+                lastWall = row.getObject(1) == null ? null : row.getLong(1);
+                if (lastWall != null && (!"integer".equals(row.getString(2)) || lastWall < 0)) {
+                    throw new SQLException("Invalid receipt clock");
+                }
+            }
+        } else if (targetSchema == RECEIPT_AGE_SCHEMA) {
+            try (var statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE runtime ADD COLUMN last_wall INTEGER");
+            }
+        }
+        var restored = new StateImage(version, Map.copyOf(streams), Map.copyOf(views), lastWall);
         RecoveryValidation.image(restored, configuration);
         try (var update = connection.prepareStatement(
-                "INSERT OR REPLACE INTO runtime(id, version, configuration) VALUES(1, ?, ?)")) {
+                "INSERT INTO runtime(id, version, configuration) VALUES(1, ?, ?) ON CONFLICT(id) DO UPDATE SET configuration=excluded.configuration")) {
             update.setLong(1, version);
             update.setString(2, encodeConfiguration(configuration));
             update.executeUpdate();
         }
-        if (schema > 0 && schema < SCHEMA_VERSION) {
+        if (schema < targetSchema) {
             // Rewrite the enriched rows and schema marker in the same startup transaction.
             writeChanges(StateImage.empty(), restored);
             try (var statement = connection.createStatement()) {
-                statement.execute("PRAGMA user_version=" + SCHEMA_VERSION);
+                statement.execute("PRAGMA user_version=" + targetSchema);
             }
         }
         return restored;
@@ -108,6 +126,11 @@ final class SqliteStateRows {
     private static String encodeConfiguration(V2Configuration configuration) {
         var document = (ObjectNode) JSON.valueToTree(configuration);
         for (var view : document.get("views")) {
+            for (var field : view.get("fields")) {
+                if ("unspecified".equals(field.at("/freshness/mode").asText())) {
+                    ((ObjectNode) field).remove("freshness");
+                }
+            }
             // Schema-4 readers from before required views reject unknown properties.
             if ("publishPartial".equals(view.at("/publication/mode").asText())) {
                 ((ObjectNode) view).remove("publication");
@@ -123,7 +146,7 @@ final class SqliteStateRows {
                 result.next();
                 version = result.getInt(1);
             }
-            if (version == SCHEMA_VERSION || version == 1 || version == 2 || version == 3) {
+            if (version >= 1 && version <= RECEIPT_AGE_SCHEMA) {
                 return version;
             }
             if (version != 0) {
@@ -151,7 +174,7 @@ final class SqliteStateRows {
                         view TEXT NOT NULL, entity TEXT NOT NULL, state TEXT NOT NULL,
                         PRIMARY KEY(view, entity))
                     """);
-            statement.execute("PRAGMA user_version=" + SCHEMA_VERSION);
+            statement.execute("PRAGMA user_version=" + PROGRESS_SCHEMA);
             return 0;
         }
     }
@@ -183,7 +206,10 @@ final class SqliteStateRows {
                 update.executeUpdate();
             }
         }
-        try (var update = connection.prepareStatement("UPDATE runtime SET version=? WHERE id=1")) {
+        String updateRuntime = next.lastWallMillis() == null ? "UPDATE runtime SET version=? WHERE id=1"
+                : "UPDATE runtime SET version=?, last_wall=? WHERE id=1";
+        try (var update = connection.prepareStatement(updateRuntime)) {
+            if (next.lastWallMillis() != null) update.setLong(2, next.lastWallMillis());
             update.setLong(1, next.version());
             if (update.executeUpdate() != 1) {
                 throw new SQLException("Missing runtime metadata");

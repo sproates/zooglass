@@ -1,7 +1,5 @@
 package io.zooglass.v2;
 
-import io.zooglass.strategy.publication.PublicationStrategy;
-
 import io.zooglass.strategy.progress.ProgressState;
 import io.zooglass.strategy.progress.ProgressStrategy;
 import io.zooglass.strategy.progress.ProgressStrategySelection;
@@ -14,12 +12,12 @@ import java.util.TreeMap;
 /** Pure public metadata projection; neither queries nor status construction allocate retained entities. */
 public final class ViewStatus {
     private final V2Configuration.View definition;
-    private final PublicationStrategy exposure;
+    private final BoundView bound;
     private final Map<String, InputBinding> inputs;
 
-    ViewStatus(V2Configuration.View definition, List<V2Configuration.Source> sources, PublicationStrategy exposure) {
+    ViewStatus(V2Configuration.View definition, List<V2Configuration.Source> sources, BoundView bound) {
         this.definition = definition;
-        this.exposure = exposure;
+        this.bound = bound;
         var bindings = new HashMap<String, InputBinding>();
         for (var source : sources) {
             var resolver = definition.entities().get(source.id());
@@ -39,12 +37,16 @@ public final class ViewStatus {
 
     Status project(String entity, StateImage.StoredView view, Map<Publication.StreamKey, StateImage.StreamState> streams) {
         var present = view == null ? java.util.Set.<String>of() : view.candidates().keySet();
-        var required = exposure.missingRequired(present);
+        var required = bound.exposure().missingRequired(present);
         var missing = definition.fields().keySet().stream().filter(field -> !present.contains(field)).sorted().toList();
         var fields = new TreeMap<String, FieldStatus>();
-        definition.fields().forEach((name, field) -> fields.put(name, new FieldStatus(
-                present.contains(name) ? "unspecified" : "absent", null,
-                field.allInputs().stream().map(V2Configuration.Input::sourceId).sorted().toList())));
+        for (var field : bound.fields()) {
+            var selected = field.selected(view);
+            var age = selected == null ? null : selected.age();
+            String freshness = selected == null ? "absent" : age == null ? "unspecified" : age.classification();
+            fields.put(field.name(), new FieldStatus(freshness, age == null ? null : age.receivedAtMillis(),
+                    field.inputs().stream().map(V2Configuration.Input::sourceId).sorted().toList()));
+        }
         var statuses = new TreeMap<String, InputStatus>();
         inputs.forEach((source, binding) -> {
             String original = binding.inverse == null ? entity : binding.inverse.get(entity);

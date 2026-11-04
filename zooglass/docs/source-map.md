@@ -11,6 +11,23 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Age a selected v2 contribution
+
+```mermaid
+flowchart LR
+  config["V2Configuration.java"] -->|binds field policy| select["FreshnessStrategySelection.java"]
+  select -->|default| unspecified["UnspecifiedFreshness.java"]
+  select -->|threshold| age["ReceiptAgeFreshness.java"]
+  bound["BoundView.java"] -->|stamps changed source candidates| policy["FreshnessStrategy.java"]
+  age -.->|implements| policy
+  unspecified -.->|implements| policy
+  candidate["SelectedContribution.java"] -->|retains| receipt["ReceiptAge.java"]
+  runtime["ViewCoordinator.java"] -->|serialises expiry with source commits| timing["FreshnessRuntime.java"]
+  timing -->|indexes selected fields| queue["FreshnessDeadlines.java"]
+  runtime -->|samples wall and elapsed time| clock["ReceiptClock.java"]
+  timing -->|rebases stored ages| policy
+```
+
 ## Decide when to publish a v2 entity
 
 ```mermaid

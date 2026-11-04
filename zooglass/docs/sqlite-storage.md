@@ -111,3 +111,16 @@ Default-only configurations retain the previous schema-4 encoding, including whe
 `publishPartial` is selected explicitly. The preceding schema-4 binary can reopen
 that database with its original configuration. Once a required view is configured,
 older binaries cannot read its policy; use a pre-upgrade backup to roll back.
+
+## Receipt age and restart
+
+Selecting receipt age upgrades storage to schema 5 in a startup transaction.
+Configurations using only unspecified freshness continue to write schema 4.
+Keep a pre-upgrade backup to return to a previous binary after opting in.
+
+Each timed candidate retains its own receipt evidence. Data, controls and expiry
+commits record the greatest wall time observed. While running, ZooGlass measures
+elapsed time on a monotonic clock. At startup it accounts for downtime and
+reconciles due fields before serving snapshots. If the wall clock has gone
+backwards, previously timed candidates become age-unknown until replaced.
+A retry retains its original receipt and version across an expiry commit.

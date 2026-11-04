@@ -18,7 +18,7 @@ The accepted [design](docs/design/progress-and-publication.md) explains how
 configuration selects source-progress, late-event, receipt-age and publication
 policies. Source progress, bounded gaps, per-field late decisions and durable
 watermark outcomes are implemented. Views can now wait for required fields before
-exposing their values. Receipt-age freshness is next.
+exposing their values. Fields can also classify the age of their last accepted contribution and become stale during silence. Combined progress, publication and freshness acceptance is next.
 Timeouts do not prove completeness, and staleness does not automatically change
 source priority.
 

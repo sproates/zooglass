@@ -30,6 +30,15 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Receipt age
+
+The receipt-age tests inject independent wall and monotonic clocks to check the
+exact threshold, late history additions, duplicates, waiting views, priority
+selection and restart uncertainty. Storage tests exercise schema migration and
+failed expiry transactions. Process-death tests use a real source socket, wait
+for the service timer during silence, and kill the service immediately before
+and after its SQLite commit.
+
 ### Required contributions
 
 `RequiredContributionTests` feeds the same events to partial and gated views,

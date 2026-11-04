@@ -12,7 +12,10 @@ import java.util.List;
 
 /** Detached state prepared by the coordinator; installation transfers ownership to storage. */
 record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
-        Map<ViewEntity, StoredView> views) {
+        Map<ViewEntity, StoredView> views, Long lastWallMillis) {
+    StateImage(long version, Map<Publication.StreamKey, StreamState> streams, Map<ViewEntity, StoredView> views) {
+        this(version, streams, views, null);
+    }
     static StateImage empty() {
         return new StateImage(0, Map.of(), Map.of());
     }
@@ -22,6 +25,14 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
             Map<String, Map<String, SelectedContribution>> candidates) {
         StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance) {
             this(version, data, provenance, null);
+        }
+
+        StoredView replaceCandidate(String field, String source, SelectedContribution replacement, long nextVersion) {
+            var updated = new HashMap<>(candidates);
+            var sources = new HashMap<>(updated.get(field));
+            sources.put(source, replacement);
+            updated.put(field, sources);
+            return new StoredView(nextVersion, data, provenance, updated);
         }
 
         boolean pending() {

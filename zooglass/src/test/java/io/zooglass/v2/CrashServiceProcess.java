@@ -45,7 +45,15 @@ final class CrashServiceProcess implements AutoCloseable {
     }
 
     void arm() throws Exception {
-        commands.write("ARM\n");
+        arm("ARM");
+    }
+
+    void armTimer() throws Exception {
+        arm("ARM_TIMER");
+    }
+
+    private void arm(String command) throws Exception {
+        commands.write(command + "\n");
         commands.flush();
         await("CRASH_ARMED");
     }

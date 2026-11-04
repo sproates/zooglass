@@ -95,6 +95,13 @@ final class RecoveryValidation {
                 for (var candidate : field.getValue().entrySet()) {
                     var retained = candidate.getValue();
                     require(retained != null);
+                    var age = retained.age();
+                    if (age != null) {
+                        require("receiptAge".equals(binding.freshness().mode()));
+                        if (age.receivedAtMillis() != null) {
+                            require(image.lastWallMillis() != null && age.receivedAtMillis() <= image.lastWallMillis());
+                        }
+                    }
                     var provenance = retained.provenance();
                     require(provenance != null && candidate.getKey().equals(provenance.sourceId())
                             && epochs.get(candidate.getKey()).equals(provenance.epoch())

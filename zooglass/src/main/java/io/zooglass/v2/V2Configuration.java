@@ -1,5 +1,8 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.progress.ProgressStrategySelection;
+import io.zooglass.strategy.late.LateStrategySelection;
+
 import org.springframework.core.io.ResourceLoader;
 import io.zooglass.strategy.identity.EntityStrategySelection;
 import io.zooglass.strategy.contribution.ContributionStrategySelection;
@@ -23,7 +26,14 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
         int identityWindow, int maxHistoryEntries, List<Source> sources, List<View> views) {
     private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
 
-    public record Source(String id, String epoch) {}
+    public record Progress(String mode, Long startSequence, Long maxReceivedRanges, Long maxMissingRanges) {}
+    public record Late(String mode) {}
+    public record Source(String id, String epoch, Progress progress) {
+        public Source(String id, String epoch) { this(id, epoch, null); }
+        public Source {
+            progress = progress == null ? new Progress("untracked", null, null, null) : progress;
+        }
+    }
     public record Entity(String mode, Map<String, String> keys) {
         public Entity {
             keys = keys == null ? null : Map.copyOf(keys);
@@ -63,12 +73,16 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     }
 
     /** Single inputs normalise to shorthand; multi-input order is canonical, priority order is retained. */
-    public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict) {
+    public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late) {
+        public Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict) {
+            this(sourceId, type, mode, inputs, conflict, null);
+        }
         public Field(String sourceId, String type, String mode) {
             this(sourceId, type, mode, null, null);
         }
 
         public Field {
+            late = late == null ? new Late("acceptLate") : late;
             if (inputs != null) {
                 if (sourceId != null || type != null || inputs.isEmpty()) {
                     throw new IllegalArgumentException("Use either shorthand or nonempty inputs");
@@ -134,6 +148,14 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
             }
         }
 
+        var progressBySource = new java.util.HashMap<String, Progress>();
+        for (Source source : sources) {
+            Progress progress = source.progress();
+            ProgressStrategySelection.select(progress.mode(), progress.startSequence(),
+                    progress.maxReceivedRanges(), progress.maxMissingRanges());
+            progressBySource.put(source.id(), progress);
+        }
+
         Set<String> viewIds = new HashSet<>();
         for (View view : views) {
             if (view == null || !name(view.id()) || !viewIds.add(view.id())
@@ -160,6 +182,11 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                         conflict == null ? null : conflict.sources(), inputSources);
                 if (conflict != null && !"latestBySequence".equals(field.mode())) {
                     throw new IllegalArgumentException("Source priority requires latestBySequence");
+                }
+                LateStrategySelection.select(field.late().mode());
+                if ("rejectBehindWatermark".equals(field.late().mode()) && inputSources.stream()
+                        .anyMatch(source -> !"contiguousSequence".equals(progressBySource.get(source).mode()))) {
+                    throw new IllegalArgumentException("Reject-behind-watermark requires contiguous inputs");
                 }
                 usedSources.addAll(inputSources);
             }

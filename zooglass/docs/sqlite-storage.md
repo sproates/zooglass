@@ -27,7 +27,8 @@ use this database.
 
 One transaction saves the publication identity, retained sequence floor, affected
 source-local candidates (including hidden updates), selected view values, field
-provenance, original target outcomes and commit version. Source contracts and view
+provenance, original target/field outcomes, source progress ranges, watermark
+retry versions, violation flags and commit version. Source contracts and view
 definitions are also stored. ZooGlass restores and validates them before accepting requests.
 
 - New publications return `status: committed`, `reason: sqlite`.
@@ -43,7 +44,7 @@ does not backfill it.
 
 ## Schema migration
 
-Storage schema 3 adds source-local candidates. Schema-1 and schema-2 databases
+Storage schema 4 adds progress and field outcomes. Schema-1, schema-2 and schema-3 databases
 migrate transactionally before readiness. Existing field values, publication
 identities, retention floors, target outcomes and versions are preserved. Each
 old single-source value seeds its candidate without replay; schema 1 also gains
@@ -52,7 +53,7 @@ provenance from its envelope-based definitions.
 Old receipts return `targets: null`: schema 1 did not record those outcomes.
 New receipts store an array. Migration failure leaves the original schema and
 rows intact and stops startup. Unknown schemas are rejected; older binaries
-reject schema 3, so this is not an automatic downgrade path.
+reject schema 4, so this is not an automatic downgrade path.
 
 Equivalent single-input shorthand/expanded field forms and explicit/default
 envelope resolvers normalise before configuration comparison. Lookup mappings
@@ -60,6 +61,12 @@ remain immutable for each view ID. Recovery checks every candidate against its c
 source stream, recomputes the selected winner to validate data/provenance, and
 validates recorded target outcomes before serving requests. Input ordering is
 normalised; source-priority ordering remains significant.
+
+Existing sources normalise to untracked progress: retained receipts cannot establish
+an earlier contiguous promise. Historical target records gain `fields: null`, while
+schema-1 receipts still have `targets: null`. Migration preserves versions and data.
+A control-only stream may have no data receipts; its watermark receipt and range
+state are retained. Recovery validates ranges, source contracts and field outcomes.
 
 ## Storage failures
 

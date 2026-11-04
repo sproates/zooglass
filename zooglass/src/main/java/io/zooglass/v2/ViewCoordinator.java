@@ -1,5 +1,9 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.progress.ProgressStrategy;
+import io.zooglass.strategy.progress.ProgressStrategySelection;
+import io.zooglass.strategy.progress.ProgressRejected;
+
 import io.zooglass.v2.StateImage.Receipt;
 import io.zooglass.v2.StateImage.StoredView;
 import io.zooglass.v2.StateImage.StreamState;
@@ -12,7 +16,6 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,7 +27,8 @@ import java.util.TreeMap;
 @Component
 public final class ViewCoordinator implements AutoCloseable {
     private final Map<String, String> epochs;
-    private final List<BoundView> views;
+    private final ViewTransitions views;
+    private final Map<String, ProgressStrategy> progress;
     private final int maxStreams;
     private final int identityWindow;
     private final int historyLimit;
@@ -45,7 +49,14 @@ public final class ViewCoordinator implements AutoCloseable {
         configuration.validate();
         epochs = new HashMap<>();
         configuration.sources().forEach(source -> epochs.put(source.id(), source.epoch()));
-        views = configuration.views().stream().map(BoundView::new).toList();
+        views = new ViewTransitions(configuration);
+        var policies = new HashMap<String, ProgressStrategy>();
+        configuration.sources().forEach(source -> {
+            var settings = source.progress();
+            policies.put(source.id(), ProgressStrategySelection.select(
+                    settings.mode(), settings.startSequence(), settings.maxReceivedRanges(), settings.maxMissingRanges()));
+        });
+        progress = Map.copyOf(policies);
         maxStreams = configuration.maxStreams();
         identityWindow = configuration.identityWindow();
         historyLimit = configuration.maxHistoryEntries();
@@ -86,6 +97,8 @@ public final class ViewCoordinator implements AutoCloseable {
 
         try {
             return stageAndInstall(event, stream);
+        } catch (ProgressRejected exception) {
+            return rejected(event, exception.reason());
         } catch (BoundView.CapacityExceeded exception) {
             return rejected(event, "historyLimit");
         }
@@ -97,64 +110,78 @@ public final class ViewCoordinator implements AutoCloseable {
         JsonNode contribution = JsonNodeFactory.instance.objectNode()
                 .put("publicationSequence", event.publicationSequence())
                 .set("payload", event.payload().deepCopy());
-        Map<ViewEntity, StoredView> candidates = new HashMap<>(state.views());
-        var changed = new ArrayList<String>();
-        var targets = new ArrayList<TargetOutcome>();
-
-        for (BoundView view : views) {
-            if (!view.matches(event)) {
-                continue;
-            }
-            var resolution = view.resolve(event);
-            if (!resolution.resolved()) {
-                targets.add(new TargetOutcome(view.id(), null, "rejected", "unknownEntityMapping", List.of()));
-                continue;
-            }
-            ViewEntity key = new ViewEntity(view.id(), resolution.entityId());
-            StoredView current = state.views().get(key);
-            var update = view.evaluate(event, contribution, current, historyLimit, version);
-            if (update.stored() != current) {
-                candidates.put(key, update.stored());
-            }
-            if (!update.changedFields().isEmpty()) {
-                changed.add(view.id());
-            }
-            targets.add(new TargetOutcome(view.id(), resolution.entityId(), "accepted", null, update.changedFields()));
-        }
-
         long floor = Math.max(stream == null ? 1 : stream.floor(),
                 event.publicationSequence() - identityWindow + 1);
+        var strategy = progress.get(event.sourceId());
+        var nextProgress = strategy.receive(stream == null ? strategy.initial() : stream.progress(),
+                event.publicationSequence(), floor);
+        var streams = new HashMap<>(state.streams());
+        streams.put(event.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
+        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version);
+
         var receipts = new TreeMap<Long, Receipt>();
         if (stream != null) {
             receipts.putAll(stream.receipts());
         }
         receipts.headMap(floor).clear();
         receipts.put(event.publicationSequence(),
-                new Receipt(event.type(), event.payload().deepCopy(), version, List.copyOf(targets)));
-        var streams = new HashMap<>(state.streams());
-        streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts)));
+                new Receipt(event.type(), event.payload().deepCopy(), version, staged.targets()));
+        streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts), nextProgress));
 
         // Build the response before the one installation point. No staged object escapes.
         var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
                 storage.durable() ? "sqlite" : "memory", event.stream(),
-                event.publicationSequence(), version, List.copyOf(changed), List.copyOf(targets));
-        StateImage next = new StateImage(version, Map.copyOf(streams), Map.copyOf(candidates));
+                event.publicationSequence(), version, staged.changedViews(), staged.targets());
+        StateImage next = new StateImage(version, Map.copyOf(streams), staged.views());
         storage.install(next);
         return result;
     }
 
+    synchronized ProgressOutcome advance(ProgressControl control) {
+        var state = storage.current();
+        String epoch = epochs.get(control.sourceId());
+        if (epoch == null) return rejected(control, "unknownSource");
+        if (!epoch.equals(control.epoch())) return rejected(control, "unknownEpoch");
+        var stream = state.streams().get(control.stream());
+        if (stream == null && state.streams().size() >= maxStreams) return rejected(control, "streamLimit");
+        var strategy = progress.get(control.sourceId());
+        var previous = stream == null ? strategy.initial() : stream.progress();
+        if (previous != null && previous.watermarkThrough() != null
+                && control.throughSequence() == previous.watermarkThrough()) {
+            return new ProgressOutcome("duplicate", storage.durable() ? "alreadyCommitted" : "alreadyApplied",
+                    control, previous.watermarkVersion(), List.of());
+        }
+        try {
+            long version = Math.incrementExact(state.version());
+            long floor = stream == null ? 1 : stream.floor();
+            var nextProgress = strategy.advance(previous, control.throughSequence(), version, floor);
+            var streams = new HashMap<>(state.streams());
+            streams.put(control.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
+            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version);
+            var result = new ProgressOutcome(storage.durable() ? "committed" : "applied", storage.durable() ? "sqlite" : "memory",
+                    control, version, staged.changedViews());
+            storage.install(new StateImage(version, Map.copyOf(streams), staged.views()));
+            return result;
+        } catch (ProgressRejected rejection) {
+            return rejected(control, rejection.reason());
+        }
+    }
+
+    private ProgressOutcome rejected(ProgressControl control, String reason) {
+        return new ProgressOutcome("rejected", reason, control, storage.current().version(), List.of());
+    }
+
     public synchronized Optional<Snapshot> snapshot(String viewId, String entityId) {
         StateImage state = storage.current();
-        if (views.stream().noneMatch(view -> view.id().equals(viewId))) {
-            return Optional.empty();
-        }
         StoredView stored = state.views().get(new ViewEntity(viewId, entityId));
+        var status = views.status(viewId, entityId, stored, state.streams());
+        if (status == null) return Optional.empty();
         Map<String, JsonNode> copy = new LinkedHashMap<>();
         if (stored != null) {
             stored.data().forEach((key, value) -> copy.put(key, value.deepCopy()));
         }
         return Optional.of(new Snapshot(viewId, entityId, stored == null ? 0 : stored.version(), copy,
-                stored == null ? Map.of() : stored.provenance()));
+                stored == null ? Map.of() : stored.provenance(), status));
     }
 
     private PublicationOutcome rejected(Publication event, String reason) {
@@ -178,5 +205,5 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     public record Snapshot(String viewId, String entityId, long version, Map<String, JsonNode> data,
-            Map<String, Provenance> provenance) {}
+            Map<String, Provenance> provenance, ViewStatus.Status status) {}
 }

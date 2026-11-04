@@ -4,7 +4,10 @@ The [source map](docs/source-map.md) explains the source files, their responsibi
 and how they depend on each other. Start there when reading the implementation.
 
 The opt-in [v2 ingestion API](docs/v2-ingestion.md) adds publication identities,
-retry outcomes, view-local entity mappings, provenance and atomic views, with optional [SQLite recovery](docs/sqlite-storage.md). The APIs below are the legacy contract
+retry outcomes, view-local entity mappings, source priority and atomic views, with
+optional [SQLite recovery](docs/sqlite-storage.md). Configured
+[source progress and late policy](docs/source-progress.md) add scoped gap tracking
+and explicit uncertainty. The APIs below are the legacy contract
 used by the current demos.
 
 ## Run locally
@@ -132,16 +135,17 @@ For example, if sequence 40 arrives, followed by 42, the history view currently
 shows `[40, 42]`. If 41 arrives later, ZooGlass inserts it into the history as
 `[40, 41, 42]`. The latest-position view remains at 42. This ordering alone
 does not prove that a sequence is missing: ZooGlass does not verify that a
-source uses contiguous sequence values for each entity. The Workbench's
+source uses contiguous sequence values for each entity on this legacy API. The Workbench's
 [`sequence-gap` scenario](../workbench/scenarios/sequence-gap.json) assumes
 that guarantee; its
 [`shared-sequence-across-entities` scenario](../workbench/scenarios/shared-sequence-across-entities.json)
 shows how a shared feed can produce the same jump without an event missing from
 that entity's history. See the Workbench notes on [what a sequence
-guarantees](../workbench/README.md#what-a-sequence-guarantees). No policy has
-been chosen for waiting on missing events or exposing an incomplete-history
-status. The [source progress exploration](source-progress-signals.md) compares
-signals ZooGlass might use to decide whether an event history is complete.
+guarantees](../workbench/README.md#what-a-sequence-guarantees). The v2 API now exposes
+[source progress and missing ranges](docs/source-progress.md) under an explicit
+per-entity source promise. Required-field waiting and receipt-age freshness remain
+later slices. The earlier [source progress exploration](source-progress-signals.md)
+compares the signals behind that design.
 
 Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
 subscription request for a view and entity:

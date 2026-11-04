@@ -50,7 +50,7 @@ class SourcePriorityCrashTests {
             }
             try (var service = new CrashServiceProcess(directory, CrashBoundaryDriver.Boundary.AFTER_ACK);
                     var source = new PublicationTestClient(http, service.port())) {
-                assertSnapshot(http, service.port(), "primary-first", "primary", 2, 1);
+                assertSnapshot(http, service.port(), "primary-first", "primary", 2, 2);
                 assertSnapshot(http, service.port(), "backup-first", "backup", committed ? 901 : 900, committed ? 3 : 2);
                 var retry = source.send(envelope("backup", 901));
                 assertThat(retry.path("status").asText()).isEqualTo(committed ? "duplicate" : "committed");

@@ -49,7 +49,7 @@ class SourcePriorityFailureTests {
         }
         execute(file, "DROP TRIGGER refuse_view");
         try (var runtime = new ViewCoordinator(config, file.toString())) {
-            assertThat(runtime.snapshot("primary-first", "order").orElseThrow().version()).isEqualTo(1);
+            assertThat(runtime.snapshot("primary-first", "order").orElseThrow().version()).isEqualTo(2);
             assertThat(runtime.apply(event("backup", 900)).status()).isEqualTo("duplicate");
             assertThat(runtime.apply(event("backup", 901)).status()).isEqualTo("committed");
         }

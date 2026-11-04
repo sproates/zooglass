@@ -7,16 +7,26 @@ import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.LogicalType;
+import tools.jackson.databind.cfg.CoercionInputShape;
+import tools.jackson.databind.cfg.CoercionAction;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 /** Schema and row encoding. Transaction boundaries belong to SqliteState. */
 final class SqliteStateRows {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
     private static final JsonMapper JSON = JsonMapper.builder()
+            .withCoercionConfig(LogicalType.Textual, coercion -> {
+                for (var shape : List.of(CoercionInputShape.Integer,
+                        CoercionInputShape.Float, CoercionInputShape.Boolean)) {
+                    coercion.setCoercion(shape, CoercionAction.Fail);
+                }
+            })
             .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
             .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
             .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
@@ -31,7 +41,8 @@ final class SqliteStateRows {
     }
 
     StateImage restore(V2Configuration configuration) throws SQLException {
-        boolean fresh = initialiseSchema();
+        int schema = initialiseSchema();
+        boolean fresh = schema == 0;
         try (var statement = connection.createStatement();
                 var check = statement.executeQuery("PRAGMA quick_check")) {
             if (!check.next() || !"ok".equals(check.getString(1))) {
@@ -69,6 +80,9 @@ final class SqliteStateRows {
             }
         }
 
+        if (schema == 1) {
+            views = SchemaMigration.addProvenance(views, configuration);
+        }
         var restored = new StateImage(version, Map.copyOf(streams), Map.copyOf(views));
         RecoveryValidation.image(restored, configuration);
         try (var update = connection.prepareStatement(
@@ -77,18 +91,25 @@ final class SqliteStateRows {
             update.setString(2, JSON.writeValueAsString(configuration));
             update.executeUpdate();
         }
+        if (schema == 1) {
+            // Rewrite the enriched rows and schema marker in the same startup transaction.
+            writeChanges(StateImage.empty(), restored);
+            try (var statement = connection.createStatement()) {
+                statement.execute("PRAGMA user_version=" + SCHEMA_VERSION);
+            }
+        }
         return restored;
     }
 
-    private boolean initialiseSchema() throws SQLException {
+    private int initialiseSchema() throws SQLException {
         try (var statement = connection.createStatement()) {
             int version;
             try (var result = statement.executeQuery("PRAGMA user_version")) {
                 result.next();
                 version = result.getInt(1);
             }
-            if (version == SCHEMA_VERSION) {
-                return false;
+            if (version == SCHEMA_VERSION || version == 1) {
+                return version;
             }
             if (version != 0) {
                 throw new SQLException("Unsupported v2 state schema");
@@ -116,7 +137,7 @@ final class SqliteStateRows {
                         PRIMARY KEY(view, entity))
                     """);
             statement.execute("PRAGMA user_version=" + SCHEMA_VERSION);
-            return true;
+            return 0;
         }
     }
 

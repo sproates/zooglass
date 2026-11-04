@@ -1,9 +1,11 @@
 # Relationships and source priority
 
-Status: design for review. Builds on the accepted
+Status: accepted design. Builds on the accepted
 [behaviour contracts](behaviour-contracts.md) and the implemented v2 identity and
-SQLite baseline. The configuration below is proposed for the next implementation;
-it is not accepted by the current runtime.
+SQLite baseline. The entity-mapping slice implements the resolver, single-input grammar, target
+outcome, provenance and migration contracts below. Multi-input source priority
+remains the subsequent implementation; its full example is not yet runnable.
+See the [ingestion guide](../../zooglass/docs/v2-ingestion.md) for supported examples.
 
 An order service calls a purchase `order-42`. Its payment provider calls the
 payment `payment-9`, and its stock service calls the reservation `reservation-7`.

@@ -51,6 +51,11 @@ class SqliteCrashRecoveryTests {
                 var retry = source.send(envelope(43, "{\"value\":43.0}"));
                 assertThat(retry.path("status").asText()).isEqualTo(committed ? "duplicate" : "committed");
                 assertThat(retry.path("version").longValue()).isEqualTo(3);
+                assertThat(retry.path("targets")).isEqualTo(JSON.readTree("""
+                        [{"viewId":"latest","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]},
+                         {"viewId":"history","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]},
+                         {"viewId":"arrival","entityId":"car","status":"accepted","reason":null,"changedFields":["position"]}]
+                        """));
                 assertHistory(http, port, 40L, 42L, 43L);
 
                 // New delayed input must use the restored ordering policy and retained floor.
@@ -94,6 +99,9 @@ class SqliteCrashRecoveryTests {
     private void assertSnapshot(HttpClient http, int port, String view, long version, long sequence) throws Exception {
         JsonNode snapshot = snapshot(http, port, view);
         assertThat(snapshot.path("version").longValue()).isEqualTo(version);
+        assertThat(snapshot.path("provenance")).isEqualTo(JSON.readTree("""
+                {"position":{"sourceId":"fleet","epoch":"trip-1","sourceEntityId":"car"}}
+                """));
         assertThat(snapshot.at("/data/position/publicationSequence").longValue()).isEqualTo(sequence);
         assertThat(snapshot.at("/data/position/payload/value").longValue()).isEqualTo(sequence);
     }

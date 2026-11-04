@@ -81,7 +81,7 @@ public final class ViewCoordinator implements AutoCloseable {
             }
             return new PublicationOutcome("duplicate",
                     storage.durable() ? "alreadyCommitted" : "alreadyApplied", event.stream(),
-                    event.publicationSequence(), previous.version(), List.of());
+                    event.publicationSequence(), previous.version(), List.of(), previous.targets());
         }
 
         try {
@@ -99,16 +99,36 @@ public final class ViewCoordinator implements AutoCloseable {
                 .set("payload", event.payload().deepCopy());
         Map<ViewEntity, StoredView> candidates = new HashMap<>(state.views());
         var changed = new ArrayList<String>();
+        var targets = new ArrayList<TargetOutcome>();
 
         for (BoundView view : views) {
-            ViewEntity key = new ViewEntity(view.id(), event.sourceEntityId());
+            if (!view.matches(event)) {
+                continue;
+            }
+            var resolution = view.resolve(event);
+            if (!resolution.resolved()) {
+                targets.add(new TargetOutcome(view.id(), null, "rejected", "unknownEntityMapping", List.of()));
+                continue;
+            }
+            ViewEntity key = new ViewEntity(view.id(), resolution.entityId());
             StoredView current = state.views().get(key);
-            Map<String, JsonNode> update = view.evaluate(event, contribution,
-                    current == null ? Map.of() : current.data(), historyLimit);
+            Map<String, JsonNode> data = current == null ? Map.of() : current.data();
+            Map<String, JsonNode> update = view.evaluate(event, contribution, data, historyLimit);
+            var changedFields = new ArrayList<String>();
             if (update != null) {
-                candidates.put(key, new StoredView(version, Map.copyOf(update)));
+                var provenance = new HashMap<String, Provenance>(current == null ? Map.of() : current.provenance());
+                update.forEach((field, value) -> {
+                    // Strategies return the retained node unchanged when there is no update.
+                    if (value != data.get(field)) {
+                        changedFields.add(field);
+                        provenance.put(field, new Provenance(event.sourceId(), event.epoch(), event.sourceEntityId()));
+                    }
+                });
+                changedFields.sort(String::compareTo);
+                candidates.put(key, new StoredView(version, Map.copyOf(update), Map.copyOf(provenance)));
                 changed.add(view.id());
             }
+            targets.add(new TargetOutcome(view.id(), resolution.entityId(), "accepted", null, changedFields));
         }
 
         long floor = Math.max(stream == null ? 1 : stream.floor(),
@@ -118,14 +138,15 @@ public final class ViewCoordinator implements AutoCloseable {
             receipts.putAll(stream.receipts());
         }
         receipts.headMap(floor).clear();
-        receipts.put(event.publicationSequence(), new Receipt(event.type(), event.payload().deepCopy(), version));
+        receipts.put(event.publicationSequence(),
+                new Receipt(event.type(), event.payload().deepCopy(), version, List.copyOf(targets)));
         var streams = new HashMap<>(state.streams());
         streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts)));
 
         // Build the response before the one installation point. No staged object escapes.
         var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
                 storage.durable() ? "sqlite" : "memory", event.stream(),
-                event.publicationSequence(), version, List.copyOf(changed));
+                event.publicationSequence(), version, List.copyOf(changed), List.copyOf(targets));
         StateImage next = new StateImage(version, Map.copyOf(streams), Map.copyOf(candidates));
         storage.install(next);
         return result;
@@ -141,7 +162,8 @@ public final class ViewCoordinator implements AutoCloseable {
         if (stored != null) {
             stored.data().forEach((key, value) -> copy.put(key, value.deepCopy()));
         }
-        return Optional.of(new Snapshot(viewId, entityId, stored == null ? 0 : stored.version(), copy));
+        return Optional.of(new Snapshot(viewId, entityId, stored == null ? 0 : stored.version(), copy,
+                stored == null ? Map.of() : stored.provenance()));
     }
 
     private PublicationOutcome rejected(Publication event, String reason) {
@@ -164,5 +186,6 @@ public final class ViewCoordinator implements AutoCloseable {
         storage.close();
     }
 
-    public record Snapshot(String viewId, String entityId, long version, Map<String, JsonNode> data) {}
+    public record Snapshot(String viewId, String entityId, long version, Map<String, JsonNode> data,
+            Map<String, Provenance> provenance) {}
 }

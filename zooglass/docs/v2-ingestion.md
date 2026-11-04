@@ -49,6 +49,50 @@ Each field binds one source and event type to one existing strategy module:
 `arrival`, `latestBySequence` or `historyBySequence`. Different fields can use
 different sources. Multiple views can use the same stream differently.
 
+## Map source keys to view entities
+
+A view can resolve each source's entity keys independently. For example, add this
+view alongside a payment-detail view that keeps the original payment ID:
+
+```json
+{
+  "id": "order-summary",
+  "entities": {
+    "payments": {"mode": "lookupEntity", "keys": {"payment-9": "order-42"}}
+  },
+  "fields": {
+    "order": {"sourceId": "orders", "type": "updated", "mode": "latestBySequence"},
+    "payment": {
+      "inputs": [{"sourceId": "payments", "type": "updated"}],
+      "mode": "latestBySequence",
+      "conflict": {"mode": "independentFields"}
+    }
+  }
+}
+```
+
+Declare both sources and epochs in the enclosing configuration. An order event
+with source entity `order-42` and a payment event with source entity `payment-9`
+then populate different fields of `GET /v2/views/order-summary/order-42`.
+The payment-detail view can still expose `payment-9`.
+
+Omitting a resolver selects `envelopeEntity`, which preserves the envelope key.
+`lookupEntity` uses exact, case-sensitive strings without trimming or coercion.
+Keys and values must be nonblank. Two keys from the same source cannot map to
+one canonical entity: that would combine independent sequence domains. Different
+sources may map to the same entity. Resolver entries must name sources used by
+the view; extra parameters or unsupported modes fail startup.
+
+The shorthand field form and expanded one-input form are equivalent. Each field
+still has exactly one input; multiple inputs and `sourcePriority` are subsequent
+work. `independentFields` is the only accepted conflict setting. Unknown field
+properties, including `freshness`, `update` and `name`, are rejected.
+
+Match source and event type before resolving. A missing mapping rejects only
+that view's contribution; other matching views may succeed. It allocates no view
+entity. The original source entity remains part of publication identity and its
+retention floor; a canonical view ID never replaces it.
+
 ## Send a publication
 
 Connect a WebSocket client to `ws://localhost:8080/v2/events` and send:
@@ -77,7 +121,8 @@ A successful response looks like:
   "stream": {"sourceId": "fleet", "epoch": "trip-1", "sourceEntityId": "car-1"},
   "publicationSequence": 41,
   "version": 1,
-  "changedViews": ["latest"]
+  "changedViews": ["latest"],
+  "targets": [{"viewId":"latest","entityId":"car-1","status":"accepted","reason":null,"changedFields":["position"]}]
 }
 ```
 
@@ -103,6 +148,31 @@ Duplicates return their original version with an empty `changedViews` list.
 Valid-envelope rejections return the current version; malformed input and
 processing failures return a null version.
 
+### Target outcomes
+
+`targets` contains one record for each matched view, in configured view order.
+A resolved view reports `status: accepted`, its canonical `entityId`, a null
+`reason`, and visible `changedFields` sorted by field name. Acceptance does not
+promise a visible change: a delayed latest-value event has an empty field list.
+An unknown mapping reports `status: rejected`, `reason: unknownEntityMapping`,
+a null entity and no changed fields.
+
+The top-level `applied` or `committed` outcome describes identity admission;
+it may accompany only rejected targets. No matching views produces an empty
+array. Whole-publication rejections and processing failures return an empty array,
+with no staged target successes. All target records, values, provenance and
+identity changes share one installation or transaction boundary.
+
+Retained duplicates return their original `targets` and version without evaluating
+current mappings. Their top-level `changedViews` remains empty. Schema-1 receipts
+migrated from an older database return `targets: null`, meaning the original
+outcomes were not recorded. New receipts always contain an array.
+
+Definitions are immutable. Use a new view ID for changed mappings; it starts
+empty. Retrying a retained identity cannot populate it. Publish the current fact
+under a new publication sequence instead. There is no mapping edit, buffering,
+backfill or view retirement API in this increment.
+
 ## Read the result
 
 Request `GET /v2/views/latest/car-1`. Its `data.position` contains:
@@ -115,7 +185,12 @@ Keeping the envelope sequence outside the payload avoids ambiguity with applicat
 fields. History mode returns an ordered array of these contributions. Latest mode
 does not move backwards when an older publication arrives; arrival mode does.
 
-A snapshot includes its view ID, entity ID and last changed version. A known view
+A snapshot includes its view ID, canonical entity ID and last changed version.
+Its separate `provenance` map identifies each populated field's `sourceId`,
+`epoch` and original `sourceEntityId`. For example, the payment field above reports
+`{"sourceId":"payments","epoch":"v1","sourceEntityId":"payment-9"}` when
+that source uses epoch `v1`. History fields identify their single source as well.
+Empty fields have no provenance entry. A known view
 with no entity data returns an empty snapshot at version zero. An unknown view
 returns 404. Legacy snapshots do not contain v2 data.
 

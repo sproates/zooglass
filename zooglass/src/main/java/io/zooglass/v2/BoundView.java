@@ -1,6 +1,9 @@
 package io.zooglass.v2;
 
 import io.zooglass.ViewConfiguration;
+import io.zooglass.strategy.identity.EntityResolution;
+import io.zooglass.strategy.identity.EntityResolutionStrategy;
+import io.zooglass.strategy.identity.EntityStrategySelection;
 import io.zooglass.strategy.update.FieldStrategySelection;
 import io.zooglass.strategy.update.FieldUpdateStrategy;
 import tools.jackson.databind.JsonNode;
@@ -13,9 +16,14 @@ import java.util.Map;
 final class BoundView {
     private final String id;
     private final List<Field> fields;
+    private final Map<String, EntityResolutionStrategy> resolvers;
 
     BoundView(V2Configuration.View definition) {
         id = definition.id();
+        var selected = new LinkedHashMap<String, EntityResolutionStrategy>();
+        definition.entities().forEach((source, config) -> selected.put(source,
+                EntityStrategySelection.select(config.mode(), config.keys())));
+        resolvers = Map.copyOf(selected);
         fields = definition.fields().entrySet().stream().map(entry -> {
             var config = entry.getValue();
             var ordering = config.mode().equals("arrival") ? null
@@ -27,6 +35,15 @@ final class BoundView {
 
     String id() {
         return id;
+    }
+
+    boolean matches(Publication publication) {
+        return fields.stream().anyMatch(field -> field.source.equals(publication.sourceId())
+                && field.type.equals(publication.type()));
+    }
+
+    EntityResolution resolve(Publication publication) {
+        return resolvers.get(publication.sourceId()).resolve(publication.sourceEntityId());
     }
 
     Map<String, JsonNode> evaluate(Publication publication, JsonNode contribution,

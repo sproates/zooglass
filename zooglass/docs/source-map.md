@@ -141,7 +141,7 @@ wire examples.
 
 Each box below is a file in
 [`src/main/java/io/zooglass/v2/`](../src/main/java/io/zooglass/v2/), except the
-shared strategy selector.
+shared update selector and the identity strategy files shown with their paths.
 
 ```mermaid
 flowchart TB
@@ -152,7 +152,15 @@ flowchart TB
   outcome["PublicationOutcome.java<br/>Structured source result"]
   coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
   config["V2Configuration.java<br/>Validate startup definitions"]
-  bound["BoundView.java<br/>Immutable field bindings"]
+  bound["BoundView.java<br/>Immutable field and resolver bindings"]
+  entitySelection["strategy/identity/EntityStrategySelection.java"]
+  entityStrategy["strategy/identity/EntityResolutionStrategy.java"]
+  envelope["strategy/identity/EnvelopeEntity.java"]
+  lookup["strategy/identity/LookupEntity.java"]
+  resolution["strategy/identity/EntityResolution.java"]
+  target["TargetOutcome.java<br/>Original per-view result"]
+  provenance["Provenance.java<br/>Original source identity"]
+  migration["SchemaMigration.java<br/>Enrich schema-1 view state"]
   store["StateStore.java<br/>Current state and installation boundary"]
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
@@ -180,6 +188,16 @@ flowchart TB
   health -->|checks storage availability| coordinator
   coordinator -.->|returns| outcome
   bound -->|binds configured update strategy| selection
+  bound -->|binds resolver per source| entitySelection
+  entitySelection -->|constructs| envelope
+  entitySelection -->|constructs| lookup
+  envelope -.->|implements| entityStrategy
+  lookup -.->|implements| entityStrategy
+  bound -->|resolves original source key| entityStrategy
+  entityStrategy -.->|returns| resolution
+  coordinator -.->|stages and retains| target
+  coordinator -.->|records selected field source| provenance
+  rows -->|migrates before readiness| migration
 ```
 
 `ViewCoordinator` serialises admission, staging and snapshot reads under one
@@ -190,7 +208,11 @@ then installs the prepared image. `BoundView` holds configuration and strategy
 bindings, never entity state.
 
 `SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
-checks stored definitions and state before the service becomes ready.
+checks stored definitions, target outcomes and field provenance before the service
+becomes ready. `SchemaMigration` enriches schema-1 rows in that same transaction;
+old receipts retain unknown (`null`) target outcomes. `BoundView` invokes its
+source resolver only after matching the source/type. Unknown mappings produce
+view-local rejections; publication identity keeps the source's original key.
 `SqliteState` owns one exclusive connection and closes it on shutdown or storage
 failure. Failed storage blocks reads and writes; `V2StorageHealth` reports DOWN.
 
@@ -209,7 +231,7 @@ subscription index and outbound writer. For view definitions, start with
 For v2 ingestion, start with `v2/EventIngress.java`, then `PublicationJson.java`,
 `ViewCoordinator.java`, `BoundView.java` and the selected `StateStore` implementation.
 
-This map covers all 34 production Java files. SQLite persistence applies to v2 only;
+This map covers the production Java modules. SQLite persistence applies to v2 only;
 legacy endpoints retain their memory-only behaviour. Replay and authorisation
 features are separate delivery work.
 Tests are described in the [verification map](../../docs/testing.md). For the

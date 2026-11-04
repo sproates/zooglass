@@ -26,12 +26,12 @@ use this database.
 ## What survives a restart
 
 One transaction saves the publication identity, retained sequence floor, affected
-view values and commit version. Source contracts and view definitions are also
+view values, field provenance, original target outcomes and commit version. Source contracts and view definitions are also
 stored. ZooGlass restores and validates them before accepting requests.
 
 - New publications return `status: committed`, `reason: sqlite`.
 - Retained retries return `status: duplicate`, `reason: alreadyCommitted`,
-  with the original commit version.
+  with the original commit version and target outcomes.
 - Conflicts, expired identities and capacity limits retain the v2 rejection rules.
 - A lost acknowledgement does not undo a commit. Resend the same publication.
 
@@ -39,6 +39,24 @@ Startup configuration may reorder definitions or add sources and views. Existing
 definitions, source epochs and capacity limits must remain unchanged. Removing or
 changing them fails startup. A new view starts empty; retrying old publications
 does not backfill it.
+
+## Schema migration
+
+Storage schema 2 adds provenance and target outcomes. Opening a schema-1 database
+migrates it transactionally before readiness. Existing field values, publication
+identities, retention floors and versions are preserved. Envelope-based
+single-source definitions supply the original field provenance without replay.
+
+Old receipts return `targets: null`: schema 1 did not record those outcomes.
+New receipts store an array. Migration failure leaves the original schema and
+rows intact and stops startup. Unknown schemas are rejected; older binaries
+reject schema 2, so this is not an automatic downgrade path.
+
+Equivalent single-input shorthand/expanded field forms and explicit/default
+envelope resolvers normalise before configuration comparison. Lookup mappings
+remain immutable for each view ID. Recovery checks field provenance against its
+configured resolver and retained source stream, and validates recorded target
+outcomes before serving requests.
 
 ## Storage failures
 

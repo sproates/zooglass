@@ -30,6 +30,22 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Entity mappings and migration
+
+`EntityMappingTests` checks cross-source convergence, view-local mapping/rejection,
+exact receipt retries, sorted changed fields, history/arrival semantics, bounds
+and immutable provenance. `EntityConfigurationTests` checks named resolver
+selection, ambiguous mapping rejection, exact string keys, field grammar and
+normalisation. Numeric mapping values must fail rather than silently coerce.
+
+`EntityMappingFunctionalTests` sends three real source streams over WebSocket,
+reads their converged HTTP snapshot and original provenance, then restarts SQLite
+and verifies target receipts and delayed input. `EntityMigrationTests` uses an
+independent literal schema-1 database, checks values/floors/versions and unknown
+old outcomes, injects migration/write failures, and rejects corrupt provenance
+and target records. The abrupt-termination tests below also assert original target
+outcomes and provenance across commit boundaries.
+
 ### Abrupt process termination
 
 `SqliteCrashRecoveryTests` launches the actual service in a child JVM, publishes

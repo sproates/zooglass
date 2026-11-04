@@ -1,5 +1,9 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.identity.EntityStrategySelection;
+
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,6 +45,9 @@ final class RecoveryValidation {
                 require(value != null && value.version() > 0 && value.version() <= image.version()
                         && value.type() != null && !value.type().isBlank()
                         && value.content() != null && value.content().isObject());
+                if (value.targets() != null) {
+                    validateTargets(value.targets(), key, value.type(), definitions);
+                }
             }
         }
         for (var entry : image.views().entrySet()) {
@@ -49,10 +56,19 @@ final class RecoveryValidation {
             require(definition != null && !entry.getKey().entityId().isBlank());
             require(view.version() > 0 && view.version() <= image.version() && view.data() != null);
             require(definition.fields().keySet().containsAll(view.data().keySet()));
+            require(view.provenance() != null && view.provenance().keySet().equals(view.data().keySet()));
             for (var field : view.data().entrySet()) {
                 var binding = definition.fields().get(field.getKey());
-                var streamKey = new Publication.StreamKey(binding.sourceId(), epochs.get(binding.sourceId()),
-                        entry.getKey().entityId());
+                var provenance = view.provenance().get(field.getKey());
+                require(provenance != null && binding.sourceId().equals(provenance.sourceId())
+                        && epochs.get(binding.sourceId()).equals(provenance.epoch())
+                        && provenance.sourceEntityId() != null);
+                var resolver = definition.entities().get(binding.sourceId());
+                var resolved = EntityStrategySelection.select(resolver.mode(), resolver.keys())
+                        .resolve(provenance.sourceEntityId());
+                require(entry.getKey().entityId().equals(resolved.entityId()));
+                var streamKey = new Publication.StreamKey(provenance.sourceId(), provenance.epoch(),
+                        provenance.sourceEntityId());
                 require(image.streams().containsKey(streamKey));
                 var value = field.getValue();
                 require(value != null);
@@ -70,6 +86,33 @@ final class RecoveryValidation {
                     validateContribution(value);
                 }
             }
+        }
+    }
+
+    private static void validateTargets(List<TargetOutcome> targets, Publication.StreamKey key,
+            String type, Map<String, V2Configuration.View> definitions) {
+        var seen = new HashSet<String>();
+        for (var target : targets) {
+            require(target != null && seen.add(target.viewId()));
+            var definition = definitions.get(target.viewId());
+            require(definition != null);
+            var matching = definition.fields().entrySet().stream()
+                    .filter(field -> field.getValue().sourceId().equals(key.sourceId())
+                            && field.getValue().type().equals(type))
+                    .map(Map.Entry::getKey).sorted().toList();
+            require(!matching.isEmpty());
+            var resolver = definition.entities().get(key.sourceId());
+            var resolved = EntityStrategySelection.select(resolver.mode(), resolver.keys())
+                    .resolve(key.sourceEntityId());
+            if (resolved.resolved()) {
+                require("accepted".equals(target.status()) && target.reason() == null
+                        && resolved.entityId().equals(target.entityId()));
+            } else {
+                require("rejected".equals(target.status()) && "unknownEntityMapping".equals(target.reason())
+                        && target.entityId() == null && target.changedFields().isEmpty());
+            }
+            require(matching.containsAll(target.changedFields())
+                    && target.changedFields().equals(target.changedFields().stream().distinct().sorted().toList()));
         }
     }
 

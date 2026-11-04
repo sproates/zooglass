@@ -1,12 +1,18 @@
 package io.zooglass.v2;
 
 import org.springframework.core.io.ResourceLoader;
+import io.zooglass.strategy.identity.EntityStrategySelection;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.LogicalType;
+import tools.jackson.databind.cfg.CoercionInputShape;
+import tools.jackson.databind.cfg.CoercionAction;
 
 import java.util.HashSet;
+import java.util.Collections;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,11 +23,70 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
 
     public record Source(String id, String epoch) {}
-    public record View(String id, Map<String, Field> fields) {}
-    public record Field(String sourceId, String type, String mode) {}
+    public record Entity(String mode, Map<String, String> keys) {
+        public Entity {
+            keys = keys == null ? null : Map.copyOf(keys);
+        }
+    }
+
+    public record View(String id, Map<String, Field> fields, Map<String, Entity> entities) {
+        public View(String id, Map<String, Field> fields) {
+            this(id, fields, null);
+        }
+
+        public View {
+            if (fields != null) {
+                fields = Collections.unmodifiableMap(new TreeMap<>(fields));
+            }
+            var settings = new TreeMap<String, Entity>();
+            if (entities != null) {
+                settings.putAll(Map.copyOf(entities));
+            }
+            if (fields != null) {
+                for (Field field : fields.values()) {
+                    if (field != null && field.sourceId() != null) {
+                        settings.putIfAbsent(field.sourceId(), new Entity("envelopeEntity", null));
+                    }
+                }
+            }
+            entities = Map.copyOf(settings);
+        }
+    }
+
+    public record Input(String sourceId, String type) {}
+    public record Conflict(String mode) {}
+
+    /** The expanded single-input form normalises to the existing shorthand. */
+    public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict) {
+        public Field(String sourceId, String type, String mode) {
+            this(sourceId, type, mode, null, null);
+        }
+
+        public Field {
+            if (inputs != null) {
+                if (sourceId != null || type != null || inputs.size() != 1 || inputs.getFirst() == null) {
+                    throw new IllegalArgumentException("This increment requires exactly one field input");
+                }
+                sourceId = inputs.getFirst().sourceId();
+                type = inputs.getFirst().type();
+                inputs = null;
+            }
+            if (conflict != null && !"independentFields".equals(conflict.mode())) {
+                throw new IllegalArgumentException("Unsupported contribution strategy");
+            }
+            conflict = null;
+        }
+    }
 
     static V2Configuration load(ResourceLoader resources, String location) {
         var mapper = JsonMapper.builder()
+                .withCoercionConfig(LogicalType.Textual, coercion -> {
+                    for (var shape : List.of(CoercionInputShape.Integer,
+                            CoercionInputShape.Float,
+                            CoercionInputShape.Boolean)) {
+                        coercion.setCoercion(shape, CoercionAction.Fail);
+                    }
+                })
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
                 .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
@@ -60,12 +125,21 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                     || view.fields() == null || view.fields().isEmpty()) {
                 throw new IllegalArgumentException("Invalid or duplicate v2 view");
             }
+            var usedSources = new HashSet<String>();
             for (var entry : view.fields().entrySet()) {
                 Field field = entry.getValue();
                 if (!name(entry.getKey()) || field == null || !sourceIds.contains(field.sourceId())
                         || !name(field.type()) || field.mode() == null || !MODES.contains(field.mode())) {
                     throw new IllegalArgumentException("Invalid v2 field or source reference");
                 }
+                usedSources.add(field.sourceId());
+            }
+            for (var entry : view.entities().entrySet()) {
+                Entity entity = entry.getValue();
+                if (!usedSources.contains(entry.getKey()) || entity == null) {
+                    throw new IllegalArgumentException("Entity resolver must reference a source used by its view");
+                }
+                EntityStrategySelection.select(entity.mode(), entity.keys());
             }
         }
     }

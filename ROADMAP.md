@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 3 November 2026.
+Last reviewed: 4 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -13,7 +13,10 @@ Map source-specific keys to the same entity, then retain independent source
 contributions and select them through configured priority rules. Unknown or
 ambiguous mappings must have explicit outcomes. The
 [relationship design](docs/design/relationships-and-conflicts.md) sets out the
-proposed configuration and two implementation slices.
+accepted configuration and two implementation slices. The entity-mapping slice
+is implemented for review, pending merge: exact view-local mappings, per-view
+outcomes, source provenance and schema-1 migration. Source-priority selection
+follows as the next slice.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

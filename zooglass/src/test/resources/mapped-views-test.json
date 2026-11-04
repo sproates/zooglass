@@ -1,0 +1,16 @@
+{
+  "contractVersion": 2, "storage": "memory", "maxStreams": 10,
+  "identityWindow": 10, "maxHistoryEntries": 3,
+  "sources": [{"id":"orders","epoch":"v1"},{"id":"payments","epoch":"v1"},{"id":"stock","epoch":"v1"}],
+  "views": [
+    {"id":"summary","entities":{
+      "payments":{"mode":"lookupEntity","keys":{"payment-9":"order-42"}},
+      "stock":{"mode":"lookupEntity","keys":{"reservation-7":"order-42"}}
+    },"fields":{
+      "order":{"sourceId":"orders","type":"updated","mode":"latestBySequence"},
+      "payment":{"inputs":[{"sourceId":"payments","type":"updated"}],"mode":"latestBySequence","conflict":{"mode":"independentFields"}},
+      "stock":{"sourceId":"stock","type":"updated","mode":"latestBySequence"}
+    }},
+    {"id":"detail","fields":{"payment":{"sourceId":"payments","type":"updated","mode":"latestBySequence"}}}
+  ]
+}

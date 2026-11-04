@@ -125,7 +125,9 @@ reconciles due fields before serving snapshots. If the wall clock has gone
 backwards, previously timed candidates become age-unknown until replaced.
 A retry retains its original receipt and version across an expiry commit.
 
-If a commit observes a backwards wall-clock step, ZooGlass marks earlier receipts
+ZooGlass compares wall time with monotonic elapsed time at commits. This detects
+a backwards adjustment even when the new wall reading exceeds the previous one.
+If the readings establish a backwards step, ZooGlass marks earlier receipts
 in that same transaction. Their running deadlines still use monotonic time.
 On restart those receipts become age-unknown even if wall time has caught up.
 Schema upgrade, configuration and startup age reconciliation commit together.

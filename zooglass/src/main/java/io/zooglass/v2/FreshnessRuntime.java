@@ -22,7 +22,7 @@ final class FreshnessRuntime implements AutoCloseable {
     private final Runnable wake;
     private ScheduledFuture<?> alarm;
     private Long armed;
-    private long previousWall;
+    private final ClockRollback observations = new ClockRollback();
 
     FreshnessRuntime(Map<String, BoundView> bindings, ReceiptClock clock, Runnable wake) {
         this.bindings = bindings;
@@ -32,8 +32,9 @@ final class FreshnessRuntime implements AutoCloseable {
     }
 
     StateImage recover(StateImage old) {
-        long wall = clock.wallMillis();
-        long monotonic = clock.monotonicMillis();
+        var sample = clock.sample();
+        long wall = sample.wall();
+        long monotonic = sample.after();
         boolean rollback = old.lastWallMillis() != null && wall < old.lastWallMillis();
         var rows = new HashMap<>(old.views());
         boolean dirty = false;
@@ -61,7 +62,7 @@ final class FreshnessRuntime implements AutoCloseable {
             rows.put(key, row);
         }
         long observed = highWater(old, wall);
-        previousWall = wall;
+        observations.start(sample);
         if (dirty || !Objects.equals(old.lastWallMillis(), observed)) {
             long version = dirty ? Math.incrementExact(old.version()) : old.version();
             return new StateImage(version, old.streams(), Map.copyOf(rows), observed);
@@ -86,10 +87,11 @@ final class FreshnessRuntime implements AutoCloseable {
         return replacements;
     }
 
-    void install(StateStore storage, StateImage old, StateImage next, long wall) {
-        if (wall < previousWall) next = ClockRollback.markRetainedReceipts(old, next);
+    void install(StateStore storage, StateImage old, StateImage next, ReceiptClock.Sample sample) {
+        boolean rollback = observations.detected(sample);
+        if (rollback) next = ClockRollback.markRetainedReceipts(old, next);
         storage.install(next);
-        previousWall = wall;
+        observations.committed(sample, rollback);
     }
 
     void installed(Map<FreshnessDeadlines.Key, Long> replacements) {
@@ -117,8 +119,8 @@ final class FreshnessRuntime implements AutoCloseable {
             rows.put(key.entity(), row.replaceCandidate(field.name(), winner.provenance().sourceId(),
                     winner.withAge(winner.age().stale()), version));
         }
-        long wall = clock.wallMillis();
-        install(storage, old, new StateImage(version, old.streams(), Map.copyOf(rows), highWater(old, wall)), wall);
+        var sample = clock.sample();
+        install(storage, old, new StateImage(version, old.streams(), Map.copyOf(rows), highWater(old, sample.wall())), sample);
         due.forEach(key -> deadlines.replace(key, null));
         arm();
     }

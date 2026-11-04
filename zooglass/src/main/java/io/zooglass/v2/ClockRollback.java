@@ -5,7 +5,23 @@ import java.util.HashMap;
 
 /** Elapsed time is still reliable in-process. Flag pre-jump receipts for the next restart. */
 final class ClockRollback {
-    private ClockRollback() {}
+    private long previousWall;
+    private long highestMinimumOffset;
+
+    void start(ReceiptClock.Sample sample) {
+        previousWall = sample.wall();
+        highestMinimumOffset = sample.minimumOffset();
+    }
+
+    boolean detected(ReceiptClock.Sample sample) {
+        // Independently rounded millisecond clocks can differ by one tick.
+        return sample.wall() < previousWall || sample.maximumOffset() < highestMinimumOffset - 1;
+    }
+
+    void committed(ReceiptClock.Sample sample, boolean rollback) {
+        previousWall = sample.wall();
+        highestMinimumOffset = rollback ? sample.minimumOffset() : Math.max(highestMinimumOffset, sample.minimumOffset());
+    }
 
     static StateImage markRetainedReceipts(StateImage old, StateImage next) {
         var rows = new HashMap<>(next.views());

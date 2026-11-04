@@ -140,9 +140,8 @@ public final class ViewCoordinator implements AutoCloseable {
                 event.publicationSequence(), floor);
         var streams = new HashMap<>(state.streams());
         streams.put(event.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
-        long wall = clock.wallMillis();
-        long elapsed = clock.monotonicMillis();
-        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version, wall);
+        var sample = clock.sample();
+        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version, sample.wall());
 
         var receipts = new TreeMap<Long, Receipt>();
         if (stream != null) {
@@ -157,7 +156,7 @@ public final class ViewCoordinator implements AutoCloseable {
         var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
                 storage.durable() ? "sqlite" : "memory", event.stream(),
                 event.publicationSequence(), version, staged.changedViews(), staged.targets());
-        install(state, version, streams, staged, wall, elapsed);
+        install(state, version, streams, staged, sample);
         return result;
     }
 
@@ -182,12 +181,11 @@ public final class ViewCoordinator implements AutoCloseable {
             var nextProgress = strategy.advance(previous, control.throughSequence(), version, floor);
             var streams = new HashMap<>(state.streams());
             streams.put(control.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
-            long wall = clock.wallMillis();
-            long elapsed = clock.monotonicMillis();
-            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version, wall);
+            var sample = clock.sample();
+            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version, sample.wall());
             var result = new ProgressOutcome(storage.durable() ? "committed" : "applied", storage.durable() ? "sqlite" : "memory",
                     control, version, staged.changedViews());
-            install(state, version, streams, staged, wall, elapsed);
+            install(state, version, streams, staged, sample);
             return result;
         } catch (ProgressRejected rejection) {
             return rejected(control, rejection.reason());
@@ -195,15 +193,15 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     private void install(StateImage old, long version, Map<Publication.StreamKey, StreamState> streams,
-            ViewTransitions.Result staged, long wall, long monotonic) {
+            ViewTransitions.Result staged, ReceiptClock.Sample sample) {
         var next = new StateImage(version, Map.copyOf(streams), staged.views(),
-                freshness == null ? null : FreshnessRuntime.highWater(old, wall));
+                freshness == null ? null : FreshnessRuntime.highWater(old, sample.wall()));
         if (freshness == null) {
             storage.install(next);
             return;
         }
-        var deadlines = freshness.plan(old, next, staged.touched(), monotonic);
-        freshness.install(storage, old, next, wall);
+        var deadlines = freshness.plan(old, next, staged.touched(), sample.after());
+        freshness.install(storage, old, next, sample);
         freshness.installed(deadlines);
     }
 

@@ -70,6 +70,26 @@ class ReceiptAgeRecoveryTests {
     }
 
     @Test
+    void rollbackBetweenCommitsCanBeMaskedByForwardWallTime() {
+        var clock = new Clock();
+        var config = config("sqlite", 10_000);
+        String db = directory.resolve("masked-step.db").toString();
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            service.apply(ProgressTests.event(1));
+            clock.advance(9_000);
+            clock.wall -= 8_000; // Net wall advance is one second, despite nine seconds elapsed.
+            service.advance(ProgressTests.watermark(1));
+            assertThat(position(service).freshness()).isEqualTo("fresh");
+        }
+        clock.advance(8_000);
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            assertThat(position(service).freshness()).isEqualTo("ageUnknown");
+            assertThat(service.apply(ProgressTests.event(1)).status()).isEqualTo("duplicate");
+            assertThat(position(service).freshness()).isEqualTo("ageUnknown");
+        }
+    }
+
+    @Test
     void aReportAcceptedOnTheBackwardsStepGetsItsOwnReceiptTime() {
         var clock = new Clock();
         var config = config("sqlite", 10000);

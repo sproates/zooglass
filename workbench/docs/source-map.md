@@ -107,6 +107,8 @@ flowchart TB
 
 ## Execute against ZooGlass
 
+ZooGlass binds an OS-assigned loopback port and writes its number into the session directory. Workbench reads that file before checking service health.
+
 [`service/zooglass-session.ts`](../src/service/zooglass-session.ts) owns the Java process, temporary
 configuration, readiness checks and shutdown. It launches the already-built
 `zooglass/target/zooglass.jar` directly with Java, without a shell or Maven.

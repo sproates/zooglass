@@ -26,7 +26,12 @@ test(
 
     t.after(() => session.close());
 
-    const { pid, config } = await fixture.started();
+    const { pid, config, requestedPort } = await fixture.started();
+    assert.equal(
+      requestedPort,
+      0,
+      "the child must bind its own available port",
+    );
 
     assert.deepEqual(
       JSON.parse(await readFile(fileURLToPath(config), "utf8")),

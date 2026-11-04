@@ -377,8 +377,7 @@ flowchart TB
   bound["BoundView: late, update, selection, freshness, publication"]
   deadlines["Deadline scheduler: request status reevaluation"]
   store["StateStore: candidates, published state, receipts and policy metadata"]
-  config -->|binds source policy| progress
-  config -->|binds field and view policies| bound
+  config -->|supplies bound strategies| coordinator
   ingress -->|validated data or control| coordinator
   coordinator -->|evaluates source progress once| progress
   coordinator -->|evaluates affected view entities| bound

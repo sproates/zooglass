@@ -82,8 +82,15 @@ revocation bounds, queued data and unavailable policy decisions.
 
 ## Further direction
 
-Independent source integrations will exercise ZooGlass with systems operated
-outside the simulated environment. Broader replay, query and distributed-storage
+These items have no scheduled delivery date:
+
+- **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
+
+- **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
+- **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
+- **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
+
+Broader replay, query and distributed-storage
 capabilities can be considered separately as concrete needs emerge; they are not
 part of the current delivery sequence.
 

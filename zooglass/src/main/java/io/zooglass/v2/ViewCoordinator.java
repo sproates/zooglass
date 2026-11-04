@@ -99,6 +99,8 @@ public final class ViewCoordinator implements AutoCloseable {
             return stageAndInstall(event, stream);
         } catch (ProgressRejected exception) {
             return rejected(event, exception.reason());
+        } catch (ViewTransitions.PendingLimit exception) {
+            return rejected(event, "pendingViewLimit");
         } catch (BoundView.CapacityExceeded exception) {
             return rejected(event, "historyLimit");
         }

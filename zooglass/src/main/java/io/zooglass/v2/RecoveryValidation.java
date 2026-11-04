@@ -71,6 +71,7 @@ final class RecoveryValidation {
                 }
             }
         }
+        var pendingCounts = new java.util.HashMap<String, Long>();
         for (var entry : image.views().entrySet()) {
             var definition = definitions.get(entry.getKey().viewId());
             var view = entry.getValue();
@@ -78,7 +79,14 @@ final class RecoveryValidation {
             require(view.version() > 0 && view.version() <= image.version() && view.data() != null);
             require(definition.fields().keySet().containsAll(view.data().keySet()));
             require(view.provenance() != null && view.provenance().keySet().equals(view.data().keySet()));
-            require(view.candidates() != null && view.candidates().keySet().equals(view.data().keySet()));
+            require(view.candidates() != null && definition.fields().keySet().containsAll(view.candidates().keySet()));
+            var policy = definition.publication().bind(definition.fields().keySet());
+            boolean expose = policy.missingRequired(view.candidates().keySet()).isEmpty();
+            require(expose ? view.candidates().keySet().equals(view.data().keySet()) : view.data().isEmpty());
+            if (view.pending()) {
+                long count = pendingCounts.merge(definition.id(), 1L, Long::sum);
+                require(!policy.atCapacity(count - 1));
+            }
             for (var field : view.candidates().entrySet()) {
                 var binding = definition.fields().get(field.getKey());
                 var inputs = binding.allInputs().stream().map(V2Configuration.Input::sourceId)
@@ -121,7 +129,7 @@ final class RecoveryValidation {
                         conflict == null ? "independentFields" : conflict.mode(),
                         conflict == null ? null : conflict.sources(), inputs);
                 var selected = selection.select(field.getValue());
-                require(selected.value().equals(view.data().get(field.getKey()))
+                if (expose) require(selected.value().equals(view.data().get(field.getKey()))
                         && selected.provenance().equals(view.provenance().get(field.getKey())));
             }
         }
@@ -145,29 +153,43 @@ final class RecoveryValidation {
             if (resolved.resolved()) {
                 require(resolved.entityId().equals(target.entityId()));
                 if (target.fields() == null) {
-                    require("accepted".equals(target.status()) && target.reason() == null);
+                    require("accepted".equals(target.status()) && target.reason() == null && matching.containsAll(target.changedFields()));
                 } else {
                     require(target.fields().stream().map(TargetOutcome.FieldOutcome::field).toList().equals(matching));
                     for (var outcome : target.fields()) {
                         require(outcome != null);
                         if ("accepted".equals(outcome.status())) require(outcome.reason() == null);
                         else require("rejected".equals(outcome.status()) && "behindWatermark".equals(outcome.reason())
-                                && !outcome.changed() && "rejectBehindWatermark".equals(
+                                && "rejectBehindWatermark".equals(
                                         definition.fields().get(outcome.field()).late().mode()));
                     }
                     boolean accepted = target.fields().stream().anyMatch(field -> "accepted".equals(field.status()));
                     require(accepted ? "accepted".equals(target.status()) && target.reason() == null
                             : "rejected".equals(target.status()) && "behindWatermark".equals(target.reason()));
-                    require(target.changedFields().equals(target.fields().stream().filter(TargetOutcome.FieldOutcome::changed)
-                            .map(TargetOutcome.FieldOutcome::field).toList()));
+                    validateChangedFields(target, definition, matching, accepted);
                 }
             } else {
                 require("rejected".equals(target.status()) && "unknownEntityMapping".equals(target.reason())
                         && target.entityId() == null && target.changedFields().isEmpty()
                         && (target.fields() == null || target.fields().isEmpty()));
             }
-            require(matching.containsAll(target.changedFields())
+            require(definition.fields().keySet().containsAll(target.changedFields())
                     && target.changedFields().equals(target.changedFields().stream().distinct().sorted().toList()));
+        }
+    }
+
+    private static void validateChangedFields(TargetOutcome target, V2Configuration.View definition,
+            List<String> matching, boolean accepted) {
+        var changed = target.changedFields();
+        require(changed.stream().filter(matching::contains).toList().equals(target.fields().stream()
+                .filter(TargetOutcome.FieldOutcome::changed).map(TargetOutcome.FieldOutcome::field).toList()));
+        boolean release = !matching.containsAll(changed) || target.fields().stream()
+                .anyMatch(field -> "rejected".equals(field.status()) && field.changed());
+        if (release) {
+            var policy = definition.publication();
+            require("requireContributions".equals(policy.mode()) && accepted
+                    && changed.containsAll(policy.fields()) && target.fields().stream().anyMatch(
+                            f -> policy.fields().contains(f.field()) && "accepted".equals(f.status()) && f.changed()));
         }
     }
 

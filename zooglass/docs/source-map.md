@@ -11,6 +11,19 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Decide when to publish a v2 entity
+
+```mermaid
+flowchart LR
+  config["V2Configuration.java"] -->|binds view policy| select["PublicationStrategySelection.java"]
+  select -->|default| partial["PublishPartial.java"]
+  select -->|required field names and capacity| gate["RequireContributions.java"]
+  bound["BoundView.java"] -->|checks field presence before exposing values| policy["PublicationStrategy.java"]
+  status["ViewStatus.java"] -->|asks which required fields are absent| policy
+  partial -.->|implements| policy
+  gate -.->|implements| policy
+```
+
 ## Start at the application or an endpoint
 
 [`ZooGlassApplication.java`](../src/main/java/io/zooglass/ZooGlassApplication.java)

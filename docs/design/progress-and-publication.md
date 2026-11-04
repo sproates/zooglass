@@ -1,8 +1,7 @@
 # Progress, freshness and publication strategies
 
 Status: accepted design (PR #126). The progress/late-policy slice implements source
-progress, controls, field outcomes and status. Required-field publication and
-receipt-age freshness remain later slices; their settings are not yet supported.
+progress, controls, field outcomes and status. Required-field publication is implemented. Receipt-age freshness is the remaining runtime slice.
 Builds on the accepted [behaviour contracts](behaviour-contracts.md)
 and delivered [relationships and priority](relationships-and-conflicts.md).
 The [progress guide](../../zooglass/docs/source-progress.md) documents the

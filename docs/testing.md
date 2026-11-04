@@ -30,6 +30,15 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Required contributions
+
+`RequiredContributionTests` feeds the same events to partial and gated views,
+checks the visible fields and versions, and fills and frees pending capacity.
+`RequiredPublicationConfigurationTests` exercises startup validation and defaults.
+`RequiredPublicationRecoveryTests` checks that invalid waiting rows fail startup.
+`RequiredPublicationCrashTests` kills the service on either side of the SQLite
+commit that releases a waiting view, then verifies the snapshot and retry receipt.
+
 ### Progress and late policy
 
 `ProgressStrategyTests` compares seeded arrivals against an independent received-set

@@ -16,9 +16,9 @@ winners without comparing unrelated sequence numbers. See the
 
 The accepted [design](docs/design/progress-and-publication.md) explains how
 configuration selects source-progress, late-event, receipt-age and publication
-policies. The first implementation slice is ready for review, pending merge:
-scoped source progress, bounded gaps, per-field late decisions and durable
-watermark outcomes. Required-field publication and receipt-age freshness follow.
+policies. Source progress, bounded gaps, per-field late decisions and durable
+watermark outcomes are implemented. Views can now wait for required fields before
+exposing their values. Receipt-age freshness is next.
 Timeouts do not prove completeness, and staleness does not automatically change
 source priority.
 

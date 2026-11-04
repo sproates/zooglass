@@ -50,8 +50,27 @@ sequence comparison. Original source keys and epochs scope progress even when
 Starting sequences and range bounds are positive integers up to 9007199254740991.
 Unknown settings and coercion are rejected. Source contracts and view policies
 remain immutable; changing them requires new IDs or a separate run/database.
-Required-field publication and receipt-age freshness are subsequent slices: their
-configuration properties remain unsupported. Views currently publish partial values.
+Receipt-age freshness remains a future slice.
+
+## Wait for required fields
+
+By default a view uses `{"mode":"publishPartial"}` and exposes each field as it arrives.
+To hold values until both order and payment have contributed, add this property to the view:
+
+```json
+{"publication":{"mode":"requireContributions","fields":["order","payment"],"maxPendingEntities":50}}
+```
+
+Use distinct, declared field names and a positive integer capacity. While waiting,
+the snapshot exposes status but its data and provenance are empty. When the last
+required field receives a value, ZooGlass exposes all selected fields together,
+including any optional fields already present. An empty JSON payload counts.
+Source progress, watermarks and business approval do not determine field presence.
+
+Capacity counts entities with held candidates in this view. A status-only entity
+uses no slot. An event that would exceed capacity returns `pendingViewLimit` and
+changes nothing in any view or source stream. Once a waiting entity receives its
+last required field, another entity can use its slot.
 
 ## Declare progress
 
@@ -126,9 +145,10 @@ all admitted event types even when those types do not update a field.
 entity has no inverse lookup key. Missing numeric boundaries are null. A known view
 with an unseen entity remains an empty version-zero snapshot; reads allocate no state.
 
-`status.publication` is `partial` while any configured field is absent, otherwise
-`ready`. That means presence only. `missingFields` names absent fields;
-`missingRequiredFields` is currently empty. `status.fields` lists input sources and
+`status.publication` is `waiting` while required fields are absent, `partial`
+when values are exposed with some fields absent, and `ready` when every field is
+present. `missingFields` lists all absent fields and `missingRequiredFields`
+lists the absent required ones, both in name order. `status.fields` lists input sources and
 `freshness: absent|unspecified`, with null receipt time. There is no age or health claim.
 
 ## Outcomes, versions and bounds

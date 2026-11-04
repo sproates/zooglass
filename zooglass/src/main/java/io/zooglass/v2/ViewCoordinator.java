@@ -68,17 +68,20 @@ public final class ViewCoordinator implements AutoCloseable {
         maxStreams = configuration.maxStreams();
         identityWindow = configuration.identityWindow();
         historyLimit = configuration.maxHistoryEntries();
-        storage = configuration.storage().equals("sqlite")
-                ? new SqliteState(database, configuration) : new InMemoryState();
         freshness = configuration.tracksAge() ? new FreshnessRuntime(views.byId(), clock, this::expire) : null;
-        if (freshness != null) {
-            try {
-                freshness.recover(storage);
-            } catch (RuntimeException failure) {
-                close();
-                throw failure;
+        try {
+            if (configuration.storage().equals("sqlite")) {
+                storage = new SqliteState(database, configuration, freshness == null
+                        ? java.util.function.UnaryOperator.identity() : freshness::recover);
+            } else {
+                storage = new InMemoryState();
+                if (freshness != null) storage.install(freshness.recover(storage.current()));
             }
+        } catch (RuntimeException failure) {
+            if (freshness != null) freshness.close();
+            throw failure;
         }
+        if (freshness != null) freshness.arm();
     }
 
     synchronized PublicationOutcome apply(Publication event) {
@@ -195,9 +198,13 @@ public final class ViewCoordinator implements AutoCloseable {
             ViewTransitions.Result staged, long wall, long monotonic) {
         var next = new StateImage(version, Map.copyOf(streams), staged.views(),
                 freshness == null ? null : FreshnessRuntime.highWater(old, wall));
-        var deadlines = freshness == null ? null : freshness.plan(old, next, staged.touched(), monotonic);
-        storage.install(next);
-        if (freshness != null) freshness.installed(deadlines);
+        if (freshness == null) {
+            storage.install(next);
+            return;
+        }
+        var deadlines = freshness.plan(old, next, staged.touched(), monotonic);
+        freshness.install(storage, old, next, wall);
+        freshness.installed(deadlines);
     }
 
     private synchronized void expire() {

@@ -18,10 +18,14 @@ class ReceiptAgeRecoveryTests {
         try (var service = new ViewCoordinator(previous, db.toString(), clock)) {
             service.apply(ProgressTests.event(40));
         }
-        var views = new java.util.ArrayList<>(previous.views());
-        views.add(config("sqlite", 5000).views().getFirst());
-        var upgraded = new V2Configuration(2, "sqlite", previous.maxStreams(), previous.identityWindow(),
-                previous.maxHistoryEntries(), previous.sources(), views);
+        var upgraded = addTimedView(previous);
+        ProgressFailureTests.execute(db, "CREATE TRIGGER block_clock BEFORE UPDATE OF last_wall ON runtime BEGIN SELECT RAISE(ABORT,'clock write failed'); END");
+        assertThatThrownBy(() -> new ViewCoordinator(upgraded, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+        try (var original = new ViewCoordinator(previous, db.toString(), clock)) {
+            assertThat(original.apply(ProgressTests.event(40)).status()).isEqualTo("duplicate");
+        }
+        ProgressFailureTests.execute(db, "DROP TRIGGER block_clock");
+
         try (var service = new ViewCoordinator(upgraded, db.toString(), clock)) {
             assertThat(service.apply(ProgressTests.event(40)).status()).isEqualTo("duplicate");
             assertThat(position(service).freshness()).isEqualTo("absent");
@@ -33,6 +37,56 @@ class ReceiptAgeRecoveryTests {
             assertThat(position(service).receivedAtMillis()).isEqualTo(clock.wall);
         }
         assertThatThrownBy(() -> new ViewCoordinator(previous, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+    }
+
+    private V2Configuration addTimedView(V2Configuration previous) {
+        var views = new java.util.ArrayList<>(previous.views());
+        views.add(config("sqlite", 5000).views().getFirst());
+        return new V2Configuration(2, "sqlite", previous.maxStreams(), previous.identityWindow(),
+                previous.maxHistoryEntries(), previous.sources(), views);
+    }
+
+    @Test
+    void observedClockRollbackRemainsUncertainWhenWallTimeCatchesUpDuringDowntime() {
+        var clock = new Clock();
+        var config = config("sqlite", 10000);
+        var db = directory.resolve("clock.db").toString();
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            service.apply(ProgressTests.event(1));
+            clock.advance(8000);
+            service.advance(ProgressTests.watermark(1));
+            clock.advance(1000);
+            clock.wall -= 8000;
+            service.advance(ProgressTests.watermark(2));
+            assertThat(position(service).freshness()).isEqualTo("fresh");
+        }
+        clock.advance(8000);
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            assertThat(position(service).freshness()).isEqualTo("ageUnknown");
+            assertThat(service.apply(ProgressTests.event(1)).status()).isEqualTo("duplicate");
+            service.apply(ProgressTests.event(3));
+            assertThat(position(service).freshness()).isEqualTo("fresh");
+        }
+    }
+
+    @Test
+    void aReportAcceptedOnTheBackwardsStepGetsItsOwnReceiptTime() {
+        var clock = new Clock();
+        var config = config("sqlite", 10000);
+        var db = directory.resolve("replacement.db").toString();
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            service.apply(ProgressTests.event(1));
+            clock.advance(8000);
+            service.advance(ProgressTests.watermark(1));
+            clock.wall -= 3000;
+            service.apply(ProgressTests.event(2));
+        }
+        clock.advance(4000);
+        try (var service = new ViewCoordinator(config, db, clock)) {
+            assertThat(position(service).freshness()).isEqualTo("fresh");
+            clock.advance(6000);
+            assertThat(position(service).freshness()).isEqualTo("stale");
+        }
     }
 
     @Test

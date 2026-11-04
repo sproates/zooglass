@@ -25,6 +25,7 @@ flowchart LR
   runtime["ViewCoordinator.java"] -->|serialises expiry with source commits| timing["FreshnessRuntime.java"]
   timing -->|indexes selected fields| queue["FreshnessDeadlines.java"]
   runtime -->|samples wall and elapsed time| clock["ReceiptClock.java"]
+  timing -->|marks retained receipts on a backwards clock step| rollback["ClockRollback.java"]
   timing -->|rebases stored ages| policy
 ```
 

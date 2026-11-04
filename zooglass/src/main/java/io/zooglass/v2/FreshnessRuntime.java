@@ -22,6 +22,7 @@ final class FreshnessRuntime implements AutoCloseable {
     private final Runnable wake;
     private ScheduledFuture<?> alarm;
     private Long armed;
+    private long previousWall;
 
     FreshnessRuntime(Map<String, BoundView> bindings, ReceiptClock clock, Runnable wake) {
         this.bindings = bindings;
@@ -30,8 +31,7 @@ final class FreshnessRuntime implements AutoCloseable {
         timer.setRemoveOnCancelPolicy(true);
     }
 
-    void recover(StateStore storage) {
-        var old = storage.current();
+    StateImage recover(StateImage old) {
         long wall = clock.wallMillis();
         long monotonic = clock.monotonicMillis();
         boolean rollback = old.lastWallMillis() != null && wall < old.lastWallMillis();
@@ -61,11 +61,12 @@ final class FreshnessRuntime implements AutoCloseable {
             rows.put(key, row);
         }
         long observed = highWater(old, wall);
+        previousWall = wall;
         if (dirty || !Objects.equals(old.lastWallMillis(), observed)) {
             long version = dirty ? Math.incrementExact(old.version()) : old.version();
-            storage.install(new StateImage(version, old.streams(), Map.copyOf(rows), observed));
+            return new StateImage(version, old.streams(), Map.copyOf(rows), observed);
         }
-        arm();
+        return old;
     }
 
     static long highWater(StateImage previous, long wall) {
@@ -83,6 +84,12 @@ final class FreshnessRuntime implements AutoCloseable {
             }
         }
         return replacements;
+    }
+
+    void install(StateStore storage, StateImage old, StateImage next, long wall) {
+        if (wall < previousWall) next = ClockRollback.markRetainedReceipts(old, next);
+        storage.install(next);
+        previousWall = wall;
     }
 
     void installed(Map<FreshnessDeadlines.Key, Long> replacements) {
@@ -110,12 +117,13 @@ final class FreshnessRuntime implements AutoCloseable {
             rows.put(key.entity(), row.replaceCandidate(field.name(), winner.provenance().sourceId(),
                     winner.withAge(winner.age().stale()), version));
         }
-        storage.install(new StateImage(version, old.streams(), Map.copyOf(rows), highWater(old, clock.wallMillis())));
+        long wall = clock.wallMillis();
+        install(storage, old, new StateImage(version, old.streams(), Map.copyOf(rows), highWater(old, wall)), wall);
         due.forEach(key -> deadlines.replace(key, null));
         arm();
     }
 
-    private void arm() {
+    void arm() {
         Long next = deadlines.next();
         if (Objects.equals(armed, next) && alarm != null && !alarm.isDone()) return;
         if (alarm != null) alarm.cancel(false);

@@ -6,7 +6,7 @@ public record ReceiptAgeFreshness(long staleAfterMillis) implements FreshnessStr
     }
 
     public ReceiptAge recovered(ReceiptAge saved, long wallMillis, boolean clockWentBack) {
-        if (saved == null || saved.receivedAtMillis() == null || clockWentBack || wallMillis < saved.receivedAtMillis()) {
+        if (saved == null || saved.receivedAtMillis() == null || saved.hasUncertainClock() || clockWentBack || wallMillis < saved.receivedAtMillis()) {
             return ReceiptAge.unknown();
         }
         return wallMillis - saved.receivedAtMillis() >= staleAfterMillis ? saved.stale() : saved;

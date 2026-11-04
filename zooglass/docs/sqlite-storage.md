@@ -124,3 +124,9 @@ elapsed time on a monotonic clock. At startup it accounts for downtime and
 reconciles due fields before serving snapshots. If the wall clock has gone
 backwards, previously timed candidates become age-unknown until replaced.
 A retry retains its original receipt and version across an expiry commit.
+
+If a commit observes a backwards wall-clock step, ZooGlass marks earlier receipts
+in that same transaction. Their running deadlines still use monotonic time.
+On restart those receipts become age-unknown even if wall time has caught up.
+Schema upgrade, configuration and startup age reconciliation commit together.
+If the initial clock write fails, the previous configuration can reopen the database.

@@ -45,9 +45,10 @@ The default resource contains empty source and view lists. Configuration is
 validated before startup: unknown properties, unsupported modes, duplicate IDs,
 invalid limits and references to unknown sources fail startup.
 
-Each field binds one source and event type to one existing strategy module:
-`arrival`, `latestBySequence` or `historyBySequence`. Different fields can use
-different sources. Multiple views can use the same stream differently.
+Each input binds a source and event type to an update strategy. Single-input
+fields support `arrival`, `latestBySequence` and `historyBySequence`. Multi-input
+fields use `latestBySequence` with source-priority selection. Multiple views can
+use the same streams differently.
 
 ## Map source keys to view entities
 
@@ -83,15 +84,46 @@ one canonical entity: that would combine independent sequence domains. Different
 sources may map to the same entity. Resolver entries must name sources used by
 the view; extra parameters or unsupported modes fail startup.
 
-The shorthand field form and expanded one-input form are equivalent. Each field
-still has exactly one input; multiple inputs and `sourcePriority` are subsequent
-work. `independentFields` is the only accepted conflict setting. Unknown field
-properties, including `freshness`, `update` and `name`, are rejected.
+The shorthand field form and expanded one-input form are equivalent and default
+to `independentFields`. Unknown field properties, including `freshness`, `update`
+and `name`, are rejected.
 
 Match source and event type before resolving. A missing mapping rejects only
 that view's contribution; other matching views may succeed. It allocates no view
 entity. The original source entity remains part of publication identity and its
 retention floor; a canonical view ID never replaces it.
+
+## Choose between sources
+
+Configure a field with multiple inputs and an explicit priority order:
+
+```json
+{
+  "inputs": [
+    {"sourceId": "courier-primary", "type": "status.updated"},
+    {"sourceId": "courier-backup", "type": "status.updated"}
+  ],
+  "mode": "latestBySequence",
+  "conflict": {"mode": "sourcePriority", "sources": ["courier-primary", "courier-backup"]}
+}
+```
+
+Declare both sources and their entity mappings in the view. The
+[complete relationship example](../../docs/design/relationships-and-conflicts.md#configuration)
+shows the enclosing view. Inputs must use distinct sources; the priority list
+must name each input exactly once. Priority with arrival/history modes is rejected.
+
+ZooGlass retains each source's latest candidate separately. Backup sequence 900
+wins while the primary is absent; primary sequence 2 then wins because it ranks
+first. A later backup update is retained without displacing it. Delayed input is
+compared only against that source's candidate. Silence never removes a candidate:
+there is no timeout, freshness fallback or withdrawal in this increment.
+
+Hidden candidate updates advance the publication version and persist in SQLite,
+but leave the snapshot version, `changedViews` and target `changedFields` unchanged.
+A winner change advances the snapshot version even if the new winner has identical
+payload and sequence, because its provenance changes. Different views may rank the
+same sources differently. Changing an existing priority requires a new view ID.
 
 ## Send a publication
 

@@ -1,7 +1,10 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.contribution.SelectedContribution;
+
 import tools.jackson.databind.JsonNode;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
@@ -13,8 +16,18 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
     }
 
     record ViewEntity(String viewId, String entityId) {}
-    record StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance) {
+    record StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance,
+            Map<String, Map<String, SelectedContribution>> candidates) {
+        StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance) {
+            this(version, data, provenance, null);
+        }
+
         StoredView {
+            if (candidates != null) {
+                var copy = new HashMap<String, Map<String, SelectedContribution>>();
+                candidates.forEach((field, values) -> copy.put(field, Map.copyOf(values)));
+                candidates = Map.copyOf(copy);
+            }
             data = data == null ? null : Map.copyOf(data);
             provenance = provenance == null ? null : Map.copyOf(provenance);
         }

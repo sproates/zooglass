@@ -14,9 +14,10 @@ contributions and select them through configured priority rules. Unknown or
 ambiguous mappings must have explicit outcomes. The
 [relationship design](docs/design/relationships-and-conflicts.md) sets out the
 accepted configuration and two implementation slices. The entity-mapping slice
-is implemented for review, pending merge: exact view-local mappings, per-view
-outcomes, source provenance and schema-1 migration. Source-priority selection
-follows as the next slice.
+is delivered: exact view-local mappings, per-view outcomes, source provenance and
+schema-1 migration. Source-priority selection is implemented for review, pending
+merge, including retained candidates, independent sequence domains and durable
+hidden updates. Progress and freshness design follows this relationship increment.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

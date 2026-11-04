@@ -30,6 +30,20 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Source priority
+
+`SourcePriorityConfigurationTests` checks concrete selector binding, strict grammar
+and input-order normalisation. `SourcePriorityTests` exercises independent source
+sequences, opposite priorities across shared views, identical-payload winner changes,
+hidden persistence and delayed updates in memory and SQLite. `SourcePriorityFailureTests`
+checks whole-publication rollback and rejects corrupt hidden candidates or winners.
+
+`SourcePriorityCrashTests` runs real WebSocket publications and HTTP snapshots in
+separate JVMs at all four commit/ack boundaries. It inspects hidden candidates
+before retry, then verifies restored winners, original target receipts and continued
+source-local ordering. It reuses the existing deterministic crash barriers.
+Schema-1 and schema-2 migration fixtures verify preserved values, versions and receipts.
+
 ### Entity mappings and migration
 
 `EntityMappingTests` checks cross-source convergence, view-local mapping/rejection,

@@ -2,6 +2,7 @@ package io.zooglass.v2;
 
 import org.springframework.core.io.ResourceLoader;
 import io.zooglass.strategy.identity.EntityStrategySelection;
+import io.zooglass.strategy.contribution.ContributionStrategySelection;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.core.StreamReadFeature;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** V2 startup definitions bind storage and independent single-source fields. */
+/** V2 startup definitions bind storage, source inputs and view-local strategies. */
 public record V2Configuration(int contractVersion, String storage, int maxStreams,
         int identityWindow, int maxHistoryEntries, List<Source> sources, List<View> views) {
     private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
@@ -44,8 +45,9 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
             }
             if (fields != null) {
                 for (Field field : fields.values()) {
-                    if (field != null && field.sourceId() != null) {
-                        settings.putIfAbsent(field.sourceId(), new Entity("envelopeEntity", null));
+                    if (field != null) {
+                        field.allInputs().forEach(input -> settings.putIfAbsent(
+                                input.sourceId(), new Entity("envelopeEntity", null)));
                     }
                 }
             }
@@ -54,9 +56,13 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     }
 
     public record Input(String sourceId, String type) {}
-    public record Conflict(String mode) {}
+    public record Conflict(String mode, List<String> sources) {
+        public Conflict {
+            sources = sources == null ? null : List.copyOf(sources);
+        }
+    }
 
-    /** The expanded single-input form normalises to the existing shorthand. */
+    /** Single inputs normalise to shorthand; multi-input order is canonical, priority order is retained. */
     public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict) {
         public Field(String sourceId, String type, String mode) {
             this(sourceId, type, mode, null, null);
@@ -64,17 +70,26 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
 
         public Field {
             if (inputs != null) {
-                if (sourceId != null || type != null || inputs.size() != 1 || inputs.getFirst() == null) {
-                    throw new IllegalArgumentException("This increment requires exactly one field input");
+                if (sourceId != null || type != null || inputs.isEmpty()) {
+                    throw new IllegalArgumentException("Use either shorthand or nonempty inputs");
                 }
-                sourceId = inputs.getFirst().sourceId();
-                type = inputs.getFirst().type();
-                inputs = null;
+                inputs = inputs.stream().sorted(java.util.Comparator.comparing(Input::sourceId)).toList();
+                if (inputs.size() == 1) {
+                    sourceId = inputs.getFirst().sourceId();
+                    type = inputs.getFirst().type();
+                    inputs = null;
+                }
             }
-            if (conflict != null && !"independentFields".equals(conflict.mode())) {
-                throw new IllegalArgumentException("Unsupported contribution strategy");
+            if (conflict != null && "independentFields".equals(conflict.mode())) {
+                if (conflict.sources() != null) {
+                    throw new IllegalArgumentException("Independent fields do not accept source ranks");
+                }
+                conflict = null;
             }
-            conflict = null;
+        }
+
+        public List<Input> allInputs() {
+            return inputs == null ? List.of(new Input(sourceId, type)) : inputs;
         }
     }
 
@@ -128,11 +143,25 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
             var usedSources = new HashSet<String>();
             for (var entry : view.fields().entrySet()) {
                 Field field = entry.getValue();
-                if (!name(entry.getKey()) || field == null || !sourceIds.contains(field.sourceId())
-                        || !name(field.type()) || field.mode() == null || !MODES.contains(field.mode())) {
-                    throw new IllegalArgumentException("Invalid v2 field or source reference");
+                if (!name(entry.getKey()) || field == null
+                        || field.mode() == null || !MODES.contains(field.mode())) {
+                    throw new IllegalArgumentException("Invalid v2 field");
                 }
-                usedSources.add(field.sourceId());
+                var inputSources = new HashSet<String>();
+                for (Input input : field.allInputs()) {
+                    if (!sourceIds.contains(input.sourceId()) || !name(input.type())
+                            || !inputSources.add(input.sourceId())) {
+                        throw new IllegalArgumentException("Invalid or duplicate field input");
+                    }
+                }
+                var conflict = field.conflict();
+                ContributionStrategySelection.select(
+                        conflict == null ? "independentFields" : conflict.mode(),
+                        conflict == null ? null : conflict.sources(), inputSources);
+                if (conflict != null && !"latestBySequence".equals(field.mode())) {
+                    throw new IllegalArgumentException("Source priority requires latestBySequence");
+                }
+                usedSources.addAll(inputSources);
             }
             for (var entry : view.entities().entrySet()) {
                 Entity entity = entry.getValue();

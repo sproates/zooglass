@@ -19,7 +19,7 @@ import java.util.List;
 
 /** Schema and row encoding. Transaction boundaries belong to SqliteState. */
 final class SqliteStateRows {
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
     private static final JsonMapper JSON = JsonMapper.builder()
             .withCoercionConfig(LogicalType.Textual, coercion -> {
                 for (var shape : List.of(CoercionInputShape.Integer,
@@ -83,6 +83,9 @@ final class SqliteStateRows {
         if (schema == 1) {
             views = SchemaMigration.addProvenance(views, configuration);
         }
+        if (schema == 1 || schema == 2) {
+            views = SchemaMigration.addCandidates(views);
+        }
         var restored = new StateImage(version, Map.copyOf(streams), Map.copyOf(views));
         RecoveryValidation.image(restored, configuration);
         try (var update = connection.prepareStatement(
@@ -91,7 +94,7 @@ final class SqliteStateRows {
             update.setString(2, JSON.writeValueAsString(configuration));
             update.executeUpdate();
         }
-        if (schema == 1) {
+        if (schema == 1 || schema == 2) {
             // Rewrite the enriched rows and schema marker in the same startup transaction.
             writeChanges(StateImage.empty(), restored);
             try (var statement = connection.createStatement()) {
@@ -108,7 +111,7 @@ final class SqliteStateRows {
                 result.next();
                 version = result.getInt(1);
             }
-            if (version == SCHEMA_VERSION || version == 1) {
+            if (version == SCHEMA_VERSION || version == 1 || version == 2) {
                 return version;
             }
             if (version != 0) {

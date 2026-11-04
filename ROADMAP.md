@@ -89,6 +89,7 @@ These items have no scheduled delivery date:
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
+- **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 
 Broader replay, query and distributed-storage
 capabilities can be considered separately as concrete needs emerge; they are not

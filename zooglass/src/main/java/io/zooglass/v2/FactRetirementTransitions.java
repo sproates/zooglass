@@ -54,7 +54,7 @@ final class FactRetirementTransitions {
             var settings = configuration.sources().stream().filter(s -> s.id().equals(sourceId)).findFirst().orElseThrow().progress();
             var progress = io.zooglass.strategy.progress.ProgressStrategySelection.select(settings.mode(),
                     settings.startSequence(), settings.maxReceivedRanges(), settings.maxMissingRanges()).initial();
-            streams.put(streamKey, new StateImage.StreamState(1, Map.of(), progress));
+            streams.put(streamKey, new StateImage.StreamState(1, Map.of(), progress, true));
         }
 
         var bound = bindings.get(view.id());

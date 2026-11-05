@@ -1,6 +1,8 @@
 package io.zooglass.v2;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.List;
@@ -10,6 +12,49 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class FactRetirementTests {
     @TempDir Path directory;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"contiguousSequence", "untracked"})
+    void retirementBeforeObservationLeavesSharedInputStatusUnchangedAcrossRestart(String mode) {
+        var base = configuration("sqlite", 10, false);
+        var source = "untracked".equals(mode) ? new V2Configuration.Source("match", "v1") : base.sources().getFirst();
+        var config = new V2Configuration(2, "sqlite", 10, 10, 20, List.of(source), base.views());
+        String db = directory.resolve(mode + ".db").toString();
+        ViewCoordinator.Snapshot before;
+
+        try (var service = new ViewCoordinator(config, db)) {
+            before = snapshot(service, "original");
+            var outcome = service.retire(retire("corrected", 10));
+            assertThat(outcome.changedViews()).containsExactly("corrected");
+            assertThat(snapshot(service, "original")).isEqualTo(before);
+            assertThat(snapshot(service, "corrected").status().inputs()).isEqualTo(before.status().inputs());
+        }
+
+        try (var service = new ViewCoordinator(config, db)) {
+            assertThat(snapshot(service, "original")).isEqualTo(before);
+            assertThat(snapshot(service, "corrected").status().inputs()).isEqualTo(before.status().inputs());
+            var outcome = service.apply(event(10, 10, 1, "create", "{}"));
+            assertThat(outcome.changedViews()).containsExactlyInAnyOrder("original", "corrected");
+            var observed = snapshot(service, "original");
+            assertThat(observed.status().inputs().get("match").state()).isEqualTo("observed");
+            assertThat(observed.version()).isGreaterThan(before.version());
+        }
+    }
+
+    @Test
+    void watermarkMakesReservedInputObservedAndVersionsBothViews() {
+        try (var service = new ViewCoordinator(configuration("memory", 10, false))) {
+            service.retire(retire("corrected", 10));
+            var outcome = service.advance(new ProgressControl("match", "v1", "game", 5));
+            assertThat(outcome.changedViews()).containsExactlyInAnyOrder("original", "corrected");
+            for (String view : List.of("original", "corrected")) {
+                var snapshot = snapshot(service, view);
+                assertThat(snapshot.version()).isEqualTo(outcome.version());
+                assertThat(snapshot.status().inputs().get("match").state()).isEqualTo("observed");
+                assertThat(snapshot.status().inputs().get("match").watermarkThrough()).isEqualTo(5);
+            }
+        }
+    }
 
     @Test
     void retirementDoesNotRefreshAgeOrResetItsDeadline() {

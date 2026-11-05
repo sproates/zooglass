@@ -52,6 +52,8 @@ public final class ViewStatus {
         inputs.forEach((source, binding) -> {
             String original = binding.inverse == null ? entity : binding.inverse.get(entity);
             var stream = original == null ? null : streams.get(new Publication.StreamKey(source, binding.source.epoch(), original));
+            // A retirement can reserve capacity before the source has reported anything.
+            if (stream != null && stream.reservationOnly()) stream = null;
             var progress = stream == null ? null : stream.progress();
             String completeness = "unknown";
             Long completeThrough = null;

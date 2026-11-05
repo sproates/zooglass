@@ -55,6 +55,17 @@ class FactRecoveryTests {
     }
 
     @Test
+    void observedStreamCannotRecoverAsAnUnobservedReservation() throws Exception {
+        var config = configuration("sqlite", 10, false);
+        Path db = directory.resolve("reservation.db");
+        try (var service = new ViewCoordinator(config, db.toString())) {
+            service.apply(event(1, 1, 1, "create", "{}"));
+        }
+        ProgressFailureTests.execute(db, "UPDATE streams SET state=json_set(state,'$.reservationOnly',json('true'))");
+        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString())).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     void addingFactViewsMigratesWithoutBackfillAndFailureRollsBackUpgrade() throws Exception {
         var original = ProgressTests.configuration("sqlite");
         Path db = directory.resolve("migration.db");

@@ -124,7 +124,9 @@ The response has `kind: factRetirement`, `status`, `reason`, `control`, `version
 state, not a historical receipt. A lower floor is `backwardsFactFloor`; invalid
 requests, unknown mappings or capacity failures change nothing.
 
-Retirement never advances source progress or refreshes receipt age. It can visibly
+Retirement never advances source progress or refreshes receipt age. Reserving
+capacity before the first event leaves the input `notObserved`, including after
+a restart, and does not change other views sharing that input. It can visibly
 remove facts from a collection, so name every field whose retained window should
 move together. Controls span one view; different views can retain different windows.
 

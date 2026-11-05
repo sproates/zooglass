@@ -68,8 +68,16 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
     }
 
     record StreamState(long floor, Map<Long, Receipt> receipts,
-            ProgressState progress) {
+            ProgressState progress,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+            Boolean reservationOnly) {
+        StreamState(long floor, Map<Long, Receipt> receipts, ProgressState progress) {
+            this(floor, receipts, progress, false);
+        }
         StreamState(long floor, Map<Long, Receipt> receipts) { this(floor, receipts, null); }
-        StreamState { receipts = Map.copyOf(receipts); }
+        StreamState {
+            receipts = Map.copyOf(receipts);
+            reservationOnly = Boolean.TRUE.equals(reservationOnly);
+        }
     }
 }

@@ -47,6 +47,10 @@ final class RecoveryValidation {
             var policy = ProgressStrategySelection.select(settings.mode(),
                     settings.startSequence(), settings.maxReceivedRanges(), settings.maxMissingRanges());
             policy.validate(stream.progress(), stream.floor(), image.version());
+            if (stream.reservationOnly()) {
+                require(stream.floor() == 1 && stream.receipts().isEmpty()
+                        && java.util.Objects.equals(stream.progress(), policy.initial()) && FactRecovery.owns(image, key));
+            }
             require(stream.receipts() != null && (!stream.receipts().isEmpty()
                     || stream.progress() != null && stream.progress().watermarkThrough() != null || FactRecovery.owns(image, key))
                     && stream.receipts().size() <= configuration.identityWindow());

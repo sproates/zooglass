@@ -37,8 +37,9 @@ test("fleet selection retains independently received state and distinguishes emp
 test("reconnection retains each pair until its own new snapshot arrives", () => {
   const model = createFleetModel(vehicles);
   model.setConnection("connected");
-  for (const view of ["fleet-state", "received-journey"])
+  for (const view of ["fleet-state", "received-journey"]) {
     model.subscription(view, "a", "subscribed");
+  }
   model.receive("fleet-state", "a", { position: first });
   model.receive("received-journey", "a", { positions: [first] });
   model.setConnection("disconnected");
@@ -49,8 +50,9 @@ test("reconnection retains each pair until its own new snapshot arrives", () => 
   assert.deepEqual(model.get("fleet-state", "a").position, first);
 
   model.setConnection("connected");
-  for (const view of ["fleet-state", "received-journey"])
+  for (const view of ["fleet-state", "received-journey"]) {
     model.subscription(view, "a", "subscribed");
+  }
   model.receive("fleet-state", "a", {
     operation: { sequence: 101, status: "returning" },
   });

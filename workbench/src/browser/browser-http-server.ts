@@ -10,8 +10,9 @@ export function requireLocalBindAddress(address: string) {
     first === 10 ||
     (first === 172 && second >= 16 && second <= 31) ||
     (first === 192 && second === 168);
-  if (isIP(address) !== 4 || !local)
+  if (isIP(address) !== 4 || !local) {
     throw new Error("Bind to an explicit private or loopback IPv4 address.");
+  }
 }
 
 /** Exact asset serving and network boundary shared by owned and external hosts. */
@@ -22,8 +23,9 @@ export async function startBrowserHttpServer(
   requireLocalBindAddress(bindAddress);
   const imageOrigins = (application.imageOrigins ?? []).map((value) => {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.origin !== value)
+    if (url.protocol !== "https:" || url.origin !== value) {
       throw new Error("Image origins must be exact HTTPS origins.");
+    }
     return url.origin;
   });
   const sockets = new Set<Socket>();
@@ -62,8 +64,9 @@ export async function startBrowserHttpServer(
     });
   });
   const address = server.address();
-  if (!address || typeof address === "string")
+  if (!address || typeof address === "string") {
     throw new Error("Host has no local port.");
+  }
   origin = `http://${bindAddress}:${address.port}`;
   return {
     origin,
@@ -77,7 +80,9 @@ export async function startBrowserHttpServer(
     },
     close() {
       return (closing ??= (async () => {
-        for (const socket of sockets) socket.destroy();
+        for (const socket of sockets) {
+          socket.destroy();
+        }
         await new Promise<void>((resolve, reject) =>
           server.close((error) => (error ? reject(error) : resolve())),
         );

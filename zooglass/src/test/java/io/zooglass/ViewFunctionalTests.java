@@ -1,11 +1,14 @@
 package io.zooglass;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -21,18 +24,14 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "zooglass.views.config=classpath:views-test.json")
 class ViewFunctionalTests {
 
-    @LocalServerPort
-    private int port;
+    @LocalServerPort private int port;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     @Test
     void matchingEventsUpdateTheLatestViewReturnedByHttp() throws Exception {
@@ -69,19 +68,41 @@ class ViewFunctionalTests {
         WebSocket socket = connect(httpClient);
 
         try {
-            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
                     "{\"sequence\":42,\"latitude\":51.2,\"longitude\":-0.1}");
-            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
                     "{\"sequence\":40,\"latitude\":51.0,\"longitude\":-0.3}");
-            send(socket, "vehicle-feed", "vehicle.location.updated", "car-17",
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
                     "{\"sequence\":41,\"latitude\":51.1,\"longitude\":-0.2}");
 
-            JsonNode liveMap = awaitView(httpClient, "vehicle-live-map", "car-17",
-                    "/data/position/sequence", "42");
+            JsonNode liveMap =
+                    awaitView(
+                            httpClient,
+                            "vehicle-live-map",
+                            "car-17",
+                            "/data/position/sequence",
+                            "42");
             assertThat(liveMap.at("/data/position/latitude").asDouble()).isEqualTo(51.2);
 
-            JsonNode tripHistory = awaitView(httpClient, "vehicle-trip-history", "car-17",
-                    "/data/positions/2/sequence", "42");
+            JsonNode tripHistory =
+                    awaitView(
+                            httpClient,
+                            "vehicle-trip-history",
+                            "car-17",
+                            "/data/positions/2/sequence",
+                            "42");
             assertThat(tripHistory.at("/data/positions/0/sequence").asInt()).isEqualTo(40);
             assertThat(tripHistory.at("/data/positions/1/sequence").asInt()).isEqualTo(41);
             assertThat(tripHistory.at("/data/positions/2/sequence").asInt()).isEqualTo(42);
@@ -99,20 +120,31 @@ class ViewFunctionalTests {
             send(socket, "match-feed", "score.updated", "item-before-view", "{\"home\":0}");
             awaitView(httpClient, "match", "item-before-view", "0");
 
-            String definition = objectMapper.writeValueAsString(Map.of(
-                    "id", "runtime-items",
-                    "fields", Map.of("score", List.of(Map.of(
-                            "sourceId", "match-feed",
-                            "type", "score.updated")))));
+            String definition =
+                    objectMapper.writeValueAsString(
+                            Map.of(
+                                    "id",
+                                    "runtime-items",
+                                    "fields",
+                                    Map.of(
+                                            "score",
+                                            List.of(
+                                                    Map.of(
+                                                            "sourceId",
+                                                            "match-feed",
+                                                            "type",
+                                                            "score.updated")))));
             assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(201);
-            assertThat(getView(httpClient, "runtime-items", "item-before-view").statusCode()).isEqualTo(404);
+            assertThat(getView(httpClient, "runtime-items", "item-before-view").statusCode())
+                    .isEqualTo(404);
 
             send(socket, "match-feed", "score.updated", "item-after-view", "{\"home\":1}");
             JsonNode view = awaitView(httpClient, "runtime-items", "item-after-view", "1");
             assertThat(view.at("/data/score/home").asInt()).isEqualTo(1);
 
             assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(409);
-            assertThat(defineView(httpClient, "{\"id\":\"invalid\",\"fields\":{}}").statusCode()).isEqualTo(400);
+            assertThat(defineView(httpClient, "{\"id\":\"invalid\",\"fields\":{}}").statusCode())
+                    .isEqualTo(400);
         } finally {
             socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
         }
@@ -125,16 +157,25 @@ class ViewFunctionalTests {
         LiveViewClient liveViewClient = connectLiveViewClient(httpClient);
 
         try {
-            liveViewClient.socket().sendText(
-                    "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"live-match-42\"}",
-                    true).join();
+            liveViewClient
+                    .socket()
+                    .sendText(
+                            "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"live-match-42\"}",
+                            true)
+                    .join();
 
-            JsonNode acknowledgement = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
+            JsonNode acknowledgement =
+                    objectMapper.readTree(awaitMessage(liveViewClient.messages()));
             assertThat(acknowledgement.get("type").asText()).isEqualTo("subscribed");
             assertThat(acknowledgement.get("viewId").asText()).isEqualTo("match");
             assertThat(acknowledgement.get("entityId").asText()).isEqualTo("live-match-42");
 
-            send(eventSocket, "match-feed", "score.updated", "live-match-42", "{\"home\":1,\"away\":0}");
+            send(
+                    eventSocket,
+                    "match-feed",
+                    "score.updated",
+                    "live-match-42",
+                    "{\"home\":1,\"away\":0}");
 
             JsonNode update = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
             assertThat(update.get("type").asText()).isEqualTo("view-update");
@@ -149,35 +190,44 @@ class ViewFunctionalTests {
     }
 
     private WebSocket connect(HttpClient httpClient) {
-        return httpClient.newWebSocketBuilder()
+        return httpClient
+                .newWebSocketBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
-                .buildAsync(URI.create("ws://localhost:" + port + "/events"), new WebSocket.Listener() {
-                    @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        return WebSocket.Listener.super.onText(webSocket, data, last);
-                    }
-                })
+                .buildAsync(
+                        URI.create("ws://localhost:" + port + "/events"),
+                        new WebSocket.Listener() {
+                            @Override
+                            public CompletionStage<?> onText(
+                                    WebSocket webSocket, CharSequence data, boolean last) {
+                                return WebSocket.Listener.super.onText(webSocket, data, last);
+                            }
+                        })
                 .join();
     }
 
     private LiveViewClient connectLiveViewClient(HttpClient httpClient) {
         BlockingQueue<String> messages = new LinkedBlockingQueue<>();
-        WebSocket socket = httpClient.newWebSocketBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .buildAsync(URI.create("ws://localhost:" + port + "/views/live"), new WebSocket.Listener() {
-                    @Override
-                    public void onOpen(WebSocket webSocket) {
-                        webSocket.request(1);
-                    }
+        WebSocket socket =
+                httpClient
+                        .newWebSocketBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .buildAsync(
+                                URI.create("ws://localhost:" + port + "/views/live"),
+                                new WebSocket.Listener() {
+                                    @Override
+                                    public void onOpen(WebSocket webSocket) {
+                                        webSocket.request(1);
+                                    }
 
-                    @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        messages.add(data.toString());
-                        webSocket.request(1);
-                        return null;
-                    }
-                })
-                .join();
+                                    @Override
+                                    public CompletionStage<?> onText(
+                                            WebSocket webSocket, CharSequence data, boolean last) {
+                                        messages.add(data.toString());
+                                        webSocket.request(1);
+                                        return null;
+                                    }
+                                })
+                        .join();
         return new LiveViewClient(socket, messages);
     }
 
@@ -191,29 +241,44 @@ class ViewFunctionalTests {
 
     private HttpResponse<String> defineView(HttpClient client, String definition)
             throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/views"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(definition))
-                .build();
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:" + port + "/views"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(definition))
+                        .build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> getView(HttpClient client, String viewId, String entityId)
             throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/views/" + viewId + "/" + entityId))
-                .GET()
-                .build();
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(
+                                URI.create(
+                                        "http://localhost:"
+                                                + port
+                                                + "/views/"
+                                                + viewId
+                                                + "/"
+                                                + entityId))
+                        .GET()
+                        .build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private JsonNode awaitView(HttpClient client, String viewId, String entityId, String expectedHomeScore)
+    private JsonNode awaitView(
+            HttpClient client, String viewId, String entityId, String expectedHomeScore)
             throws Exception {
         return awaitView(client, viewId, entityId, "/data/score/home", expectedHomeScore);
     }
 
-    private JsonNode awaitView(HttpClient client, String viewId, String entityId, String dataPath, String expectedValue)
+    private JsonNode awaitView(
+            HttpClient client,
+            String viewId,
+            String entityId,
+            String dataPath,
+            String expectedValue)
             throws Exception {
         long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
         HttpResponse<String> response;
@@ -231,12 +296,20 @@ class ViewFunctionalTests {
         throw new AssertionError("View did not appear. Last response: " + response.statusCode());
     }
 
-    private static void send(WebSocket socket, String sourceId, String type, String entityId, String payload) {
-        String event = "{\"sourceId\":\"" + sourceId + "\",\"type\":\"" + type
-                + "\",\"entityId\":\"" + entityId + "\",\"payload\":" + payload + "}";
+    private static void send(
+            WebSocket socket, String sourceId, String type, String entityId, String payload) {
+        String event =
+                "{\"sourceId\":\""
+                        + sourceId
+                        + "\",\"type\":\""
+                        + type
+                        + "\",\"entityId\":\""
+                        + entityId
+                        + "\",\"payload\":"
+                        + payload
+                        + "}";
         socket.sendText(event, true).join();
     }
 
-    private record LiveViewClient(WebSocket socket, BlockingQueue<String> messages) {
-    }
+    private record LiveViewClient(WebSocket socket, BlockingQueue<String> messages) {}
 }

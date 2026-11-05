@@ -20,7 +20,9 @@ test(
       }
       assert.equal(await page.locator("#current-sequence").textContent(), "40");
       await demo.disconnect();
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       assert.equal(demo.state.phase, "complete");
       assert.equal(demo.state.exploratory, true);
       assert.equal(await page.locator("#current-sequence").textContent(), "40");

@@ -1,13 +1,20 @@
 package io.zooglass.v2;
 
+import static io.zooglass.v2.ReceiptAgeTests.Clock;
+import static io.zooglass.v2.ReceiptAgeTests.config;
+import static io.zooglass.v2.ReceiptAgeTests.position;
+import static io.zooglass.v2.ReceiptAgeTests.snapshot;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.file.Path;
 
-import static io.zooglass.v2.ReceiptAgeTests.*;
-import static org.assertj.core.api.Assertions.*;
-
 class ReceiptAgeRecoveryTests {
+
     @TempDir Path directory;
 
     @Test
@@ -19,8 +26,12 @@ class ReceiptAgeRecoveryTests {
             service.apply(ProgressTests.event(40));
         }
         var upgraded = addTimedView(previous);
-        ProgressFailureTests.execute(db, "CREATE TRIGGER block_clock BEFORE UPDATE OF last_wall ON runtime BEGIN SELECT RAISE(ABORT,'clock write failed'); END");
-        assertThatThrownBy(() -> new ViewCoordinator(upgraded, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+        ProgressFailureTests.execute(
+                db,
+                "CREATE TRIGGER block_clock BEFORE UPDATE OF last_wall ON runtime BEGIN SELECT"
+                        + " RAISE(ABORT,'clock write failed'); END");
+        assertThatThrownBy(() -> new ViewCoordinator(upgraded, db.toString(), clock))
+                .isInstanceOf(IllegalStateException.class);
         try (var original = new ViewCoordinator(previous, db.toString(), clock)) {
             assertThat(original.apply(ProgressTests.event(40)).status()).isEqualTo("duplicate");
         }
@@ -29,21 +40,34 @@ class ReceiptAgeRecoveryTests {
         try (var service = new ViewCoordinator(upgraded, db.toString(), clock)) {
             assertThat(service.apply(ProgressTests.event(40)).status()).isEqualTo("duplicate");
             assertThat(position(service).freshness()).isEqualTo("absent");
-            assertThat(service.snapshot("mixed", "car").orElseThrow().status().fields().get("latest").freshness())
+            assertThat(
+                            service.snapshot("mixed", "car")
+                                    .orElseThrow()
+                                    .status()
+                                    .fields()
+                                    .get("latest")
+                                    .freshness())
                     .isEqualTo("unspecified");
             service.apply(ProgressTests.event(41));
         }
         try (var service = new ViewCoordinator(upgraded, db.toString(), clock)) {
             assertThat(position(service).receivedAtMillis()).isEqualTo(clock.wall);
         }
-        assertThatThrownBy(() -> new ViewCoordinator(previous, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ViewCoordinator(previous, db.toString(), clock))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     private V2Configuration addTimedView(V2Configuration previous) {
         var views = new java.util.ArrayList<>(previous.views());
         views.add(config("sqlite", 5000).views().getFirst());
-        return new V2Configuration(2, "sqlite", previous.maxStreams(), previous.identityWindow(),
-                previous.maxHistoryEntries(), previous.sources(), views);
+        return new V2Configuration(
+                2,
+                "sqlite",
+                previous.maxStreams(),
+                previous.identityWindow(),
+                previous.maxHistoryEntries(),
+                previous.sources(),
+                views);
     }
 
     @Test
@@ -118,10 +142,15 @@ class ReceiptAgeRecoveryTests {
             service.apply(ProgressTests.event(1));
         }
         ProgressFailureTests.execute(db, "UPDATE runtime SET last_wall='bad'");
-        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString(), clock))
+                .isInstanceOf(IllegalStateException.class);
         ProgressFailureTests.execute(db, "UPDATE runtime SET last_wall=1000000");
-        ProgressFailureTests.execute(db, "UPDATE views SET state=json_set(state,'$.candidates.position.fleet.age.classification','invalid')");
-        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString(), clock)).isInstanceOf(IllegalStateException.class);
+        ProgressFailureTests.execute(
+                db,
+                "UPDATE views SET"
+                    + " state=json_set(state,'$.candidates.position.fleet.age.classification','invalid')");
+        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString(), clock))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -132,7 +161,8 @@ class ReceiptAgeRecoveryTests {
         try (var service = new ViewCoordinator(config, db.toString(), clock)) {
             service.apply(ProgressTests.event(1));
         }
-        ProgressFailureTests.execute(db, "UPDATE views SET state=json_remove(state,'$.candidates.position.fleet.age')");
+        ProgressFailureTests.execute(
+                db, "UPDATE views SET state=json_remove(state,'$.candidates.position.fleet.age')");
         try (var service = new ViewCoordinator(config, db.toString(), clock)) {
             assertThat(position(service).freshness()).isEqualTo("ageUnknown");
             assertThat(position(service).receivedAtMillis()).isNull();
@@ -147,7 +177,10 @@ class ReceiptAgeRecoveryTests {
         try (var service = new ViewCoordinator(config, db.toString(), clock)) {
             service.apply(ProgressTests.event(1));
         }
-        ProgressFailureTests.execute(db, "CREATE TRIGGER refuse BEFORE INSERT ON views BEGIN SELECT RAISE(ABORT,'stop'); END");
+        ProgressFailureTests.execute(
+                db,
+                "CREATE TRIGGER refuse BEFORE INSERT ON views BEGIN SELECT RAISE(ABORT,'stop');"
+                        + " END");
         try (var service = new ViewCoordinator(config, db.toString(), clock)) {
             clock.advance(5000);
             assertThatThrownBy(() -> snapshot(service)).isInstanceOf(IllegalStateException.class);

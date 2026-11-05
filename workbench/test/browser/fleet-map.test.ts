@@ -29,7 +29,9 @@ test(
         0,
         "manifest metadata cannot manufacture positions",
       );
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       assert.equal(demo.state.phase, "complete");
       assert.equal(await page.locator(".vehicle-map-marker").count(), 3);
 
@@ -107,8 +109,9 @@ test(
         const original = WebSocket.prototype.send;
         (window as unknown as { selectionSends: number }).selectionSends = 0;
         WebSocket.prototype.send = function (data) {
-          if (this.url.includes("/views/live?"))
+          if (this.url.includes("/views/live?")) {
             (window as unknown as { selectionSends: number }).selectionSends++;
+          }
           return original.call(this, data);
         };
       });

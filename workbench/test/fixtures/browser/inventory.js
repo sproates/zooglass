@@ -7,8 +7,9 @@ startBrowserBridge({
     let observationIndex = 0;
     return {
       execute(command) {
-        if (command.action !== "connect")
+        if (command.action !== "connect") {
           throw new Error("Fixture only supports connect.");
+        }
         return new Promise((resolve, reject) => {
           data = new WebSocket(`ws://${location.host}${dataPath}`);
           data.onerror = () =>

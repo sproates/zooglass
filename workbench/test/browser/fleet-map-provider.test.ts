@@ -30,10 +30,14 @@ test(
       // Intercept before navigation: no provider request can reach the network.
       await context.route("**/*", async (route) => {
         const url = new URL(route.request().url());
-        if (url.origin === host.origin) return route.continue();
+        if (url.origin === host.origin) {
+          return route.continue();
+        }
         if (url.origin === "https://tile.openstreetmap.org") {
           held.push(route);
-          if (releaseTiles) await fulfill(route);
+          if (releaseTiles) {
+            await fulfill(route);
+          }
           return;
         }
         unexpected.push(url.origin);

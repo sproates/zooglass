@@ -59,14 +59,19 @@ export async function startApplicationHost(options: BrowserHostOptions) {
     socket.on("error", () => socket.terminate());
     socket.on("close", () => {
       clearTimeout(deadline);
-      if (registered === socket && !closing)
+      if (registered === socket && !closing) {
         active?.fail("Browser control connection lost.");
+      }
     });
     socket.on("message", (data, binary) => {
       try {
-        if (binary) throw new Error();
+        if (binary) {
+          throw new Error();
+        }
         const message = JSON.parse(data.toString());
-        if (!message || typeof message !== "object") throw new Error();
+        if (!message || typeof message !== "object") {
+          throw new Error();
+        }
         if (registered === socket) {
           active?.receive(message);
         } else if (
@@ -81,7 +86,9 @@ export async function startApplicationHost(options: BrowserHostOptions) {
           registered = socket;
           clearTimeout(deadline);
           active.announce("registered");
-        } else throw new Error();
+        } else {
+          throw new Error();
+        }
       } catch {
         socket.close(1008, "Invalid control message.");
       }
@@ -116,32 +123,42 @@ export async function startApplicationHost(options: BrowserHostOptions) {
     origin,
     signal: controller.signal,
     get pageUrl() {
-      if (!active) throw new Error("Bind a run before opening a browser.");
+      if (!active) {
+        throw new Error("Bind a run before opening a browser.");
+      }
       return `${origin}/#${new URLSearchParams({ runId: active.runId, clientId, token: registrationToken })}`;
     },
     async replaceRun(baseUrl: string): Promise<BrowserRun> {
-      if (closing || controller.signal.aborted)
+      if (closing || controller.signal.aborted) {
         throw new Error("Browser host closed.");
-      if (replacing) throw new Error("Run replacement already in progress.");
+      }
+      if (replacing) {
+        throw new Error("Run replacement already in progress.");
+      }
       replacing = true;
       try {
         const previous = active;
         active = undefined;
         retiring = previous?.close();
         await retiring;
-        if (closing) throw new Error("Browser host closed.");
+        if (closing) {
+          throw new Error("Browser host closed.");
+        }
         const run = createBrowserRun(baseUrl, {
           clientId,
           onControl: options.onControl,
           send(message) {
-            if (active !== run || registered?.readyState !== WebSocket.OPEN)
+            if (active !== run || registered?.readyState !== WebSocket.OPEN) {
               return false;
+            }
             registered.send(JSON.stringify(message));
             return true;
           },
         });
         active = run;
-        if (registered) run.announce("run-changed");
+        if (registered) {
+          run.announce("run-changed");
+        }
         return run;
       } finally {
         replacing = false;
@@ -152,7 +169,9 @@ export async function startApplicationHost(options: BrowserHostOptions) {
         controller.abort(new Error("Browser host closed."));
         await retiring;
         await active?.close();
-        for (const socket of controlServer.clients) socket.terminate();
+        for (const socket of controlServer.clients) {
+          socket.terminate();
+        }
         await Promise.all([
           new Promise<void>((resolve) => controlServer.close(() => resolve())),
           http.close(),

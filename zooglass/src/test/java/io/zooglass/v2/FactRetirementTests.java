@@ -1,23 +1,34 @@
 package io.zooglass.v2;
 
+import static io.zooglass.v2.FactFixtures.configuration;
+import static io.zooglass.v2.FactFixtures.event;
+import static io.zooglass.v2.FactFixtures.retire;
+import static io.zooglass.v2.FactFixtures.snapshot;
+import static io.zooglass.v2.FactFixtures.view;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import static io.zooglass.v2.FactFixtures.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class FactRetirementTests {
+
     @TempDir Path directory;
 
     @ParameterizedTest
     @ValueSource(strings = {"contiguousSequence", "untracked"})
     void retirementBeforeObservationLeavesSharedInputStatusUnchangedAcrossRestart(String mode) {
         var base = configuration("sqlite", 10, false);
-        var source = "untracked".equals(mode) ? new V2Configuration.Source("match", "v1") : base.sources().getFirst();
+        var source =
+                "untracked".equals(mode)
+                        ? new V2Configuration.Source("match", "v1")
+                        : base.sources().getFirst();
         var config = new V2Configuration(2, "sqlite", 10, 10, 20, List.of(source), base.views());
         String db = directory.resolve(mode + ".db").toString();
         ViewCoordinator.Snapshot before;
@@ -27,12 +38,14 @@ class FactRetirementTests {
             var outcome = service.retire(retire("corrected", 10));
             assertThat(outcome.changedViews()).containsExactly("corrected");
             assertThat(snapshot(service, "original")).isEqualTo(before);
-            assertThat(snapshot(service, "corrected").status().inputs()).isEqualTo(before.status().inputs());
+            assertThat(snapshot(service, "corrected").status().inputs())
+                    .isEqualTo(before.status().inputs());
         }
 
         try (var service = new ViewCoordinator(config, db)) {
             assertThat(snapshot(service, "original")).isEqualTo(before);
-            assertThat(snapshot(service, "corrected").status().inputs()).isEqualTo(before.status().inputs());
+            assertThat(snapshot(service, "corrected").status().inputs())
+                    .isEqualTo(before.status().inputs());
             var outcome = service.apply(event(10, 10, 1, "create", "{}"));
             assertThat(outcome.changedViews()).containsExactlyInAnyOrder("original", "corrected");
             var observed = snapshot(service, "original");
@@ -68,9 +81,11 @@ class FactRetirementTests {
             assertThat(empty.status().publication()).isEqualTo("ready");
             assertThat(empty.status().fields().get("goals").freshness()).isEqualTo("fresh");
             clock.advance(1000);
-            assertThat(snapshot(service, "corrected").status().fields().get("goals").freshness()).isEqualTo("stale");
+            assertThat(snapshot(service, "corrected").status().fields().get("goals").freshness())
+                    .isEqualTo("stale");
             assertThat(service.retire(retire("corrected", 2)).status()).isEqualTo("unchanged");
-            assertThat(service.retire(retire("corrected", 1)).reason()).isEqualTo("backwardsFactFloor");
+            assertThat(service.retire(retire("corrected", 1)).reason())
+                    .isEqualTo("backwardsFactFloor");
         }
     }
 
@@ -81,12 +96,22 @@ class FactRetirementTests {
         try (var service = new ViewCoordinator(config, db)) {
             assertThat(service.retire(retire("corrected", 10)).status()).isEqualTo("committed");
             assertThat(snapshot(service, "corrected").data()).isEmpty();
-            assertThat(snapshot(service, "corrected").status().fields().get("goals").freshness()).isEqualTo("absent");
+            assertThat(snapshot(service, "corrected").status().fields().get("goals").freshness())
+                    .isEqualTo("absent");
         }
         try (var service = new ViewCoordinator(config, db)) {
-            assertThat(snapshot(service, "corrected").status().fields().get("goals").facts().minimumBirthSequence()).isEqualTo(10);
-            assertThat(service.apply(event(1, 1, 1, "create", "{}")).targets().getLast().reason()).isEqualTo("factOutsideRetention");
-            assertThat(service.apply(event(10, 10, 1, "create", "{}")).status()).isEqualTo("committed");
+            assertThat(
+                            snapshot(service, "corrected")
+                                    .status()
+                                    .fields()
+                                    .get("goals")
+                                    .facts()
+                                    .minimumBirthSequence())
+                    .isEqualTo(10);
+            assertThat(service.apply(event(1, 1, 1, "create", "{}")).targets().getLast().reason())
+                    .isEqualTo("factOutsideRetention");
+            assertThat(service.apply(event(10, 10, 1, "create", "{}")).status())
+                    .isEqualTo("committed");
             assertThat(snapshot(service, "corrected").data().get("goals")).hasSize(1);
         }
     }
@@ -101,10 +126,21 @@ class FactRetirementTests {
             service.apply(event(1, 1, 1, "create", "{}"));
             service.retire(new FactRetirement("both", "game", List.of("b"), 3));
             var before = snapshot(service, "both");
-            assertThat(service.retire(new FactRetirement("both", "game", List.of("a", "b"), 2)).reason()).isEqualTo("backwardsFactFloor");
-            assertThat(service.retire(new FactRetirement("both", "game", List.of("a", "missing"), 3)).reason()).isEqualTo("unknownFactField");
+            assertThat(
+                            service.retire(new FactRetirement("both", "game", List.of("a", "b"), 2))
+                                    .reason())
+                    .isEqualTo("backwardsFactFloor");
+            assertThat(
+                            service.retire(
+                                            new FactRetirement(
+                                                    "both", "game", List.of("a", "missing"), 3))
+                                    .reason())
+                    .isEqualTo("unknownFactField");
             assertThat(snapshot(service, "both")).isEqualTo(before);
-            assertThat(service.retire(new FactRetirement("both", "game", List.of("a", "b"), 3)).status()).isEqualTo("applied");
+            assertThat(
+                            service.retire(new FactRetirement("both", "game", List.of("a", "b"), 3))
+                                    .status())
+                    .isEqualTo("applied");
             assertThat(snapshot(service, "both").data().get("a")).isEmpty();
         }
     }

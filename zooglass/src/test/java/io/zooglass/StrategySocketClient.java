@@ -1,5 +1,7 @@
 package io.zooglass;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -13,36 +15,41 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 /** Real socket client for the strategy acceptance tests, including fragmented messages. */
 final class StrategySocketClient implements AutoCloseable {
+
     private final LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
     private final ObjectMapper json;
     private final WebSocket socket;
 
     StrategySocketClient(HttpClient http, String url, ObjectMapper json) {
         this.json = json;
-        socket = http.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(5))
-                .buildAsync(URI.create(url), new WebSocket.Listener() {
-                    private final StringBuilder pending = new StringBuilder();
+        socket =
+                http.newWebSocketBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .buildAsync(
+                                URI.create(url),
+                                new WebSocket.Listener() {
+                                    private final StringBuilder pending = new StringBuilder();
 
-                    @Override
-                    public void onOpen(WebSocket webSocket) {
-                        webSocket.request(1);
-                    }
+                                    @Override
+                                    public void onOpen(WebSocket webSocket) {
+                                        webSocket.request(1);
+                                    }
 
-                    @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        pending.append(data);
-                        if (last) {
-                            messages.add(pending.toString());
-                            pending.setLength(0);
-                        }
-                        webSocket.request(1);
-                        return null;
-                    }
-                }).join();
+                                    @Override
+                                    public CompletionStage<?> onText(
+                                            WebSocket webSocket, CharSequence data, boolean last) {
+                                        pending.append(data);
+                                        if (last) {
+                                            messages.add(pending.toString());
+                                            pending.setLength(0);
+                                        }
+                                        webSocket.request(1);
+                                        return null;
+                                    }
+                                })
+                        .join();
     }
 
     void send(Object message) {

@@ -3,39 +3,48 @@ package io.zooglass.v2;
 import io.zooglass.v2.StateImage.StoredView;
 import io.zooglass.v2.StateImage.StreamState;
 import io.zooglass.v2.StateImage.ViewEntity;
+
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.CoercionAction;
+import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.type.LogicalType;
-import tools.jackson.databind.cfg.CoercionInputShape;
-import tools.jackson.databind.cfg.CoercionAction;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 /** Schema and row encoding. Transaction boundaries belong to SqliteState. */
 final class SqliteStateRows {
+
     private static final int PROGRESS_SCHEMA = 4;
     private static final int RECEIPT_AGE_SCHEMA = 5;
     private static final int FACT_SCHEMA = 6;
-    private static final JsonMapper JSON = JsonMapper.builder()
-            .withCoercionConfig(LogicalType.Textual, coercion -> {
-                for (var shape : List.of(CoercionInputShape.Integer,
-                        CoercionInputShape.Float, CoercionInputShape.Boolean)) {
-                    coercion.setCoercion(shape, CoercionAction.Fail);
-                }
-            })
-            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-            .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
-            .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
-            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
+    private static final JsonMapper JSON =
+            JsonMapper.builder()
+                    .withCoercionConfig(
+                            LogicalType.Textual,
+                            coercion -> {
+                                for (var shape :
+                                        List.of(
+                                                CoercionInputShape.Integer,
+                                                CoercionInputShape.Float,
+                                                CoercionInputShape.Boolean)) {
+                                    coercion.setCoercion(shape, CoercionAction.Fail);
+                                }
+                            })
+                    .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+                    .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+                    .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                    .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                    .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                    .build();
 
     private final Connection connection;
 
@@ -46,8 +55,13 @@ final class SqliteStateRows {
     StateImage restore(V2Configuration configuration) throws SQLException {
         int schema = initialiseSchema();
         boolean fresh = schema == 0;
-        int targetSchema = configuration.tracksFacts() ? FACT_SCHEMA : configuration.tracksAge() ? RECEIPT_AGE_SCHEMA : PROGRESS_SCHEMA;
-        if (schema > targetSchema) throw new SQLException("Stored freshness configuration is required");
+        int targetSchema =
+                configuration.tracksFacts()
+                        ? FACT_SCHEMA
+                        : configuration.tracksAge() ? RECEIPT_AGE_SCHEMA : PROGRESS_SCHEMA;
+        if (schema > targetSchema) {
+            throw new SQLException("Stored freshness configuration is required");
+        }
         try (var statement = connection.createStatement();
                 var check = statement.executeQuery("PRAGMA quick_check")) {
             if (!check.next() || !"ok".equals(check.getString(1))) {
@@ -57,7 +71,9 @@ final class SqliteStateRows {
 
         long version = 0;
         try (var statement = connection.createStatement();
-                var metadata = statement.executeQuery("SELECT version, configuration FROM runtime WHERE id=1")) {
+                var metadata =
+                        statement.executeQuery(
+                                "SELECT version, configuration FROM runtime WHERE id=1")) {
             if (metadata.next()) {
                 version = metadata.getLong(1);
                 var previous = V2Configuration.decode(JSON, JSON.readTree(metadata.getString(2)));
@@ -69,9 +85,13 @@ final class SqliteStateRows {
 
         Map<Publication.StreamKey, StreamState> streams = new HashMap<>();
         try (var statement = connection.createStatement();
-                var records = statement.executeQuery("SELECT source, epoch, entity, state FROM streams")) {
+                var records =
+                        statement.executeQuery(
+                                "SELECT source, epoch, entity, state FROM streams")) {
             while (records.next()) {
-                var key = new Publication.StreamKey(records.getString(1), records.getString(2), records.getString(3));
+                var key =
+                        new Publication.StreamKey(
+                                records.getString(1), records.getString(2), records.getString(3));
                 streams.put(key, JSON.readValue(records.getString(4), StreamState.class));
             }
         }
@@ -94,8 +114,13 @@ final class SqliteStateRows {
         Long lastWall = null;
         if (schema >= RECEIPT_AGE_SCHEMA) {
             try (var statement = connection.createStatement();
-                    var row = statement.executeQuery("SELECT last_wall, typeof(last_wall) FROM runtime WHERE id=1")) {
-                if (!row.next()) throw new SQLException("Missing receipt clock metadata");
+                    var row =
+                            statement.executeQuery(
+                                    "SELECT last_wall, typeof(last_wall) FROM runtime WHERE"
+                                            + " id=1")) {
+                if (!row.next()) {
+                    throw new SQLException("Missing receipt clock metadata");
+                }
                 lastWall = row.getObject(1) == null ? null : row.getLong(1);
                 if (lastWall != null && (!"integer".equals(row.getString(2)) || lastWall < 0)) {
                     throw new SQLException("Invalid receipt clock");
@@ -108,8 +133,10 @@ final class SqliteStateRows {
         }
         var restored = new StateImage(version, Map.copyOf(streams), Map.copyOf(views), lastWall);
         RecoveryValidation.image(restored, configuration);
-        try (var update = connection.prepareStatement(
-                "INSERT INTO runtime(id, version, configuration) VALUES(1, ?, ?) ON CONFLICT(id) DO UPDATE SET configuration=excluded.configuration")) {
+        try (var update =
+                connection.prepareStatement(
+                        "INSERT INTO runtime(id, version, configuration) VALUES(1, ?, ?) ON"
+                            + " CONFLICT(id) DO UPDATE SET configuration=excluded.configuration")) {
             update.setLong(1, version);
             update.setString(2, encodeConfiguration(configuration));
             update.executeUpdate();
@@ -153,24 +180,29 @@ final class SqliteStateRows {
             if (version != 0) {
                 throw new SQLException("Unsupported v2 state schema");
             }
-            try (var tables = statement.executeQuery(
-                    "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'")) {
+            try (var tables =
+                    statement.executeQuery(
+                            "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name NOT"
+                                    + " LIKE 'sqlite_%'")) {
                 if (tables.next() && tables.getInt(1) != 0) {
                     throw new SQLException("Refusing to initialise an unrecognised database");
                 }
             }
-            statement.execute("""
+            statement.execute(
+                    """
                     CREATE TABLE runtime(
                         id INTEGER PRIMARY KEY CHECK(id=1),
                         version INTEGER NOT NULL,
                         configuration TEXT NOT NULL)
                     """);
-            statement.execute("""
+            statement.execute(
+                    """
                     CREATE TABLE streams(
                         source TEXT NOT NULL, epoch TEXT NOT NULL, entity TEXT NOT NULL,
                         state TEXT NOT NULL, PRIMARY KEY(source, epoch, entity))
                     """);
-            statement.execute("""
+            statement.execute(
+                    """
                     CREATE TABLE views(
                         view TEXT NOT NULL, entity TEXT NOT NULL, state TEXT NOT NULL,
                         PRIMARY KEY(view, entity))
@@ -181,8 +213,10 @@ final class SqliteStateRows {
     }
 
     void writeChanges(StateImage previous, StateImage next) throws SQLException {
-        try (var update = connection.prepareStatement(
-                "INSERT OR REPLACE INTO streams(source, epoch, entity, state) VALUES(?, ?, ?, ?)")) {
+        try (var update =
+                connection.prepareStatement(
+                        "INSERT OR REPLACE INTO streams(source, epoch, entity, state) VALUES(?, ?,"
+                                + " ?, ?)")) {
             for (var entry : next.streams().entrySet()) {
                 if (entry.getValue() == previous.streams().get(entry.getKey())) {
                     continue;
@@ -195,8 +229,9 @@ final class SqliteStateRows {
                 update.executeUpdate();
             }
         }
-        try (var update = connection.prepareStatement(
-                "INSERT OR REPLACE INTO views(view, entity, state) VALUES(?, ?, ?)")) {
+        try (var update =
+                connection.prepareStatement(
+                        "INSERT OR REPLACE INTO views(view, entity, state) VALUES(?, ?, ?)")) {
             for (var entry : next.views().entrySet()) {
                 if (entry.getValue() == previous.views().get(entry.getKey())) {
                     continue;
@@ -207,10 +242,14 @@ final class SqliteStateRows {
                 update.executeUpdate();
             }
         }
-        String updateRuntime = next.lastWallMillis() == null ? "UPDATE runtime SET version=? WHERE id=1"
-                : "UPDATE runtime SET version=?, last_wall=? WHERE id=1";
+        String updateRuntime =
+                next.lastWallMillis() == null
+                        ? "UPDATE runtime SET version=? WHERE id=1"
+                        : "UPDATE runtime SET version=?, last_wall=? WHERE id=1";
         try (var update = connection.prepareStatement(updateRuntime)) {
-            if (next.lastWallMillis() != null) update.setLong(2, next.lastWallMillis());
+            if (next.lastWallMillis() != null) {
+                update.setLong(2, next.lastWallMillis());
+            }
             update.setLong(1, next.version());
             if (update.executeUpdate() != 1) {
                 throw new SQLException("Missing runtime metadata");

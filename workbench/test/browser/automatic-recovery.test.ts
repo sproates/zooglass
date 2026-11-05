@@ -23,8 +23,9 @@ async function fixture(
     entry: ReturnType<typeof state> | ReturnType<typeof subscription>,
   ) => browser.host.executor.execute(entry, signal());
   await execute(state("connected"));
-  for (const viewId of ["live-map", "trip-history"])
+  for (const viewId of ["live-map", "trip-history"]) {
     await execute(subscription(viewId));
+  }
   upstream.snapshot("live-map", { position });
   upstream.snapshot("trip-history", { positions: [position] });
   await browser.page.locator("#history li").waitFor();
@@ -171,8 +172,11 @@ test(
       entered = resolve;
     });
     const f = await fixture(30_000, (_request, acknowledge) => {
-      if (hold) entered();
-      else acknowledge();
+      if (hold) {
+        entered();
+      } else {
+        acknowledge();
+      }
     });
     try {
       hold = true;

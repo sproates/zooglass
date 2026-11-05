@@ -1,23 +1,26 @@
 package io.zooglass;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class EventLoggingWebSocketHandler extends TextWebSocketHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(EventLoggingWebSocketHandler.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(EventLoggingWebSocketHandler.class);
     private final ObjectMapper objectMapper;
     private final LiveViewBroadcaster liveViewBroadcaster;
 
-    public EventLoggingWebSocketHandler(ObjectMapper objectMapper, LiveViewBroadcaster liveViewBroadcaster) {
+    public EventLoggingWebSocketHandler(
+            ObjectMapper objectMapper, LiveViewBroadcaster liveViewBroadcaster) {
         this.objectMapper = objectMapper;
         this.liveViewBroadcaster = liveViewBroadcaster;
     }
@@ -32,7 +35,8 @@ public class EventLoggingWebSocketHandler extends TextWebSocketHandler {
         logger.info("Received event from client {}: {}", session.getId(), message.getPayload());
         try {
             JsonNode event = objectMapper.readTree(message.getPayload());
-            if (event == null || !event.isObject()
+            if (event == null
+                    || !event.isObject()
                     || !hasText(event, "sourceId")
                     || !hasText(event, "type")
                     || !hasText(event, "entityId")
@@ -47,7 +51,10 @@ public class EventLoggingWebSocketHandler extends TextWebSocketHandler {
                     event.get("entityId").stringValue(),
                     event.get("payload"));
         } catch (Exception exception) {
-            logger.warn("Ignoring invalid event from client {}: {}", session.getId(), exception.getMessage());
+            logger.warn(
+                    "Ignoring invalid event from client {}: {}",
+                    session.getId(),
+                    exception.getMessage());
         }
     }
 

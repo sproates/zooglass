@@ -50,8 +50,9 @@ export async function runAutomaticDemo(args: string[]) {
           for (const entry of playScenario(scenario)) {
             const wait = entry.simulationTime - previousTime;
 
-            if (wait > 0)
+            if (wait > 0) {
               await delay(wait, undefined, { signal: browser.signal });
+            }
 
             await observed.execute(entry);
             previousTime = entry.simulationTime;
@@ -60,14 +61,17 @@ export async function runAutomaticDemo(args: string[]) {
             `${args.includes("--basic") ? "Basic fixture" : "Journey"} received by the browser. Inspect the vehicle views; Ctrl+C stops the demo.`,
           );
 
-          if (!browser.signal.aborted)
+          if (!browser.signal.aborted) {
             await new Promise<void>((resolve) =>
               browser.signal.addEventListener("abort", () => resolve(), {
                 once: true,
               }),
             );
+          }
 
-          if (!controller.signal.aborted) throw browser.signal.reason;
+          if (!controller.signal.aborted) {
+            throw browser.signal.reason;
+          }
         } finally {
           await run.closeScenario();
         }
@@ -97,7 +101,9 @@ export async function runAutomaticDemo(args: string[]) {
       await run.close();
     }
   } catch (error) {
-    if (!controller.signal.aborted) throw error;
+    if (!controller.signal.aborted) {
+      throw error;
+    }
   } finally {
     process.removeListener("SIGINT", stop);
     process.removeListener("SIGTERM", stop);

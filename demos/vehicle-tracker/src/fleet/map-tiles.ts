@@ -44,7 +44,9 @@ export function addMapTiles(map: L.Map, configuration: MapConfiguration) {
       : tiles.isLoading()
         ? "loading"
         : "available";
-    if (status.dataset.state === state) return;
+    if (status.dataset.state === state) {
+      return;
+    }
     status.dataset.state = state;
     status.textContent =
       state === "unavailable"
@@ -94,7 +96,9 @@ export function addMapTiles(map: L.Map, configuration: MapConfiguration) {
     close() {
       lifetime.abort();
       tiles.off();
-      for (const timer of deadlines.values()) clearTimeout(timer);
+      for (const timer of deadlines.values()) {
+        clearTimeout(timer);
+      }
       deadlines.clear();
     },
   };

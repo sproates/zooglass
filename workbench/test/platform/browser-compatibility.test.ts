@@ -43,8 +43,9 @@ test(
         }
       }
 
-      if (errors.length)
+      if (errors.length) {
         throw new AggregateError(errors, "Compatibility test cleanup failed");
+      }
     });
 
     const host = await startVehicleBrowserHost(service.baseUrl);
@@ -78,7 +79,9 @@ test(
 
       const observed = observeVehicleSession(session, page, host.signal);
 
-      for (const entry of playScenario(scenario)) await observed.execute(entry);
+      for (const entry of playScenario(scenario)) {
+        await observed.execute(entry);
+      }
 
       assert.deepEqual(pageErrors, []);
       await context.tracing.stop();

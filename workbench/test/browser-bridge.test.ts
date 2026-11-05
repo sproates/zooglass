@@ -59,8 +59,9 @@ async function bridge(
   });
 
   const emit = async (name: string, message: Message = {}) => {
-    for (const listener of listeners.get(name) ?? [])
+    for (const listener of listeners.get(name) ?? []) {
       await listener({ data: JSON.stringify(message) });
+    }
   };
 
   const receive = (message: Message) =>
@@ -151,7 +152,9 @@ test("bridge rejects overlap while the first command is still running", async ()
 test("failed commands report failure and are not cached as completed", async () => {
   let fail = true;
   const run = await bridge(async () => {
-    if (fail) throw new Error("client failed");
+    if (fail) {
+      throw new Error("client failed");
+    }
 
     return 2;
   });
@@ -170,7 +173,9 @@ test("failed commands report failure and are not cached as completed", async () 
 test("bridge bounds completed commands at 256 while permitting cached replay", async () => {
   const run = await bridge();
 
-  for (let i = 0; i < 256; i++) await run.command(String(i));
+  for (let i = 0; i < 256; i++) {
+    await run.command(String(i));
+  }
   await run.command("0");
 
   assert.equal(run.sent.at(-1)!.type, "completed");

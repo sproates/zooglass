@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 /** Owns one child process, drains its output, and bounds every wait and cleanup. */
 final class CrashServiceProcess implements AutoCloseable {
+
     private final Process process;
     private final Writer commands;
     private final LinkedBlockingQueue<String> markers = new LinkedBlockingQueue<>();
@@ -21,15 +22,28 @@ final class CrashServiceProcess implements AutoCloseable {
     private final int port;
 
     CrashServiceProcess(Path directory, CrashBoundaryDriver.Boundary boundary) throws Exception {
-        String classpath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"));
+        String classpath =
+                System.getProperty(
+                        "surefire.test.class.path", System.getProperty("java.class.path"));
         Path arguments = Files.createTempFile(directory, "java-", ".args");
-        Files.writeString(arguments, "-cp\n" + quoted(classpath) + "\n"
-                + CrashTestService.class.getName() + "\n"
-                + quoted(directory.toString()) + "\n" + boundary.name() + "\n");
-        String executable = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
+        Files.writeString(
+                arguments,
+                "-cp\n"
+                        + quoted(classpath)
+                        + "\n"
+                        + CrashTestService.class.getName()
+                        + "\n"
+                        + quoted(directory.toString())
+                        + "\n"
+                        + boundary.name()
+                        + "\n");
+        String executable =
+                System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
         Path java = Path.of(System.getProperty("java.home"), "bin", executable);
-        process = new ProcessBuilder(java.toString(), "@" + arguments)
-                .redirectErrorStream(true).start();
+        process =
+                new ProcessBuilder(java.toString(), "@" + arguments)
+                        .redirectErrorStream(true)
+                        .start();
         commands = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8);
         reader = Thread.ofVirtual().start(this::readOutput);
         try {
@@ -82,9 +96,10 @@ final class CrashServiceProcess implements AutoCloseable {
     }
 
     private void readOutput() {
-        try (var input = new BufferedReader(new InputStreamReader(
-                process.getInputStream(), StandardCharsets.UTF_8))) {
-            for (String line; (line = input.readLine()) != null;) {
+        try (var input =
+                new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            for (String line; (line = input.readLine()) != null; ) {
                 log.append(line).append('\n');
                 if (line.startsWith("CRASH_")) {
                     markers.add(line);

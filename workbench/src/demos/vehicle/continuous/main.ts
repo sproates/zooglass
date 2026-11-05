@@ -2,10 +2,14 @@ import { startSimulation } from "./simulation.js";
 import { interactiveMapConfiguration } from "../fleet-assets.js";
 
 export async function runContinuousDemo(args: string[]) {
-  if (args.length > 1 || (args.length === 1 && !args[0].startsWith("--bind=")))
+  if (
+    args.length > 1 ||
+    (args.length === 1 && !args[0].startsWith("--bind="))
+  ) {
     throw new Error(
       "Usage: npm run demo -- vehicle-tracker --continuous [--bind=<private IPv4>]",
     );
+  }
   // Keep the continuous CLI readable; callers can opt into per-event service logs.
   process.env.LOGGING_LEVEL_IO_ZOOGLASS ??= "WARN";
   const simulation = await startSimulation({
@@ -17,7 +21,9 @@ export async function runContinuousDemo(args: string[]) {
   );
   let stopping = false;
   async function stop() {
-    if (stopping) return;
+    if (stopping) {
+      return;
+    }
     stopping = true;
     await simulation.close();
   }

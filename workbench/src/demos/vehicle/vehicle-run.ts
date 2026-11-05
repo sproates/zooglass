@@ -51,10 +51,11 @@ export async function startVehicleRun(
         }
       }
 
-      if (errors.length)
+      if (errors.length) {
         throw new DemoCleanupError("Could not close the demo session.", {
           cause: new AggregateError(errors),
         });
+      }
     }));
 
   try {
@@ -78,8 +79,9 @@ export async function startVehicleRun(
       publish: ownedBrowser.host.publish,
       // Opening separately lets the automatic caller inspect scenario setup failures.
       openScenario() {
-        if (closing || scenarioClosing)
+        if (closing || scenarioClosing) {
           return Promise.reject(new Error("Vehicle run is closing."));
+        }
 
         return (opening ??= (async () => {
           session = await openScenarioSession(scenario, ownedService.baseUrl, {
@@ -89,8 +91,9 @@ export async function startVehicleRun(
             ]),
             executeDataFault: faults.execute,
             createClientExecutor(client) {
-              if (client.id !== ownedBrowser.host.clientId)
+              if (client.id !== ownedBrowser.host.clientId) {
                 throw new Error("Unbound browser client.");
+              }
 
               return ownedBrowser.host.executor;
             },
@@ -110,7 +113,7 @@ export async function startVehicleRun(
               faults.check(entry);
               await observed.execute(entry);
 
-              if (entry.kind === "source-event")
+              if (entry.kind === "source-event") {
                 ownedBrowser.host.publish({
                   kind: "vehicle-source-sent",
                   sourceName: entry.sourceName,
@@ -119,6 +122,7 @@ export async function startVehicleRun(
                   sequence: entry.payload.sequence,
                   simulationTime: entry.simulationTime,
                 });
+              }
             },
           } satisfies ScenarioSession;
         })());

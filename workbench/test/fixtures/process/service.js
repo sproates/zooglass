@@ -15,8 +15,12 @@ writeFileSync(
     config: process.env.ZOOGLASS_VIEWS_CONFIG,
   }),
 );
-if (mode === "exit") process.kill(process.pid, "SIGTERM");
-if (mode === "stubborn") process.on("SIGTERM", () => {});
+if (mode === "exit") {
+  process.kill(process.pid, "SIGTERM");
+}
+if (mode === "stubborn") {
+  process.on("SIGTERM", () => {});
+}
 
 const argument = process.argv.find((arg) => arg.includes("--server.port="));
 const port = Number(argument.match(/--server.port=(\d+)/)[1]);

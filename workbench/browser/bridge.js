@@ -27,8 +27,9 @@ export function startBrowserBridge({
   }
   const control = new WebSocket(`ws://${location.host}/control`);
   const send = (message) => {
-    if (control.readyState === WebSocket.OPEN)
+    if (control.readyState === WebSocket.OPEN) {
       control.send(JSON.stringify({ ...message, runId, clientId }));
+    }
   };
   let client;
   let binding;
@@ -48,8 +49,9 @@ export function startBrowserBridge({
         if (
           typeof message.lease !== "string" ||
           typeof message.capability !== "string"
-        )
+        ) {
           throw new Error("Invalid viewer session.");
+        }
         clientId = message.clientId;
         sessionStorage.setItem(
           "workbench-viewer",
@@ -59,7 +61,9 @@ export function startBrowserBridge({
           }),
         );
       }
-      if (message.clientId !== clientId) return;
+      if (message.clientId !== clientId) {
+        return;
+      }
       if (
         message.type === "run-changed" ||
         (message.type === "registered" && !client)
@@ -67,15 +71,18 @@ export function startBrowserBridge({
         if (
           typeof message.runId !== "string" ||
           typeof message.dataPath !== "string"
-        )
+        ) {
           throw new Error("Invalid run binding.");
+        }
         client?.close();
         runId = message.runId;
         const next = { runId, busy: false, completed: new Map() };
         binding = next;
         // Async work from an old client cannot be relabelled as the new run.
         const report = (value) => {
-          if (binding === next) send(value);
+          if (binding === next) {
+            send(value);
+          }
         };
         onRunChanged();
         client = createClient(message.dataPath, report, (reason) =>
@@ -85,7 +92,9 @@ export function startBrowserBridge({
         status("ready");
         return;
       }
-      if (message.runId !== runId) return;
+      if (message.runId !== runId) {
+        return;
+      }
       if (message.type === "run-state") {
         onRunState(message.state, client);
         return;
@@ -106,8 +115,9 @@ export function startBrowserBridge({
         !["connect", "disconnect", "subscribe", "unsubscribe"].includes(
           message.action,
         )
-      )
+      ) {
         throw new Error("Invalid control command.");
+      }
       const current = binding;
       const { completed } = current;
       const signature = JSON.stringify([
@@ -117,19 +127,23 @@ export function startBrowserBridge({
       ]);
       const cached = completed.get(message.commandId);
       if (cached) {
-        if (cached.signature !== signature)
+        if (cached.signature !== signature) {
           throw new Error("Command ID reused with different arguments.");
+        }
         send(cached.result);
         return;
       }
-      if (current.busy || completed.size >= 256)
+      if (current.busy || completed.size >= 256) {
         throw new Error(
           "Browser command limit reached or action already running.",
         );
+      }
       current.busy = true;
       try {
         const generation = await client.execute(message);
-        if (binding !== current) return;
+        if (binding !== current) {
+          return;
+        }
         const result = {
           type: "completed",
           commandId: message.commandId,
@@ -138,7 +152,9 @@ export function startBrowserBridge({
         completed.set(message.commandId, { signature, result });
         send(result);
       } catch (error) {
-        if (binding !== current) return;
+        if (binding !== current) {
+          return;
+        }
         send({
           type: "failed",
           commandId: message.commandId,

@@ -8,7 +8,9 @@ import java.util.TreeMap;
 
 /** One indexed deadline per selected field. Replacing a report removes its old deadline. */
 final class FreshnessDeadlines {
+
     record Key(StateImage.ViewEntity entity, BoundView.Field field) {}
+
     private final Map<Key, Long> deadlines = new HashMap<>();
     private final TreeMap<Long, Set<Key>> byTime = new TreeMap<>();
 
@@ -17,7 +19,9 @@ final class FreshnessDeadlines {
         if (old != null) {
             var keys = byTime.get(old);
             keys.remove(key);
-            if (keys.isEmpty()) byTime.remove(old);
+            if (keys.isEmpty()) {
+                byTime.remove(old);
+            }
         }
         if (deadline != null) {
             deadlines.put(key, deadline);
@@ -25,7 +29,9 @@ final class FreshnessDeadlines {
         }
     }
 
-    Long next() { return byTime.isEmpty() ? null : byTime.firstKey(); }
+    Long next() {
+        return byTime.isEmpty() ? null : byTime.firstKey();
+    }
 
     Set<Key> due(long now) {
         var keys = new HashSet<Key>();

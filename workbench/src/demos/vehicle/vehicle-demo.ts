@@ -36,14 +36,17 @@ export function createVehicleDemo(
         map: options.map,
         keepOpenOnFailure: true,
         onControl: async (action, runId) => {
-          if (browser?.host.runId !== runId)
+          if (browser?.host.runId !== runId) {
             throw new Error("This run has been replaced.");
+          }
 
-          if (action === "disconnect" || action === "reconnect")
+          if (action === "disconnect" || action === "reconnect") {
             await viewer(action);
-          else if (action === "interrupt" || action === "restore")
+          } else if (action === "interrupt" || action === "restore") {
             await fault(action);
-          else await controller[action]();
+          } else {
+            await controller[action]();
+          }
         },
       });
 
@@ -77,8 +80,9 @@ export function createVehicleDemo(
       (item) => item.id === (options.fleet ? "fleet-viewer" : "rider-app"),
     );
 
-    if (!client)
+    if (!client) {
       return Promise.reject(new Error("No vehicle viewer configured."));
+    }
 
     const entries: TraceEntry[] = [
       {
@@ -100,13 +104,14 @@ export function createVehicleDemo(
           entry.kind === "client-subscription" &&
           entry.clientId === client.id &&
           entry.action === "subscribe"
-        )
+        ) {
           subscriptions.set(JSON.stringify([entry.viewId, entry.entityId]), {
             viewId: entry.viewId,
             entityId: entry.entityId,
           });
+        }
       }
-      for (const subscription of subscriptions.values())
+      for (const subscription of subscriptions.values()) {
         entries.push({
           kind: "client-subscription",
           simulationTime: 0,
@@ -115,6 +120,7 @@ export function createVehicleDemo(
           action: "subscribe",
           ...subscription,
         });
+      }
     }
 
     return controller.intervene(
@@ -127,8 +133,9 @@ export function createVehicleDemo(
     const client = scenario.clients.find(
       (item) => item.id === (options.fleet ? "fleet-viewer" : "rider-app"),
     );
-    if (!client)
+    if (!client) {
       return Promise.reject(new Error("No vehicle viewer configured."));
+    }
     return controller.intervene(
       action === "interrupt" ? "Interrupt data route" : "Restore data route",
       [

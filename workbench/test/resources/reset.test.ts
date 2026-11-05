@@ -25,8 +25,9 @@ test(
 
     try {
       for (let cycle = 0; cycle < 5; cycle++) {
-        if (!previous) await demo.reset();
-        else {
+        if (!previous) {
+          await demo.reset();
+        } else {
           const page = previous.browser.page;
           await page.locator("#reset").focus();
           await resetThroughBrowser(demo, () =>

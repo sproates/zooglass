@@ -1,15 +1,18 @@
 package io.zooglass.strategy.update;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import io.zooglass.ViewConfiguration;
+
 import org.junit.jupiter.api.Test;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class FieldStrategyTests {
+
     private final JsonMapper mapper = new JsonMapper();
 
     @Test
@@ -36,7 +39,10 @@ class FieldStrategyTests {
             FieldUpdateStrategy strategy = selected(mode);
             JsonNode current = strategy.evaluate(null, event("40", "first")).replacement();
             JsonNode original = current.deepCopy();
-            for (String invalid : new String[] {"{}", "{\"ordinal\":null}", "{\"ordinal\":\"42\"}"}) {
+            for (String invalid :
+                    new String[] {
+                        "{}", "{\"ordinal\":null}", "{\"ordinal\":\"42\"}",
+                    }) {
                 for (JsonNode previous : new JsonNode[] {null, current}) {
                     FieldUpdate result = strategy.evaluate(previous, mapper.readTree(invalid));
                     assertThat(result.changed()).isFalse();
@@ -56,7 +62,8 @@ class FieldStrategyTests {
         assertThat(update.changed()).isTrue();
         assertThat(update.replacement()).isEqualTo(next);
         assertThat(strategy.evaluate(next, first).changed()).isFalse();
-        assertThat(strategy.evaluate(first, event("9007199254740992.0", "conflict")).changed()).isFalse();
+        assertThat(strategy.evaluate(first, event("9007199254740992.0", "conflict")).changed())
+                .isFalse();
         assertThat(strategy.evaluate(null, event("-1.25", "other entity")).changed()).isTrue();
         mutate(update.replacement(), "changed");
         assertThat(next.path("data").path("label").asText()).isEqualTo("next");
@@ -75,7 +82,8 @@ class FieldStrategyTests {
         FieldUpdate update = strategy.evaluate(current, fortyOne);
         assertThat(update.replacement()).containsExactly(forty, fortyOne, fortyTwo);
         assertThat(current).isEqualTo(original);
-        assertThat(strategy.evaluate(update.replacement(), event("41.0", "conflict")).changed()).isFalse();
+        assertThat(strategy.evaluate(update.replacement(), event("41.0", "conflict")).changed())
+                .isFalse();
         mutate(update.replacement().get(0), "changed old entry");
         mutate(update.replacement().get(1), "changed new entry");
         assertThat(current).isEqualTo(original);
@@ -88,7 +96,8 @@ class FieldStrategyTests {
     }
 
     private JsonNode event(String sequence, String label) {
-        return mapper.readTree("{\"ordinal\":" + sequence + ",\"data\":{\"label\":\"" + label + "\"}}");
+        return mapper.readTree(
+                "{\"ordinal\":" + sequence + ",\"data\":{\"label\":\"" + label + "\"}}");
     }
 
     private void mutate(JsonNode event, String label) {

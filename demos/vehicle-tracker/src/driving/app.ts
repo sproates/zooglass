@@ -40,7 +40,9 @@ const status = document.getElementById("connection")!;
 const selection = document.getElementById("selection")!;
 
 function fit() {
-  if (!positions.size) return;
+  if (!positions.size) {
+    return;
+  }
   map.fitBounds(L.latLngBounds(cars.flatMap((car) => car.bounds)), {
     paddingTopLeft: [40, 70],
     paddingBottomRight: [40, 80],
@@ -52,7 +54,9 @@ document.getElementById("fit")!.addEventListener("click", fit);
 function render() {
   for (const car of cars) {
     const position = positions.get(car.id);
-    if (!position) continue;
+    if (!position) {
+      continue;
+    }
     let marker = markers.get(car.id);
     if (!marker) {
       marker = L.marker([position.latitude, position.longitude], {
@@ -90,9 +94,10 @@ function render() {
       selection.textContent = `${car.name} · ${age.text} · report ${position.sequence}`;
     }
   }
-  if (Date.now() > noticeUntil)
+  if (Date.now() > noticeUntil) {
     document.getElementById("notice")!.textContent =
       "Six simulated cars · grey markers show older reports, not current locations.";
+  }
   if (!fitted && positions.size === cars.length) {
     fitted = true;
     fit();
@@ -101,7 +106,9 @@ function render() {
 
 function connect() {
   clearTimeout(retry);
-  if (stopped || document.hidden) return;
+  if (stopped || document.hidden) {
+    return;
+  }
   const previous = socket;
   socket = undefined;
   previous?.close();
@@ -112,11 +119,13 @@ function connect() {
   const current = new WebSocket(`ws://${location.host}/views/live`);
   socket = current;
   current.onopen = () => {
-    if (socket !== current) return;
+    if (socket !== current) {
+      return;
+    }
     connected = true;
     render();
     status.textContent = "Receiving positions";
-    for (const car of cars)
+    for (const car of cars) {
       current.send(
         JSON.stringify({
           action: "subscribe",
@@ -124,17 +133,21 @@ function connect() {
           entityId: car.id,
         }),
       );
+    }
   };
   current.onmessage = (event) => {
-    if (socket !== current) return;
+    if (socket !== current) {
+      return;
+    }
     try {
       const message = JSON.parse(event.data);
       if (
         message.type !== "view-update" ||
         message.viewId !== "driving" ||
         !cars.some((car) => car.id === message.entityId)
-      )
+      ) {
         return;
+      }
       const p = message.data.position;
       if (
         !p ||
@@ -143,8 +156,9 @@ function connect() {
         ) ||
         Math.abs(p.latitude) > 90 ||
         Math.abs(p.longitude) > 180
-      )
+      ) {
         return;
+      }
       awaiting.delete(message.entityId);
       positions.set(message.entityId, p);
       const notice = message.data.notice;
@@ -167,7 +181,9 @@ function connect() {
     }
   };
   current.onclose = () => {
-    if (socket !== current || stopped) return;
+    if (socket !== current || stopped) {
+      return;
+    }
     connected = false;
     render();
     status.textContent = "Disconnected · retrying";
@@ -177,14 +193,17 @@ function connect() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) connect();
-  else {
+  if (!document.hidden) {
+    connect();
+  } else {
     clearTimeout(retry);
     socket?.close();
   }
 });
 window.addEventListener("pageshow", () => {
-  if (!socket || socket.readyState > WebSocket.OPEN) connect();
+  if (!socket || socket.readyState > WebSocket.OPEN) {
+    connect();
+  }
 });
 const resize = new ResizeObserver(() => map.invalidateSize());
 resize.observe(document.getElementById("map")!);

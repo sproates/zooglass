@@ -21,7 +21,9 @@ test(
     const sessions: ZooGlassSession[] = [];
     const sockets: WebSocket[] = [];
     t.after(async () => {
-      for (const socket of sockets) socket.terminate();
+      for (const socket of sockets) {
+        socket.terminate();
+      }
       await Promise.allSettled(sessions.map((session) => session.close()));
       await rm(directory, { recursive: true, force: true });
     });
@@ -48,7 +50,9 @@ test(
     };
     const starts = await Promise.allSettled([start("first"), start("second")]);
     const [first, second] = starts.map((result) => {
-      if (result.status === "rejected") throw result.reason;
+      if (result.status === "rejected") {
+        throw result.reason;
+      }
       return result.value;
     });
     assert.notEqual(first.baseUrl, second.baseUrl);

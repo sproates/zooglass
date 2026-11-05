@@ -16,10 +16,13 @@ final class OutboundWriter {
 
     private final BiConsumer<OutboundWriter, IOException> onFailure;
     private final WebSocketSession session;
-    private final ArrayBlockingQueue<TextMessage> messages = new ArrayBlockingQueue<>(queueCapacity);
+    private final ArrayBlockingQueue<TextMessage> messages =
+            new ArrayBlockingQueue<>(queueCapacity);
     private final Future<?> task;
 
-    OutboundWriter(WebSocketSession session, ExecutorService executor,
+    OutboundWriter(
+            WebSocketSession session,
+            ExecutorService executor,
             BiConsumer<OutboundWriter, IOException> onFailure) {
         this.session = session;
         this.onFailure = onFailure;

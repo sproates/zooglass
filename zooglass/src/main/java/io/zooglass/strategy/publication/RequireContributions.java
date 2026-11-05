@@ -3,7 +3,8 @@ package io.zooglass.strategy.publication;
 import java.util.List;
 import java.util.Set;
 
-public record RequireContributions(List<String> required, long maxPendingEntities) implements PublicationStrategy {
+public record RequireContributions(List<String> required, long maxPendingEntities)
+        implements PublicationStrategy {
     public RequireContributions {
         required = List.copyOf(required);
     }

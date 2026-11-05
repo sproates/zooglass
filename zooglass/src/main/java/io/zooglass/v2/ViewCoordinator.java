@@ -1,18 +1,20 @@
 package io.zooglass.v2;
 
+import io.zooglass.strategy.progress.ProgressRejected;
 import io.zooglass.strategy.progress.ProgressStrategy;
 import io.zooglass.strategy.progress.ProgressStrategySelection;
-import io.zooglass.strategy.progress.ProgressRejected;
-
 import io.zooglass.v2.StateImage.Receipt;
 import io.zooglass.v2.StateImage.StoredView;
 import io.zooglass.v2.StateImage.StreamState;
 import io.zooglass.v2.StateImage.ViewEntity;
+
 import jakarta.annotation.PreDestroy;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -26,6 +28,7 @@ import java.util.TreeMap;
 /** Serialises admission, storage commits and snapshot reads. */
 @Component
 public final class ViewCoordinator implements AutoCloseable {
+
     private final Map<String, String> epochs;
     private final ViewTransitions views;
     private final FactRetirementTransitions retirement;
@@ -40,7 +43,8 @@ public final class ViewCoordinator implements AutoCloseable {
     private boolean closed;
 
     @Autowired
-    public ViewCoordinator(ResourceLoader resources,
+    public ViewCoordinator(
+            ResourceLoader resources,
             @Value("${zooglass.v2.config:classpath:v2-views.json}") String location,
             @Value("${zooglass.v2.database:}") String database) {
         this(V2Configuration.load(resources, location), database);
@@ -63,29 +67,51 @@ public final class ViewCoordinator implements AutoCloseable {
         views = new ViewTransitions(configuration);
         retirement = new FactRetirementTransitions(configuration, views.byId());
         var policies = new HashMap<String, ProgressStrategy>();
-        configuration.sources().forEach(source -> {
-            var settings = source.progress();
-            policies.put(source.id(), ProgressStrategySelection.select(
-                    settings.mode(), settings.startSequence(), settings.maxReceivedRanges(), settings.maxMissingRanges()));
-        });
+        configuration
+                .sources()
+                .forEach(
+                        source -> {
+                            var settings = source.progress();
+                            policies.put(
+                                    source.id(),
+                                    ProgressStrategySelection.select(
+                                            settings.mode(),
+                                            settings.startSequence(),
+                                            settings.maxReceivedRanges(),
+                                            settings.maxMissingRanges()));
+                        });
         progress = Map.copyOf(policies);
         maxStreams = configuration.maxStreams();
         identityWindow = configuration.identityWindow();
         historyLimit = configuration.maxHistoryEntries();
-        freshness = configuration.tracksAge() ? new FreshnessRuntime(views.byId(), clock, this::expire) : null;
+        freshness =
+                configuration.tracksAge()
+                        ? new FreshnessRuntime(views.byId(), clock, this::expire)
+                        : null;
         try {
             if (configuration.storage().equals("sqlite")) {
-                storage = new SqliteState(database, configuration, freshness == null
-                        ? java.util.function.UnaryOperator.identity() : freshness::recover);
+                storage =
+                        new SqliteState(
+                                database,
+                                configuration,
+                                freshness == null
+                                        ? java.util.function.UnaryOperator.identity()
+                                        : freshness::recover);
             } else {
                 storage = new InMemoryState();
-                if (freshness != null) storage.install(freshness.recover(storage.current()));
+                if (freshness != null) {
+                    storage.install(freshness.recover(storage.current()));
+                }
             }
         } catch (RuntimeException failure) {
-            if (freshness != null) freshness.close();
+            if (freshness != null) {
+                freshness.close();
+            }
             throw failure;
         }
-        if (freshness != null) freshness.arm();
+        if (freshness != null) {
+            freshness.arm();
+        }
     }
 
     synchronized PublicationOutcome apply(Publication event) {
@@ -100,7 +126,9 @@ public final class ViewCoordinator implements AutoCloseable {
             return rejected(event, "unknownEpoch");
         }
 
-        if (event.fact() != null && !factsEnabled) return rejected(event, "factsNotConfigured");
+        if (event.fact() != null && !factsEnabled) {
+            return rejected(event, "factsNotConfigured");
+        }
         StreamState stream = state.streams().get(event.stream());
         if (stream == null && state.streams().size() >= maxStreams) {
             return rejected(event, "streamLimit");
@@ -110,23 +138,36 @@ public final class ViewCoordinator implements AutoCloseable {
         }
 
         Object content = PublicationJson.content(event.payload());
-        Receipt previous = stream == null ? null : stream.receipts().get(event.publicationSequence());
+        Receipt previous =
+                stream == null ? null : stream.receipts().get(event.publicationSequence());
         if (previous != null) {
-            if (!java.util.Objects.equals(previous.fact(), event.fact()) || !previous.type().equals(event.type())
+            if (!java.util.Objects.equals(previous.fact(), event.fact())
+                    || !previous.type().equals(event.type())
                     || !PublicationJson.content(previous.content()).equals(content)) {
                 return rejected(event, "identityConflict");
             }
-            return new PublicationOutcome("duplicate",
-                    storage.durable() ? "alreadyCommitted" : "alreadyApplied", event.stream(),
-                    event.publicationSequence(), previous.version(), List.of(), previous.targets());
+            return new PublicationOutcome(
+                    "duplicate",
+                    storage.durable() ? "alreadyCommitted" : "alreadyApplied",
+                    event.stream(),
+                    event.publicationSequence(),
+                    previous.version(),
+                    List.of(),
+                    previous.targets());
         }
 
         try {
             FactOrigins.validate(event, state, views.byId());
             return stageAndInstall(event, stream);
         } catch (FactRejected exception) {
-            return new PublicationOutcome("rejected", exception.reason(), event.stream(), event.publicationSequence(),
-                    state.version(), List.of(), exception.targets());
+            return new PublicationOutcome(
+                    "rejected",
+                    exception.reason(),
+                    event.stream(),
+                    event.publicationSequence(),
+                    state.version(),
+                    List.of(),
+                    exception.targets());
         } catch (ProgressRejected exception) {
             return rejected(event, exception.reason());
         } catch (ViewTransitions.PendingLimit exception) {
@@ -139,32 +180,63 @@ public final class ViewCoordinator implements AutoCloseable {
     private PublicationOutcome stageAndInstall(Publication event, StreamState stream) {
         StateImage state = storage.current();
         long version = Math.incrementExact(state.version());
-        JsonNode contribution = JsonNodeFactory.instance.objectNode()
-                .put("publicationSequence", event.publicationSequence())
-                .set("payload", event.payload().deepCopy());
-        long floor = Math.max(stream == null ? 1 : stream.floor(),
-                event.publicationSequence() - identityWindow + 1);
+        JsonNode contribution =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("publicationSequence", event.publicationSequence())
+                        .set("payload", event.payload().deepCopy());
+        long floor =
+                Math.max(
+                        stream == null ? 1 : stream.floor(),
+                        event.publicationSequence() - identityWindow + 1);
         var strategy = progress.get(event.sourceId());
-        var nextProgress = strategy.receive(stream == null ? strategy.initial() : stream.progress(),
-                event.publicationSequence(), floor);
+        var nextProgress =
+                strategy.receive(
+                        stream == null ? strategy.initial() : stream.progress(),
+                        event.publicationSequence(),
+                        floor);
         var streams = new HashMap<>(state.streams());
-        streams.put(event.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
+        streams.put(
+                event.stream(),
+                new StreamState(
+                        floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
         var sample = clock.sample();
-        var staged = views.stage(state, streams, event.stream(), event, contribution, historyLimit, version, sample.wall());
+        var staged =
+                views.stage(
+                        state,
+                        streams,
+                        event.stream(),
+                        event,
+                        contribution,
+                        historyLimit,
+                        version,
+                        sample.wall());
 
         var receipts = new TreeMap<Long, Receipt>();
         if (stream != null) {
             receipts.putAll(stream.receipts());
         }
         receipts.headMap(floor).clear();
-        receipts.put(event.publicationSequence(),
-                new Receipt(event.type(), event.payload().deepCopy(), version, staged.targets(), event.fact()));
+        receipts.put(
+                event.publicationSequence(),
+                new Receipt(
+                        event.type(),
+                        event.payload().deepCopy(),
+                        version,
+                        staged.targets(),
+                        event.fact()));
         streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts), nextProgress));
 
         // Build the response before the one installation point. No staged object escapes.
-        var result = new PublicationOutcome(storage.durable() ? "committed" : "applied",
-                storage.durable() ? "sqlite" : "memory", event.stream(),
-                event.publicationSequence(), version, staged.changedViews(), staged.targets());
+        var result =
+                new PublicationOutcome(
+                        storage.durable() ? "committed" : "applied",
+                        storage.durable() ? "sqlite" : "memory",
+                        event.stream(),
+                        event.publicationSequence(),
+                        version,
+                        staged.changedViews(),
+                        staged.targets());
         install(state, version, streams, staged, sample);
         return result;
     }
@@ -173,27 +245,56 @@ public final class ViewCoordinator implements AutoCloseable {
         expire();
         var state = storage.current();
         String epoch = epochs.get(control.sourceId());
-        if (epoch == null) return rejected(control, "unknownSource");
-        if (!epoch.equals(control.epoch())) return rejected(control, "unknownEpoch");
+        if (epoch == null) {
+            return rejected(control, "unknownSource");
+        }
+        if (!epoch.equals(control.epoch())) {
+            return rejected(control, "unknownEpoch");
+        }
         var stream = state.streams().get(control.stream());
-        if (stream == null && state.streams().size() >= maxStreams) return rejected(control, "streamLimit");
+        if (stream == null && state.streams().size() >= maxStreams) {
+            return rejected(control, "streamLimit");
+        }
         var strategy = progress.get(control.sourceId());
         var previous = stream == null ? strategy.initial() : stream.progress();
-        if (previous != null && previous.watermarkThrough() != null
+        if (previous != null
+                && previous.watermarkThrough() != null
                 && control.throughSequence() == previous.watermarkThrough()) {
-            return new ProgressOutcome("duplicate", storage.durable() ? "alreadyCommitted" : "alreadyApplied",
-                    control, previous.watermarkVersion(), List.of());
+            return new ProgressOutcome(
+                    "duplicate",
+                    storage.durable() ? "alreadyCommitted" : "alreadyApplied",
+                    control,
+                    previous.watermarkVersion(),
+                    List.of());
         }
         try {
             long version = Math.incrementExact(state.version());
             long floor = stream == null ? 1 : stream.floor();
-            var nextProgress = strategy.advance(previous, control.throughSequence(), version, floor);
+            var nextProgress =
+                    strategy.advance(previous, control.throughSequence(), version, floor);
             var streams = new HashMap<>(state.streams());
-            streams.put(control.stream(), new StreamState(floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
+            streams.put(
+                    control.stream(),
+                    new StreamState(
+                            floor, stream == null ? Map.of() : stream.receipts(), nextProgress));
             var sample = clock.sample();
-            var staged = views.stage(state, streams, control.stream(), null, null, historyLimit, version, sample.wall());
-            var result = new ProgressOutcome(storage.durable() ? "committed" : "applied", storage.durable() ? "sqlite" : "memory",
-                    control, version, staged.changedViews());
+            var staged =
+                    views.stage(
+                            state,
+                            streams,
+                            control.stream(),
+                            null,
+                            null,
+                            historyLimit,
+                            version,
+                            sample.wall());
+            var result =
+                    new ProgressOutcome(
+                            storage.durable() ? "committed" : "applied",
+                            storage.durable() ? "sqlite" : "memory",
+                            control,
+                            version,
+                            staged.changedViews());
             install(state, version, streams, staged, sample);
             return result;
         } catch (ProgressRejected rejection) {
@@ -207,20 +308,42 @@ public final class ViewCoordinator implements AutoCloseable {
         try {
             long version = Math.incrementExact(state.version());
             var result = retirement.stage(state, control, version);
-            if (result.staged() == null) return new FactRetirementOutcome("factRetirement", "unchanged", null,
-                    control, state.version(), result.floors(), List.of());
+            if (result.staged() == null) {
+                return new FactRetirementOutcome(
+                        "factRetirement",
+                        "unchanged",
+                        null,
+                        control,
+                        state.version(),
+                        result.floors(),
+                        List.of());
+            }
             install(state, version, result.streams(), result.staged(), clock.sample());
-            return new FactRetirementOutcome("factRetirement", storage.durable() ? "committed" : "applied", null,
-                    control, version, result.floors(), result.staged().changedViews());
+            return new FactRetirementOutcome(
+                    "factRetirement",
+                    storage.durable() ? "committed" : "applied",
+                    null,
+                    control,
+                    version,
+                    result.floors(),
+                    result.staged().changedViews());
         } catch (FactRejected failure) {
             return FactRetirementOutcome.rejected(control, state.version(), failure.reason());
         }
     }
 
-    private void install(StateImage old, long version, Map<Publication.StreamKey, StreamState> streams,
-            ViewTransitions.Result staged, ReceiptClock.Sample sample) {
-        var next = new StateImage(version, Map.copyOf(streams), staged.views(),
-                freshness == null ? null : FreshnessRuntime.highWater(old, sample.wall()));
+    private void install(
+            StateImage old,
+            long version,
+            Map<Publication.StreamKey, StreamState> streams,
+            ViewTransitions.Result staged,
+            ReceiptClock.Sample sample) {
+        var next =
+                new StateImage(
+                        version,
+                        Map.copyOf(streams),
+                        staged.views(),
+                        freshness == null ? null : FreshnessRuntime.highWater(old, sample.wall()));
         if (freshness == null) {
             storage.install(next);
             return;
@@ -231,11 +354,14 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     private synchronized void expire() {
-        if (!closed && freshness != null) freshness.reconcile(storage);
+        if (!closed && freshness != null) {
+            freshness.reconcile(storage);
+        }
     }
 
     private ProgressOutcome rejected(ProgressControl control, String reason) {
-        return new ProgressOutcome("rejected", reason, control, storage.current().version(), List.of());
+        return new ProgressOutcome(
+                "rejected", reason, control, storage.current().version(), List.of());
     }
 
     public synchronized Optional<Snapshot> snapshot(String viewId, String entityId) {
@@ -243,18 +369,31 @@ public final class ViewCoordinator implements AutoCloseable {
         StateImage state = storage.current();
         StoredView stored = state.views().get(new ViewEntity(viewId, entityId));
         var status = views.status(viewId, entityId, stored, state.streams());
-        if (status == null) return Optional.empty();
+        if (status == null) {
+            return Optional.empty();
+        }
         Map<String, JsonNode> copy = new LinkedHashMap<>();
         if (stored != null) {
             stored.data().forEach((key, value) -> copy.put(key, value.deepCopy()));
         }
-        return Optional.of(new Snapshot(viewId, entityId, stored == null ? 0 : stored.version(), copy,
-                stored == null ? Map.of() : stored.provenance(), status));
+        return Optional.of(
+                new Snapshot(
+                        viewId,
+                        entityId,
+                        stored == null ? 0 : stored.version(),
+                        copy,
+                        stored == null ? Map.of() : stored.provenance(),
+                        status));
     }
 
     private PublicationOutcome rejected(Publication event, String reason) {
-        return new PublicationOutcome("rejected", reason, event.stream(), event.publicationSequence(),
-                storage.current().version(), List.of());
+        return new PublicationOutcome(
+                "rejected",
+                reason,
+                event.stream(),
+                event.publicationSequence(),
+                storage.current().version(),
+                List.of());
     }
 
     synchronized boolean healthy() {
@@ -270,10 +409,17 @@ public final class ViewCoordinator implements AutoCloseable {
     @PreDestroy
     public synchronized void close() {
         closed = true;
-        if (freshness != null) freshness.close();
+        if (freshness != null) {
+            freshness.close();
+        }
         storage.close();
     }
 
-    public record Snapshot(String viewId, String entityId, long version, Map<String, JsonNode> data,
-            Map<String, Provenance> provenance, ViewStatus.Status status) {}
+    public record Snapshot(
+            String viewId,
+            String entityId,
+            long version,
+            Map<String, JsonNode> data,
+            Map<String, Provenance> provenance,
+            ViewStatus.Status status) {}
 }

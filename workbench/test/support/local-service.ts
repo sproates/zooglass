@@ -21,7 +21,9 @@ export async function localService(
   t.after(
     () =>
       new Promise<void>((resolve) => {
-        for (const socket of sockets) socket.destroy();
+        for (const socket of sockets) {
+          socket.destroy();
+        }
         server.closeAllConnections();
         server.close(() => resolve());
       }),
@@ -45,6 +47,8 @@ export function acceptWebSocket(req: IncomingMessage, socket: Duplex) {
     `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`,
   );
   socket.on("data", (data: Buffer) => {
-    if ((data[0] & 15) === 8) socket.end(Buffer.from([0x88, 0]));
+    if ((data[0] & 15) === 8) {
+      socket.end(Buffer.from([0x88, 0]));
+    }
   });
 }

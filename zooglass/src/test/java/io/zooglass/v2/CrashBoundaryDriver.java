@@ -18,7 +18,13 @@ import java.util.logging.Logger;
 
 /** Child-JVM-only instrumentation around real SQLite calls, never a replacement store. */
 final class CrashBoundaryDriver implements Driver {
-    enum Boundary { AFTER_STREAM_WRITE, BEFORE_COMMIT, AFTER_COMMIT, AFTER_ACK }
+
+    enum Boundary {
+        AFTER_STREAM_WRITE,
+        BEFORE_COMMIT,
+        AFTER_COMMIT,
+        AFTER_ACK,
+    }
 
     private final Driver sqlite = new JDBC();
     private final Boundary boundary;
@@ -46,36 +52,46 @@ final class CrashBoundaryDriver implements Driver {
         if (connection == null) {
             return null;
         }
-        return (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class<?>[] { Connection.class }, (proxy, method, args) -> {
-                    if (method.getName().equals("commit")) {
-                        pause(Boundary.BEFORE_COMMIT);
-                        Object result = invoke(connection, method, args);
-                        pause(Boundary.AFTER_COMMIT);
-                        return result;
-                    }
-                    Object result = invoke(connection, method, args);
-                    if (method.getName().equals("prepareStatement")
-                            && ((String) args[0]).startsWith("INSERT OR REPLACE INTO streams")) {
-                        return instrumentStreamWrite((PreparedStatement) result);
-                    }
-                    return result;
-                });
+        return (Connection)
+                Proxy.newProxyInstance(
+                        getClass().getClassLoader(),
+                        new Class<?>[] {Connection.class},
+                        (proxy, method, args) -> {
+                            if (method.getName().equals("commit")) {
+                                pause(Boundary.BEFORE_COMMIT);
+                                Object result = invoke(connection, method, args);
+                                pause(Boundary.AFTER_COMMIT);
+                                return result;
+                            }
+                            Object result = invoke(connection, method, args);
+                            if (method.getName().equals("prepareStatement")
+                                    && ((String) args[0])
+                                            .startsWith("INSERT OR REPLACE INTO streams")) {
+                                return instrumentStreamWrite((PreparedStatement) result);
+                            }
+                            return result;
+                        });
     }
 
     private PreparedStatement instrumentStreamWrite(PreparedStatement statement) {
-        return (PreparedStatement) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class<?>[] { PreparedStatement.class }, (proxy, method, args) -> {
-                    Object result = invoke(statement, method, args);
-                    if (method.getName().equals("executeUpdate")) {
-                        pause(Boundary.AFTER_STREAM_WRITE);
-                    }
-                    return result;
-                });
+        return (PreparedStatement)
+                Proxy.newProxyInstance(
+                        getClass().getClassLoader(),
+                        new Class<?>[] {PreparedStatement.class},
+                        (proxy, method, args) -> {
+                            Object result = invoke(statement, method, args);
+                            if (method.getName().equals("executeUpdate")) {
+                                pause(Boundary.AFTER_STREAM_WRITE);
+                            }
+                            return result;
+                        });
     }
 
     private void pause(Boundary reached) throws InterruptedException {
-        if (armed && boundary == reached && (!timerOnly || Thread.currentThread().getName().equals("zooglass-receipt-age"))) {
+        if (armed
+                && boundary == reached
+                && (!timerOnly
+                        || Thread.currentThread().getName().equals("zooglass-receipt-age"))) {
             System.out.println("CRASH_BOUNDARY " + reached);
             System.out.flush();
             new CountDownLatch(1).await(); // Parent must force-kill, not release or close us.
@@ -96,19 +112,28 @@ final class CrashBoundaryDriver implements Driver {
     }
 
     @Override
-    public DriverPropertyInfo[] getPropertyInfo(String url, Properties properties) throws SQLException {
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties properties)
+            throws SQLException {
         return sqlite.getPropertyInfo(url, properties);
     }
 
     @Override
-    public int getMajorVersion() { return sqlite.getMajorVersion(); }
+    public int getMajorVersion() {
+        return sqlite.getMajorVersion();
+    }
 
     @Override
-    public int getMinorVersion() { return sqlite.getMinorVersion(); }
+    public int getMinorVersion() {
+        return sqlite.getMinorVersion();
+    }
 
     @Override
-    public boolean jdbcCompliant() { return sqlite.jdbcCompliant(); }
+    public boolean jdbcCompliant() {
+        return sqlite.jdbcCompliant();
+    }
 
     @Override
-    public Logger getParentLogger() { return Logger.getLogger("sqlite-crash-test"); }
+    public Logger getParentLogger() {
+        return Logger.getLogger("sqlite-crash-test");
+    }
 }

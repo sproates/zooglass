@@ -205,8 +205,9 @@ for (const automatic of [false, true]) {
         assert.ok(port, output);
         await assert.rejects(fetch(`http://127.0.0.1:${port}/actuator/health`));
       } finally {
-        if (child.exitCode === null && child.signalCode === null)
+        if (child.exitCode === null && child.signalCode === null) {
           child.kill("SIGTERM");
+        }
 
         await exited;
       }

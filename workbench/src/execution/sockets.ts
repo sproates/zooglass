@@ -70,8 +70,9 @@ export async function connectClient(
 }
 
 export function closeClient(socket: WebSocket | undefined): Promise<void> {
-  if (socket === undefined || socket.readyState === WebSocket.CLOSED)
+  if (socket === undefined || socket.readyState === WebSocket.CLOSED) {
     return Promise.resolve();
+  }
 
   return new Promise((resolve, reject) => {
     const closed = () => {
@@ -96,6 +97,7 @@ export async function closeAll(operations: Promise<void>[]): Promise<void> {
     result.status === "rejected" ? [result.reason] : [],
   );
 
-  if (errors.length > 0)
+  if (errors.length > 0) {
     throw new AggregateError(errors, "Session cleanup failed.");
+  }
 }

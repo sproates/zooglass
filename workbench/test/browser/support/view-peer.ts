@@ -39,8 +39,11 @@ export async function peer(
           }),
         );
 
-      if (onRequest) onRequest(request, acknowledge);
-      else acknowledge();
+      if (onRequest) {
+        onRequest(request, acknowledge);
+      } else {
+        acknowledge();
+      }
     });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -70,7 +73,9 @@ export async function peer(
       socket?.terminate();
     },
     async close() {
-      for (const client of wss.clients) client.terminate();
+      for (const client of wss.clients) {
+        client.terminate();
+      }
       await new Promise<void>((resolve) => wss.close(() => resolve()));
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

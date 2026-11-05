@@ -11,10 +11,14 @@ let createClient = createVehicleClient;
 if (document.body.dataset.fleet === "true") {
   const { createFleetClient } = await import("/fleet/client.js");
   const response = await fetch("/fleet-manifest.json");
-  if (!response.ok) throw new Error("Could not load fleet manifest.");
+  if (!response.ok) {
+    throw new Error("Could not load fleet manifest.");
+  }
   const manifest = await response.json();
   const mapResponse = await fetch("/map-config.json");
-  if (!mapResponse.ok) throw new Error("Could not load map configuration.");
+  if (!mapResponse.ok) {
+    throw new Error("Could not load map configuration.");
+  }
   const mapConfiguration = await mapResponse.json();
   createClient = (dataPath, report, fail) =>
     createFleetClient(dataPath, report, fail, manifest, mapConfiguration);
@@ -34,7 +38,9 @@ const target = document.querySelector("#viewer-target");
 let viewerSession;
 let lastRunState;
 function updateAuthority() {
-  if (!lastRunState) return;
+  if (!lastRunState) {
+    return;
+  }
   const state = lastRunState;
   step.disabled = play.disabled = state.phase !== "ready" || state.playing;
   pause.disabled = !state.playing;
@@ -44,7 +50,7 @@ function updateAuthority() {
     disconnect.disabled =
     reconnect.disabled =
       state.playing || !["ready", "complete"].includes(state.phase);
-  if (state.external && !viewerSession?.controller)
+  if (state.external && !viewerSession?.controller) {
     for (const button of [
       step,
       play,
@@ -54,9 +60,13 @@ function updateAuthority() {
       reconnect,
       interrupt,
       restore,
-    ])
+    ]) {
       button.disabled = true;
-  if (target) target.disabled = !viewerSession?.controller;
+    }
+  }
+  if (target) {
+    target.disabled = !viewerSession?.controller;
+  }
 }
 for (const [button, action] of [
   [step, "step"],
@@ -99,8 +109,9 @@ const bridge = startBrowserBridge({
       reconnect,
       interrupt,
       restore,
-    ])
+    ]) {
       button.disabled = true;
+    }
   },
   createClient(dataPath, report, fail) {
     document.body.dataset.dataPath = dataPath;
@@ -136,8 +147,9 @@ const bridge = startBrowserBridge({
         reconnect,
         interrupt,
         restore,
-      ])
+      ]) {
         button.disabled = true;
+      }
       controlError.textContent =
         "Control connection lost. External viewers can refresh to rejoin; owned-browser mode can reset from the terminal.";
     }
@@ -182,7 +194,9 @@ const bridge = startBrowserBridge({
     lastRunState = state;
     document.querySelector("#next-step").textContent = state.nextStep ?? "";
     document.querySelector("#workbench-controls").hidden = false;
-    if (state.phase === "failed") client?.fail(state.detail);
+    if (state.phase === "failed") {
+      client?.fail(state.detail);
+    }
     step.disabled = state.phase !== "ready" || state.playing;
     play.disabled = state.phase !== "ready" || state.playing;
     pause.disabled = !state.playing;

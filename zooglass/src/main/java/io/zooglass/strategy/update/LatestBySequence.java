@@ -3,6 +3,7 @@ package io.zooglass.strategy.update;
 import tools.jackson.databind.JsonNode;
 
 final class LatestBySequence implements FieldUpdateStrategy {
+
     private final String sequenceField;
 
     LatestBySequence(String sequenceField) {

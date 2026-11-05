@@ -28,10 +28,11 @@ export function orderStep(
     !Number.isSafeInteger(tick) ||
     tick < 0 ||
     tick > Number.MAX_SAFE_INTEGER / 10
-  )
+  ) {
     throw new Error(
       "Order simulation tick is outside the safe sequence range.",
     );
+  }
 
   const cycle = Math.floor(tick / ticksPerCycle);
   const phase = tick % ticksPerCycle;
@@ -52,11 +53,15 @@ export function orderStep(
       observedPhase = phase,
     ) => orderEvent(source, i, cycle, revision, status, at(observedPhase));
 
-    if (local === 0) publish(event("orders", 1, "accepted"));
-    if (local === 1)
+    if (local === 0) {
+      publish(event("orders", 1, "accepted"));
+    }
+    if (local === 1) {
       publish(event("payments", 1, i === 2 ? "declined" : "authorised"));
-    if (local === 4)
+    }
+    if (local === 4) {
       publish(event("orders", 3, i === 2 ? "cancelled" : "dispatched"));
+    }
     if (local === 5) {
       publish(
         event("inventory", 1, i === 2 ? "unavailable" : "reserved", offset + 2),
@@ -82,20 +87,23 @@ export function orderStep(
       });
       notices.push(`${orderIds[i]}: payment revision 2 permanently omitted`);
     }
-    if (local === 9)
+    if (local === 9) {
       publish(event("payments", 3, i === 2 ? "declined" : "authorised"));
+    }
   }
 
   if (phase === 24) {
     actions.push({ kind: "disconnect", source: "inventory" });
     notices.push("inventory source disconnected");
   }
-  if (phase === 25)
+  if (phase === 25) {
     publish(orderEvent("orders", 5, cycle, 4, "cancelled", at(phase)));
-  if (phase === 26)
+  }
+  if (phase === 26) {
     publish(orderEvent("payments", 5, cycle, 4, "refunded", at(phase)));
+  }
   if (phase === 27) {
-    for (let i = 0; i < orderIds.length; i++)
+    for (let i = 0; i < orderIds.length; i++) {
       actions.push({
         kind: "omit",
         event: orderEvent(
@@ -107,10 +115,11 @@ export function orderStep(
           at(phase),
         ),
       });
+    }
   }
   if (phase === 28) {
     actions.push({ kind: "reconnect", source: "inventory" });
-    for (let i = 0; i < orderIds.length; i++)
+    for (let i = 0; i < orderIds.length; i++) {
       publish(
         orderEvent(
           "inventory",
@@ -121,6 +130,7 @@ export function orderStep(
           at(27),
         ),
       );
+    }
     notices.push(
       "inventory source reconnected with latest full state; revision 2 was not delivered",
     );

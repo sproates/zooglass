@@ -36,8 +36,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
     async close() {
       calls.push("close browser");
 
-      if (options.browserCloseFailure)
+      if (options.browserCloseFailure) {
         throw new Error("browser cleanup failed");
+      }
     },
   };
   const mocks: Record<string, unknown> = {
@@ -84,8 +85,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
       startVehicleBrowserSession: async () => {
         calls.push("start browser");
 
-        if (options.failAt === "browser")
+        if (options.failAt === "browser") {
           throw new Error("browser startup failed");
+        }
 
         return browser;
       },
@@ -98,22 +100,25 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
       ) => {
         calls.push("open scenario");
 
-        if (options.pendingScenario)
+        if (options.pendingScenario) {
           await new Promise((_, reject) => {
             signal.addEventListener("abort", () => reject(signal.reason), {
               once: true,
             });
           });
+        }
 
-        if (options.failAt === "scenario")
+        if (options.failAt === "scenario") {
           throw new Error("scenario startup failed");
+        }
 
         return {
           async close() {
             calls.push("close scenario");
 
-            if (options.closeFailure)
+            if (options.closeFailure) {
               throw new Error("scenario cleanup failed");
+            }
           },
         };
       },
@@ -128,8 +133,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
         async execute() {
           calls.push("execute");
 
-          if (options.failAt === "execute")
+          if (options.failAt === "execute") {
             throw new Error("rendered check failed");
+          }
         },
       }),
     },
@@ -139,9 +145,12 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
   };
 
   function load(name: string): unknown {
-    if (name in mocks) return mocks[name];
-    if (!["automatic-demo", "vehicle-run"].includes(name))
+    if (name in mocks) {
+      return mocks[name];
+    }
+    if (!["automatic-demo", "vehicle-run"].includes(name)) {
       throw new Error(`Unexpected module: ${name}`);
+    }
 
     const source = readFileSync(
       new URL(`../../src/demos/vehicle/${name}.ts`, import.meta.url),
@@ -170,8 +179,9 @@ export function automaticFixture(options: AutomaticDemoFixtureOptions = {}) {
         process,
         console: {
           log(message: string) {
-            if (message.includes("received by the browser"))
+            if (message.includes("received by the browser")) {
               events.emit("complete");
+            }
           },
           error() {
             events.emit("inspection");

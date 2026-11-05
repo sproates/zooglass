@@ -109,7 +109,9 @@ test(
           return browser!.host.executor;
         },
       });
-      for (const entry of playScenario(scenario)) await session.execute(entry);
+      for (const entry of playScenario(scenario)) {
+        await session.execute(entry);
+      }
 
       assert.equal(browser.signal.aborted, false);
     } finally {
@@ -119,7 +121,9 @@ test(
         try {
           await browser?.close();
         } finally {
-          for (const socket of upstream.clients) socket.terminate();
+          for (const socket of upstream.clients) {
+            socket.terminate();
+          }
           await new Promise<void>((resolve) => upstream.close(() => resolve()));
         }
       }

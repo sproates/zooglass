@@ -40,7 +40,9 @@ async function waitFor(
     });
     if (response.ok) {
       const state = (await response.json()).data as State;
-      if (state[field]?.sequence === sequence) return state;
+      if (state[field]?.sequence === sequence) {
+        return state;
+      }
     }
     await delay(10);
   }
@@ -73,18 +75,19 @@ test(
             );
             assert.equal(state.order?.status, "accepted");
             assert.equal(state.payment?.status, "authorised");
-            if (cycle === 0)
+            if (cycle === 0) {
               assert.equal(
                 state.inventory,
                 undefined,
                 "unknown is not failure",
               );
-            else
+            } else {
               assert.equal(
                 state.inventory?.cycle,
                 cycle,
                 "previous-cycle contribution is retained honestly",
               );
+            }
           }
           if (phase === 3 && cycle > 0) {
             // This newer event is on the same orders socket, after the old-cycle delivery.
@@ -163,8 +166,9 @@ test(
                 state.inventory?.status,
                 i === 3 ? "unavailable" : i === 6 ? "released" : "reserved",
               );
-              for (const fact of Object.values(state))
+              for (const fact of Object.values(state)) {
                 assert.equal(fact.cycle, cycle + 1);
+              }
               assert.deepEqual(
                 await read(service.baseUrl, `order-${i}`, "order-tracking"),
                 {

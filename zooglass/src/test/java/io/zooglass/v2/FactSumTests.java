@@ -1,5 +1,12 @@
 package io.zooglass.v2;
 
+import static io.zooglass.v2.FactFixtures.event;
+import static io.zooglass.v2.FactFixtures.scores;
+import static io.zooglass.v2.FactFixtures.snapshot;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -7,22 +14,23 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.file.Path;
 import java.util.List;
-import static io.zooglass.v2.FactFixtures.scores;
-
-import static io.zooglass.v2.FactFixtures.event;
-import static io.zooglass.v2.FactFixtures.snapshot;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FactSumTests {
+
     @TempDir Path directory;
 
     private static Publication points(long sequence, long birth, long revision, String number) {
-        return event(sequence, birth, revision, revision == 1 ? "create" : "revise", "{\"points\":" + number + "}");
+        return event(
+                sequence,
+                birth,
+                revision,
+                revision == 1 ? "create" : "revise",
+                "{\"points\":" + number + "}");
     }
 
     private static void score(ViewCoordinator service, String view, String expected) {
-        assertThat(snapshot(service, view).data().get("score").decimalValue()).isEqualByComparingTo(expected);
+        assertThat(snapshot(service, view).data().get("score").decimalValue())
+                .isEqualByComparingTo(expected);
     }
 
     @Test
@@ -71,14 +79,22 @@ class FactSumTests {
             var before = snapshot(service, "original");
             var rejection = service.apply(event(1, 1, 1, "create", payload));
             assertThat(rejection.reason()).isEqualTo("invalidNumericContribution");
-            assertThat(rejection.targets().getFirst().fields().getFirst().field()).isEqualTo("score");
+            assertThat(rejection.targets().getFirst().fields().getFirst().field())
+                    .isEqualTo("score");
             assertThat(snapshot(service, "original")).isEqualTo(before);
             assertThat(service.apply(points(1, 1, 1, "1")).status()).isEqualTo("applied");
         }
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"1e38", "1e1000", "1e-1000", "1e-19", "12345678901234567890123456789012345678.1"})
+    @ValueSource(
+            strings = {
+                "1e38",
+                "1e1000",
+                "1e-1000",
+                "1e-19",
+                "12345678901234567890123456789012345678.1",
+            })
     void excessivePrecisionScaleOrExponentRejectsThePublication(String number) {
         try (var service = new ViewCoordinator(scores("memory"))) {
             assertThat(service.apply(points(1, 1, 1, number)).reason()).isEqualTo("numericRange");
@@ -97,7 +113,8 @@ class FactSumTests {
             score(service, "corrected", maximum);
 
             assertThat(service.apply(points(4, 4, 1, "1")).reason()).isEqualTo("numericRange");
-            assertThat(service.apply(event(4, 1, 2, "retract", "{}")).reason()).isEqualTo("numericRange");
+            assertThat(service.apply(event(4, 1, 2, "retract", "{}")).reason())
+                    .isEqualTo("numericRange");
             var retirement = new FactRetirement("corrected", "game", List.of("goals", "score"), 2);
             assertThat(service.retire(retirement).reason()).isEqualTo("numericRange");
             assertThat(snapshot(service, "corrected")).isEqualTo(before);
@@ -113,10 +130,13 @@ class FactSumTests {
             service.apply(points(1, 1, 1, "1e-18"));
             score(service, "corrected", "0.000000000000000001");
         }
-        ProgressFailureTests.execute(db, """
+        ProgressFailureTests.execute(
+                db,
+                """
                 UPDATE views SET state=json_set(state,'$.data.score',9,'$.candidates.score.match.value',9)
                 WHERE view='corrected'
                 """);
-        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString())).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ViewCoordinator(config, db.toString()))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

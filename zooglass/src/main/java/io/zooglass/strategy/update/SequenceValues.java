@@ -4,6 +4,7 @@ import tools.jackson.databind.JsonNode;
 
 /** Numeric sequences retain decimal precision, including integers beyond double range. */
 final class SequenceValues {
+
     private SequenceValues() {}
 
     static JsonNode read(JsonNode payload, String field) {

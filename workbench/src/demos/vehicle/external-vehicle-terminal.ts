@@ -29,10 +29,11 @@ export async function runExternalVehicleDemo(args: string[]) {
     !args.includes("--fleet") ||
     bindings.length !== 1 ||
     args.slice(1).some((arg) => arg !== "--fleet" && !arg.startsWith("--bind="))
-  )
+  ) {
     throw new Error(
       "Usage: npm run demo -- vehicle-tracker --fleet --bind=<local IPv4 address>",
     );
+  }
   const scenario = await loadScenario(
     fileURLToPath(
       new URL(
@@ -97,8 +98,9 @@ export async function runExternalVehicleDemo(args: string[]) {
           "interrupt",
           "restore",
         ].includes(verb)
-      )
+      ) {
         throw new Error("Unknown command. Type help for available commands.");
+      }
       await demo.command(verb as BrowserControlAction, target || undefined);
       console.log(demo.state.detail);
     })().catch((error: unknown) =>
@@ -116,7 +118,9 @@ export async function runExternalVehicleDemo(args: string[]) {
     );
     await done;
   } catch (error) {
-    if (!stopped) throw error;
+    if (!stopped) {
+      throw error;
+    }
   } finally {
     input.close();
     await demo.close();

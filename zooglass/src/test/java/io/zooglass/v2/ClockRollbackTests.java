@@ -1,9 +1,11 @@
 package io.zooglass.v2;
 
-import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Test;
+
 class ClockRollbackTests {
+
     @Test
     void roundingIsToleratedButSeveralSmallLossesAccumulate() {
         var observations = new ClockRollback();

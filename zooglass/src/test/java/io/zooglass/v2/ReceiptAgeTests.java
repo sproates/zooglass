@@ -1,5 +1,7 @@
 package io.zooglass.v2;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -7,27 +9,52 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 class ReceiptAgeTests {
+
     @TempDir Path directory;
 
     static final class Clock implements ReceiptClock {
+
         long wall = 1_000_000;
         long elapsed;
-        public long wallMillis() { return wall; }
-        public long monotonicMillis() { return elapsed; }
-        void advance(long millis) { wall += millis; elapsed += millis; }
+
+        public long wallMillis() {
+            return wall;
+        }
+
+        public long monotonicMillis() {
+            return elapsed;
+        }
+
+        void advance(long millis) {
+            wall += millis;
+            elapsed += millis;
+        }
     }
 
     static V2Configuration config(String storage, long threshold) {
-        var source = new V2Configuration.Source("fleet", "v1", new V2Configuration.Progress("contiguousSequence", 1L, 20L, 20L));
+        var source =
+                new V2Configuration.Source(
+                        "fleet",
+                        "v1",
+                        new V2Configuration.Progress("contiguousSequence", 1L, 20L, 20L));
         var freshness = new V2Configuration.Freshness("receiptAge", threshold);
-        var position = new V2Configuration.Field("fleet", "position", "latestBySequence", null, null, null, freshness);
-        var history = new V2Configuration.Field("fleet", "position", "historyBySequence", null, null, null, freshness);
+        var position =
+                new V2Configuration.Field(
+                        "fleet", "position", "latestBySequence", null, null, null, freshness);
+        var history =
+                new V2Configuration.Field(
+                        "fleet", "position", "historyBySequence", null, null, null, freshness);
         var other = new V2Configuration.Field("fleet", "other", "arrival");
-        var gate = new V2Configuration.Exposure("requireContributions", List.of("position", "other"), 2L);
-        var view = new V2Configuration.View("fleet", Map.of("position", position, "history", history, "other", other), null, gate);
+        var gate =
+                new V2Configuration.Exposure(
+                        "requireContributions", List.of("position", "other"), 2L);
+        var view =
+                new V2Configuration.View(
+                        "fleet",
+                        Map.of("position", position, "history", history, "other", other),
+                        null,
+                        gate);
         return new V2Configuration(2, storage, 20, 20, 20, List.of(source), List.of(view));
     }
 
@@ -61,12 +88,13 @@ class ReceiptAgeTests {
             assertThat(snapshot(service)).isEqualTo(stale);
             assertThat(stale.status().publication()).isEqualTo("waiting");
             assertThat(stale.data()).isEmpty();
-            service.apply(IdentityFixtures.parse("fleet","v1","car",3,"other","{}"));
+            service.apply(IdentityFixtures.parse("fleet", "v1", "car", 3, "other", "{}"));
             assertThat(snapshot(service).status().publication()).isEqualTo("ready");
             assertThat(position(service).freshness()).isEqualTo("stale");
             service.apply(ProgressTests.event(4));
             assertThat(position(service).freshness()).isEqualTo("fresh");
-            assertThat(snapshot(service).status().fields().get("other").freshness()).isEqualTo("unspecified");
+            assertThat(snapshot(service).status().fields().get("other").freshness())
+                    .isEqualTo("unspecified");
         }
     }
 

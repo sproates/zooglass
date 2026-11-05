@@ -18,7 +18,9 @@ export async function launchOwnedBrowser(
   let closing: Promise<void> | undefined;
 
   const close = (): Promise<void> => {
-    if (closing) return closing;
+    if (closing) {
+      return closing;
+    }
 
     closing = Promise.resolve().then(async () => {
       controller.abort(new Error("Browser session closed."));
@@ -44,7 +46,9 @@ export async function launchOwnedBrowser(
   signal.addEventListener(
     "abort",
     () => {
-      if (!options.keepOpenOnFailure || options.signal.aborted) stop();
+      if (!options.keepOpenOnFailure || options.signal.aborted) {
+        stop();
+      }
     },
     { once: true },
   );

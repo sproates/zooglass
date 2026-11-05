@@ -25,7 +25,9 @@ export function createMapControls(map: L.Map, model: FleetModel) {
     const message = following
       ? `Following ${name}${position ? " · last received position" : " · waiting for a position"}. Pan to stop following.`
       : "Free map navigation. Fit fleet shows all received positions.";
-    if (status.textContent !== message) status.textContent = message;
+    if (status.textContent !== message) {
+      status.textContent = message;
+    }
 
     if (following && position) {
       const target = `${model.selected}:${position.latitude}:${position.longitude}`;
@@ -50,13 +52,14 @@ export function createMapControls(map: L.Map, model: FleetModel) {
         const p = model.get("fleet-state", vehicle.id).position;
         return p ? [L.latLng(p.latitude, p.longitude)] : [];
       });
-      if (positions.length)
+      if (positions.length) {
         map.fitBounds(L.latLngBounds(positions), {
           paddingTopLeft: [40, 64],
           paddingBottomRight: [40, 40],
           maxZoom: 17,
           animate: false,
         });
+      }
     },
     { signal: lifetime.signal },
   );
@@ -76,15 +79,18 @@ export function createMapControls(map: L.Map, model: FleetModel) {
       if (
         event.target === map.getContainer() &&
         ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
-      )
+      ) {
         stopFollowing();
+      }
     },
     { capture: true, signal: lifetime.signal },
   );
   map.getContainer().addEventListener(
     "touchstart",
     (event) => {
-      if (event.touches.length > 1) stopFollowing();
+      if (event.touches.length > 1) {
+        stopFollowing();
+      }
     },
     { passive: true, signal: lifetime.signal },
   );

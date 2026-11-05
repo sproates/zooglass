@@ -43,7 +43,9 @@ for (const [name, matches] of boundaries) {
         const demo = createDemoController(scenario, async (signal) => {
           const id = ++opens;
 
-          if (id === 1) oldSignal = signal;
+          if (id === 1) {
+            oldSignal = signal;
+          }
 
           log.push(`open ${id}`);
 
@@ -83,9 +85,11 @@ for (const [name, matches] of boundaries) {
               entered.promise.then(() => "blocked" as const),
             ]);
 
-            if (outcome === "blocked")
+            if (outcome === "blocked") {
               rejected = assert.rejects(step, /replaced|closed/);
-            else assert.equal(outcome, "finished");
+            } else {
+              assert.equal(outcome, "finished");
+            }
           }
 
           assert.ok(blocked, `fixture never reached ${name}`);

@@ -110,7 +110,9 @@ test(
     try {
       await demo.reset();
       // 40, 42, late 41, duplicate 41, then the same-source processing barrier.
-      for (let i = 0; i < 5; i++) await demo.step();
+      for (let i = 0; i < 5; i++) {
+        await demo.step();
+      }
 
       // The barrier has been observed by the scenario's HTTP check. An old
       // browser snapshot alone would not prove the duplicate was processed.

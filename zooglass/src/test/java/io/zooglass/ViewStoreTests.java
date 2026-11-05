@@ -1,14 +1,15 @@
 package io.zooglass;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ViewStoreTests {
 
@@ -23,7 +24,8 @@ class ViewStoreTests {
         store.apply("unmatched-feed", "score.updated", "match-42", payload("{\"home\":9}"));
         store.apply("match-feed", "score.updated", "match-42", payload("{\"home\":0,\"away\":0}"));
         store.apply("bookmaker", "odds.updated", "match-42", payload("{\"homeWin\":2.1}"));
-        store.apply("match-feed", "score.corrected", "match-42", payload("{\"home\":1,\"away\":0}"));
+        store.apply(
+                "match-feed", "score.corrected", "match-42", payload("{\"home\":1,\"away\":0}"));
         store.apply("match-feed", "score.updated", "match-99", payload("{\"home\":2,\"away\":1}"));
 
         ViewSnapshot match42 = store.get("match", "match-42").orElseThrow();
@@ -39,31 +41,55 @@ class ViewStoreTests {
     void vehicleViewsCanKeepTheLatestPositionOrAnOrderedHistory() throws Exception {
         ViewStore store = new ViewStore(vehicleConfiguration());
 
-        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+        store.apply(
+                "vehicle-feed",
+                "vehicle.location.updated",
+                "car-17",
                 payload("{\"sequence\":42,\"latitude\":51.2}"));
-        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+        store.apply(
+                "vehicle-feed",
+                "vehicle.location.updated",
+                "car-17",
                 payload("{\"sequence\":40,\"latitude\":51.0}"));
-        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+        store.apply(
+                "vehicle-feed",
+                "vehicle.location.updated",
+                "car-17",
                 payload("{\"sequence\":41,\"latitude\":51.1}"));
-        store.apply("vehicle-feed", "vehicle.location.updated", "car-17",
+        store.apply(
+                "vehicle-feed",
+                "vehicle.location.updated",
+                "car-17",
                 payload("{\"sequence\":41,\"latitude\":51.1}"));
 
         assertThat(store.get("live-map", "car-17").orElseThrow().data().get("position"))
                 .isEqualTo(payload("{\"sequence\":42,\"latitude\":51.2}"));
         assertThat(store.get("trip-history", "car-17").orElseThrow().data().get("positions"))
-                .isEqualTo(payload("[{\"sequence\":40,\"latitude\":51.0},"
-                        + "{\"sequence\":41,\"latitude\":51.1},"
-                        + "{\"sequence\":42,\"latitude\":51.2}]"));
+                .isEqualTo(
+                        payload(
+                                "[{\"sequence\":40,\"latitude\":51.0},"
+                                        + "{\"sequence\":41,\"latitude\":51.1},"
+                                        + "{\"sequence\":42,\"latitude\":51.2}]"));
     }
 
     @Test
     void ignoredSequencesDoNotCreateEntityViews() throws Exception {
         ViewStore store = new ViewStore(vehicleConfiguration());
 
-        assertThat(store.apply("vehicle-feed", "vehicle.location.updated", "missing-sequence",
-                payload("{\"latitude\":51.2}"))).isEmpty();
-        assertThat(store.apply("vehicle-feed", "vehicle.location.updated", "string-sequence",
-                payload("{\"sequence\":\"42\",\"latitude\":51.2}"))).isEmpty();
+        assertThat(
+                        store.apply(
+                                "vehicle-feed",
+                                "vehicle.location.updated",
+                                "missing-sequence",
+                                payload("{\"latitude\":51.2}")))
+                .isEmpty();
+        assertThat(
+                        store.apply(
+                                "vehicle-feed",
+                                "vehicle.location.updated",
+                                "string-sequence",
+                                payload("{\"sequence\":\"42\",\"latitude\":51.2}")))
+                .isEmpty();
 
         assertThat(store.get("live-map", "missing-sequence")).isEmpty();
         assertThat(store.get("live-map", "string-sequence")).isEmpty();
@@ -73,8 +99,9 @@ class ViewStoreTests {
 
     @Test
     void rejectsAViewWithoutFields() {
-        ViewConfiguration invalidConfiguration = new ViewConfiguration(List.of(
-                new ViewConfiguration.ViewDefinition("empty", Map.of())));
+        ViewConfiguration invalidConfiguration =
+                new ViewConfiguration(
+                        List.of(new ViewConfiguration.ViewDefinition("empty", Map.of())));
 
         assertThatThrownBy(() -> new ViewStore(invalidConfiguration))
                 .isInstanceOf(IllegalStateException.class)
@@ -86,23 +113,49 @@ class ViewStoreTests {
     }
 
     private static ViewConfiguration configuration() {
-        return new ViewConfiguration(List.of(
-                new ViewConfiguration.ViewDefinition("match", Map.of(
-                        "score", List.of(
-                                new ViewConfiguration.EventMatcher("match-feed", "score.updated"),
-                                new ViewConfiguration.EventMatcher("match-feed", "score.corrected")),
-                        "odds", List.of(new ViewConfiguration.EventMatcher("bookmaker", "odds.updated"))))));
+        return new ViewConfiguration(
+                List.of(
+                        new ViewConfiguration.ViewDefinition(
+                                "match",
+                                Map.of(
+                                        "score",
+                                        List.of(
+                                                new ViewConfiguration.EventMatcher(
+                                                        "match-feed", "score.updated"),
+                                                new ViewConfiguration.EventMatcher(
+                                                        "match-feed", "score.corrected")),
+                                        "odds",
+                                        List.of(
+                                                new ViewConfiguration.EventMatcher(
+                                                        "bookmaker", "odds.updated"))))));
     }
 
     private static ViewConfiguration vehicleConfiguration() {
-        return new ViewConfiguration(List.of(
-                new ViewConfiguration.ViewDefinition("live-map", Map.of(
-                        "position", List.of(new ViewConfiguration.EventMatcher(
-                                "vehicle-feed", "vehicle.location.updated"))),
-                        Map.of("position", new ViewConfiguration.Ordering("latestBySequence", "sequence"))),
-                new ViewConfiguration.ViewDefinition("trip-history", Map.of(
-                        "positions", List.of(new ViewConfiguration.EventMatcher(
-                                "vehicle-feed", "vehicle.location.updated"))),
-                        Map.of("positions", new ViewConfiguration.Ordering("historyBySequence", "sequence")))));
+        return new ViewConfiguration(
+                List.of(
+                        new ViewConfiguration.ViewDefinition(
+                                "live-map",
+                                Map.of(
+                                        "position",
+                                        List.of(
+                                                new ViewConfiguration.EventMatcher(
+                                                        "vehicle-feed",
+                                                        "vehicle.location.updated"))),
+                                Map.of(
+                                        "position",
+                                        new ViewConfiguration.Ordering(
+                                                "latestBySequence", "sequence"))),
+                        new ViewConfiguration.ViewDefinition(
+                                "trip-history",
+                                Map.of(
+                                        "positions",
+                                        List.of(
+                                                new ViewConfiguration.EventMatcher(
+                                                        "vehicle-feed",
+                                                        "vehicle.location.updated"))),
+                                Map.of(
+                                        "positions",
+                                        new ViewConfiguration.Ordering(
+                                                "historyBySequence", "sequence")))));
     }
 }

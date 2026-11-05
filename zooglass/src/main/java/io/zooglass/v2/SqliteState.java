@@ -8,12 +8,16 @@ import java.sql.SQLException;
 
 /** Commits a staged image before installing it; any storage failure requires recovery. */
 final class SqliteState implements StateStore {
+
     private final Connection connection;
     private final SqliteStateRows rows;
     private StateImage current;
     private boolean available;
 
-    SqliteState(String location, V2Configuration configuration, java.util.function.UnaryOperator<StateImage> recover) {
+    SqliteState(
+            String location,
+            V2Configuration configuration,
+            java.util.function.UnaryOperator<StateImage> recover) {
         if (location == null || location.isBlank()) {
             throw new IllegalArgumentException("SQLite requires zooglass.v2.database");
         }
@@ -24,7 +28,9 @@ final class SqliteState implements StateStore {
             connection.setAutoCommit(false);
             var restored = rows.restore(configuration);
             current = recover.apply(restored);
-            if (current != restored) rows.writeChanges(restored, current);
+            if (current != restored) {
+                rows.writeChanges(restored, current);
+            }
             connection.commit();
             available = true;
         } catch (SQLException | RuntimeException failure) {

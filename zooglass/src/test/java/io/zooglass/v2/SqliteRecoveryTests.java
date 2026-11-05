@@ -1,5 +1,11 @@
 package io.zooglass.v2;
 
+import static io.zooglass.v2.IdentityFixtures.event;
+import static io.zooglass.v2.IdentityFixtures.parse;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -7,14 +13,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import static io.zooglass.v2.IdentityFixtures.event;
-import static io.zooglass.v2.IdentityFixtures.parse;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class SqliteRecoveryTests {
-    @TempDir
-    Path directory;
+
+    @TempDir Path directory;
 
     static V2Configuration configuration() {
         var memory = IdentityFixtures.configuration(5, 3, 5);
@@ -40,15 +41,25 @@ class SqliteRecoveryTests {
             assertThat(recovered.data().get("position").toString())
                     .isEqualTo(before.data().get("position").toString());
             assertThat(restored.apply(event(40)).reason()).isEqualTo("outsideRetention");
-            var retry = restored.apply(parse("fleet", "trip-1", "car", 41, "position", "{\"value\":41.00}"));
+            var retry =
+                    restored.apply(
+                            parse("fleet", "trip-1", "car", 41, "position", "{\"value\":41.00}"));
             assertThat(retry.status()).isEqualTo("duplicate");
             assertThat(retry.reason()).isEqualTo("alreadyCommitted");
             assertThat(retry.version()).isEqualTo(3);
-            assertThat(restored.apply(parse("fleet", "trip-1", "car", 41, "position", "{}")).reason())
+            assertThat(
+                            restored.apply(parse("fleet", "trip-1", "car", 41, "position", "{}"))
+                                    .reason())
                     .isEqualTo("identityConflict");
             assertThat(restored.apply(event(44)).version()).isEqualTo(5);
-            assertThat(restored.snapshot("latest", "car").orElseThrow().data().get("position")
-                    .path("publicationSequence").longValue()).isEqualTo(44);
+            assertThat(
+                            restored.snapshot("latest", "car")
+                                    .orElseThrow()
+                                    .data()
+                                    .get("position")
+                                    .path("publicationSequence")
+                                    .longValue())
+                    .isEqualTo(44);
         }
     }
 
@@ -61,9 +72,16 @@ class SqliteRecoveryTests {
             first.apply(event(42));
         }
         try (var restored = new ViewCoordinator(config, database)) {
-            assertThat(restored.apply(event(41)).changedViews()).containsExactly("history", "arrival");
-            assertThat(restored.snapshot("latest", "car").orElseThrow().data().get("position")
-                    .path("publicationSequence").longValue()).isEqualTo(42);
+            assertThat(restored.apply(event(41)).changedViews())
+                    .containsExactly("history", "arrival");
+            assertThat(
+                            restored.snapshot("latest", "car")
+                                    .orElseThrow()
+                                    .data()
+                                    .get("position")
+                                    .path("publicationSequence")
+                                    .longValue())
+                    .isEqualTo(42);
             assertThat(restored.snapshot("history", "car").orElseThrow().data().get("position"))
                     .extracting(node -> node.path("publicationSequence").longValue())
                     .containsExactly(40L, 41L, 42L);
@@ -107,7 +125,9 @@ class SqliteRecoveryTests {
         try (var restored = new ViewCoordinator(config, database)) {
             assertThat(restored.apply(event(3)).status()).isEqualTo("duplicate");
             assertThat(restored.apply(event(100)).reason()).isEqualTo("historyLimit");
-            assertThat(restored.apply(parse("backup", "trip-1", "unmatched", 1, "other", "{}")).reason())
+            assertThat(
+                            restored.apply(parse("backup", "trip-1", "unmatched", 1, "other", "{}"))
+                                    .reason())
                     .isEqualTo("alreadyCommitted");
         }
     }

@@ -30,8 +30,9 @@ export interface SnapshotState {
 
 export function parseManifest(input: unknown): Vehicle[] {
   const vehicles = (input as { vehicles?: unknown } | null)?.vehicles;
-  if (!Array.isArray(vehicles) || vehicles.length === 0)
+  if (!Array.isArray(vehicles) || vehicles.length === 0) {
     throw new Error("Fleet manifest must contain vehicles.");
+  }
 
   const ids = new Set<string>();
   return vehicles.map((value) => {
@@ -42,8 +43,9 @@ export function parseManifest(input: unknown): Vehicle[] {
       typeof value.name !== "string" ||
       !value.name.trim() ||
       ids.has(value.id)
-    )
+    ) {
       throw new Error("Invalid or duplicate vehicle in fleet manifest.");
+    }
     ids.add(value.id);
     return { id: value.id, name: value.name };
   });
@@ -56,8 +58,9 @@ function position(value: unknown): Position {
     ![p.sequence, p.latitude, p.longitude].every(Number.isFinite) ||
     Math.abs(p.latitude) > 90 ||
     Math.abs(p.longitude) > 180
-  )
+  ) {
     throw new Error("Invalid fleet position.");
+  }
   return { sequence: p.sequence, latitude: p.latitude, longitude: p.longitude };
 }
 
@@ -67,8 +70,9 @@ function operation(value: unknown): Operation {
     !op ||
     !Number.isFinite(op.sequence) ||
     !["available", "on-a-job", "returning"].includes(op.status)
-  )
+  ) {
     throw new Error("Invalid fleet operation.");
+  }
   return { sequence: op.sequence, status: op.status };
 }
 
@@ -98,7 +102,9 @@ export function createFleetModel(vehicles: Vehicle[]) {
 
   function get(viewId: string, entityId: string): SnapshotState {
     const state = states.get(entityId)?.get(viewId as FleetViewId);
-    if (!state) throw new Error("Unknown fleet view or vehicle.");
+    if (!state) {
+      throw new Error("Unknown fleet view or vehicle.");
+    }
     return state;
   }
 
@@ -115,19 +121,22 @@ export function createFleetModel(vehicles: Vehicle[]) {
       return reason;
     },
     select(entityId: string) {
-      if (!states.has(entityId)) throw new Error("Unknown fleet vehicle.");
+      if (!states.has(entityId)) {
+        throw new Error("Unknown fleet vehicle.");
+      }
       selected = entityId;
     },
     setConnection(value: Connection, detail?: string) {
       connection = value;
       reason = detail;
       if (value !== "connected") {
-        for (const views of states.values())
+        for (const views of states.values()) {
           for (const state of views.values()) {
             state.subscribed = false;
             state.current = false;
             state.pending = false;
           }
+        }
       }
     },
     subscription(
@@ -142,8 +151,9 @@ export function createFleetModel(vehicles: Vehicle[]) {
     },
     receive(viewId: string, entityId: string, data: unknown) {
       const state = get(viewId, entityId);
-      if (!data || typeof data !== "object" || Array.isArray(data))
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
         throw new Error("Invalid fleet snapshot.");
+      }
       const fields = data as Record<string, unknown>;
 
       // Parse the complete snapshot before changing previously received state.
@@ -157,8 +167,9 @@ export function createFleetModel(vehicles: Vehicle[]) {
         state.position = nextPosition;
         state.operation = nextOperation;
       } else {
-        if (!Array.isArray(fields.positions))
+        if (!Array.isArray(fields.positions)) {
           throw new Error("Invalid fleet history.");
+        }
         state.positions = fields.positions.map(position);
       }
       state.received = true;
@@ -167,15 +178,19 @@ export function createFleetModel(vehicles: Vehicle[]) {
     status(viewId: string, entityId: string) {
       const state = get(viewId, entityId);
       if (state.current && state.subscribed && connection === "connected") {
-        if (viewId === "received-journey")
+        if (viewId === "received-journey") {
           return state.positions?.length
             ? `${state.positions.length} received positions`
             : "No positions received · empty snapshot";
+        }
         return "Latest snapshot received";
       }
-      if (state.received)
+      if (state.received) {
         return `Last received · ${connection !== "connected" ? connection : state.subscribed ? "waiting for a fresh snapshot" : "not subscribed"}`;
-      if (state.pending) return "Subscribing…";
+      }
+      if (state.pending) {
+        return "Subscribing…";
+      }
       return state.subscribed
         ? "Subscribed · waiting for first snapshot"
         : "No snapshot received";

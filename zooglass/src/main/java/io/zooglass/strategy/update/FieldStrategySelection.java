@@ -4,6 +4,7 @@ import io.zooglass.ViewConfiguration;
 
 /** Binds validated field configuration once, when its view is registered. */
 public final class FieldStrategySelection {
+
     private FieldStrategySelection() {}
 
     public static FieldUpdateStrategy select(ViewConfiguration.Ordering ordering) {
@@ -13,7 +14,9 @@ public final class FieldStrategySelection {
         return switch (ordering.mode()) {
             case "latestBySequence" -> new LatestBySequence(ordering.sequenceField());
             case "historyBySequence" -> new HistoryBySequence(ordering.sequenceField());
-            default -> throw new IllegalArgumentException("Unsupported ordering mode: " + ordering.mode());
+            default ->
+                    throw new IllegalArgumentException(
+                            "Unsupported ordering mode: " + ordering.mode());
         };
     }
 }

@@ -16,28 +16,34 @@ export function interactiveMapConfiguration(
   env: NodeJS.ProcessEnv = process.env,
 ): FleetMapConfiguration {
   const tileUrl = env.ZOOGLASS_MAP_TILE_URL;
-  if (!tileUrl)
+  if (!tileUrl) {
     return {
       tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       attribution: "© OpenStreetMap contributors",
       attributionUrl: "https://www.openstreetmap.org/copyright",
     };
+  }
 
-  if (tileUrl === "local") return localTiles;
+  if (tileUrl === "local") {
+    return localTiles;
+  }
   if (
     !tileUrl.startsWith("https://") ||
     !["{z}", "{x}", "{y}"].every((part) => tileUrl.includes(part)) ||
     !env.ZOOGLASS_MAP_ATTRIBUTION?.trim()
-  )
+  ) {
     throw new Error(
       "Custom map tiles need an HTTPS {z}/{x}/{y} URL and ZOOGLASS_MAP_ATTRIBUTION.",
     );
+  }
   const url = new URL(tileUrl);
-  if (url.username || url.password)
+  if (url.username || url.password) {
     throw new Error("Map tile URLs must not contain credentials.");
+  }
   const attributionUrl = env.ZOOGLASS_MAP_ATTRIBUTION_URL;
-  if (attributionUrl && new URL(attributionUrl).protocol !== "https:")
+  if (attributionUrl && new URL(attributionUrl).protocol !== "https:") {
     throw new Error("Map attribution links must use HTTPS.");
+  }
   return { tileUrl, attribution: env.ZOOGLASS_MAP_ATTRIBUTION, attributionUrl };
 }
 

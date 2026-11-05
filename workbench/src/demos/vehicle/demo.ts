@@ -73,15 +73,17 @@ async function main() {
     if (
       args.includes("--fleet") ||
       args.filter((arg) => arg === "--interactive").length !== 1
-    )
+    ) {
       throw new Error(
         "Choose --interactive once; --fleet is its legacy alias.",
       );
+    }
     args = args.map((arg) => (arg === "--interactive" ? "--fleet" : arg));
   }
 
-  if (args.some((arg) => arg.startsWith("--bind=")))
+  if (args.some((arg) => arg.startsWith("--bind="))) {
     return runExternalVehicleDemo(args);
+  }
 
   if (
     args[0] !== "vehicle-tracker" ||
@@ -98,33 +100,37 @@ async function main() {
             "--fleet",
           ].includes(arg),
       )
-  )
+  ) {
     throw new Error(
       "Usage: npm run demo -- vehicle-tracker [--headless] [--basic | --recovery | --fault | --fleet] [--auto]",
     );
+  }
 
   if (
     (args.includes("--recovery") || args.includes("--fault")) &&
     (args.includes("--basic") ||
       args.includes("--auto") ||
       (args.includes("--recovery") && args.includes("--fault")))
-  )
+  ) {
     throw new Error(
       "--recovery and --fault cannot be combined with each other, --basic or --auto.",
     );
+  }
 
   if (
     args.includes("--fleet") &&
     ["--basic", "--recovery", "--fault", "--auto"].some((arg) =>
       args.includes(arg),
     )
-  )
+  ) {
     throw new Error(
       "--fleet cannot be combined with --basic, --recovery, --fault or --auto.",
     );
+  }
 
-  if (args.includes("--auto"))
+  if (args.includes("--auto")) {
     return runAutomaticDemo(args.filter((arg) => arg !== "--auto"));
+  }
 
   const scenario = await loadScenario(
     fileURLToPath(
@@ -167,7 +173,9 @@ async function main() {
   input.on("line", (line) => {
     const action = line.trim().toLowerCase();
 
-    if (action === "quit" || action === "q") return stop();
+    if (action === "quit" || action === "q") {
+      return stop();
+    }
 
     if (action === "help" || action === "?" || action === "") {
       console.log(terminalHelp);
@@ -215,7 +223,9 @@ async function main() {
     console.log(demo.state.detail);
     await done;
   } catch (error) {
-    if (!stopped) throw error;
+    if (!stopped) {
+      throw error;
+    }
   } finally {
     input.close();
     await demo.close();

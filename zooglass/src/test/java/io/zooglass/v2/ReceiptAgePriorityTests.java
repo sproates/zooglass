@@ -1,21 +1,37 @@
 package io.zooglass.v2;
 
-import org.junit.jupiter.api.Test;
-import java.util.Map;
-
 import static io.zooglass.v2.SourcePriorityTests.event;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
 class ReceiptAgePriorityTests {
+
     @Test
     void refreshingTheBackupDoesNotRefreshOrDisplaceThePrimary() {
         var original = SourcePriorityTests.configuration("memory");
-        var views = original.views().stream().map(view -> {
-            var field = view.fields().get("status");
-            var timed = new V2Configuration.Field(null, null, field.mode(), field.inputs(), field.conflict(), field.late(),
-                    new V2Configuration.Freshness("receiptAge", 5000L));
-            return new V2Configuration.View(view.id(), Map.of("status", timed), view.entities());
-        }).toList();
+        var views =
+                original.views().stream()
+                        .map(
+                                view -> {
+                                    var field = view.fields().get("status");
+                                    var timed =
+                                            new V2Configuration.Field(
+                                                    null,
+                                                    null,
+                                                    field.mode(),
+                                                    field.inputs(),
+                                                    field.conflict(),
+                                                    field.late(),
+                                                    new V2Configuration.Freshness(
+                                                            "receiptAge", 5000L));
+                                    return new V2Configuration.View(
+                                            view.id(), Map.of("status", timed), view.entities());
+                                })
+                        .toList();
         var config = new V2Configuration(2, "memory", 10, 1000, 10, original.sources(), views);
         var clock = new ReceiptAgeTests.Clock();
         try (var service = new ViewCoordinator(config, "", clock)) {

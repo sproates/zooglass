@@ -8,7 +8,9 @@ function abortable<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
     const aborted = () => reject(signal.reason);
     signal.addEventListener("abort", aborted, { once: true });
-    if (signal.aborted) aborted();
+    if (signal.aborted) {
+      aborted();
+    }
     operation
       .then(resolve, reject)
       .finally(() => signal.removeEventListener("abort", aborted));
@@ -26,7 +28,9 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
       resolve();
     }, ms);
     signal.addEventListener("abort", aborted, { once: true });
-    if (signal.aborted) aborted();
+    if (signal.aborted) {
+      aborted();
+    }
   });
 }
 
@@ -73,7 +77,9 @@ export function createRecoveringClient(
   }
 
   function terminal(reason: string, notify = true) {
-    if (failed || closed) return;
+    if (failed || closed) {
+      return;
+    }
     failed = reason;
     cancel();
     instance++;
@@ -83,7 +89,9 @@ export function createRecoveringClient(
     } catch {
       // A rendering failure must not prevent reporting the original failure.
     }
-    if (notify) fail(reason);
+    if (notify) {
+      fail(reason);
+    }
   }
 
   function createAttempt() {
@@ -91,12 +99,16 @@ export function createRecoveringClient(
     return createSubscriptionClient(
       dataPath,
       (message) => {
-        if (identity !== instance) return;
+        if (identity !== instance) {
+          return;
+        }
         const { event, ...detail } = message;
         observe(String(event), detail);
       },
       (reason, transport) => {
-        if (identity !== instance) return;
+        if (identity !== instance) {
+          return;
+        }
         connected = false;
         if (!transport || !lifetime) {
           terminal(reason);
@@ -114,27 +126,36 @@ export function createRecoveringClient(
       {
         ...binding,
         onConnection(state, reason) {
-          if (identity !== instance) return;
+          if (identity !== instance) {
+            return;
+          }
           if (state === "connecting") {
             generation++;
             observe("connecting");
           }
           connected = state === "connected";
-          if (state === "error" && lifetime) return;
+          if (state === "error" && lifetime) {
+            return;
+          }
           binding.onConnection(
             recovering && state === "connecting" ? "reconnecting" : state,
             reason,
           );
         },
         onSubscription(viewId, entityId, state) {
-          if (identity === instance)
+          if (identity === instance) {
             binding.onSubscription(viewId, entityId, state);
+          }
         },
         onView(viewId, entityId, data) {
-          if (identity !== instance) return;
+          if (identity !== instance) {
+            return;
+          }
           binding.onView(viewId, entityId, data);
           awaiting.delete(key(viewId, entityId));
-          if (recovering && awaiting.size === 0) snapshotsReceived();
+          if (recovering && awaiting.size === 0) {
+            snapshotsReceived();
+          }
         },
       },
     );
@@ -149,7 +170,9 @@ export function createRecoveringClient(
       try {
         await pause(Math.min(250 * 2 ** tries, 2000), owner.signal);
         tries++;
-        if (owner.signal.aborted) return;
+        if (owner.signal.aborted) {
+          return;
+        }
         current.close();
         current = createAttempt();
         attempt = new AbortController();
@@ -174,7 +197,9 @@ export function createRecoveringClient(
             signal,
           );
         }
-        if (awaiting.size) await abortable(snapshots, signal);
+        if (awaiting.size) {
+          await abortable(snapshots, signal);
+        }
         signal.throwIfAborted();
         clearTimeout(deadline);
         recovering = false;
@@ -182,7 +207,9 @@ export function createRecoveringClient(
         observe("recovered");
         return;
       } catch {
-        if (owner.signal.aborted) return;
+        if (owner.signal.aborted) {
+          return;
+        }
         current.close();
         binding.onConnection("reconnecting", "Waiting to retry");
       }
@@ -199,12 +226,14 @@ export function createRecoveringClient(
         recovering ||
         lifetime ||
         desired.size === 0
-      )
+      ) {
         throw new Error(
           "Recovery requires an idle connected client with subscriptions.",
         );
-      if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 30_000)
+      }
+      if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 30_000) {
         throw new Error("Recovery deadline must be between 0 and 30000 ms.");
+      }
       lifetime = new AbortController();
       deadline = setTimeout(
         () => terminal("Recovery timed out before all snapshots arrived."),
@@ -213,16 +242,22 @@ export function createRecoveringClient(
       observe("recovery-armed");
     },
     async execute(command: Command) {
-      if (failed) throw new Error(failed);
-      if (closed) throw new Error("Client is closed.");
-      if (commandPending)
+      if (failed) {
+        throw new Error(failed);
+      }
+      if (closed) {
+        throw new Error("Client is closed.");
+      }
+      if (commandPending) {
         throw new Error("A client command is already in progress.");
+      }
       if (command.action === "disconnect") {
         cancel();
         desired.clear();
         current.close();
-      } else if (recovering)
+      } else if (recovering) {
         throw new Error("Automatic recovery is in progress.");
+      }
       commandPending = true;
       try {
         await current.execute(command);
@@ -236,12 +271,15 @@ export function createRecoveringClient(
       }
       if (command.viewId && command.entityId) {
         const pair = key(command.viewId, command.entityId);
-        if (command.action === "subscribe")
+        if (command.action === "subscribe") {
           desired.set(pair, {
             viewId: command.viewId,
             entityId: command.entityId,
           });
-        if (command.action === "unsubscribe") desired.delete(pair);
+        }
+        if (command.action === "unsubscribe") {
+          desired.delete(pair);
+        }
       }
       return generation;
     },

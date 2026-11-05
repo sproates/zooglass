@@ -48,14 +48,18 @@ async function fixture(t: TestContext, hanging = false) {
         transports.push(lost);
         return {
           async execute(command: Command) {
-            if (command.action !== "connect") return 1;
+            if (command.action !== "connect") {
+              return 1;
+            }
             connects++;
             hooks.onConnection("connecting");
             if (connects === 1) {
               hooks.onConnection("connected");
               return 1;
             }
-            if (hanging) await new Promise(() => {});
+            if (hanging) {
+              await new Promise(() => {});
+            }
             lost("refused", true);
             throw new Error("refused");
           },
@@ -82,7 +86,9 @@ async function fixture(t: TestContext, hanging = false) {
     async tick(ms: number) {
       t.mock.timers.tick(ms);
       // Drain the promise chain around an attempt, without advancing wall time.
-      for (let i = 0; i < 12; i++) await Promise.resolve();
+      for (let i = 0; i < 12; i++) {
+        await Promise.resolve();
+      }
     },
   };
 }

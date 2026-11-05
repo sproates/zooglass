@@ -6,13 +6,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
 import tools.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public final class FactRetirementIngress extends TextWebSocketHandler {
+
     private static final Logger LOG = LoggerFactory.getLogger(FactRetirementIngress.class);
     private final ViewCoordinator coordinator;
     private final ObjectMapper json;
@@ -23,7 +26,8 @@ public final class FactRetirementIngress extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message)
+            throws IOException {
         FactRetirement control;
         try {
             control = FactRetirement.parse(message.getPayload());
@@ -35,8 +39,19 @@ public final class FactRetirementIngress extends TextWebSocketHandler {
         try {
             outcome = coordinator.retire(control);
         } catch (RuntimeException failure) {
-            LOG.warn("V2 retirement failed in session {} ({})", session.getId(), failure.getClass().getSimpleName());
-            outcome = new FactRetirementOutcome("factRetirement", "failed", "processingFailure", control, null, Map.of(), List.of());
+            LOG.warn(
+                    "V2 retirement failed in session {} ({})",
+                    session.getId(),
+                    failure.getClass().getSimpleName());
+            outcome =
+                    new FactRetirementOutcome(
+                            "factRetirement",
+                            "failed",
+                            "processingFailure",
+                            control,
+                            null,
+                            Map.of(),
+                            List.of());
         }
         send(session, outcome);
     }

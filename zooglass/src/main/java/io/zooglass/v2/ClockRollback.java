@@ -1,10 +1,12 @@
 package io.zooglass.v2;
 
 import io.zooglass.strategy.freshness.ReceiptAge;
+
 import java.util.HashMap;
 
 /** Elapsed time is still reliable in-process. Flag pre-jump receipts for the next restart. */
 final class ClockRollback {
+
     private long previousWall;
     private long highestMinimumOffset;
 
@@ -20,7 +22,10 @@ final class ClockRollback {
 
     void committed(ReceiptClock.Sample sample, boolean rollback) {
         previousWall = sample.wall();
-        highestMinimumOffset = rollback ? sample.minimumOffset() : Math.max(highestMinimumOffset, sample.minimumOffset());
+        highestMinimumOffset =
+                rollback
+                        ? sample.minimumOffset()
+                        : Math.max(highestMinimumOffset, sample.minimumOffset());
     }
 
     static StateImage markRetainedReceipts(StateImage old, StateImage next) {
@@ -33,10 +38,21 @@ final class ClockRollback {
                     var age = retained.age();
                     // A candidate replaced by this event was received after the clock jump.
                     // Expiry changes age metadata but keeps the same immutable value.
-                    if ((retained.value() != source.getValue().value() && age != source.getValue().age()) || age == null
-                            || age.receivedAtMillis() == null || age.hasUncertainClock()) continue;
-                    var flagged = new ReceiptAge(age.receivedAtMillis(), age.classification(), true);
-                    row = row.replaceCandidate(field.getKey(), source.getKey(), retained.withAge(flagged), row.version());
+                    if ((retained.value() != source.getValue().value()
+                                    && age != source.getValue().age())
+                            || age == null
+                            || age.receivedAtMillis() == null
+                            || age.hasUncertainClock()) {
+                        continue;
+                    }
+                    var flagged =
+                            new ReceiptAge(age.receivedAtMillis(), age.classification(), true);
+                    row =
+                            row.replaceCandidate(
+                                    field.getKey(),
+                                    source.getKey(),
+                                    retained.withAge(flagged),
+                                    row.version());
                 }
             }
             rows.put(entry.getKey(), row);

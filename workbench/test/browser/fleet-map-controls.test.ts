@@ -36,8 +36,9 @@ test(
       const page = demo.browser!.page;
       assert.equal(await page.locator("#fit-fleet").isDisabled(), true);
       assert.equal(await page.locator("#follow-selected").isDisabled(), true);
-      while ((await page.locator("#current-sequence").textContent()) === "—")
+      while ((await page.locator("#current-sequence").textContent()) === "—") {
         await demo.step();
+      }
 
       await page.locator("#follow-selected").focus();
       await page.keyboard.press("Space");
@@ -46,8 +47,9 @@ test(
         "true",
       );
       await assertCentred(page, "car-17");
-      while ((await page.locator("#current-sequence").textContent()) !== "42")
+      while ((await page.locator("#current-sequence").textContent()) !== "42") {
         await demo.step();
+      }
       await assertCentred(page, "car-17");
       await page
         .getByRole("button", { name: "Vehicle 28", exact: true })
@@ -75,7 +77,9 @@ test(
         () => !document.querySelector("#fleet-map .leaflet-pan-anim"),
       );
       const before = await markerOffset(page, "car-28");
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       const after = await markerOffset(page, "car-28");
       assert.ok(
         Math.abs(before.x - after.x) <= 2 && Math.abs(before.y - after.y) <= 2,
@@ -147,7 +151,9 @@ test(
     );
     try {
       await demo.reset();
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       const page = demo.browser!.page;
       await page.setViewportSize({ width: 390, height: 844 });
       await page.locator("#fit-fleet").click();
@@ -182,11 +188,12 @@ test(
         type: "touchStart",
         touchPoints: [{ x: bounds.x + 70, y: bounds.y + 140 }],
       });
-      for (const distance of [20, 40, 60])
+      for (const distance of [20, 40, 60]) {
         await cdp.send("Input.dispatchTouchEvent", {
           type: "touchMove",
           touchPoints: [{ x: bounds.x + 70 + distance, y: bounds.y + 140 }],
         });
+      }
       await cdp.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
         touchPoints: [],

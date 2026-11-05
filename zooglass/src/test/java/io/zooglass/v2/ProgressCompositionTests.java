@@ -1,6 +1,9 @@
 package io.zooglass.v2;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.zooglass.strategy.progress.ProgressState;
+
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -11,9 +14,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 class ProgressCompositionTests {
+
     @TempDir Path directory;
 
     @ParameterizedTest
@@ -38,7 +40,8 @@ class ProgressCompositionTests {
             var silent = snapshot(service, "dispatch");
             assertThat(silent.status().fields().get("order").freshness()).isEqualTo("stale");
             assertThat(silent.status().inputs().get("payments").state()).isEqualTo("notObserved");
-            assertThat(silent.status().inputs().get("payments").completeness()).isEqualTo("unknown");
+            assertThat(silent.status().inputs().get("payments").completeness())
+                    .isEqualTo("unknown");
 
             service.apply(report("payments", 900));
             service.advance(new ProgressControl("payments", "v1", "A", 900));
@@ -47,11 +50,14 @@ class ProgressCompositionTests {
             assertThat(released.status().missingRequiredFields()).isEmpty();
             assertThat(released.data()).containsOnlyKeys("order", "payment");
             assertThat(released.provenance()).containsOnlyKeys("order", "payment");
-            assertThat(released.data().get("order").path("publicationSequence").longValue()).isEqualTo(42);
-            assertThat(released.data().get("payment").path("publicationSequence").longValue()).isEqualTo(900);
+            assertThat(released.data().get("order").path("publicationSequence").longValue())
+                    .isEqualTo(42);
+            assertThat(released.data().get("payment").path("publicationSequence").longValue())
+                    .isEqualTo(900);
             assertThat(released.status().fields().get("order").freshness()).isEqualTo("stale");
             assertThat(released.status().fields().get("payment").freshness()).isEqualTo("fresh");
-            assertThat(released.status().inputs().get("orders").completeness()).isEqualTo("incomplete");
+            assertThat(released.status().inputs().get("orders").completeness())
+                    .isEqualTo("incomplete");
             assertThat(released.status().inputs().get("orders").missingRanges())
                     .containsExactly(new ProgressState.Missing(41, 41, "confirmed"));
             assertThat(released.status().inputs().get("payments").completeThrough()).isEqualTo(900);
@@ -65,13 +71,15 @@ class ProgressCompositionTests {
         if (storage.equals("sqlite")) {
             try (var recovered = new ViewCoordinator(config, database, clock)) {
                 assertSameSnapshot(snapshot(recovered, "dispatch"), released);
-                assertThat(recovered.apply(report("payments", 900)).status()).isEqualTo("duplicate");
+                assertThat(recovered.apply(report("payments", 900)).status())
+                        .isEqualTo("duplicate");
                 assertSameSnapshot(snapshot(recovered, "dispatch"), released);
             }
         }
     }
 
-    private static void assertSameSnapshot(ViewCoordinator.Snapshot actual, ViewCoordinator.Snapshot expected) {
+    private static void assertSameSnapshot(
+            ViewCoordinator.Snapshot actual, ViewCoordinator.Snapshot expected) {
         // Compare the public JSON representation, independent of numeric node types after storage.
         var json = new JsonMapper();
         assertThat(json.readTree(json.writeValueAsString(actual)))
@@ -80,20 +88,34 @@ class ProgressCompositionTests {
 
     private static V2Configuration configuration(String storage) {
         var fields = Map.of("order", field("orders"), "payment", field("payments"));
-        var gate = new V2Configuration.Exposure("requireContributions", List.of("order", "payment"), 10L);
-        return new V2Configuration(2, storage, 20, 20, 20,
+        var gate =
+                new V2Configuration.Exposure(
+                        "requireContributions", List.of("order", "payment"), 10L);
+        return new V2Configuration(
+                2,
+                storage,
+                20,
+                20,
+                20,
                 List.of(source("orders", 40), source("payments", 900)),
-                List.of(new V2Configuration.View("overview", fields),
+                List.of(
+                        new V2Configuration.View("overview", fields),
                         new V2Configuration.View("dispatch", fields, null, gate)));
     }
 
     private static V2Configuration.Source source(String name, long start) {
-        return new V2Configuration.Source(name, "v1",
-                new V2Configuration.Progress("contiguousSequence", start, 10L, 10L));
+        return new V2Configuration.Source(
+                name, "v1", new V2Configuration.Progress("contiguousSequence", start, 10L, 10L));
     }
 
     private static V2Configuration.Field field(String source) {
-        return new V2Configuration.Field(source, "updated", "latestBySequence", null, null, null,
+        return new V2Configuration.Field(
+                source,
+                "updated",
+                "latestBySequence",
+                null,
+                null,
+                null,
                 new V2Configuration.Freshness("receiptAge", 5000L));
     }
 

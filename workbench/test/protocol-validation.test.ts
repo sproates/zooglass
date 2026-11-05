@@ -44,8 +44,9 @@ test(
     const clients: Awaited<ReturnType<typeof liveClient>>[] = [];
 
     try {
-      for (const path of ["/events", "/views/live", "/views/live"])
+      for (const path of ["/events", "/views/live", "/views/live"]) {
         clients.push(await liveClient(service.baseUrl, path));
+      }
 
       const [source, healthy, invalid] = clients;
 

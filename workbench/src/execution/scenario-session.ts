@@ -34,10 +34,11 @@ export function requireDataFaultSupport(scenario: Scenario, supported = false) {
   if (
     !supported &&
     scenario.timeline.some((entry) => entry.kind === "data-connection-fault")
-  )
+  ) {
     throw new Error(
       "This scenario requires browser data-connection-fault support; Node-only execution is unsupported.",
     );
+  }
 }
 
 export async function openScenarioSession(
@@ -64,7 +65,9 @@ export async function openScenarioSession(
   let closing: Promise<void> | undefined;
 
   const close = (): Promise<void> => {
-    if (closing) return closing;
+    if (closing) {
+      return closing;
+    }
 
     controller.abort(new Error("Scenario session closed."));
     closing = (async () => {
@@ -108,8 +111,9 @@ export async function openScenarioSession(
     signal.throwIfAborted();
 
     if (entry.kind === "data-connection-fault") {
-      if (!options.executeDataFault)
+      if (!options.executeDataFault) {
         throw new Error("Data connection faults are unsupported.");
+      }
       await options.executeDataFault(entry, signal);
     } else if (entry.kind === "source-event") {
       const socket = sourceSockets.get(entry.sourceId);
@@ -135,8 +139,9 @@ export async function openScenarioSession(
     } else {
       const executor = executors.get(entry.clientId);
 
-      if (!executor)
+      if (!executor) {
         throw new Error(`No executor for client ${entry.clientId}.`);
+      }
 
       await executor.execute(entry, signal);
     }
@@ -146,7 +151,9 @@ export async function openScenarioSession(
     async execute(entry) {
       signal.throwIfAborted();
 
-      if (active) throw new Error("A scenario action is already running.");
+      if (active) {
+        throw new Error("A scenario action is already running.");
+      }
 
       active = dispatch(entry);
 

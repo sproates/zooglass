@@ -20,8 +20,9 @@ export function createVehicleClient(
         !viewId ||
         entityId !== "car-17" ||
         !["live-map", "trip-history"].includes(viewId)
-      )
+      ) {
         throw new Error("Unknown vehicle view.");
+      }
     },
     connectionLostReason:
       "Connection lost. Stop and restart the demo to try again.",

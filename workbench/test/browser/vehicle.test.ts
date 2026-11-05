@@ -48,7 +48,9 @@ for (const variant of ["basic", "journey"]) {
             for (const entry of playScenario(scenario)) {
               await observed.execute(entry);
 
-              if (entry.kind !== "client-view-check") continue;
+              if (entry.kind !== "client-view-check") {
+                continue;
+              }
               if (entry.viewId === "live-map") {
                 const p = entry.expected.position as {
                   sequence: number;
@@ -138,11 +140,12 @@ for (const variant of ["basic", "journey"]) {
                 );
               }
             }
-            if (variant === "journey")
+            if (variant === "journey") {
               assert.ok(
                 checkedLatePosition,
                 "the late-41 checkpoint must be exercised",
               );
+            }
 
             await browser.page.screenshot({
               path: `/tmp/zooglass-vehicle-${variant}-desktop.png`,
@@ -190,8 +193,9 @@ for (const variant of ["basic", "journey"]) {
                   ),
             );
 
-            for (const entry of finalChecks)
+            for (const entry of finalChecks) {
               await session.execute({ ...entry, clientName: "Vehicle viewer" });
+            }
 
             assert.equal(
               await browser.page.locator("#history li").count(),

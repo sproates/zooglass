@@ -55,7 +55,9 @@ export async function createExternalVehicleDemo(
     bindAddress: options.bindAddress,
     onReady: controls.connect,
     onControllerLost() {
-      if (controller?.state.playing) void controller.pause().catch(() => {});
+      if (controller?.state.playing) {
+        void controller.pause().catch(() => {});
+      }
     },
     onControl: (action, target) => command(action, target),
   });
@@ -77,7 +79,7 @@ export async function createExternalVehicleDemo(
           signal: AbortSignal.any([service.signal, host.signal]),
           async execute(entry) {
             await activeSession.execute(entry);
-            if (entry.kind === "source-event")
+            if (entry.kind === "source-event") {
               host.broadcast({
                 kind: "vehicle-source-sent",
                 sourceName: entry.sourceName,
@@ -86,6 +88,7 @@ export async function createExternalVehicleDemo(
                 sequence: entry.payload.sequence,
                 simulationTime: entry.simulationTime,
               });
+            }
           },
           publish: (state) => host.publish(describe(state)),
           async close() {
@@ -116,15 +119,20 @@ export async function createExternalVehicleDemo(
     },
   );
   async function command(action: BrowserControlAction, target?: string) {
-    if (closing) throw new Error("Demo is closed.");
+    if (closing) {
+      throw new Error("Demo is closed.");
+    }
     if (["disconnect", "reconnect", "interrupt", "restore"].includes(action)) {
       if (
         manual ||
         controller.state.playing ||
         !["ready", "complete"].includes(controller.state.phase)
-      )
+      ) {
         throw new Error("Viewer controls require a paused, idle run.");
-      if (!target) throw new Error("Choose a target viewer.");
+      }
+      if (!target) {
+        throw new Error("Choose a target viewer.");
+      }
       const run = host.viewer(target);
       manual = true;
       viewerAction = controls.apply(
@@ -139,7 +147,9 @@ export async function createExternalVehicleDemo(
         host.publish(describe(controller.state));
       }
     } else {
-      if (manual) throw new Error("A viewer action is still running.");
+      if (manual) {
+        throw new Error("A viewer action is still running.");
+      }
       await controller[action as "step" | "play" | "pause" | "reset"]();
     }
   }

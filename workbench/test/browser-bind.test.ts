@@ -15,8 +15,9 @@ test("HTTP demo binding accepts only private IPv4 and loopback ranges", () => {
     "172.31.255.254",
     "192.168.0.1",
     "192.168.255.254",
-  ])
+  ]) {
     assert.doesNotThrow(() => requireLocalBindAddress(address), address);
+  }
   for (const address of [
     "0.0.0.0",
     "8.8.8.8",
@@ -33,12 +34,13 @@ test("HTTP demo binding accepts only private IPv4 and loopback ranges", () => {
     "::ffff:127.0.0.1",
     "10.0.0.999",
     "127.1",
-  ])
+  ]) {
     assert.throws(
       () => requireLocalBindAddress(address),
       /private or loopback/,
       address,
     );
+  }
 });
 
 test("the shared HTTP host rejects public binding before attempting to listen", async () => {

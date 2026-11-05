@@ -5,6 +5,7 @@ import java.util.Map;
 
 /** Validate settings and bind the concrete resolver at registration. */
 public final class EntityStrategySelection {
+
     private EntityStrategySelection() {}
 
     public static EntityResolutionStrategy select(String mode, Map<String, String> keys) {
@@ -16,8 +17,10 @@ public final class EntityStrategySelection {
         }
         var targets = new HashSet<String>();
         for (var entry : keys.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank()
-                    || entry.getValue() == null || entry.getValue().isBlank()
+            if (entry.getKey() == null
+                    || entry.getKey().isBlank()
+                    || entry.getValue() == null
+                    || entry.getValue().isBlank()
                     || !targets.add(entry.getValue())) {
                 throw new IllegalArgumentException("Invalid or ambiguous entity mapping");
             }

@@ -10,7 +10,9 @@ export interface DemoStep {
 export function planDemoSteps(trace: TraceEntry[]) {
   const first = trace.findIndex((entry) => entry.kind === "source-event");
 
-  if (first < 0) throw new Error("The demo needs at least one source event.");
+  if (first < 0) {
+    throw new Error("The demo needs at least one source event.");
+  }
 
   const steps: DemoStep[] = [];
   let start = first;
@@ -23,8 +25,9 @@ export function planDemoSteps(trace: TraceEntry[]) {
       trace[end].kind !== "source-event" &&
       trace[end].kind !== "client-state" &&
       trace[end].kind !== "data-connection-fault"
-    )
+    ) {
       end++;
+    }
     steps.push({
       entries: trace.slice(start, end),
       delayBefore: Math.max(

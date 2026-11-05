@@ -24,7 +24,9 @@ export function observeFleetSession(
   return {
     async execute(entry: TraceEntry) {
       await session.execute(entry);
-      if (entry.kind !== "client-view-check") return;
+      if (entry.kind !== "client-view-check") {
+        return;
+      }
       signal.throwIfAborted();
 
       const position = entry.expected.position as Position | undefined;
@@ -72,8 +74,9 @@ export function observeFleetSession(
           if (
             document.getElementById("fleet-detail")?.dataset.entityId !==
             wanted.entityId
-          )
+          ) {
             return true;
+          }
           const panel = document.getElementById("history-panel");
           const rows = Array.from(
             document.getElementById("history")?.children ?? [],

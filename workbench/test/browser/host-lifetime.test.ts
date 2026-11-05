@@ -51,7 +51,9 @@ test(
       await page.evaluate("window.stableDocument = true");
       let newControlSockets = 0;
       page.on("websocket", (socket) => {
-        if (socket.url().endsWith("/control")) newControlSockets++;
+        if (socket.url().endsWith("/control")) {
+          newControlSockets++;
+        }
       });
 
       for (let iteration = 0; iteration < 3; iteration++) {
@@ -71,8 +73,9 @@ test(
           signal: run.signal,
           createClientExecutor: () => run.executor,
         });
-        for (const entry of playScenario(scenario))
+        for (const entry of playScenario(scenario)) {
           await session.execute(entry);
+        }
         await page.waitForFunction(
           () =>
             document.querySelector("#current-sequence")?.textContent === "42",
@@ -84,7 +87,9 @@ test(
           "true",
         );
 
-        if (iteration === 2) break;
+        if (iteration === 2) {
+          break;
+        }
         const old = run;
         const oldRoute = old.dataPath;
         await session.close();
@@ -189,7 +194,7 @@ test(
           connectionGeneration: 1,
           observationIndex: 1,
         },
-      ])
+      ]) {
         socket.send(
           JSON.stringify({
             ...message,
@@ -197,6 +202,7 @@ test(
             clientId: first.clientId,
           }),
         );
+      }
       await assert.rejects(next.waitForReady(signal(), 100));
       assert.equal(next.signal.aborted, true);
       assert.equal(controls, 0);

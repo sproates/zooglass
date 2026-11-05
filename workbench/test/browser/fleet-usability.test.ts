@@ -12,7 +12,9 @@ test(
       "scenarios/vehicle-fleet-contracts.json",
     );
     // Allow keyboard interaction between actions without changing events or checks.
-    for (const entry of scenario.timeline) entry.simulationTime *= 10;
+    for (const entry of scenario.timeline) {
+      entry.simulationTime *= 10;
+    }
     const demo = createVehicleDemo(scenario, { fleet: true, headless: true });
 
     try {
@@ -139,10 +141,11 @@ test(
             attribution.y >= mapBounds.y + mapBounds.height,
             "attribution must not cover map controls or cars",
           );
-          if (width === 320 && fontSize === "200%")
+          if (width === 320 && fontSize === "200%") {
             await page
               .locator(".map-panel")
               .screenshot({ path: "test-results/map-320-200.png" });
+          }
         }
       }
     } finally {

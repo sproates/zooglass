@@ -45,7 +45,9 @@ test(
       });
       await page.keyboard.press("Enter");
       await wait(() => demo.state.completed === 1);
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
 
       assert.equal(demo.state.phase, "complete");
       // Disabled Step leaves Reset and the scrollable history in the tab order.

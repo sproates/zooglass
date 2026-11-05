@@ -208,8 +208,13 @@ test(
   async () => {
     const f = await fixture(1800);
     try {
+      // Hold the browser deadline while arranging the partial recovery; CPU load
+      // must not decide whether the first snapshot arrives before expiry.
+      await f.browser.page.clock.install();
+      await f.browser.page.clock.pauseAt(new Date());
       await f.fault("break");
       await f.fault("restore");
+      await f.browser.page.clock.runFor(500);
       await f.browser.page
         .locator("#latest-status")
         .filter({ hasText: "waiting for a fresh snapshot" })
@@ -218,6 +223,7 @@ test(
       await f.browser.page
         .locator('#latest-status[data-state="received"]')
         .waitFor();
+      await f.browser.page.clock.runFor(1800);
       await f.browser.page
         .locator("#connection-status")
         .filter({ hasText: "Recovery timed out" })

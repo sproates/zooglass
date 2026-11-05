@@ -430,7 +430,7 @@ public final class ViewCoordinator implements AutoCloseable {
                         configuration.sources(),
                         List.copyOf(definitions));
         // Validate the body even when its name already exists, then distinguish a valid conflict.
-        if (definition != null && containsView(definition.id())) {
+        if (containsView(definition.id())) {
             var single =
                     new RuntimeConfiguration(
                             next.contractVersion(),

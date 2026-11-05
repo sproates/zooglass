@@ -64,7 +64,9 @@ test(
             JSON.stringify({
               sourceId: event.sourceId,
               type: event.type,
-              entityId: event.entityId,
+              epoch: event.epoch,
+              publicationSequence: event.publicationSequence,
+              sourceEntityId: event.entityId,
               payload: event.payload,
             }),
           );

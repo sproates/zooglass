@@ -155,11 +155,14 @@ test(
         { viewId: "trip-history", data: { positions: expectedPositions } },
       ];
 
+      const expectedSnapshots = new Map<string, unknown>();
       // Inspect both server views while the browser is still disconnected.
       for (const { viewId, data } of expectedViews) {
         const response = await fetch(`${demo.baseUrl}/views/${viewId}/car-17`);
         assert.equal(response.status, 200);
-        assert.deepEqual((await response.json()).data, data);
+        const snapshot = await response.json();
+        assert.deepEqual(snapshot.data, data);
+        expectedSnapshots.set(viewId, { type: "view-update", ...snapshot });
       }
       assert.equal(await page.locator("#history li").count(), 3);
 
@@ -192,13 +195,8 @@ test(
       await demo.step(); // reconnect/subscriptions and independent receipt/render checks
 
       const snapshots = await initialSnapshots;
-      for (const [index, { viewId, data }] of expectedViews.entries()) {
-        assert.deepEqual(snapshots[index], {
-          type: "view-update",
-          viewId,
-          entityId: "car-17",
-          data,
-        });
+      for (const [index, { viewId }] of expectedViews.entries()) {
+        assert.deepEqual(snapshots[index], expectedSnapshots.get(viewId));
       }
 
       assert.equal(demo.state.phase, "complete");

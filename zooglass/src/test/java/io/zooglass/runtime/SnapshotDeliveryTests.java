@@ -33,18 +33,21 @@ class SnapshotDeliveryTests {
         try (var coordinator =
                         new ViewCoordinator(ReceiptAgeTests.config("memory", 5000), "", clock);
                 var delivery = new SnapshotBroadcaster(JSON, coordinator)) {
-            coordinator.apply(ProgressTests.event(1));
-            clock.advance(5000);
-            var messages = new LinkedBlockingQueue<JsonNode>();
-            var session = session(messages);
-            delivery.registerSession(session);
-            assertThat(delivery.subscribe(session, "fleet", "car")).isTrue();
-            assertThat(take(messages).path("type").asText()).isEqualTo("subscribed");
-            assertThat(take(messages).at("/status/fields/position/freshness").asText())
-                    .isEqualTo("stale");
-            delivery.unsubscribe(session, "fleet", "car");
-            assertThat(take(messages).path("type").asText()).isEqualTo("unsubscribed");
-            assertThat(messages).isEmpty();
+            // Keep the timer from resolving expiry before subscription admission.
+            synchronized (coordinator) {
+                coordinator.apply(ProgressTests.event(1));
+                clock.advance(5000);
+                var messages = new LinkedBlockingQueue<JsonNode>();
+                var session = session(messages);
+                delivery.registerSession(session);
+                assertThat(delivery.subscribe(session, "fleet", "car")).isTrue();
+                assertThat(take(messages).path("type").asText()).isEqualTo("subscribed");
+                assertThat(take(messages).at("/status/fields/position/freshness").asText())
+                        .isEqualTo("stale");
+                delivery.unsubscribe(session, "fleet", "car");
+                assertThat(take(messages).path("type").asText()).isEqualTo("unsubscribed");
+                assertThat(messages).isEmpty();
+            }
         }
     }
 

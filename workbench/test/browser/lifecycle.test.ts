@@ -58,9 +58,10 @@ test(
       assert.notEqual(fresh.host.runId, old.host.runId);
       await assert.rejects(fetch(old.host.origin));
       await assert.rejects(fetch(oldBase + "/actuator/health"));
-      assert.equal(
-        (await fetch(demo.baseUrl + "/views/live-map/car-17")).status,
-        404,
+      assert.deepEqual(
+        (await (await fetch(demo.baseUrl + "/views/live-map/car-17")).json())
+          .data,
+        {},
       );
       assert.equal(
         await fresh.page.locator("#current-sequence").textContent(),

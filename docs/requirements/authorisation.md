@@ -1,6 +1,6 @@
 # Authorisation over time
 
-Status: required product behaviour; design and implementation outstanding.
+Status: required product behaviour. The [enforcement contract](../design/view-access.md) is proposed.
 The current prototype does not enforce these permissions.
 
 A live view can remain open for hours. Someone who was allowed to see it when
@@ -57,16 +57,8 @@ Replay checks become mandatory when replay is introduced; they must not be
 reported as passed while that interface is absent. Browser scenarios must also
 inspect the rendered access-loss state independently of the app's own reports.
 
-## Design decisions still needed
+## Enforcement contract
 
-Before implementation, specify identity propagation and the policy integration
-boundary, resource and tenant scoping, permission refresh or invalidation, and
-the revocation and expiry bounds. Define errors, subscription termination,
-queue handling and behaviour when the policy service is unavailable. Choose
-whether finer permissions, such as field-level filtering, are needed for the
-first supported contract; they are not implied by this requirement.
-
-The requirement is complete only when the chosen contract, enforcement,
-repeatable scenarios and documentation agree. A design document alone does not
-establish support. Delivery scheduling remains separate from the current
-vehicle browser milestone.
+The [proposed design](../design/view-access.md) defines the policy boundary,
+cutoff and client outcome. Completion requires implementation and the repeatable
+observations above.

@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 5 November 2026.
+Last reviewed: 6 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -92,13 +92,12 @@ See the [demo design](docs/plans/order-and-sports-demos.md) and
 
 ## Authorisation over time
 
-After the planned demonstrations, implement permissions across snapshots, live
-subscriptions and recovery. Revocation and expiry must stop active delivery
-within a defined bound, and reconnecting must not bypass a permission change.
+The [proposed access contract](docs/design/view-access.md) covers snapshot reads,
+live subscriptions and recovery. The application decides who may read each
+view and entity. ZooGlass will enforce that decision as it delivers updates.
 
-The [authorisation requirement](docs/requirements/authorisation.md) covers resource
-and tenant boundaries. Its design will settle identity and policy integration,
-revocation bounds, queued data and unavailable policy decisions.
+The delivery sequence is admission checks, active revocation and expiry, then
+[acceptance through the public interfaces](docs/requirements/authorisation.md).
 
 ## Further direction
 

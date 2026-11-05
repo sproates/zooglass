@@ -75,6 +75,9 @@ waiting queue. Network writes occur outside the monitor. A full queue evicts tha
 client and requests close code 1013; other clients and source processing continue.
 Delivery failure cannot undo an installed publication.
 
+See the [proposed client delivery contract](../docs/design/client-delivery.md) for
+explicit empty baselines, reconnect semantics and configurable slow-client policies.
+
 ## Register a view
 
 POST a view object from the configuration grammar to `/views`. Successful

@@ -63,14 +63,15 @@ function renderStatus() {
       state.subscribed &&
       connection === "connected"
     ) {
-      text =
-        id === "live-map"
+      if (id === "live-map") {
+        text = latest
           ? "Latest snapshot received"
-          : history.length
-            ? `${history.length} received position${history.length === 1 ? "" : "s"}`
-            : "No positions received · empty snapshot";
-    } else if (state.subscribed && state.current) {
-      text = "Waiting for a position";
+          : "No position received · empty snapshot";
+      } else {
+        text = history.length
+          ? `${history.length} received position${history.length === 1 ? "" : "s"}`
+          : "No positions received · empty snapshot";
+      }
     } else if (state.received) {
       text = state.subscribed
         ? "Last received · waiting for a fresh snapshot"
@@ -214,7 +215,7 @@ export function receiveView(viewId: string, entityId: string, data: unknown) {
     Object.keys(fields).length === 0
   ) {
     // A status update can precede the first matching location publication.
-    views[viewId].received = false;
+    views[viewId].received = true;
     views[viewId].current = true;
     if (viewId === "live-map") {
       latest = undefined;

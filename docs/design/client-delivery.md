@@ -118,9 +118,8 @@ client’s membership.
 ## Implementation and acceptance
 
 The [current service](../../zooglass/README.md#live-subscriptions) already
-coordinates subscriptions with commits and isolates socket writes. It sends an
-initial update only for a positive version and bounds the waiting queue by
-message count. The following slices extend those mechanisms.
+coordinates subscriptions with commits and isolates socket writes. It delivers fresh baselines and bounds the waiting queue by message count.
+The byte budget and configurable slow-client policies are the next slice.
 
 1. Bind the recovery configuration to a named `FreshSnapshot` strategy. Include
    the mode in the acknowledgement and always deliver the baseline. Update

@@ -57,12 +57,17 @@ Send this to `/views/live`:
 {"action":"subscribe","viewId":"match","entityId":"match-42"}
 ```
 
-The server acknowledges with `type: "subscribed"`, then sends the current
-`view-update` if the entity has a published snapshot. Later installed value or
-status changes produce further updates. Use `action: "unsubscribe"` to stop;
-the server replies with `type: "unsubscribed"`. Invalid requests receive an error
-without changing subscriptions. Reconnecting clients subscribe again to obtain
-current state; delivery does not replay every intervening snapshot.
+A successful subscribe returns `subscribed` with `"recovery": "freshSnapshot"`,
+then a full `view-update` for that view and entity. Wait for the update before
+replacing the display. An entity with no retained revision has version zero,
+empty data and its current status. Empty data can also occur at a positive version.
+
+Subscribe again after reconnect and accept the new baseline even if its version
+is lower. Later updates carry the complete state. Unsubscribe returns
+`unsubscribed`. Replay cursors and unsupported recovery modes receive an error.
+
+The startup setting `"delivery": {"recovery": "freshSnapshot"}` selects this
+behaviour and can be omitted to use the default.
 
 Malformed JSON receives `Could not read live view request.` A runtime failure,
 including unavailable storage, receives `Could not process live view request.`
@@ -75,8 +80,8 @@ waiting queue. Network writes occur outside the monitor. A full queue evicts tha
 client and requests close code 1013; other clients and source processing continue.
 Delivery failure cannot undo an installed publication.
 
-See the [proposed client delivery contract](../docs/design/client-delivery.md) for
-explicit empty baselines, reconnect semantics and configurable slow-client policies.
+The [client delivery contract](../docs/design/client-delivery.md) also describes
+the planned byte budget and slow-client policies.
 
 ## Register a view
 

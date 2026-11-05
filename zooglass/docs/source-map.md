@@ -100,7 +100,10 @@ flowchart LR
   subscriptions["delivery/SnapshotSubscriptions"] --> broadcaster["delivery/SnapshotBroadcaster"]
   broadcaster -->|capture under same monitor| coordinator
   coordinator -->|installed snapshots| broadcaster
-  broadcaster --> dto["api/ViewSnapshot"]
+  broadcaster -->|prepare acknowledgement and baseline| recovery["delivery/FreshSnapshot"]
+  recovery -->|baseline| update["delivery/ViewUpdate"]
+  broadcaster -->|later revisions| update
+  update -->|project public snapshot| dto["api/ViewSnapshot"]
   broadcaster --> index["delivery/SubscriptionIndex"]
   broadcaster -->|bounded queue per session| writer["delivery/OutboundWriter"]
   writer -->|outside coordinator monitor| socket["Client socket"]

@@ -185,6 +185,17 @@ class SubscriptionFunctionalTests {
             assertThat(acknowledgement.get("viewId").asText()).isEqualTo("match");
             assertThat(acknowledgement.get("entityId").asText()).isEqualTo("live-match-42");
 
+            assertThat(acknowledgement.path("recovery").asText()).isEqualTo("freshSnapshot");
+            var baseline =
+                    objectMapper.readTree(awaitMessage(liveViewClient.messages())).deepCopy();
+            assertThat(baseline.path("type").asText()).isEqualTo("view-update");
+            ((tools.jackson.databind.node.ObjectNode) baseline).remove("type");
+            assertThat(baseline)
+                    .isEqualTo(
+                            objectMapper.readTree(
+                                    getView(httpClient, "match", "live-match-42").body()));
+            assertThat(baseline.path("version").longValue()).isZero();
+
             send(
                     eventSocket,
                     "match-feed",
@@ -214,6 +225,12 @@ class SubscriptionFunctionalTests {
                                 "{",
                                 "null",
                                 "[]",
+                                """
+                                {"action":"subscribe","viewId":"match","entityId":"car","cursor":0}
+                                """,
+                                """
+                                {"action":"subscribe","viewId":"match","entityId":"car","recovery":"replay"}
+                                """,
                                 "{}",
                                 "{\"action\":3,\"viewId\":\"match\",\"entityId\":\"car\"}",
                                 "{\"action\":\"subscribe\",\"viewId\":\" \",\"entityId\":\"car\"}",
@@ -239,6 +256,10 @@ class SubscriptionFunctionalTests {
                             .join();
                     var reply = objectMapper.readTree(awaitMessage(client.messages()));
                     assertThat(reply.path("type").asText()).isEqualTo(action + "d");
+                    if (action.equals("subscribe")) {
+                        var baseline = objectMapper.readTree(awaitMessage(client.messages()));
+                        assertThat(baseline.path("type").asText()).isEqualTo("view-update");
+                    }
                 }
             } finally {
                 client.socket().sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();

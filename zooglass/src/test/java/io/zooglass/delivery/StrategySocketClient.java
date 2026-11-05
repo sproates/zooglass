@@ -63,6 +63,7 @@ final class StrategySocketClient implements AutoCloseable {
         assertThat(reply.path("type").asText()).isEqualTo("subscribed");
         assertThat(reply.path("viewId").asText()).isEqualTo(view);
         assertThat(reply.path("entityId").asText()).isEqualTo(entity);
+        assertThat(next().path("version").longValue()).isZero();
     }
 
     List<JsonNode> throughMarker(String markerView, int marker) throws InterruptedException {

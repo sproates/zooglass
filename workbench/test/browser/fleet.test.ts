@@ -13,16 +13,27 @@ test(
   { timeout: 90_000 },
   async () => {
     const scenario = await loadScenario(fixture);
+    const firstEvent = scenario.timeline.findIndex(
+      (entry) => entry.kind === "source-event",
+    );
+    scenario.timeline.splice(firstEvent, 0, {
+      kind: "client-view-check",
+      simulationTime: 55,
+      clientId: "fleet-viewer",
+      viewId: "received-journey",
+      entityId: "car-17",
+      expected: {},
+    });
     const demo = createVehicleDemo(scenario, { fleet: true, headless: true });
     try {
       await demo.reset();
       const page = demo.browser!.page;
       assert.equal(await page.locator("#fleet-list li").count(), 3);
       assert.equal(await page.locator("#current-sequence").textContent(), "—");
-      assert.match(
-        await page.locator("#history-status").innerText(),
-        /waiting for first snapshot/,
-      );
+      await page
+        .locator("#history-status")
+        .filter({ hasText: "empty snapshot" })
+        .waitFor();
 
       // Record protocol sends only; never supply application values.
       await page.evaluate(() => {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.zooglass.api.ViewSnapshot;
+import io.zooglass.delivery.FreshSnapshot;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -62,6 +63,26 @@ class RuntimeConfigurationTests {
                                 2, "memory", 2, 10, 3, valid.sources(), List.of(unknownMode)))) {
             assertThatThrownBy(() -> new ViewCoordinator(invalid))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
+    void selectsFreshSnapshotRecoveryAndRejectsUnsupportedDeliverySettings() throws Exception {
+        String valid = Files.readString(Path.of("src/test/resources/runtime-views-test.json"));
+        Path file = directory.resolve("delivery.json");
+        Files.writeString(file, valid);
+        assertThat(load(file).delivery().recovery()).isEqualTo(FreshSnapshot.INSTANCE);
+        String template = valid.replaceFirst("\\{", "{\"delivery\":%s,");
+        Files.writeString(file, template.formatted("{\"recovery\":\"freshSnapshot\"}"));
+        assertThat(load(file).delivery().recovery()).isEqualTo(FreshSnapshot.INSTANCE);
+        for (String invalid :
+                List.of(
+                        "null",
+                        "{\"recovery\":null}",
+                        "{\"recovery\":\"replay\"}",
+                        "{\"typo\":true}")) {
+            Files.writeString(file, template.formatted(invalid));
+            assertThatThrownBy(() -> load(file)).isInstanceOf(RuntimeException.class);
         }
     }
 

@@ -75,6 +75,7 @@ export async function liveClient(baseUrl: string, path = "/views/live") {
 
       assert.deepEqual(await next(), {
         type: `${action}d`,
+        ...(action === "subscribe" ? { recovery: "freshSnapshot" } : {}),
         viewId: "position",
         entityId,
       });

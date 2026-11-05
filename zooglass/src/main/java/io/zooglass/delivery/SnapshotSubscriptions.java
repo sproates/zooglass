@@ -60,6 +60,13 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             String viewId = request.get("viewId").stringValue();
             String entityId = request.get("entityId").stringValue();
             if (action.equals("subscribe")) {
+                if (request.has("cursor")
+                        || (request.has("recovery")
+                                && !FreshSnapshot.MODE.equals(request.path("recovery").asText()))) {
+                    broadcaster.sendError(
+                            session, "Subscribe supports freshSnapshot without a cursor.");
+                    return;
+                }
                 if (!broadcaster.subscribe(session, viewId, entityId)) {
                     broadcaster.sendError(session, "Unknown view: " + viewId);
                 }

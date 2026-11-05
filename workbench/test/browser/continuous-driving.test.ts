@@ -152,3 +152,62 @@ for (const engine of [chromium, webkit]) {
     },
   );
 }
+
+test("a fresh empty baseline clears only its car after reconnect", async () => {
+  const simulation = await startSimulation();
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const car = page.locator('.car[data-entity-id="car-1"]');
+    let connections = 0;
+    await page.routeWebSocket("**/views/live", (socket) => {
+      const generation = ++connections;
+      socket.onMessage((request) => {
+        const { viewId, entityId } = JSON.parse(String(request));
+        const empty = generation > 1 && entityId === "car-1";
+        socket.send(
+          JSON.stringify({
+            type: "subscribed",
+            recovery: "freshSnapshot",
+            viewId,
+            entityId,
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            type: "view-update",
+            viewId,
+            entityId,
+            version: empty ? 0 : 1,
+            data: empty
+              ? {}
+              : {
+                  position: {
+                    sequence: 1,
+                    latitude: 36.145,
+                    longitude: -5.354,
+                    observedAt: Date.now(),
+                  },
+                },
+          }),
+        );
+      });
+    });
+    await page.goto(simulation.origin);
+    await page.waitForFunction(
+      () => document.querySelectorAll(".car").length === 6,
+    );
+    await car.dispatchEvent("click");
+    await page.locator("#selection").waitFor();
+    await page.evaluate(() =>
+      document.dispatchEvent(new Event("visibilitychange")),
+    );
+    await car.waitFor({ state: "detached", timeout: 5000 });
+    assert.equal(connections, 2);
+    assert.equal(await page.locator("#selection").isHidden(), true);
+    assert.equal(await page.locator(".car").count(), 5);
+  } finally {
+    await browser.close();
+    await simulation.close();
+  }
+});

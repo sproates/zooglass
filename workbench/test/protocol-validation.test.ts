@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { startZooGlassSession } from "../src/service/zooglass-session.js";
+import { createNodeClientExecutor } from "../src/execution/node-client-executor.js";
 import { liveClient, positionEvent } from "./support/live-client.js";
 
 const views = [
@@ -51,6 +52,7 @@ test(
       const [source, healthy, invalid] = clients;
 
       await healthy.subscription("bus");
+      assert.deepEqual((await healthy.next()).data, {});
       for (const [index, [request, error]] of invalidRequests.entries()) {
         invalid.socket.send(request);
 
@@ -107,6 +109,7 @@ test(
 
       clients.push(viewer);
       await viewer.subscription("barrier");
+      assert.deepEqual((await viewer.next()).data, {});
       await source.send(positionEvent("target", 1));
 
       const validEvent = positionEvent("target", 999);
@@ -192,6 +195,7 @@ test(
 
       clients.push(viewer);
       await viewer.subscription("barrier");
+      assert.deepEqual((await viewer.next()).data, {});
 
       const definition = {
         id: "position",
@@ -265,9 +269,11 @@ test(
 
         assert.deepEqual(await viewer.next(), {
           type: "subscribed",
+          recovery: "freshSnapshot",
           viewId: id,
           entityId: entity,
         });
+        assert.deepEqual((await viewer.next()).data, {});
         await source.send(positionEvent(entity, 2));
 
         const update = await viewer.next();
@@ -284,3 +290,38 @@ test(
     }
   },
 );
+
+test("unsubscribe preserves an unchecked baseline for the Node viewer", async () => {
+  const service = await startZooGlassSession({ views });
+  const viewer = createNodeClientExecutor(
+    service.baseUrl.replace("http:", "ws:") + "/views/live",
+  );
+  const client = {
+    clientId: "viewer",
+    clientName: "Viewer",
+    simulationTime: 0,
+  };
+  const pair = { ...client, viewId: "position", entityId: "bus" };
+  try {
+    await viewer.execute(
+      { ...client, kind: "client-state", state: "connected" },
+      service.signal,
+    );
+    for (const action of ["subscribe", "unsubscribe"] as const) {
+      await viewer.execute(
+        { ...pair, kind: "client-subscription", action },
+        service.signal,
+      );
+    }
+    await viewer.execute(
+      { ...pair, kind: "client-view-check", expected: {} },
+      service.signal,
+    );
+  } finally {
+    try {
+      await viewer.close();
+    } finally {
+      await service.close();
+    }
+  }
+});

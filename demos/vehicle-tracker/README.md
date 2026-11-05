@@ -163,14 +163,13 @@ and host details.
 
 ## First walkthrough
 
-1. Wait for Step to become available. Both views initially say they are waiting
-   for their first snapshot. An empty history at this point does not mean an
-   empty snapshot has been received.
+1. Wait for Step to become available. Before the first location report, both
+   views receive empty snapshots. The map has no marker and the history has no rows.
 2. Use Step once: position 40 appears in the current view and history.
 3. Step again: the marker moves to 42 and history contains 40 and 42.
 4. Step once more: delayed 41 fills the history between them, while the current
    position stays at 42. Continue to position 59 for the full twenty-point journey.
-5. Use Reset. The window is replaced and both views return to waiting. Step
+5. Use Reset. The new window receives empty baselines for both views. Step
    again to check that the new run starts at 40.
 6. Use Ctrl+C in the terminal, or enter `quit`, to close the owned resources.
 
@@ -289,9 +288,9 @@ for checks; expected results stay outside the app.
 
 ## Connection and view states
 
-Each view distinguishes waiting for its first snapshot from receiving an explicit
-empty snapshot. ZooGlass currently sends no snapshot for an uninitialised view,
-so a subscription acknowledgement alone leaves that view waiting.
+Each view waits for its own snapshot after the subscription acknowledgement.
+A snapshot with empty data clears the previous position or journey. If the
+viewer then disconnects, it still records that it received the empty snapshot.
 
 After disconnect or unsubscribe, previously received values remain visible and
 are labelled **Last received**. Reconnecting does not make them current: each

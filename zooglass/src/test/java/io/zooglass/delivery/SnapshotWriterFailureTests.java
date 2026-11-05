@@ -94,6 +94,11 @@ class SnapshotWriterFailureTests {
             broadcaster.registerSession(healthy);
             broadcaster.subscribe(healthy, "position", "bus");
             assertThat(delivered.poll(5, TimeUnit.SECONDS)).contains("subscribed");
+            assertThat(
+                            json.readTree(delivered.poll(5, TimeUnit.SECONDS))
+                                    .path("version")
+                                    .longValue())
+                    .isZero();
             store.apply("feed", "position", "bus", json.createObjectNode().put("sequence", 1));
             assertThat(
                             json.readTree(delivered.poll(5, TimeUnit.SECONDS))
@@ -153,6 +158,11 @@ class SnapshotWriterFailureTests {
             broadcaster.registerSession(client);
             broadcaster.subscribe(client, "position", "bus");
             assertThat(delivered.poll(5, TimeUnit.SECONDS)).contains("subscribed");
+            assertThat(
+                            json.readTree(delivered.poll(5, TimeUnit.SECONDS))
+                                    .path("version")
+                                    .longValue())
+                    .isZero();
             release.countDown();
             oldThread.get().join(5000);
             assertThat(oldThread.get().isAlive()).isFalse();

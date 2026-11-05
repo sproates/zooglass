@@ -62,7 +62,8 @@ test("reconnection retains each pair until its own new snapshot arrives", () => 
     model.status("received-journey", "a"),
     /waiting for a fresh snapshot/,
   );
-  model.receive("received-journey", "a", { positions: [] });
+  model.receive("received-journey", "a", {});
+  assert.deepEqual(model.get("received-journey", "a").positions, []);
   assert.match(model.status("received-journey", "a"), /empty snapshot/);
 });
 

@@ -24,7 +24,7 @@ export function createBrowserClientExecutor(
   let generation = 0;
   let observationIndex = 0;
   let pending: PendingBrowserCommand | undefined;
-  const receipts: Record<string, unknown>[] = [];
+  let receipts: Record<string, unknown>[] = [];
   const events = new Map<string, number>();
   const firstViews = new Map<string, unknown>();
   const viewKey = (view: unknown, entity: unknown) =>
@@ -87,6 +87,11 @@ export function createBrowserClientExecutor(
     events.set(String(message.event), index);
     if (message.event === "subscribed") {
       firstViews.delete(viewKey(message.viewId, message.entityId));
+      receipts = receipts.filter(
+        (receipt) =>
+          receipt.viewId !== message.viewId ||
+          receipt.entityId !== message.entityId,
+      );
     }
 
     if (message.event === "view-update") {

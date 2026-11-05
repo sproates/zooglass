@@ -19,6 +19,7 @@ async function waitForClientMessage(
   matches: (message: unknown) => boolean,
   description: string,
   signal: AbortSignal,
+  discardEarlier?: (message: unknown) => boolean,
 ): Promise<unknown> {
   const messages = messagesBySocket.get(socket);
 
@@ -34,7 +35,15 @@ async function waitForClientMessage(
     const index = messages.findIndex(matches);
 
     if (index >= 0) {
-      return messages.splice(index, 1)[0];
+      const [matched] = messages.splice(index, 1);
+      if (discardEarlier) {
+        for (let earlier = index - 1; earlier >= 0; earlier--) {
+          if (discardEarlier(messages[earlier])) {
+            messages.splice(earlier, 1);
+          }
+        }
+      }
+      return matched;
     }
 
     if (socket.readyState !== WebSocket.OPEN) {
@@ -102,6 +111,13 @@ async function applyClientSubscription(
       message.entityId === entry.entityId,
     `${responseType} response for ${entry.viewId} (${entry.entityId})`,
     signal,
+    // A new subscription starts a generation. Unsubscribing keeps its receipts available.
+    (message) =>
+      entry.action === "subscribe" &&
+      isJsonObject(message) &&
+      message.type === "view-update" &&
+      message.viewId === entry.viewId &&
+      message.entityId === entry.entityId,
   );
 }
 

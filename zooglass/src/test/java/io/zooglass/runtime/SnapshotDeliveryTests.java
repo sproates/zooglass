@@ -174,12 +174,15 @@ class SnapshotDeliveryTests {
                 publication.get(5, TimeUnit.SECONDS);
             }
             assertThat(take(messages).path("type").asText()).isEqualTo("subscribed");
+            delivery.unsubscribe(session, "latest", "car");
             var versions = new ArrayList<Long>();
-            do {
-                versions.add(take(messages).path("version").longValue());
-            } while (versions.getLast() < 2);
-            assertThat(versions).isSorted().doesNotHaveDuplicates();
-            assertThat(messages).isEmpty();
+            var message = take(messages);
+            while ("view-update".equals(message.path("type").asText())) {
+                versions.add(message.path("version").longValue());
+                message = take(messages);
+            }
+            assertThat(message.path("type").asText()).isEqualTo("unsubscribed");
+            assertThat(versions).isIn(java.util.List.of(2L), java.util.List.of(1L, 2L));
         }
     }
 

@@ -136,7 +136,10 @@ test(
       const [source, healthy, slow] = clients;
 
       await healthy.subscription("bus");
-      assert.deepEqual((await healthy.next()).data, {});
+      const baseline = await healthy.next();
+      assert.deepEqual(baseline.data, {});
+      assert.equal(baseline.version, 0);
+      let previousVersion = 0;
       await slow.subscription("bus");
       assert.deepEqual((await slow.next()).data, {});
       slow.socket.pause();
@@ -148,7 +151,18 @@ test(
       for (let sequence = 1; sequence <= 2048; sequence++) {
         await source.send(positionEvent("bus", sequence, padding));
 
-        const message = await healthy.next();
+        const [receipt, message] = await Promise.all([
+          source.next(),
+          healthy.next(),
+        ]);
+
+        assert.equal(receipt.status, "applied");
+        assert.ok(
+          typeof message.version === "number" &&
+            message.version > previousVersion,
+        );
+        assert.equal(receipt.version, message.version);
+        previousVersion = message.version;
 
         assert.equal(message.entityId, "bus");
         assert.equal(message.data?.position.sequence, sequence);

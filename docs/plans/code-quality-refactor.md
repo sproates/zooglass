@@ -1,5 +1,10 @@
 # Behaviour-preserving code quality review
 
+This document records the initial readability stage at `9531cc6`. The subsequent
+[single-runtime consolidation](single-runtime.md) extends the scope and intentionally
+migrates the publication and snapshot contracts. The counts and comparisons below
+belong to the initial stage; use the PR checks for the current revision.
+
 This review covers Java production and test code, Workbench, the vehicle demo,
 repository tooling and the documentation that describes their boundaries.
 Existing protocols, strategy semantics, configuration, CLI output and lifecycle

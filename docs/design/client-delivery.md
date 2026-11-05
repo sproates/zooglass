@@ -23,13 +23,20 @@ produces these messages in order for the requested view and entity.
 
 Capture the baseline, admit the subscription and enqueue its acknowledgement
 and baseline under the coordinator lock, before a later commit can enqueue an
-update. A commit racing subscription is either reflected in the baseline or
-delivered afterwards. Network writes happen outside the lock.
+update. A racing commit either contributes to the captured state or queues an
+update after the baseline, subject to the connection’s queue policy. A FIFO
+viewer can receive the baseline at version 1 followed by versions 2 and 3.
+A coalescing viewer can receive versions 1 and 3 if version 2 was still waiting.
+Network writes happen outside the lock.
 
-A known view with no observed entity still sends a baseline at version zero,
-with empty data and its actual status. A view waiting for required contributions
-can have empty data at a positive version. Clients inspect status to distinguish
-these cases. An unknown view or failed snapshot read returns an error and
+For a known view, version zero means the store has no retained revision for that
+view and entity. Its baseline contains empty data and the actual status.
+Otherwise send the retained revision, even if its data is empty. For example,
+advancing a fact-retirement floor before the first publication creates a positive
+revision. Its baseline includes that floor and the input still says `notObserved`.
+A view waiting for required contributions can also have empty data.
+
+An unknown view or failed snapshot read returns an error and
 creates no subscription. A connection lost before the baseline arrives must
 subscribe again.
 
@@ -74,7 +81,9 @@ the existing 128 waiting messages and disconnect behaviour, and introduce a
 ```
 
 An omitted delivery section uses these defaults. Reject unknown settings,
-unsupported strategies and non-positive or fractional limits at startup.
+unsupported strategies and invalid limits at startup. Both limits must be positive
+integers. The message limit must be at least two to admit a subscription’s
+acknowledgement and baseline together.
 Delivery settings apply to connections opened under that configuration. They
 can change across restart independently of persisted view definitions.
 
@@ -84,12 +93,19 @@ message must fit the byte limit. If one is too large, terminate the connection
 with WebSocket close code 1009 when the transport permits. Retrying the same
 oversized baseline requires a smaller view or a larger budget.
 
+Admit the acknowledgement and baseline as a pair. Under the queue lock, reserve
+two waiting slots and their combined UTF-8 bytes before exposing either message
+to the writer. If the pair alone exceeds the byte budget, request close code
+1009. If the pair fits an empty queue but other waiting messages leave too
+little room, request 1013. In either case, enqueue neither message and remove
+the connection’s subscriptions. Both policies use this rule.
+
 - **`disconnectOnOverflow`** preserves FIFO order. If the next enqueue would
   exceed either waiting limit, remove the connection’s subscriptions and request
   close code 1013. The client can reconnect and obtain a fresh baseline.
-- **`coalesceLatestState`** may replace an unsent ordinary update for the same
-  view, entity and subscription generation. Remove the older update and append
-  the replacement at the tail. Preserve the initial baseline, acknowledgements,
+- **`coalesceLatestState`** keeps only the newest waiting ordinary update for each
+  view, entity and subscription generation. On every ordinary update, remove
+  its waiting predecessor if present, then append the new update at the tail. Preserve the initial baseline, acknowledgements,
   errors and in-flight writes. Apply both limits to the resulting queue.
   If it still exceeds either limit, use the same disconnect outcome.
 
@@ -113,10 +129,18 @@ message count. The following slices extend those mechanisms.
 2. Bind the queue configuration to named `DisconnectOnOverflow` and
    `CoalesceLatestState` strategies used by each writer. Keep queue ownership,
    byte accounting and eviction local to the connection.
-3. Verify the public outcomes with controlled races and real clients. Race a
-   commit with subscribe, reconnect after missed corrections and retirement,
-   restart both storage modes, and stall one of two viewers. Verify multibyte
-   byte limits, oversized baselines, interleaved subscriptions and unsubscribe
-   followed by resubscribe. Check the healthy viewer and source acknowledgements
-   throughout. Use controlled writes for queue boundaries so OS buffer sizes
-   cannot determine the expected result.
+3. Verify reconnect after missed corrections and retirement, restart under both
+   storage modes, and unsubscribe followed by resubscribe. Stall one of two
+   viewers and check that the healthy viewer and source acknowledgements continue.
+
+Use controlled writes for these acceptance cases so OS buffer sizes cannot
+determine the result.
+
+| Case | Expected outcome |
+| --- | --- |
+| Subscribe while a commit races baseline capture | An earlier commit contributes to the baseline. For later commits, FIFO delivers each update in order while connected. Coalescing may skip a waiting intermediate version. |
+| Subscribe after retirement advanced before the first publication, including after durable restart | The baseline preserves the positive revision, retirement floor, empty data and unobserved input status. |
+| Set the message limit to one, then two | Startup rejects one. With two slots free and sufficient bytes, the viewer receives the acknowledgement followed by the baseline. |
+| Set the byte limit to the pair’s exact UTF-8 size, then one byte less, using multibyte text | On an empty queue the exact fit succeeds. One byte less closes with 1009 even when each message fits individually. An individually oversized baseline also closes with 1009. |
+| Leave one of two waiting slots occupied when a second subscription arrives | Close with 1013 and enqueue neither part of the new pair. |
+| After both baselines drain, hold the writer and enqueue A1, A2, B1 for subscriptions A and B with two slots available | Coalescing leaves A2, B1. FIFO closes on B1. With arrivals A1, B1, A2, coalescing leaves B1, A2. |

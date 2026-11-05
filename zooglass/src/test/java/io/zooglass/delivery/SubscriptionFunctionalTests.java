@@ -202,6 +202,63 @@ class SubscriptionFunctionalTests {
         }
     }
 
+    @Test
+    void invalidLiveRequestsReturnErrorsWithoutPoisoningTheConnection() throws Exception {
+        try (var httpClient = HttpClient.newHttpClient()) {
+            var client = connectLiveViewClient(httpClient);
+            try {
+                for (var request :
+                        List.of(
+                                "{",
+                                "null",
+                                "[]",
+                                "{}",
+                                "{\"action\":3,\"viewId\":\"match\",\"entityId\":\"car\"}",
+                                "{\"action\":\"subscribe\",\"viewId\":\" \",\"entityId\":\"car\"}",
+                                "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":false}",
+                                "{\"action\":\"subscribe\",\"viewId\":\"absent\",\"entityId\":\"car\"}",
+                                "{\"action\":\"other\",\"viewId\":\"match\",\"entityId\":\"car\"}")) {
+                    client.socket().sendText(request, true).join();
+                    var error = objectMapper.readTree(awaitMessage(client.messages()));
+                    assertThat(error.path("type").asText()).as(request).isEqualTo("error");
+                }
+                for (var action : List.of("subscribe", "unsubscribe")) {
+                    client.socket()
+                            .sendText(
+                                    objectMapper.writeValueAsString(
+                                            Map.of(
+                                                    "action",
+                                                    action,
+                                                    "viewId",
+                                                    "match",
+                                                    "entityId",
+                                                    "request-recovery")),
+                                    true)
+                            .join();
+                    var reply = objectMapper.readTree(awaitMessage(client.messages()));
+                    assertThat(reply.path("type").asText()).isEqualTo(action + "d");
+                }
+            } finally {
+                client.socket().sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+            }
+        }
+    }
+
+    @Test
+    void malformedDefinitionsAndUnknownViewsHaveExplicitHttpResults() throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            assertThat(getView(client, "absent", "car").statusCode()).isEqualTo(404);
+            assertThat(defineView(client, "{").statusCode()).isEqualTo(400);
+            assertThat(
+                            defineView(
+                                            client,
+                                            "{\"id\":\"bad-source\",\"fields\":{\"value\":{\"sourceId\":\"absent\",\"type\":\"value\",\"mode\":\"arrival\"}}}")
+                                    .statusCode())
+                    .isEqualTo(400);
+            assertThat(getView(client, "bad-source", "car").statusCode()).isEqualTo(404);
+        }
+    }
+
     private WebSocket connect(HttpClient httpClient) {
         return httpClient
                 .newWebSocketBuilder()

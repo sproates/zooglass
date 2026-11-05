@@ -7,12 +7,15 @@ arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: client continuity and recovery
+## Next: access to live views
 
 Subscriptions now start with a fresh snapshot, including after reconnect.
 Slow viewers have bounded queues and a choice of FIFO or latest-state delivery.
-Next, verify recovery across disconnection, retirement and restart against the
-[delivery contract](docs/design/client-delivery.md).
+Recovery checks cover disconnection, retirement and restart under both storage
+modes. See the [delivery contract](docs/design/client-delivery.md).
+
+Next, define who may read or subscribe to a view, and what an active viewer
+receives when its permissions change. See [authorisation over time](#authorisation-over-time).
 
 ## Reconciliation and recovery
 

@@ -148,7 +148,13 @@ test(
       for (let sequence = 1; sequence <= 2048; sequence++) {
         await source.send(positionEvent("bus", sequence, padding));
 
-        const message = await healthy.next();
+        const [receipt, message] = await Promise.all([
+          source.next(),
+          healthy.next(),
+        ]);
+
+        assert.equal(receipt.status, "applied");
+        assert.equal(receipt.version, message.version);
 
         assert.equal(message.entityId, "bus");
         assert.equal(message.data?.position.sequence, sequence);

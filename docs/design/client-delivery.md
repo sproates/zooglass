@@ -55,7 +55,8 @@ version equals or precedes the last displayed version.
 | Viewer disconnects | Its retained display is last known. Other viewers continue. Subscribe again for a fresh baseline. |
 | Source disconnects | The viewer stays subscribed. Configured source progress and freshness rules govern the retained value and its status. |
 | ZooGlass restarts | Connections and subscriptions end. A durable store serves recovered state after readiness. A memory store can legitimately return an empty version-zero baseline. |
-| History or facts expire while a viewer is away | The baseline contains the current retained window and its metadata. Retired facts and intermediate transitions cannot be requested by version. |
+| Facts retire while a viewer is away | The baseline contains the remaining facts and the retirement floor. |
+| A source publication identity expires | Accepted history entries still appear in the baseline. Once ordered history reaches its capacity, ZooGlass rejects new entries with `historyLimit`. |
 
 There is no replay window for subscriber messages. Reject an unsupported
 recovery mode or a subscribe request with a replay cursor explicitly. An HTTP
@@ -116,13 +117,15 @@ client’s membership.
 
 ## Implementation and acceptance
 
-The [service](../../zooglass/README.md#slow-viewers) implements fresh baselines
-and both bounded queue policies. The next acceptance slice will exercise reconnects after
-missed corrections and retirement, restart under both storage modes, and a
-stalled viewer alongside a healthy viewer and active source.
+Real WebSocket tests disconnect a scoreboard, correct one goal and retire another.
+When the scoreboard reconnects, its first snapshot contains the corrected goal
+and the retirement floor. The next live update matches the source receipt.
+The tests restart the service with each storage mode and check the new baselines,
+including a match whose only revision records a retirement floor.
 
-Use controlled writes for these acceptance cases so OS buffer sizes cannot
-determine the result.
+Controlled writers exercise the queue boundaries below. Workbench also pauses a
+real receiver and checks that the source and healthy viewer continue to make
+progress. See the [client recovery tests](../testing.md#client-recovery-acceptance).
 
 | Case | Expected outcome |
 | --- | --- |

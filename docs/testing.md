@@ -336,6 +336,24 @@ transport metadata and that fact projections retain their configured form.
 Workbench's `runtime-configuration.test.ts` independently checks configuration
 translation and rejects ambiguous source competition or payload-based ordering.
 
+## Client recovery acceptance
+
+`ClientRecoveryAcceptanceTests` uses real source, viewer and retirement sockets.
+It checks what the viewer missed while disconnected, the first snapshot on
+reconnect and the following live update. It then restarts ZooGlass with the same
+configuration. SQLite restores both the scoreboard and a retirement made before
+any goal arrived. Memory starts each match at version zero.
+
+A separate case expires a publication identity and fills an ordered history.
+The returning viewer receives the two accepted entries. The source receives
+`outsideRetention` when retrying the old identity and `historyLimit` when
+trying to append a third entry.
+
+`SnapshotDeliveryTests` covers concurrent subscription and commit.
+`SlowClientDeliveryTests` controls writer progress to check queue behaviour.
+Workbench's `concurrent-clients.test.ts` compares source receipts with the healthy
+viewer's versions while a second receiver stalls, then reconnects a viewer.
+
 ## Generated ordering checks
 
 `GeneratedOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across

@@ -178,7 +178,7 @@ class SnapshotDeliveryTests {
             do {
                 versions.add(take(messages).path("version").longValue());
             } while (versions.getLast() < 2);
-            assertThat(versions).isSorted().doesNotHaveDuplicates();
+            assertThat(versions).isIn(java.util.List.of(2L), java.util.List.of(1L, 2L));
             assertThat(messages).isEmpty();
         }
     }

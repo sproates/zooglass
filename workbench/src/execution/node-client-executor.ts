@@ -111,8 +111,9 @@ async function applyClientSubscription(
       message.entityId === entry.entityId,
     `${responseType} response for ${entry.viewId} (${entry.entityId})`,
     signal,
-    // Only receipts after this acknowledgement belong to the new subscription.
+    // A new subscription starts a generation. Unsubscribing keeps its receipts available.
     (message) =>
+      entry.action === "subscribe" &&
       isJsonObject(message) &&
       message.type === "view-update" &&
       message.viewId === entry.viewId &&

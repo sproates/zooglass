@@ -41,7 +41,7 @@ export function observeFleetSession(
         operation: operation
           ? `${operation.status} · sequence ${operation.sequence}`
           : "No operational status received",
-        rows: positions?.map(
+        rows: (positions ?? []).map(
           (p) => `Position ${p.sequence} · ${coordinates(p)}`,
         ),
       };
@@ -81,8 +81,11 @@ export function observeFleetSession(
           const rows = Array.from(
             document.getElementById("history")?.children ?? [],
           );
+          const historyState =
+            document.getElementById("history-status")?.dataset.state;
           return (
-            rows.length === wanted.rows?.length &&
+            (historyState === "received" || historyState === "retained") &&
+            rows.length === wanted.rows.length &&
             [panel, ...rows].every(
               (node) =>
                 node !== null &&
@@ -91,9 +94,7 @@ export function observeFleetSession(
                 getComputedStyle(node).display !== "none" &&
                 Number(getComputedStyle(node).opacity) > 0,
             ) &&
-            rows.every(
-              (node, index) => node.textContent === wanted.rows?.[index],
-            )
+            rows.every((node, index) => node.textContent === wanted.rows[index])
           );
         },
         expected,

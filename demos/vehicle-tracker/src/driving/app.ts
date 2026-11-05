@@ -148,20 +148,40 @@ function connect() {
       ) {
         return;
       }
-      const p = message.data.position;
-      if (
-        !p ||
-        ![p.sequence, p.latitude, p.longitude, p.observedAt].every(
-          Number.isFinite,
-        ) ||
-        Math.abs(p.latitude) > 90 ||
-        Math.abs(p.longitude) > 180
-      ) {
+      const data = message.data;
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
         return;
       }
+
+      const position = data.position;
+      if (position === undefined) {
+        // The full snapshot supersedes even a marker retained across a disconnect.
+        positions.delete(message.entityId);
+        markers.get(message.entityId)?.remove();
+        markers.delete(message.entityId);
+        if (selected === message.entityId) {
+          selected = undefined;
+          selection.hidden = true;
+          selection.textContent = "";
+        }
+      } else {
+        if (
+          !position ||
+          ![
+            position.sequence,
+            position.latitude,
+            position.longitude,
+            position.observedAt,
+          ].every(Number.isFinite) ||
+          Math.abs(position.latitude) > 90 ||
+          Math.abs(position.longitude) > 180
+        ) {
+          return;
+        }
+        positions.set(message.entityId, position);
+      }
       awaiting.delete(message.entityId);
-      positions.set(message.entityId, p);
-      const notice = message.data.notice;
+      const notice = data.notice;
       if (
         notice &&
         Number.isFinite(notice.at) &&

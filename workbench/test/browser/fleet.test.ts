@@ -13,6 +13,17 @@ test(
   { timeout: 90_000 },
   async () => {
     const scenario = await loadScenario(fixture);
+    const firstEvent = scenario.timeline.findIndex(
+      (entry) => entry.kind === "source-event",
+    );
+    scenario.timeline.splice(firstEvent, 0, {
+      kind: "client-view-check",
+      simulationTime: 55,
+      clientId: "fleet-viewer",
+      viewId: "received-journey",
+      entityId: "car-17",
+      expected: {},
+    });
     const demo = createVehicleDemo(scenario, { fleet: true, headless: true });
     try {
       await demo.reset();

@@ -34,7 +34,7 @@ test(
       assert.equal(await old.page.locator("#history li").count(), 0);
       await old.page
         .locator("#latest-status")
-        .filter({ hasText: "Waiting for a position" })
+        .filter({ hasText: "empty snapshot" })
         .waitFor();
       await old.page.locator("#step").click();
       await wait(() => demo.state.completed === 1);

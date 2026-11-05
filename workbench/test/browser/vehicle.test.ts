@@ -62,11 +62,11 @@ for (const variant of ["basic", "journey"]) {
                 });
                 await browser.page
                   .locator("#latest-status")
-                  .filter({ hasText: "Waiting for a position" })
+                  .filter({ hasText: "empty snapshot" })
                   .waitFor({ timeout: 5000 });
                 await browser.page
                   .locator("#history-status")
-                  .filter({ hasText: "Waiting for a position" })
+                  .filter({ hasText: "empty snapshot" })
                   .waitFor({ timeout: 5000 });
                 assert.equal(
                   await browser.page

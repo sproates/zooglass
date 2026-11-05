@@ -105,6 +105,10 @@ test(
           await browser.page.locator("#history-status").innerText(),
           /1 received position/,
         );
+        upstream.snapshot("trip-history", {});
+        await browser.page
+          .locator("#history li")
+          .waitFor({ state: "detached" });
         upstream.disconnect();
         await browser.page
           .locator("#connection-status")

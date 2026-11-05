@@ -84,15 +84,15 @@ class MatchCorrectionAcceptanceTests {
             assertThat(originalRetry.path("targets")).isEqualTo(created.path("targets"));
             assertThat(source.send(CORRECT).path("status").asText()).isEqualTo("duplicate");
             var obsolete = source.send(goal(4, 2, "revise", "{\"scorer\":\"B\",\"points\":2}"));
-            assertFieldReasons(obsolete, "corrected", "obsoleteRevision");
-            assertFieldReasons(obsolete, "original", "factImmutable");
+            assertRejectedFields(obsolete, "corrected", "obsoleteRevision");
+            assertRejectedFields(obsolete, "original", "factImmutable");
             assertWithdrawn(read(http, service.port(), "corrected"));
 
             var retirement = new FactRetirement("corrected", "game", List.of("goals", "score"), 2);
             assertThat(control.send(JSON.writeValueAsString(retirement)).path("status").asText())
                     .isEqualTo("committed");
             var outside = source.send(goal(5, 4, "revise", "{\"scorer\":\"C\",\"points\":3}"));
-            assertFieldReasons(outside, "corrected", "factOutsideRetention");
+            assertRejectedFields(outside, "corrected", "factOutsideRetention");
             assertThat(source.send(CREATE).path("status").asText()).isEqualTo("duplicate");
             var retired = read(http, service.port(), "corrected");
             assertWithdrawn(retired);
@@ -147,15 +147,20 @@ class MatchCorrectionAcceptanceTests {
         assertThat(snapshot.at("/data/score").decimalValue()).isZero();
     }
 
-    private static void assertFieldReasons(JsonNode receipt, String view, String reason) {
+    private static void assertRejectedFields(JsonNode receipt, String view, String reason) {
         var target =
                 receipt.path("targets")
                         .valueStream()
                         .filter(t -> t.path("viewId").asText().equals(view))
                         .findFirst()
                         .orElseThrow();
-        assertThat(target.path("fields")).hasSize(2);
-        target.path("fields")
-                .forEach(field -> assertThat(field.path("reason").asText()).isEqualTo(reason));
+        var fields = target.path("fields");
+        assertThat(fields)
+                .extracting(field -> field.path("field").asText())
+                .containsExactlyInAnyOrder("goals", "score");
+        for (var field : fields) {
+            assertThat(field.path("status").asText()).isEqualTo("rejected");
+            assertThat(field.path("reason").asText()).isEqualTo(reason);
+        }
     }
 }

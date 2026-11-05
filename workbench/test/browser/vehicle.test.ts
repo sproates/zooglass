@@ -18,7 +18,10 @@ for (const variant of ["basic", "journey"]) {
     { timeout: 90_000 },
     async () => {
       const scenario = await loadScenario(fixture);
-      const service = await startZooGlassSession({ views: scenario.views });
+      const service = await startZooGlassSession({
+        views: scenario.views,
+        sources: scenario.sources,
+      });
 
       try {
         const browser = await startVehicleBrowserSession(service.baseUrl, {
@@ -46,9 +49,37 @@ for (const variant of ["basic", "journey"]) {
             let checkedLatePosition = false;
 
             for (const entry of playScenario(scenario)) {
+              if (
+                variant === "basic" &&
+                entry.kind === "source-event" &&
+                entry.publicationSequence === 40
+              ) {
+                await session.execute({
+                  ...entry,
+                  type: "heartbeat",
+                  payload: {},
+                  publicationSequence: 1,
+                });
+                await browser.page
+                  .locator("#latest-status")
+                  .filter({ hasText: "Waiting for a position" })
+                  .waitFor({ timeout: 5000 });
+                await browser.page
+                  .locator("#history-status")
+                  .filter({ hasText: "Waiting for a position" })
+                  .waitFor({ timeout: 5000 });
+                assert.equal(
+                  await browser.page
+                    .locator("#vehicle-marker")
+                    .getAttribute("visibility"),
+                  "hidden",
+                );
+              }
               await observed.execute(entry);
 
-              if (entry.kind !== "client-view-check") continue;
+              if (entry.kind !== "client-view-check") {
+                continue;
+              }
               if (entry.viewId === "live-map") {
                 const p = entry.expected.position as {
                   sequence: number;
@@ -138,11 +169,12 @@ for (const variant of ["basic", "journey"]) {
                 );
               }
             }
-            if (variant === "journey")
+            if (variant === "journey") {
               assert.ok(
                 checkedLatePosition,
                 "the late-41 checkpoint must be exercised",
               );
+            }
 
             await browser.page.screenshot({
               path: `/tmp/zooglass-vehicle-${variant}-desktop.png`,
@@ -190,8 +222,9 @@ for (const variant of ["basic", "journey"]) {
                   ),
             );
 
-            for (const entry of finalChecks)
+            for (const entry of finalChecks) {
               await session.execute({ ...entry, clientName: "Vehicle viewer" });
+            }
 
             assert.equal(
               await browser.page.locator("#history li").count(),

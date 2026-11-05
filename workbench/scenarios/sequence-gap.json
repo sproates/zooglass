@@ -21,7 +21,7 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -38,7 +38,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -54,7 +54,9 @@
         "sequence": 40,
         "latitude": 51.0,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "view-check",
@@ -81,7 +83,9 @@
         "sequence": 42,
         "latitude": 51.2,
         "longitude": -0.1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "view-check",
@@ -126,7 +130,9 @@
         "sequence": 41,
         "latitude": 51.1,
         "longitude": -0.2
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "view-check",

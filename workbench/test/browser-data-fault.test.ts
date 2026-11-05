@@ -79,8 +79,12 @@ async function fixture() {
     },
     async close() {
       await host.close();
-      for (const socket of pending) socket.destroy();
-      for (const socket of upstream.clients) socket.terminate();
+      for (const socket of pending) {
+        socket.destroy();
+      }
+      for (const socket of upstream.clients) {
+        socket.terminate();
+      }
       await new Promise<void>((resolve) => upstream.close(() => resolve()));
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

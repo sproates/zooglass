@@ -21,7 +21,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -37,7 +37,9 @@
         "sequence": 40,
         "latitude": 51.0,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "source-event",
@@ -49,7 +51,9 @@
         "sequence": 41,
         "latitude": 52.0,
         "longitude": -1.0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "source-event",
@@ -61,7 +65,9 @@
         "sequence": 42,
         "latitude": 51.2,
         "longitude": -0.1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "view-check",

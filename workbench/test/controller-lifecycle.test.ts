@@ -35,7 +35,9 @@ test("step waits for checks, rejects overlap, and reset invalidates the active r
           }
         },
         async close() {
-          if (index === 0) await cleanup.promise;
+          if (index === 0) {
+            await cleanup.promise;
+          }
         },
         publish() {},
       };
@@ -98,11 +100,14 @@ test("failed checks stop progress; reset starts from empty; cleanup failure prev
       signal,
       publish() {},
       async execute(entry) {
-        if (entry.kind === "view-check" && failCheck)
+        if (entry.kind === "view-check" && failCheck) {
           throw new Error("Check failed");
+        }
       },
       async close() {
-        if (failClose) throw new Error("Process still running");
+        if (failClose) {
+          throw new Error("Process still running");
+        }
       },
     };
   });

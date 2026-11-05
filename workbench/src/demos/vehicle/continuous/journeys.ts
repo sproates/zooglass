@@ -37,10 +37,11 @@ export function journey(car: Car) {
   const points = car.route.points;
   const lengths = points.slice(1).map((point, i) => metres(points[i], point));
   const length = lengths.reduce((a, b) => a + b, 0);
-  if (length <= 0 || metres(points[0], points.at(-1)!) > 1)
+  if (length <= 0 || metres(points[0], points.at(-1)!) > 1) {
     throw new Error(
       `Route ${car.route.id} must be a non-empty closed journey.`,
     );
+  }
   return {
     length,
     position(seconds: number): Coordinate {

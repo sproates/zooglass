@@ -133,7 +133,7 @@ test("browser receipt overflow fails rather than discarding evidence", async () 
     connectionGeneration: 1,
     observationIndex: 1,
   });
-  for (let index = 2; index <= 258; index++)
+  for (let index = 2; index <= 258; index++) {
     control.receive({
       type: "observation",
       event: "view-update",
@@ -143,6 +143,7 @@ test("browser receipt overflow fails rather than discarding evidence", async () 
       entityId: check.entityId,
       data: check.expected,
     });
+  }
 
   assert.deepEqual(failures, ["Browser receipt buffer exhausted."]);
   await control.executor.close();

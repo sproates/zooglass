@@ -21,8 +21,9 @@ test("pause lets an active checkpoint finish, rejects overlap, and resumes in or
     publish() {},
     async close() {},
     async execute(entry) {
-      if (entry.kind === "source-event")
+      if (entry.kind === "source-event") {
         sent.push(entry.payload.sequence as number);
+      }
 
       if (entry.kind === "view-check" && sent.length === 1) {
         entered.resolve();
@@ -74,8 +75,9 @@ test("pause freezes the remaining delay; reset and close cancel scheduled delive
     publish() {},
     async close() {},
     async execute(entry) {
-      if (entry.kind === "source-event")
+      if (entry.kind === "source-event") {
         sent.push(entry.payload.sequence as number);
+      }
     },
   }));
 
@@ -120,10 +122,13 @@ test("playback check failure stops scheduling and reset clears playback", async 
     publish() {},
     async close() {},
     async execute(entry) {
-      if (entry.kind === "source-event")
+      if (entry.kind === "source-event") {
         sent.push(entry.payload.sequence as number);
+      }
 
-      if (entry.kind === "view-check") throw new Error("bad checkpoint");
+      if (entry.kind === "view-check") {
+        throw new Error("bad checkpoint");
+      }
     },
   }));
 

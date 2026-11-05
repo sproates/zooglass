@@ -25,7 +25,9 @@ async function retainDataSockets(
       constructor(url: string | URL, protocols?: string | string[]) {
         super(url, protocols);
 
-        if (String(url).includes("/views/live")) sockets.push(this);
+        if (String(url).includes("/views/live")) {
+          sockets.push(this);
+        }
       }
     };
   });
@@ -92,12 +94,17 @@ for (const firstView of ["live-map", "trip-history"]) {
           old.dispatchEvent(new Event("error"));
           old.dispatchEvent(new CloseEvent("close"));
 
-          if (document.querySelector("#current-sequence")!.textContent !== "42")
+          if (
+            document.querySelector("#current-sequence")!.textContent !== "42"
+          ) {
             throw new Error("Old socket overwrote retained position");
+          }
 
-          for (const id of ["latest-status", "history-status"])
-            if (document.getElementById(id)!.dataset.state !== "retained")
+          for (const id of ["latest-status", "history-status"]) {
+            if (document.getElementById(id)!.dataset.state !== "retained") {
               throw new Error("Old socket changed freshness");
+            }
+          }
         });
 
         const fresh = { ...position, sequence: 43 };
@@ -235,7 +242,9 @@ test(
       if (request.action === "unsubscribe") {
         acknowledgeUnsubscribe = acknowledge;
         entered();
-      } else acknowledge();
+      } else {
+        acknowledge();
+      }
     });
 
     t.after(() => upstream.close());
@@ -309,8 +318,11 @@ for (const action of ["subscribe", "unsubscribe"] as const) {
         entered = resolve;
       });
       const upstream = await peer(false, (request, acknowledge) => {
-        if (request.action === action) entered();
-        else acknowledge();
+        if (request.action === action) {
+          entered();
+        } else {
+          acknowledge();
+        }
       });
 
       t.after(() => upstream.close());
@@ -324,11 +336,12 @@ for (const action of ["subscribe", "unsubscribe"] as const) {
       try {
         await browser.host.executor.execute(state("connected"), signal());
 
-        if (action === "unsubscribe")
+        if (action === "unsubscribe") {
           await browser.host.executor.execute(
             subscription("live-map"),
             signal(),
           );
+        }
 
         const pending = browser.host.executor.execute(
           subscription("live-map", action),

@@ -1,7 +1,7 @@
 # Progress, freshness and publication strategies
 
 Status: accepted design (PR #126). The progress/late-policy slice implements source
-progress, controls, field outcomes and status. Required-field publication is implemented. Receipt-age classification, expiry and restart recovery are implemented for v2 snapshots.
+progress, controls, field outcomes and status. Required-field publication is implemented. Receipt-age classification, expiry and restart recovery are implemented for snapshots.
 Builds on the accepted [behaviour contracts](behaviour-contracts.md)
 and delivered [relationships and priority](relationships-and-conflicts.md).
 The [progress guide](../../zooglass/docs/source-progress.md) documents the
@@ -61,7 +61,7 @@ included. A silent source makes no new progress promise.
 
 ## Proposed configuration
 
-These additions extend the existing v2 grammar. Input objects remain exactly
+These additions extend the existing grammar. Input objects remain exactly
 `sourceId` and `type`; field `mode` remains flat. This document is the canonical
 proposal for the new `progress`, `late`, `freshness` and `publication` properties.
 All other grammar comes from the relationship design.
@@ -135,8 +135,8 @@ Validation and normalisation:
 
 ## Source progress protocol
 
-Keep data publications on `/v2/events` unchanged. Add a separate WebSocket endpoint
-`/v2/progress` for controls, so a watermark cannot be mistaken for a domain event.
+Keep data publications on `/events` unchanged. Add a separate WebSocket endpoint
+`/progress` for controls, so a watermark cannot be mistaken for a domain event.
 A connection may carry controls for configured sources, under the same source
 validation boundary as ingestion. This does not add authentication guarantees.
 
@@ -372,7 +372,7 @@ field type did not match this data event. Resolver failure cannot invent a mappi
 
 ```mermaid
 flowchart TB
-  config["V2Configuration: validate and bind choices"]
+  config["RuntimeConfiguration: validate and bind choices"]
   ingress["Data ingress / progress ingress"]
   coordinator["ViewCoordinator: stage one atomic transition"]
   progress["Progress strategy: scoped ranges and promise"]
@@ -392,7 +392,7 @@ receipt times, published state, publication status and clock observations. Each
 source/control/timer transition stages and commits all affected state once, then
 installs memory and replies. Preserve existing failure and exclusive-owner rules.
 Runtime version overflow fails before commit. Memory mode uses the same semantics
-without restart guarantees. This design does not introduce v2 live subscriptions.
+without restart guarantees. Live subscriptions now deliver these installed status changes through the single runtime.
 
 Use a versioned transactional migration from schema 3 (and the existing schema-1/2
 chain), before readiness. Old source definitions normalise to untracked; existing

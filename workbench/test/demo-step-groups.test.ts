@@ -20,6 +20,8 @@ const scenario: Scenario = {
       entityId: "one",
     },
     {
+      epoch: "run",
+      publicationSequence: 51,
       kind: "source-event",
       simulationTime: 50,
       sourceId: "feed",
@@ -48,6 +50,8 @@ const scenario: Scenario = {
       expected: {},
     },
     {
+      epoch: "run",
+      publicationSequence: 121,
       kind: "source-event",
       simulationTime: 120,
       sourceId: "feed",

@@ -137,6 +137,8 @@ const invalidEntries = [
   },
   {
     entry: {
+      epoch: "run",
+      publicationSequence: 1,
       kind: "source-event",
       simulationTime: 0,
       sourceId: "missing",
@@ -146,6 +148,8 @@ const invalidEntries = [
   },
   {
     entry: {
+      epoch: "run",
+      publicationSequence: 1,
       kind: "source-event",
       simulationTime: 0,
       sourceId: "feed",

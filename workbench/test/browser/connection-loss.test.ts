@@ -20,7 +20,9 @@ test(
     });
     try {
       await demo.reset();
-      for (let step = 0; step < 6; step++) await demo.step();
+      for (let step = 0; step < 6; step++) {
+        await demo.step();
+      }
       const page = demo.browser!.page;
       assert.match(await page.locator("#activity").innerText(), /retry-failed/);
       assert.match(
@@ -74,7 +76,9 @@ test(
     });
     try {
       await demo.reset();
-      for (let step = 0; step < 6; step++) await demo.step();
+      for (let step = 0; step < 6; step++) {
+        await demo.step();
+      }
       const old = demo.browser!;
       await demo.reset();
       assert.equal(old.page.isClosed(), true);
@@ -139,7 +143,9 @@ test(
     const demo = createVehicleDemo(scenario, { headless: true });
     try {
       await demo.reset();
-      for (let step = 0; step < 6; step++) await demo.step();
+      for (let step = 0; step < 6; step++) {
+        await demo.step();
+      }
       assert.equal(demo.state.playing, false);
       await demo
         .browser!.page.locator("#connection-status")

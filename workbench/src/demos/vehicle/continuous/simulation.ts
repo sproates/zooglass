@@ -15,6 +15,7 @@ interface SimulationOptions extends ProducerOptions {
 export async function startSimulation(options: SimulationOptions = {}) {
   const cars = await loadCars();
   const service = await startZooGlassSession({
+    signal: options.signal,
     views: [
       {
         id: "driving",
@@ -23,8 +24,14 @@ export async function startSimulation(options: SimulationOptions = {}) {
           notice: [{ sourceId: "fleet", type: "notice" }],
         },
         ordering: {
-          position: { mode: "latestBySequence", sequenceField: "sequence" },
-          notice: { mode: "latestBySequence", sequenceField: "sequence" },
+          position: {
+            mode: "latestBySequence",
+            sequenceField: "publicationSequence",
+          },
+          notice: {
+            mode: "latestBySequence",
+            sequenceField: "publicationSequence",
+          },
         },
       },
     ],
@@ -59,7 +66,10 @@ export async function startSimulation(options: SimulationOptions = {}) {
       }
       route.upgrade(request, socket, head);
     });
-    producer = await startProducer(service.baseUrl, cars, options);
+    producer = await startProducer(service.baseUrl, cars, {
+      ...options,
+      signal: service.signal,
+    });
     return {
       origin: host.origin,
       baseUrl: service.baseUrl,

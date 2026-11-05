@@ -1,7 +1,11 @@
 # Configurable behaviour through strategy modules
 
 Status: accepted design (PR #100), based on `main` at `3011f6e` (30 October 2026).
-The initial module extraction is implemented; later capabilities remain planned.
+The baseline audit and first-slice examples below record the original design.
+The runtime now includes identity, SQLite, progress, freshness, fact revisions and
+live delivery. The old store has been removed; see the
+[current source map](../../zooglass/docs/source-map.md) and
+[publication contract](../../zooglass/docs/publications.md) for current names and configuration.
 This design chooses how ZooGlass's behaviours are represented, configured and
 executed. It starts with the working ordering policies and gives later source,
 correction and recovery behaviour explicit places to live.
@@ -26,7 +30,7 @@ own inputs and outputs; they do not inherit an all-purpose strategy base class.
 
 ## Baseline audit
 
-The current code already provides useful behaviour and evidence. This is a source
+The code at the original design baseline provided the following behaviour and evidence. This is a source
 and existing-test audit, not a new test execution or a coverage-percentage claim.
 
 | Concern | Current implementation | Existing evidence and next change |
@@ -139,7 +143,8 @@ flowchart TB
   broadcaster -->|coordinates update and snapshot delivery| store
 ```
 
-The initial extraction now follows this shape. See the
+The initial extraction followed this shape; consolidation has replaced its store
+and transport classes. See the
 [implemented source map](../../zooglass/docs/source-map.md) for current dependencies.
 `FieldUpdates` has been removed; the selected modules own the behaviour.
 

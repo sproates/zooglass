@@ -46,7 +46,9 @@ export function createSubscriptionClient(
   let failure: string | undefined;
 
   const markFailure = (reason: string, notify = true, transport = false) => {
-    if (failure) return;
+    if (failure) {
+      return;
+    }
 
     failure = reason;
     deliberateClose = true;
@@ -62,7 +64,9 @@ export function createSubscriptionClient(
 
     socket?.close();
 
-    if (notify) fail(reason, transport);
+    if (notify) {
+      fail(reason, transport);
+    }
   };
 
   const subscriptions = new Set<string>();
@@ -82,9 +86,13 @@ export function createSubscriptionClient(
     });
 
   async function execute(command: Command) {
-    if (failure && command.action !== "disconnect") throw new Error(failure);
+    if (failure && command.action !== "disconnect") {
+      throw new Error(failure);
+    }
     if (command.action === "connect") {
-      if (socket?.readyState === WebSocket.OPEN) return generation;
+      if (socket?.readyState === WebSocket.OPEN) {
+        return generation;
+      }
 
       const current = new WebSocket(`ws://${location.host}${dataPath}`);
 
@@ -94,7 +102,9 @@ export function createSubscriptionClient(
       subscriptions.clear();
       binding.onConnection("connecting");
       current.addEventListener("message", (event) => {
-        if (socket !== current || failure) return;
+        if (socket !== current || failure) {
+          return;
+        }
 
         try {
           const message = JSON.parse(event.data);
@@ -111,11 +121,15 @@ export function createSubscriptionClient(
               message.type !== `${waiting.action}d` ||
               message.viewId !== waiting.viewId ||
               message.entityId !== waiting.entityId
-            )
+            ) {
               throw new Error("Unexpected subscription response.");
+            }
 
-            if (message.type === "subscribed") subscriptions.add(pair);
-            else subscriptions.delete(pair);
+            if (message.type === "subscribed") {
+              subscriptions.add(pair);
+            } else {
+              subscriptions.delete(pair);
+            }
 
             binding.onSubscription(
               message.viewId,
@@ -150,7 +164,9 @@ export function createSubscriptionClient(
         }
       });
       current.addEventListener("close", () => {
-        if (socket !== current) return;
+        if (socket !== current) {
+          return;
+        }
 
         subscriptions.clear();
         acknowledgement?.reject(
@@ -159,8 +175,11 @@ export function createSubscriptionClient(
         acknowledgement = undefined;
 
         if (!failure) {
-          if (deliberateClose) binding.onConnection("disconnected");
-          else markFailure(binding.connectionLostReason, true, true);
+          if (deliberateClose) {
+            binding.onConnection("disconnected");
+          } else {
+            markFailure(binding.connectionLostReason, true, true);
+          }
         }
 
         observe("closed");
@@ -169,7 +188,9 @@ export function createSubscriptionClient(
         current.addEventListener(
           "open",
           () => {
-            if (socket !== current || failure) return;
+            if (socket !== current || failure) {
+              return;
+            }
 
             try {
               binding.onConnection("connected");
@@ -189,7 +210,9 @@ export function createSubscriptionClient(
         current.addEventListener(
           "error",
           () => {
-            if (socket !== current) return;
+            if (socket !== current) {
+              return;
+            }
 
             const reason = "Could not connect to ZooGlass.";
 
@@ -210,18 +233,21 @@ export function createSubscriptionClient(
         });
       }
     } else {
-      if (socket?.readyState !== WebSocket.OPEN)
+      if (socket?.readyState !== WebSocket.OPEN) {
         throw new Error("ZooGlass socket is not open.");
+      }
 
       binding.validateSubscription(command.viewId, command.entityId);
 
       const { viewId, entityId } = command;
 
-      if (!viewId || !entityId)
+      if (!viewId || !entityId) {
         throw new Error("Missing subscription identity.");
+      }
 
-      if (command.action === "subscribe")
+      if (command.action === "subscribe") {
         binding.onSubscription(viewId, entityId, "pending");
+      }
 
       await new Promise<void>((resolve, reject) => {
         acknowledgement = {

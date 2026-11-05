@@ -11,16 +11,16 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
-## Revise and retire v2 facts
+## Revise and retire facts
 
 The `strategy/fact/` modules own revision and projection decisions. Their state is
-retained per field in the v2 store. `FactOrigins` checks birth/type ownership from
+retained per field in the store. `FactOrigins` checks birth/type ownership from
 those bounded records; it does not own a second mutable ledger.
 
 ```mermaid
 flowchart TB
-  view["v2/BoundView.java"] -->|reads field settings| config["v2/V2Configuration.java"]
-  view -->|binds selected policies| bound["v2/BoundFactField.java"]
+  view["runtime/BoundView.java"] -->|reads field settings| config["runtime/RuntimeConfiguration.java"]
+  view -->|binds selected policies| bound["runtime/BoundFactField.java"]
   bound -->|selects revision policy| selection["strategy/fact/FactRevisionSelection.java"]
   selection -->|firstFact| first["strategy/fact/FirstFact.java"]
   selection -->|latestFactRevision| latest["strategy/fact/LatestFactRevision.java"]
@@ -34,16 +34,16 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  events["v2/EventIngress.java"] -->|publication and fact metadata| coordinator["v2/ViewCoordinator.java"]
-  ingress["v2/FactRetirementIngress.java"] -->|validated control| coordinator
-  coordinator -->|checks birth and type before routing| origins["v2/FactOrigins.java"]
-  coordinator -->|stages retirement| retire["v2/FactRetirementTransitions.java"]
-  retire -->|updates named fields atomically| view["v2/BoundView.java"]
-  coordinator -->|stages source targets| transitions["v2/ViewTransitions.java"]
+  events["runtime/EventIngress.java"] -->|publication and fact metadata| coordinator["runtime/ViewCoordinator.java"]
+  ingress["runtime/FactRetirementIngress.java"] -->|validated control| coordinator
+  coordinator -->|checks birth and type before routing| origins["runtime/FactOrigins.java"]
+  coordinator -->|stages retirement| retire["runtime/FactRetirementTransitions.java"]
+  retire -->|updates named fields atomically| view["runtime/BoundView.java"]
+  coordinator -->|stages source targets| transitions["runtime/ViewTransitions.java"]
   transitions -->|evaluates matching fields| view
-  view -->|revision and projection| field["v2/BoundFactField.java"]
-  field -->|returns detached records| state["v2/FactState.java"]
-  recovery["v2/RecoveryValidation.java"] -->|validates records and projections| facts["v2/FactRecovery.java"]
+  view -->|revision and projection| field["runtime/BoundFactField.java"]
+  field -->|returns detached records| state["runtime/FactState.java"]
+  recovery["runtime/RecoveryValidation.java"] -->|validates records and projections| facts["runtime/FactRecovery.java"]
 ```
 
 `FactEnvelope` separates publication identity from fact identity; `FactRecord`
@@ -53,11 +53,11 @@ parses floor controls and `FactRetirementOutcome` describes their results.
 collection counts and floors. Existing `StateStore`/`SqliteStateRows` commit that
 state with receipts, projections, source progress and clock metadata.
 
-## Age a selected v2 contribution
+## Age a selected contribution
 
 ```mermaid
 flowchart LR
-  config["V2Configuration.java"] -->|binds field policy| select["FreshnessStrategySelection.java"]
+  config["RuntimeConfiguration.java"] -->|binds field policy| select["FreshnessStrategySelection.java"]
   select -->|default| unspecified["UnspecifiedFreshness.java"]
   select -->|threshold| age["ReceiptAgeFreshness.java"]
   bound["BoundView.java"] -->|stamps changed source candidates| policy["FreshnessStrategy.java"]
@@ -71,11 +71,11 @@ flowchart LR
   timing -->|rebases stored ages| policy
 ```
 
-## Decide when to publish a v2 entity
+## Decide when to publish an entity
 
 ```mermaid
 flowchart LR
-  config["V2Configuration.java"] -->|binds view policy| select["PublicationStrategySelection.java"]
+  config["RuntimeConfiguration.java"] -->|binds view policy| select["PublicationStrategySelection.java"]
   select -->|default| partial["PublishPartial.java"]
   select -->|required field names and capacity| gate["RequireContributions.java"]
   bound["BoundView.java"] -->|checks field presence before exposing values| policy["PublicationStrategy.java"]
@@ -84,147 +84,54 @@ flowchart LR
   gate -.->|implements| policy
 ```
 
-## Start at the application or an endpoint
+## Application, snapshots and delivery
 
-[`ZooGlassApplication.java`](../src/main/java/io/zooglass/ZooGlassApplication.java)
-starts Spring Boot. Spring discovers the annotated components and supplies their
-constructor dependencies. The application class does not manually construct the
-handlers, controller or store.
-
-```mermaid
-flowchart TB
-  app["ZooGlassApplication.java<br/>Application entry point"]
-  spring("Spring Boot<br/>Component discovery and HTTP server")
-  sockets["WebSocketConfiguration.java<br/>Register WebSocket endpoints"]
-  http["ViewController.java<br/>HTTP view endpoints"]
-  events["EventLoggingWebSocketHandler.java<br/>Receive source events"]
-  live["LiveViewWebSocketHandler.java<br/>Receive subscription requests"]
-  app -->|starts application context| spring
-  spring -.->|discovers configuration| sockets
-  spring -.->|discovers REST controller| http
-  sockets -->|registers at /events| events
-  sockets -->|registers at /views/live| live
-```
-
-| Entry point                                                                                           | What it is for                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [`EventLoggingWebSocketHandler.java`](../src/main/java/io/zooglass/EventLoggingWebSocketHandler.java) | Parse and validate source event envelopes, then pass valid events to the broadcaster. Despite the name, it does more than logging. |
-| [`LiveViewWebSocketHandler.java`](../src/main/java/io/zooglass/LiveViewWebSocketHandler.java)         | Handle client registration, subscribe/unsubscribe requests, protocol errors and connection closure.                                |
-| [`ViewController.java`](../src/main/java/io/zooglass/ViewController.java)                             | Define a view through `POST /views`, or read one entity snapshot through `GET /views/{viewId}/{entityId}`.                         |
-
-## Coordinate projection and live delivery
-
-[`LiveViewBroadcaster.java`](../src/main/java/io/zooglass/LiveViewBroadcaster.java)
-coordinates view changes, subscription membership and outbound queue insertion.
-Those operations share its monitor so an initial snapshot and subsequent updates
-are queued consistently with subscription changes.
+`ZooGlassApplication` starts Spring and WebSocket support. `runtime/RuntimeEndpoints`
+registers source/control sockets, HTTP snapshots and dynamic view registration.
+`delivery/SnapshotSubscriptions` validates subscription requests;
+`delivery/SnapshotBroadcaster` admits them under the coordinator monitor and queues
+committed snapshots. `api/ViewSnapshot` exposes selected values and separate
+publication metadata without leaking retained storage envelopes.
 
 ```mermaid
-flowchart TB
-  events["EventLoggingWebSocketHandler.java<br/>Validate incoming events"]
-  live["LiveViewWebSocketHandler.java<br/>Handle client protocol"]
-  http["ViewController.java<br/>Define and query views"]
-  broadcaster["LiveViewBroadcaster.java<br/>Coordinate projection and delivery"]
-  store["ViewStore.java<br/>Stage updates and own entity state"]
-  subscriptions["SubscriptionIndex.java<br/>Index clients by view and entity"]
-  writer["OutboundWriter.java<br/>Bounded queue and writer per client"]
-  events -->|applies accepted events| broadcaster
-  live -->|registers clients and changes subscriptions| broadcaster
-  http -->|defines views and reads snapshots| store
-  broadcaster -->|applies events and reads initial snapshots| store
-  broadcaster -->|records membership and finds recipients| subscriptions
-  broadcaster -->|creates writers and enqueues messages| writer
+flowchart LR
+  events["runtime/EventIngress"] --> coordinator["runtime/ViewCoordinator"]
+  http["runtime/RuntimeEndpoints"] --> coordinator
+  subscriptions["delivery/SnapshotSubscriptions"] --> broadcaster["delivery/SnapshotBroadcaster"]
+  broadcaster -->|capture under same monitor| coordinator
+  coordinator -->|installed snapshots| broadcaster
+  broadcaster --> dto["api/ViewSnapshot"]
+  broadcaster --> index["delivery/SubscriptionIndex"]
+  broadcaster -->|bounded queue per session| writer["delivery/OutboundWriter"]
+  writer -->|outside coordinator monitor| socket["Client socket"]
+  http --> dto
 ```
 
-[`SubscriptionIndex.java`](../src/main/java/io/zooglass/SubscriptionIndex.java)
-maintains both directions of the lookup: recipients for a view/entity pair and
-subscriptions belonging to a session. It owns no socket-writing tasks.
+The coordinator owns state and installation. Delivery owns subscriptions and
+writers, with no independent projection store. Registration uses
+`RuntimeConfiguration` validation and updates the existing strategy bindings;
+SQLite records the expanded configuration in its transaction. Stateless update
+strategies remain in `strategy/update`, selected by `FieldStrategySelection`.
 
-[`OutboundWriter.java`](../src/main/java/io/zooglass/OutboundWriter.java) owns a
-bounded queue and a writer task for one session. Socket writes happen outside the
-broadcaster's monitor. The broadcaster supplies a failure callback and removes
-failed or slow clients; the writer does not depend directly on the broadcaster
-class. HTTP snapshot reads use the store directly and do not enter this delivery
-queue.
+## Publication path
 
-## Define and update view state
-
-[`ViewStore.java`](../src/main/java/io/zooglass/ViewStore.java) owns registered
-matchers and in-memory entity state. It indexes source/event pairs to the fields
-they can update. Configuration validation and individual field-update policies
-are delegated to smaller classes.
-
-```mermaid
-flowchart TB
-  store["ViewStore.java<br/>Register matchers; stage then install state"]
-  definitions["ViewDefinitions.java<br/>Load and validate definitions"]
-  selection["strategy/update/FieldStrategySelection.java<br/>Select once at registration"]
-  strategy["strategy/update/FieldUpdateStrategy.java<br/>Evaluate current and incoming values"]
-  result["strategy/update/FieldUpdate.java<br/>Changed flag and owned replacement"]
-  arrival["strategy/update/ArrivalReplacement.java"]
-  latest["strategy/update/LatestBySequence.java"]
-  history["strategy/update/HistoryBySequence.java"]
-  numbers["strategy/update/SequenceValues.java<br/>Exact numeric comparison"]
-  config["ViewConfiguration.java<br/>Definition, matcher and ordering records"]
-  snapshot["ViewSnapshot.java<br/>View ID, entity ID and copied data"]
-  store -->|loads and validates definitions| definitions
-  store -->|binds configured strategy| selection
-  store -->|evaluates matched fields| strategy
-  strategy -.->|returns| result
-  selection -->|constructs| arrival
-  selection -->|constructs| latest
-  selection -->|constructs| history
-  arrival -.->|implements| strategy
-  latest -.->|implements| strategy
-  history -.->|implements| strategy
-  latest -->|compares sequences| numbers
-  history -->|orders and deduplicates| numbers
-  store -->|prepares detached results before installation| snapshot
-  store -.->|registers definition records| config
-  definitions -.->|deserialises and validates records| config
-  selection -.->|reads ordering record| config
-```
-
-[`ViewDefinitions.java`](../src/main/java/io/zooglass/ViewDefinitions.java) loads
-configuration from the configured resource, defaulting to
-[`src/main/resources/views.json`](../src/main/resources/views.json), and validates
-startup and runtime definitions. It does not own registered state.
-
-The [`strategy/update/`](../src/main/java/io/zooglass/strategy/update/) package
-contains arrival replacement, latest-by-sequence and history-by-sequence modules.
-`FieldStrategySelection` binds the configured choice once per field. Each strategy
-reads the current value and incoming payload without mutating either, returning
-an owned replacement or an unchanged result. `ViewStore` installs replacements
-under its existing lock, after all affected fields and result snapshots have been
-prepared successfully. An evaluation or snapshot-copy failure installs nothing.
-Strategy instances hold settings, never entity state.
-
-[`ViewConfiguration.java`](../src/main/java/io/zooglass/ViewConfiguration.java)
-defines the records shared by configuration loading, registration and update
-policy. [`ViewSnapshot.java`](../src/main/java/io/zooglass/ViewSnapshot.java)
-is the snapshot representation used by the store, HTTP controller and broadcaster;
-the store copies values before returning them.
-
-## Versioned publication path
-
-The `v2/` package provides a separate identity-aware path with memory or SQLite storage. It reuses the
-update strategies above, while keeping v2 state and endpoints separate from the
-legacy demo APIs. See the [ingestion guide](v2-ingestion.md) for configuration and
-wire examples.
+The `runtime/` package contains the single coordinator and its memory/SQLite
+storage. See the [publication guide](publications.md) for configuration and wire examples.
 
 Each box below is a file in
-[`src/main/java/io/zooglass/v2/`](../src/main/java/io/zooglass/v2/), except the
+[`src/main/java/io/zooglass/runtime/`](../src/main/java/io/zooglass/runtime/), except the
 shared update selector and the identity strategy files shown with their paths.
 
 ```mermaid
 flowchart TB
-  endpoints["V2Endpoints.java<br/>HTTP snapshots and socket registration"]
+  endpoints["RuntimeEndpoints.java<br/>HTTP snapshots and socket registration"]
   ingress["EventIngress.java<br/>Source messages and acknowledgements"]
   parser["PublicationJson.java<br/>Strict parsing and canonical comparison"]
   publication["Publication.java<br/>Envelope and stream key"]
   outcome["PublicationOutcome.java<br/>Structured source result"]
   coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
-  config["V2Configuration.java<br/>Validate startup definitions"]
+  config["RuntimeConfiguration.java<br/>Decode startup definitions"]
+  configValidation["ConfigurationValidation.java<br/>References and strategy compatibility"]
   bound["BoundView.java<br/>Bind resolvers, updates and selectors"]
   entitySelection["strategy/identity/EntityStrategySelection.java"]
   entityStrategy["strategy/identity/EntityResolutionStrategy.java"]
@@ -238,18 +145,24 @@ flowchart TB
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
-  recovery["RecoveryValidation.java<br/>Definitions and recovered state"]
+  storedJson["StoredJson.java<br/>UTF-8 validation and wrapped JSON depth"]
+  rows -->|uses row encoding limits| storedJson
+  publication -->|validates identifiers and payload| storedJson
+  recovery["RecoveryValidation.java<br/>Definitions, streams and validation orchestration"]
+  viewRecovery["ViewRecovery.java<br/>Candidates and exposed views"]
+  targetRecovery["TargetRecovery.java<br/>Retained per-target outcomes"]
   image["StateImage.java<br/>Candidates, views, identities and versions"]
-  health["V2StorageHealth.java<br/>Service health status"]
+  health["StorageHealth.java<br/>Service health status"]
   selection["strategy/update/FieldStrategySelection.java"]
 
-  endpoints -->|registers at /v2/events| ingress
+  endpoints -->|registers at /events| ingress
   endpoints -->|reads detached snapshots| coordinator
   ingress -->|parses input| parser
   parser -.->|constructs| publication
   ingress -->|applies publication| coordinator
   ingress -.->|serialises| outcome
   coordinator -->|loads definitions and limits| config
+  config -->|checks decoded definitions| configValidation
   coordinator -->|compares retained content| parser
   transitions["ViewTransitions.java<br/>Stage values and status across views"]
   status["ViewStatus.java<br/>Project public metadata"]
@@ -262,6 +175,8 @@ flowchart TB
   store -.->|owns installed image| image
   sqlite -->|loads and saves rows in a transaction| rows
   rows -->|checks restored state and configuration| recovery
+  recovery -->|validates selected values and provenance| viewRecovery
+  recovery -->|validates receipt outcomes| targetRecovery
   health -->|checks storage availability| coordinator
   coordinator -.->|returns| outcome
   contributionSelection["strategy/contribution/ContributionStrategySelection.java"]
@@ -305,18 +220,20 @@ status is unchanged. Progress, source observation and floor changes are visible
 metadata and can advance the version without changing selected values.
 
 `SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
-checks stored definitions, target outcomes, candidate provenance and the selected
-winner before the service becomes ready. `SchemaMigration` enriches schema-1/2
+checks stored definitions and stream receipts, delegates retained target outcomes
+to `TargetRecovery`, and delegates candidate provenance and selected values to
+`ViewRecovery` before the service becomes ready. `ConfigurationValidation` checks
+references and compatible strategies after startup definitions are decoded. `SchemaMigration` enriches schema-1/2
 rows in that same transaction;
 old receipts retain unknown (`null`) target outcomes. `BoundView` invokes its
 source resolver only after matching the source/type. Unknown mappings produce
 view-local rejections; publication identity keeps the source's original key.
 `SqliteState` owns one exclusive connection and closes it on shutdown or storage
-failure. Failed storage blocks reads and writes; `V2StorageHealth` reports DOWN.
+failure. Failed storage blocks reads and writes; `StorageHealth` reports DOWN.
 
 `EventIngress` sends the outcome after leaving the coordinator's monitor. A
 transport failure cannot undo applied state; a retry can recover the retained
-result. There are no v2 live-subscription writers in this increment.
+result. There are no live-subscription writers in this increment.
 
 ## Track source progress and apply late policy
 
@@ -326,23 +243,23 @@ A source promise violation is recorded even if every target rejects its values.
 
 ```mermaid
 flowchart TB
-  endpoints["v2/V2Endpoints.java"]
-  ingress["v2/ProgressIngress.java"]
-  control["v2/ProgressControl.java<br/>Strict watermark parser"]
-  outcome["v2/ProgressOutcome.java"]
-  coordinator["v2/ViewCoordinator.java"]
+  endpoints["runtime/RuntimeEndpoints.java"]
+  ingress["runtime/ProgressIngress.java"]
+  control["runtime/ProgressControl.java<br/>Strict watermark parser"]
+  outcome["runtime/ProgressOutcome.java"]
+  coordinator["runtime/ViewCoordinator.java"]
   selection["strategy/progress/ProgressStrategySelection.java"]
   strategy["strategy/progress/ProgressStrategy.java"]
   untracked["strategy/progress/UntrackedProgress.java"]
   contiguous["strategy/progress/ContiguousSequenceProgress.java"]
   state["strategy/progress/ProgressState.java<br/>Prefix, intervals and watermark receipt"]
   rejected["strategy/progress/ProgressRejected.java"]
-  bound["v2/BoundView.java"]
+  bound["runtime/BoundView.java"]
   lateSelection["strategy/late/LateStrategySelection.java"]
   late["strategy/late/LateDeliveryStrategy.java"]
   accept["strategy/late/AcceptLate.java"]
   reject["strategy/late/RejectBehindWatermark.java"]
-  endpoints -->|registers /v2/progress| ingress
+  endpoints -->|registers /progress| ingress
   ingress -->|parses control| control
   ingress -->|advances scoped watermark| coordinator
   ingress -.->|serialises| outcome
@@ -371,22 +288,14 @@ responses after the coordinator releases its lock.
 
 ## Suggested reading paths
 
-For an incoming event, read `EventLoggingWebSocketHandler.java`,
-`LiveViewBroadcaster.java`, `ViewStore.java`, then the selected module in `strategy/update/`. For client
-delivery, start with `LiveViewWebSocketHandler.java`, then the broadcaster,
-subscription index and outbound writer. For view definitions, start with
-`ViewController.java`, then the store and `ViewDefinitions.java`.
+For publication admission, start with `runtime/EventIngress.java`, then
+`PublicationJson.java` and `ViewCoordinator.java`. Follow `ViewTransitions.java`
+to the selected strategy modules. For persistence, read `StateStore.java`,
+`SqliteState.java`, `SqliteStateRows.java` and the recovery validators.
 
-For v2 ingestion, start with `v2/EventIngress.java`, then `PublicationJson.java`,
-`ViewCoordinator.java`, `BoundView.java` and the selected `StateStore` implementation.
+For delivery, follow `delivery/SnapshotSubscriptions.java`,
+`SnapshotBroadcaster.java` and `OutboundWriter.java`. For configuration and runtime
+registration, read `RuntimeConfiguration.java`, `ConfigurationValidation.java`
+and `ViewCoordinator.define`.
 
-This map covers the production Java modules. SQLite persistence applies to v2 only;
-legacy endpoints retain their memory-only behaviour. Replay and authorisation
-features are separate delivery work.
-Tests are described in the [verification map](../../docs/testing.md). For the
-clients and orchestration around the service, see the
-[Workbench source map](../../workbench/docs/source-map.md) and
-[vehicle-tracker source map](../../demos/vehicle-tracker/docs/source-map.md).
-
-Update the relevant diagram when class responsibilities or dependencies change.
-Keep framework wiring distinct from direct code dependencies.
+Replay and authorisation remain outside the implemented contracts.

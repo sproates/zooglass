@@ -28,7 +28,9 @@ for (const variant of ["basic", "journey"]) {
             await demo.browser!.page.locator("#history li").count(),
             0,
           );
-          while (demo.state.phase === "ready") await demo.step();
+          while (demo.state.phase === "ready") {
+            await demo.step();
+          }
 
           assert.equal(demo.state.phase, "complete");
           assert.equal(demo.state.completed, variant === "basic" ? 2 : 20);
@@ -68,8 +70,9 @@ test(
       await page.evaluate(() => {
         const marker = document.getElementById("vehicle-marker")!;
         new MutationObserver(() => {
-          if (marker.getAttribute("cx") !== "999")
+          if (marker.getAttribute("cx") !== "999") {
             marker.setAttribute("cx", "999");
+          }
         }).observe(marker, { attributes: true, attributeFilter: ["cx"] });
       });
 

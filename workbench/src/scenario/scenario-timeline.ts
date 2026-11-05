@@ -57,54 +57,28 @@ export function parseTimeline(
     const timedEntry = { ...entry, simulationTime: entry.simulationTime };
 
     if (entry.kind === "data-connection-fault") {
-      const clientId = requiredString(
-        entry.clientId,
-        `timeline[${index}].clientId`,
-      );
-      if (!clientIds.has(clientId))
-        throw new Error(
-          `timeline[${index}] refers to unknown client "${clientId}".`,
-        );
-      if (entry.action !== "break" && entry.action !== "restore")
-        throw new Error(
-          "Data connection fault action must be break or restore.",
-        );
-      if (
-        entry.timeoutMs !== undefined &&
-        (entry.action !== "break" ||
-          typeof entry.timeoutMs !== "number" ||
-          !Number.isInteger(entry.timeoutMs) ||
-          entry.timeoutMs < 1 ||
-          entry.timeoutMs > 30000)
-      )
-        throw new Error(
-          "Fault timeoutMs must be 1–30000 ms and is allowed only on break.",
-        );
-      return {
-        kind: "data-connection-fault",
-        simulationTime: entry.simulationTime,
-        clientId,
-        action: entry.action,
-        ...(entry.timeoutMs === undefined
-          ? {}
-          : { timeoutMs: entry.timeoutMs as number }),
-      };
+      return parseDataConnectionFault(timedEntry, index, references);
     }
 
-    if (entry.kind === "client-state")
+    if (entry.kind === "client-state") {
       return parseClientState(timedEntry, index, references);
+    }
 
-    if (entry.kind === "client-subscription")
+    if (entry.kind === "client-subscription") {
       return parseClientSubscription(timedEntry, index, references);
+    }
 
-    if (entry.kind === "client-view-check")
+    if (entry.kind === "client-view-check") {
       return parseClientViewCheck(timedEntry, index, references);
+    }
 
-    if (entry.kind === "view-definition")
+    if (entry.kind === "view-definition") {
       return parseViewDefinition(timedEntry, index, references);
+    }
 
-    if (entry.kind === "view-check")
+    if (entry.kind === "view-check") {
       return parseViewCheck(timedEntry, index, references);
+    }
 
     if (entry.kind !== "source-event") {
       throw new Error(
@@ -114,6 +88,47 @@ export function parseTimeline(
 
     return parseSourceEvent(timedEntry, index, references);
   });
+}
+
+function parseDataConnectionFault(
+  entry: TimedEntry,
+  index: number,
+  { clientIds }: References,
+): ScenarioTimelineEntry {
+  const clientId = requiredString(
+    entry.clientId,
+    `timeline[${index}].clientId`,
+  );
+  if (!clientIds.has(clientId)) {
+    throw new Error(
+      `timeline[${index}] refers to unknown client "${clientId}".`,
+    );
+  }
+  if (entry.action !== "break" && entry.action !== "restore") {
+    throw new Error("Data connection fault action must be break or restore.");
+  }
+
+  const timeoutMs = entry.timeoutMs;
+  if (
+    timeoutMs !== undefined &&
+    (entry.action !== "break" ||
+      typeof timeoutMs !== "number" ||
+      !Number.isInteger(timeoutMs) ||
+      timeoutMs < 1 ||
+      timeoutMs > 30000)
+  ) {
+    throw new Error(
+      "Fault timeoutMs must be 1–30000 ms and is allowed only on break.",
+    );
+  }
+
+  return {
+    kind: "data-connection-fault",
+    simulationTime: entry.simulationTime,
+    clientId,
+    action: entry.action,
+    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+  };
 }
 
 function parseClientState(
@@ -280,7 +295,29 @@ function parseSourceEvent(
     throw new Error(`Expected timeline[${index}].payload to be an object.`);
   }
 
+  const epoch = requiredString(entry.epoch, `timeline[${index}].epoch`);
+  const expectedRejection =
+    entry.expectedRejection === undefined
+      ? undefined
+      : requiredString(
+          entry.expectedRejection,
+          `timeline[${index}].expectedRejection`,
+        );
+  const publicationSequence = entry.publicationSequence;
+  if (
+    typeof publicationSequence !== "number" ||
+    !Number.isSafeInteger(publicationSequence) ||
+    publicationSequence < 1
+  ) {
+    throw new Error(
+      `Expected timeline[${index}].publicationSequence to be a positive safe integer.`,
+    );
+  }
+
   return {
+    epoch,
+    ...(expectedRejection === undefined ? {} : { expectedRejection }),
+    publicationSequence,
     kind: "source-event",
     simulationTime: entry.simulationTime,
     sourceId,

@@ -4,6 +4,7 @@ import java.util.Map;
 
 /** Exposes the only configured input. */
 public final class IndependentFields implements ContributionSelectionStrategy {
+
     private final String source;
 
     IndependentFields(String source) {

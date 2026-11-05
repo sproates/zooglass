@@ -20,7 +20,7 @@ and duplicate handling explicit in the viewer guide.
 | State and access | The prototype maintains views in memory. The local browser host validates its own control registration. | Durable recovery, replay, production retention and application authorisation remain unimplemented. Local registration is not ZooGlass permission enforcement. |
 
 The source review covered
-[`FieldUpdates.java`](../../zooglass/src/main/java/io/zooglass/FieldUpdates.java),
+[`FieldUpdates.java`](https://github.com/sproates/zooglass/blob/cf5b3bdef0ede513ded55e0d3053d8a9d30f16b1/incubator/zooglass/src/main/java/io/zooglass/FieldUpdates.java),
 [vehicle rendering](../../demos/vehicle-tracker/src/view.ts), the
 [page labels](../../demos/vehicle-tracker/pages/basic/index.html), and the documented
 [recovery evidence](2026-10-26-recovery.md). The current behaviour is distinct

@@ -22,7 +22,7 @@ can use the same feed differently: one retains the first account of each fact,
 while another follows corrections. Existing arrival/latest/history fields retain
 their existing behaviour and do not become correction-aware automatically.
 
-Proposed field definitions, inside the existing v2 `fields` object:
+Proposed field definitions, inside the existing `fields` object:
 
 ```json
 {
@@ -86,7 +86,7 @@ retirement floors can deliberately produce different results.
 
 ## Source publications
 
-Add an optional `fact` object to the v2 envelope. Ordinary envelopes omit it;
+Add an optional `fact` object to the envelope. Ordinary envelopes omit it;
 explicit null and partial objects are invalid. A create looks like this:
 
 ```json
@@ -200,7 +200,7 @@ value. Preserve the existing monotonic-clock and restart-uncertainty rules.
 
 ## Retiring old facts deliberately
 
-Introduce `/v2/facts/retire`, a control WebSocket for an operator or source owner.
+Introduce `/facts/retire`, a control WebSocket for an operator or source owner.
 It accepts `{viewId, entityId, fields, minimumBirthSequence}`. Fields must name
 existing fact fields with one source/epoch and the same entity mapping. The
 request advances all named fields atomically or changes none; callers should
@@ -252,7 +252,7 @@ Configuration binds concrete strategy instances:
 
 ```mermaid
 flowchart TB
-  config["V2Configuration"] -->|revision policy| revision["FactRevisionSelection"]
+  config["RuntimeConfiguration"] -->|revision policy| revision["FactRevisionSelection"]
   revision -->|firstFact| first["FirstFact"]
   revision -->|latestFactRevision| latest["LatestFactRevision"]
   config -->|projection mode| projection["FactProjectionSelection"]
@@ -325,7 +325,7 @@ Use independent expected collections and decimal totals, deterministic clocks an
 real HTTP/WebSocket checks. Exercise SQLite migration failure and corrupt-record
 startup, and verify no source payload or mutable JSON escapes state ownership.
 
-The v2 service currently exposes HTTP snapshots and source/control sockets.
+The service exposes HTTP snapshots, live subscriptions and source/control sockets.
 Client live delivery follows in the [recovery and queue increment](strategy-delivery.md#delivery-sequence);
 these commits will supply its versioned snapshots. This design does not claim
 subscriber delivery before that transport exists. Sports presentation comes later.

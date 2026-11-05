@@ -23,13 +23,21 @@ test("defines matching views at different points in the event timeline", async (
   );
   assert.equal(
     trace.filter(
-      (entry) => entry.kind === "view-check" && entry.expected === null,
+      (entry) =>
+        entry.kind === "view-check" &&
+        entry.expected !== null &&
+        Object.keys(entry.expected).length === 0,
     ).length,
     2,
   );
   assert.deepEqual(
     trace
-      .filter((entry) => entry.kind === "view-check" && entry.expected !== null)
+      .filter(
+        (entry) =>
+          entry.kind === "view-check" &&
+          entry.expected !== null &&
+          Object.keys(entry.expected).length > 0,
+      )
       .map((entry) => entry.viewId),
     ["event-observer", "primary-view", "primary-view", "secondary-view"],
   );

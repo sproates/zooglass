@@ -60,7 +60,9 @@ test("client binding receives every client action and closes once", async (t) =>
 
   const trace = playScenario(scenario);
 
-  for (const entry of trace) await session.execute(entry);
+  for (const entry of trace) {
+    await session.execute(entry);
+  }
 
   assert.deepEqual(seen, trace);
   await Promise.all([session.close(), session.close()]);
@@ -120,14 +122,18 @@ test("partial client setup closes previous executors, even when one close fails"
       "http://127.0.0.1:1",
       {
         createClientExecutor(client) {
-          if (client.id === "c") throw new Error("setup failed");
+          if (client.id === "c") {
+            throw new Error("setup failed");
+          }
 
           return {
             async execute() {},
             async close() {
               closed.push(client.id);
 
-              if (client.id === "a") throw new Error("close failed");
+              if (client.id === "a") {
+                throw new Error("close failed");
+              }
             },
           };
         },

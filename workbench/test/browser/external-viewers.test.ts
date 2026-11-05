@@ -47,9 +47,12 @@ test(
       await desktop.waitForFunction(
         () => document.querySelector("#current-sequence")?.textContent === "40",
       );
-      while (demo.state.phase === "stepping")
+      while (demo.state.phase === "stepping") {
         await new Promise((resolve) => setTimeout(resolve, 10));
-      while (demo.state.phase === "ready") await demo.command("step");
+      }
+      while (demo.state.phase === "ready") {
+        await demo.command("step");
+      }
       await desktop
         .getByRole("button", { name: "Vehicle 28", exact: true })
         .click();
@@ -131,8 +134,9 @@ test(
       assert.equal(demo.state.playing, true);
       await desktop.close();
       const deadline = Date.now() + 3000;
-      while (demo.state.playing && Date.now() < deadline)
+      while (demo.state.playing && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 10));
+      }
       assert.equal(
         demo.state.playing,
         false,

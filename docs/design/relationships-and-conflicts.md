@@ -1,9 +1,9 @@
 # Relationships and source priority
 
 Status: accepted design. Builds on the accepted
-[behaviour contracts](behaviour-contracts.md) and the implemented v2 identity and
+[behaviour contracts](behaviour-contracts.md) and the implemented identity and
 SQLite baseline. Entity mappings and source-priority selection implement the
-contracts below. See the [ingestion guide](../../zooglass/docs/v2-ingestion.md)
+contracts below. See the [ingestion guide](../../zooglass/docs/publications.md)
 for runnable configuration guidance.
 
 An order service calls a purchase `order-42`. Its payment provider calls the
@@ -63,7 +63,7 @@ two couriers. The couriers also use their own entity identifiers.
 }
 ```
 
-The enclosing v2 configuration still declares source epochs, storage and limits.
+The enclosing configuration still declares source epochs, storage and limits.
 The existing single-source field shape remains valid. Omitting `entities`, or
 omitting a used source from it, selects `envelopeEntity` for that source.
 
@@ -269,7 +269,7 @@ mode checks across ingestion or storage.
 
 ```mermaid
 flowchart TB
-  config["V2Configuration<br/>Validate and normalise definitions"]
+  config["RuntimeConfiguration<br/>Validate and normalise definitions"]
   bound["BoundView<br/>Bind strategies once"]
   resolution["EntityResolutionStrategy<br/>EnvelopeEntity or LookupEntity"]
   update["FieldUpdateStrategy<br/>Existing update modules"]
@@ -291,7 +291,7 @@ original target outcomes within the existing atomic boundary. Recovery validates
 candidate provenance against the declared mapping, rather than assuming the
 source entity always equals the view entity as it does today.
 
-Existing v2 configurations normalise to envelope resolution and independent
+Existing configurations normalise to envelope resolution and independent
 single-source fields. Equivalent short and expanded forms, or reordered
 definitions, must not cause a false configuration conflict.
 

@@ -1,6 +1,7 @@
 package io.zooglass.strategy.fact;
 
 import tools.jackson.databind.JsonNode;
+
 import java.util.Map;
 
 /** Computes a field from its own retained facts. */

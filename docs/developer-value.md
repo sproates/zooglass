@@ -108,17 +108,18 @@ source events to hide a missing recovery snapshot. The
 [verification map](testing.md) links the wider service and client tests.
 
 The service implementation keeps ordering policies in
-[FieldUpdates](../zooglass/src/main/java/io/zooglass/FieldUpdates.java),
-entity views in [ViewStore](../zooglass/src/main/java/io/zooglass/ViewStore.java),
+[named update strategies](../zooglass/src/main/java/io/zooglass/strategy/update/),
+entity views in [ViewCoordinator](../zooglass/src/main/java/io/zooglass/runtime/ViewCoordinator.java),
 and subscription/delivery coordination in
-[LiveViewBroadcaster](../zooglass/src/main/java/io/zooglass/LiveViewBroadcaster.java).
+[SnapshotBroadcaster](../zooglass/src/main/java/io/zooglass/delivery/SnapshotBroadcaster.java).
 Those are the reusable responsibilities demonstrated here.
 
 Adopting ZooGlass also means operating a service and accepting its contracts.
-State is in memory and disappears on restart. The prototype does not provide
-durable recovery, correction revisions, gap detection, proof of completeness or
-product authorisation. Equal-sequence conflicts are first-wins. Sources must supply
-compatible event meaning and ordering, and clients still need recovery handling.
+Memory-mode state disappears on restart; SQLite provides local transactional
+recovery. Configured progress and fact-revision policies provide explicit gap and
+correction semantics. Product authorisation and replay remain outside the current
+contracts. Sources supply scoped publication identities; conflicting retries are
+rejected rather than silently replacing accepted content.
 
 For a simple application with one feed and one screen, a small custom service may
 be sufficient. The case for ZooGlass is stronger where several views or clients

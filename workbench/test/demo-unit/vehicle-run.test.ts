@@ -88,6 +88,8 @@ for (const failAt of [undefined, "execute"] as const) {
     try {
       const session = await run.openScenario();
       const action = session.execute({
+        epoch: "run",
+        publicationSequence: 41,
         kind: "source-event",
         sourceId: "vehicle-feed",
         sourceName: "Location feed",

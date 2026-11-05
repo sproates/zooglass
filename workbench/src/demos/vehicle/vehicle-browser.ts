@@ -121,8 +121,11 @@ export async function vehicleBrowserApplication(
       ],
     ],
   ] as const);
-  if (fleet)
-    for (const [path, asset] of await fleetAssets(map)) assets.set(path, asset);
+  if (fleet) {
+    for (const [path, asset] of await fleetAssets(map)) {
+      assets.set(path, asset);
+    }
+  }
   return {
     clientId: fleet ? "fleet-viewer" : "rider-app",
     assets,

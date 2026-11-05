@@ -29,7 +29,9 @@ test(
       const status = page.locator("#map-background-status");
       await status.filter({ hasText: "Map background unavailable" }).waitFor();
       assert.equal(demo.state.phase, "ready");
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       assert.equal(demo.state.phase, "complete");
       assert.equal(await page.locator(".vehicle-map-marker").count(), 3);
       assert.equal(await page.locator("#current-sequence").textContent(), "42");
@@ -77,8 +79,9 @@ test(
       );
       assert.equal(demo.state.phase, "complete");
       assert.ok(stalled.length > 0);
-      for (const request of stalled)
+      for (const request of stalled) {
         await request.fulfill({ contentType: "image/svg+xml", body: tile });
+      }
       await page.waitForFunction(
         () =>
           document.getElementById("map-background-status")?.dataset.state ===

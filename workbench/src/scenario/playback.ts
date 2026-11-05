@@ -107,8 +107,9 @@ export function formatTraceEntry(entry: TraceEntry): string {
     return `${time} ${entry.sourceName} (${entry.sourceId})  ${entry.type}  ${entry.entityId}  ${JSON.stringify(entry.payload)}`;
   }
 
-  if (entry.kind === "data-connection-fault")
+  if (entry.kind === "data-connection-fault") {
     return `${time} ${entry.action} data route for ${entry.clientName}`;
+  }
 
   if (entry.kind === "client-initial-state") {
     return `${time} Client ${entry.clientName} (${entry.clientId}) starts ${entry.state}`;

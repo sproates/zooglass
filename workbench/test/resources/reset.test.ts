@@ -25,8 +25,9 @@ test(
 
     try {
       for (let cycle = 0; cycle < 5; cycle++) {
-        if (!previous) await demo.reset();
-        else {
+        if (!previous) {
+          await demo.reset();
+        } else {
           const page = previous.browser.page;
           await page.locator("#reset").focus();
           await resetThroughBrowser(demo, () =>
@@ -49,14 +50,11 @@ test(
         previous = { browser: demo.browser!, baseUrl: demo.baseUrl! };
 
         assert.equal(demo.state.completed, 0);
-        assert.equal(
-          (
-            await fetch(demo.baseUrl + "/views/live-map/car-17", {
-              signal: AbortSignal.timeout(5000),
-            })
-          ).status,
-          404,
-        );
+        const empty = await fetch(demo.baseUrl + "/views/live-map/car-17", {
+          signal: AbortSignal.timeout(5000),
+        });
+        assert.equal(empty.status, 200);
+        assert.deepEqual((await empty.json()).data, {});
         await demo.step();
         await demo.step();
 

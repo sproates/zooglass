@@ -11,10 +11,16 @@ test("vehicle ordering scenario configures latest and history views", async () =
   const scenario = await loadScenario(scenarioPath);
 
   assert.deepEqual(scenario.views[0]?.ordering, {
-    position: { mode: "latestBySequence", sequenceField: "sequence" },
+    position: {
+      mode: "latestBySequence",
+      sequenceField: "publicationSequence",
+    },
   });
   assert.deepEqual(scenario.views[1]?.ordering, {
-    positions: { mode: "historyBySequence", sequenceField: "sequence" },
+    positions: {
+      mode: "historyBySequence",
+      sequenceField: "publicationSequence",
+    },
   });
   assert.ok(
     scenario.timeline.some(

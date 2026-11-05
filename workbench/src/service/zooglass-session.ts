@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import type { ScenarioView } from "../scenario/scenario.js";
+import { runtimeConfiguration } from "./runtime-configuration.js";
+import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
 export interface ZooGlassSession {
   baseUrl: string;
@@ -15,6 +16,7 @@ export interface ZooGlassSession {
 
 export interface ZooGlassSessionOptions {
   views?: ScenarioView[];
+  sources?: ScenarioSource[];
   signal?: AbortSignal;
   serviceDirectory?: string;
   /** Override the Java executable for process-ownership fixtures. */
@@ -38,7 +40,9 @@ export async function startZooGlassSession(
   let closing: Promise<void> | undefined;
 
   const close = (): Promise<void> => {
-    if (closing) return closing;
+    if (closing) {
+      return closing;
+    }
 
     controller.abort(new Error("ZooGlass session closed."));
     closing = (async () => {
@@ -57,8 +61,11 @@ export async function startZooGlassSession(
                   (error) => {
                     // Some console processes refuse non-forced taskkill.
                     // Still allow the grace period and forced fallback.
-                    if (error && force && !finished) reject(error);
-                    else resolve();
+                    if (error && force && !finished) {
+                      reject(error);
+                    } else {
+                      resolve();
+                    }
                   },
                 );
               });
@@ -66,8 +73,9 @@ export async function startZooGlassSession(
               try {
                 process.kill(-pid, force ? "SIGKILL" : "SIGTERM");
               } catch (error) {
-                if ((error as NodeJS.ErrnoException).code !== "ESRCH")
+                if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
                   throw error;
+                }
 
                 ownedChild.kill(force ? "SIGKILL" : "SIGTERM");
               }
@@ -86,7 +94,9 @@ export async function startZooGlassSession(
               }),
             ]);
 
-            if (result === "timeout") await terminate(true);
+            if (result === "timeout") {
+              await terminate(true);
+            }
 
             // Wait for close, including inherited output streams, after escalation too.
             await stopped;
@@ -97,8 +107,9 @@ export async function startZooGlassSession(
           await stopped;
         }
       } finally {
-        if (configDirectory !== undefined)
+        if (configDirectory !== undefined) {
           await rm(configDirectory, { recursive: true, force: true });
+        }
       }
     })();
 
@@ -126,10 +137,13 @@ export async function startZooGlassSession(
     const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
-    if (options.views?.length) {
+    if (options.views !== undefined) {
       const configPath = join(configDirectory, "views.json");
 
-      await writeFile(configPath, JSON.stringify({ views: options.views }));
+      await writeFile(
+        configPath,
+        JSON.stringify(runtimeConfiguration(options.views, options.sources)),
+      );
       configLocation = pathToFileURL(configPath).href;
     }
 
@@ -153,7 +167,7 @@ export async function startZooGlassSession(
       "--zooglass.report-port=true",
     ];
 
-    child = spawn(java, args, {
+    const startedChild = spawn(java, args, {
       cwd: serviceDirectory,
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
@@ -162,19 +176,20 @@ export async function startZooGlassSession(
         ...process.env,
         ...(configLocation === undefined
           ? {}
-          : { ZOOGLASS_VIEWS_CONFIG: configLocation }),
+          : { ZOOGLASS_CONFIG: configLocation }),
       },
     });
+    child = startedChild;
     stopped = new Promise((resolve) => {
-      child!.once("error", (error) => controller.abort(error));
-      child!.once("exit", (code, terminationSignal) => {
+      startedChild.once("error", (error) => controller.abort(error));
+      startedChild.once("exit", (code, terminationSignal) => {
         controller.abort(
           new Error(
             `ZooGlass exited with ${terminationSignal ?? `code ${code}`}.`,
           ),
         );
       });
-      child!.once("close", (code, terminationSignal) => {
+      startedChild.once("close", (code, terminationSignal) => {
         finished = true;
         controller.abort(
           new Error(

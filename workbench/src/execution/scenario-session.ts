@@ -1,3 +1,5 @@
+import { scenarioEpoch } from "../service/runtime-configuration.js";
+import { publishAndCheckReceipt } from "./publication-receipt.js";
 import { checkView, defineView } from "./view-http.js";
 import type {
   TraceEntry,
@@ -34,10 +36,11 @@ export function requireDataFaultSupport(scenario: Scenario, supported = false) {
   if (
     !supported &&
     scenario.timeline.some((entry) => entry.kind === "data-connection-fault")
-  )
+  ) {
     throw new Error(
       "This scenario requires browser data-connection-fault support; Node-only execution is unsupported.",
     );
+  }
 }
 
 export async function openScenarioSession(
@@ -46,6 +49,17 @@ export async function openScenarioSession(
   options: ScenarioSessionOptions = {},
 ): Promise<ScenarioSession> {
   requireDataFaultSupport(scenario, !!options.executeDataFault);
+  for (const entry of scenario.timeline) {
+    if (
+      entry.kind === "source-event" &&
+      entry.epoch !== scenarioEpoch &&
+      entry.expectedRejection !== "unknownEpoch"
+    ) {
+      throw new Error(
+        `Source ${entry.sourceId} uses epoch "${entry.epoch}" but the service is configured for "${scenarioEpoch}".`,
+      );
+    }
+  }
   const controller = new AbortController();
   const signal = options.signal
     ? AbortSignal.any([controller.signal, options.signal])
@@ -64,7 +78,9 @@ export async function openScenarioSession(
   let closing: Promise<void> | undefined;
 
   const close = (): Promise<void> => {
-    if (closing) return closing;
+    if (closing) {
+      return closing;
+    }
 
     controller.abort(new Error("Scenario session closed."));
     closing = (async () => {
@@ -94,7 +110,7 @@ export async function openScenarioSession(
     for (const source of scenario.sources) {
       sourceSockets.set(
         source.id,
-        await connectClient(socketUrl("/events"), signal),
+        await connectClient(socketUrl("/events"), signal, false),
       );
       console.log(`Connected source ${source.name} (${source.id})`);
     }
@@ -108,8 +124,9 @@ export async function openScenarioSession(
     signal.throwIfAborted();
 
     if (entry.kind === "data-connection-fault") {
-      if (!options.executeDataFault)
+      if (!options.executeDataFault) {
         throw new Error("Data connection faults are unsupported.");
+      }
       await options.executeDataFault(entry, signal);
     } else if (entry.kind === "source-event") {
       const socket = sourceSockets.get(entry.sourceId);
@@ -120,14 +137,7 @@ export async function openScenarioSession(
         );
       }
 
-      socket.send(
-        JSON.stringify({
-          sourceId: entry.sourceId,
-          type: entry.type,
-          entityId: entry.entityId,
-          payload: entry.payload,
-        }),
-      );
+      await publishAndCheckReceipt(socket, entry, signal);
     } else if (entry.kind === "view-check") {
       await checkView(baseUrl, entry, signal);
     } else if (entry.kind === "view-definition") {
@@ -135,8 +145,9 @@ export async function openScenarioSession(
     } else {
       const executor = executors.get(entry.clientId);
 
-      if (!executor)
+      if (!executor) {
         throw new Error(`No executor for client ${entry.clientId}.`);
+      }
 
       await executor.execute(entry, signal);
     }
@@ -146,7 +157,9 @@ export async function openScenarioSession(
     async execute(entry) {
       signal.throwIfAborted();
 
-      if (active) throw new Error("A scenario action is already running.");
+      if (active) {
+        throw new Error("A scenario action is already running.");
+      }
 
       active = dispatch(entry);
 

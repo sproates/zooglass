@@ -17,7 +17,9 @@ test(
       application: { clientId: "unused", assets: new Map() },
       bindAddress: "127.0.0.1",
       onReady: async (run) => {
-        if (!first) return;
+        if (!first) {
+          return;
+        }
         first = false;
         starting();
         await new Promise<void>((_resolve, reject) =>

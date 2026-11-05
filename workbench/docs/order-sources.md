@@ -6,6 +6,12 @@ ZooGlass service. There is no order browser page or public demo command yet.
 The [design](../../docs/plans/order-and-sports-demos.md) describes the subsequent
 interactive and continuous browser experiences.
 
+Each run starts its source sequences from the beginning in the configured
+`run` epoch. Start a fresh simulation for a new run. The producer waits for
+each publication receipt before advancing. If a restarted producer reuses a
+retained identity with changed content, its `done` promise rejects with
+`identityConflict`. Resuming a previous producer’s sequence is unsupported.
+
 ## Run the service verification
 
 From `workbench`, after `npm ci` and `npm run prepare:service`:

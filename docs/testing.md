@@ -7,17 +7,21 @@ The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
 that every event ordering is correct, or that the service is production ready.
 
-## Versioned publication ingestion
+## Publication ingestion
 
-`V2FunctionalTests` sends publications through the real `/v2/events` socket and
+`PublicationFunctionalTests` sends publications through the real `/events` socket and
 reads HTTP snapshots. It checks delayed events, reconnect retries, numeric-equivalent
-duplicates, conflicting identities, history-limit rollback and separation from
-legacy views.
+duplicates, conflicting identities, history-limit rollback and rejection of removed version-prefixed routes.
 
-The focused v2 tests cover strict parsing, configuration rejection, retention
+The focused runtime tests cover strict parsing, configuration rejection, retention
 floors, independent entities, concurrent retries, detached snapshots and processing
 failures. A lost-acknowledgement test checks that retrying does not repeat effects.
 Capacity failures leave both projected state and identity admission unchanged.
+
+`NumericProjectionBoundaryTests` checks exact decimal persistence across SQLite
+reopening and a later fact revision. Its literal cases include integer boundaries,
+the supported precision/scale limits and extreme exponents. Rejected values leave
+the version unchanged and permit a corrected publication with the same identity.
 
 `SqliteServiceRestartTests` starts and closes the actual service twice against one
 database. HTTP snapshots recover before new input, and source socket retries
@@ -156,7 +160,9 @@ flowchart TB
 ```
 
 The child uses compiled classes and dependencies; tests never launch Maven.
-Timeouts and cleanup bound child lifetimes. The instrumentation lives entirely
+These short-lived JVMs use first-tier compilation to reduce startup work. The
+parent drains output on a dedicated thread and attempts a bounded thread dump
+if a live child misses a marker deadline. Timeouts and cleanup bound child lifetimes. The instrumentation lives entirely
 under `src/test` and is absent from the application JAR. These are process-crash
 checks, not power-loss or faulty-filesystem tests. Child JVM execution is not
 included in the parent JVM's JaCoCo report; the acceptance assertions provide
@@ -170,12 +176,12 @@ Run just these checks from `zooglass`:
 
 ## Field-update strategies
 
-`ViewStoreAtomicityTests` injects failures during later field evaluation and
-snapshot preparation. It checks that all views retain their prior state, new
-entities remain absent and a subsequent retry succeeds. All four cases fail
-against the earlier incremental installation and pass with staged updates.
+`ViewCoordinatorTests` covers staged update failure and identity/state rollback.
+`SqliteFailureTests` and `ViewRegistrationTests` exercise failed storage writes,
+recovery and the absence of delivery before a successful commit. These replace
+the old store's copy-count fault injection with coordinator and storage boundaries.
 
-`SharedSourceStrategyTests` publishes one feed through `/events` and observes
+`SharedPublicationStrategyTests` publishes one feed through `/events` and observes
 latest/history subscriptions through `/views/live`. It checks startup and HTTP
 registration, intermediate delayed-event results, duplicate/conflicting sequences,
 and entity isolation. HTTP reads confirm the final retained payloads.
@@ -183,7 +189,7 @@ and entity isolation. HTTP reads confirm the final retained payloads.
 A separate marker event follows each tested input group on the same source socket.
 Each subscriber's FIFO marker receipt bounds the preceding updates, so no-update
 assertions use a processing boundary rather than a timed silence. The socket helper
-assembles fragmented messages. Store/reference tests additionally cover field and
+assembles fragmented messages. Strategy/reference tests additionally cover field and
 source scope, malformed values and precision boundaries.
 
 
@@ -191,9 +197,25 @@ source scope, malformed values and precision boundaries.
 comparison, invalid sequences, equal-sequence conflicts and nested-value ownership.
 It also reuses strategy instances across independent field states.
 
-`ViewStoreOrderingTests` retains the independent reference model, seeded delivery
+`GeneratedOrderingTests` retains the independent reference model, seeded delivery
 orders and duplicate permutations. Configuration, snapshot ownership and functional
-socket tests exercise the selected modules through the store and service.
+socket tests exercise the selected modules through the coordinator and service.
+
+## Workbench component contracts
+
+Workbench tests verify the harness itself as well as its use of real service
+interfaces. `demo-step-planning.test.ts` asserts explicit step boundaries and
+delays; `timeline-fault-validation.test.ts` checks accepted fault timeouts and
+validation order. `scenario-view-validation.test.ts` checks view grammar and
+detached matcher ownership. `namespace-scenario.test.ts` checks both declared
+and runtime references while preserving client and domain identities.
+
+`demo-unit/continuous-producer.test.ts` observes actual source WebSockets through
+delayed, duplicate, lost, offline and quiet delivery. It checks ordered notices,
+reconnection and idempotent cleanup, without implementing a substitute ZooGlass
+reconciler. Existing controller, transport and process tests retain responsibility
+for cancellation, admission and resource ownership. Java tests own reconciliation,
+storage and recovery correctness; scenario checks observe their public results.
 
 ## Reproduce the reports
 
@@ -281,39 +303,53 @@ for review, not a claim of exhaustive coverage.
 
 | Behaviour | Existing evidence | Remaining gap |
 | --- | --- | --- |
-| Entity-scoped matching, field replacement and sequence policies | `zooglass/src/test/java/io/zooglass/ViewStoreTests.java` and `ViewFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct store checks in `ViewStoreOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
+| Entity-scoped matching, field replacement and sequence policies | `zooglass/src/test/java/io/zooglass/runtime/ViewCoordinatorTests.java` and `SubscriptionFunctionalTests.java` check selected cases in the store and through real transports. | Seeded permutations and equal-sequence source/field isolation have direct strategy checks in `GeneratedOrderingTests.java`; concurrent transport cases are described below. Arbitrary orderings remain unproven. |
 | Scenario execution through the service | `workbench/test/functional-scenarios.test.ts` executes every JSON scenario through a real service and checks HTTP views and client receipts. | Broader combinations and independent reference-model comparisons. Tests under `test/scenarios/` often validate fixture structure; those checks alone aren't service execution evidence. |
 | Subscription, late delivery, duplicates and reconnect snapshots | Java functional tests, Workbench scenario execution and `test/browser/recovery-fixture.test.ts` exercise real connections. | Controlled browser peers now cover update/unsubscribe acknowledgement ordering, stale socket callbacks, both snapshot arrival orders and missing-snapshot cancellation. `test/browser/connection-loss.test.ts` checks automatic recovery against real ZooGlass, including source continuity and first snapshots. |
 | Per-view freshness and retained data | `test/browser/states.test.ts` controls snapshot arrival and connection failures, including independent latest/history freshness. | Both snapshot arrival orders and old-generation message/open/error/close callbacks are checked in `test/browser/reconnection.test.ts`. Browser behaviour is tested but not instrumented for coverage. |
 | Controller and executor lifecycle | `test/controller-*.test.ts`, `scenario-session.test.ts`, `zooglass-session.test.ts`, `browser-client-executor.test.ts` and browser lifecycle tests cover overlap rejection, cancellation, reset, partial setup and cleanup failures. | Reset and close now have a six-boundary matrix in `test/demo-controller-races.test.ts`. This is deterministic sequencing evidence, not exhaustive concurrency exploration. |
-| Slow-client protection | `LiveViewBroadcasterTests.java` and `LiveViewIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
+| Slow-client protection | `SnapshotOrderingTests.java` and `SnapshotIsolationTests.java` use blocked writes to check queue capacity, healthy-peer delivery and writer cancellation; `test/concurrent-clients.test.ts` also pauses a real receiver. | Bounded real transport pressure and concurrent entity streams are checked; extended soak tests and production capacity claims remain outstanding. |
 | Invalid inputs and protocol errors | `test/scenario.test.ts`, host validation tests and selected Java validation cases. | The service and browser protocol matrices below cover rejection, continued processing, acknowledgements and timeouts. Broader schema fuzzing, resource limits and permissions remain separate work. |
 | Demo rendering | `test/browser/assertions.test.ts`, vehicle/state tests and viewer-controls tests inspect DOM/SVG; deliberately broken rendering fails despite correct receipts. | These verify the demo's representation, not general consumer UIs or visual quality across browsers. |
 | Resource and platform behaviour | Bounded reconnect/reset workloads, Java queue/writer cleanup and history observations; native lifecycle jobs and browser-engine recovery probes described below. | Extended soak/profiling, every OS/engine combination and mobile devices remain unverified. |
 
-## Projection extraction checks
+## Runtime consolidation checks
 
-`ViewConfigurationTests` exercises missing/malformed resources, invalid startup
-configuration, duplicate startup IDs and malformed runtime definitions through
-`ViewStore`. Rejected definitions leave their IDs available and register no
-matching state. `ViewSnapshotOwnershipTests` mutates source payloads, returned
-change notifications and queried snapshots for all three field policies; none
-may alter the store's nested values. The new cases pass against both the original
-store and its extracted collaborators. Existing ordering/reference and real
-transport checks continue to protect projection behaviour.
+The old runtime's tests migrate as follows. Removal follows successful validation
+of the corresponding coordinator, transport or strategy tests.
+
+| Previous tests | Retained coverage |
+| --- | --- |
+| `ViewStoreOrderingTests`, `OrderingReference` | `strategy/update/GeneratedOrderingTests` and its independent reference; per-field states exercise real update strategies. |
+| `ViewSnapshotOwnershipTests` | `delivery/SnapshotOwnershipTests`, for input, notification and queried values under all three policies. |
+| `ViewFunctionalTests`, `SharedSourceStrategyTests` | `delivery/SubscriptionFunctionalTests` and `SharedPublicationStrategyTests`, using real publication identities and startup/runtime definitions. |
+| `LiveViewBroadcasterTests`, `LiveViewIsolationTests`, `DeliveryFailureTests`, `ResourceBehaviourTests` | Corresponding delivery ordering, isolation, writer-failure and resource tests against the real coordinator. |
+| `ViewStoreTests`, `ViewConfigurationTests` | `ViewCoordinatorTests`, `RuntimeConfigurationTests`, `PublicationJsonTests`, registration and functional tests. Obsolete payload-sequence grammar is replaced by explicit envelope identity validation. |
+| `ViewStoreAtomicityTests` | Coordinator staged-update failures, SQLite rollback/recovery, and no notification after a failed commit. |
+
+`SnapshotDeliveryTests` additionally checks retries, concurrent subscription,
+expiry during admission, unsubscribe/rejoin and slow-client eviction.
+`ViewRegistrationTests` covers no backfill, invalid/duplicate definitions, expanded
+SQLite configuration recovery and activation of timed fact strategies.
+`PublicSnapshotTests` checks that ordinary payload keys cannot be confused with
+transport metadata and that fact projections retain their configured form.
+Workbench's `runtime-configuration.test.ts` independently checks configuration
+translation and rejects ambiguous source competition or payload-based ordering.
 
 ## Generated ordering checks
 
-`ViewStoreOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across
+`GeneratedOrderingTests` runs 64 fixed seeds. Each shuffles 82 deliveries across
 two entities and two matching sources, with exact duplicates, equal-sequence
 conflicting payloads, invalid sequences and unmatched source/type combinations.
 Every delivery prefix is checked, including changed-view notifications and the
 absence of state for an untouched entity. Separate fields isolate each source;
-a shared field explicitly exercises their common sequence space.
+a shared test field exercises numeric tie handling. Runtime source competition is
+separately tested with explicit source priorities; independent sources do not share
+a publication sequence space.
 
 The independent `OrderingReference` recomputes expected state from the received
 prefix using numeric keys and first-arrival values. It doesn't call production
-ordering helpers or inspect the store's internal state. Sequences include negative
+ordering helpers or inspect retained strategy state. Sequences include negative
 and fractional values and adjacent integers beyond double precision. A separate
 check enumerates all 24 index permutations of three positions and one duplicate;
 a focused conflict example makes the first-accepted-payload rule visible.
@@ -322,12 +358,12 @@ A failing generated case reports its seed and the first failing prefix. Reproduc
 one seed from `zooglass`:
 
 ```sh
-./mvnw --batch-mode -Dtest=ViewStoreOrderingTests -Dordering.seed=17 test
+./mvnw --batch-mode -Dtest=GeneratedOrderingTests -Dordering.seed=17 test
 ```
 
 The seed selects the generated case; the two fixed checks still run. The prefix
 removes the irrelevant suffix, but there is no automatic minimal-case shrinker.
-These are sequential store tests, not proof of concurrent socket behaviour or
+These are sequential strategy tests, not proof of concurrent socket behaviour or
 complete coverage of every numeric value and event combination. Existing real
 HTTP/WebSocket and Workbench tests continue to cover transport integration.
 
@@ -384,7 +420,7 @@ it does not establish a universal eviction time or byte threshold.
 The service requests close status `1013` on queue overflow. A blocked real socket
 can instead observe `1006` if the close frame cannot reach it after a write is
 cancelled. The network test accepts either outcome; it does not promise delivery
-of the close frame. `LiveViewIsolationTests` deterministically checks the server
+of the close frame. `SnapshotIsolationTests` deterministically checks the server
 requesting `1013`, the exact 128-message queue limit while the writer is blocked,
 continued healthy delivery, and interruption of writers during removal. These
 are complementary forms of evidence, not interchangeable measurements.
@@ -393,7 +429,7 @@ The tests close all owned sockets and services even on assertion failure. The
 network cases establish bounded-run cleanup and isolation; extended memory and
 resource behaviour is still separate work.
 
-`DeliveryFailureTests.java` protects serialisation failure, write failure followed
+`SnapshotWriterFailureTests.java` protects serialisation failure, write failure followed
 by close failure, and a late failure from a replaced writer. The tests first passed
 against the original broadcaster, then against the extracted subscription index
 and outbound writer. They check removal, healthy-peer delivery, re-registration
@@ -447,7 +483,7 @@ coverage suites. CI runs it after the browser suite. These two cases perform:
   baseline and two checked steps. Old browser connections and pages close; old
   host/service addresses stop responding. Final shutdown is checked too.
 
-Java `ResourceBehaviourTests` runs with normal Maven verification. Across 100
+Java `SnapshotResourceTests` runs with normal Maven verification. Across 100
 blocked-writer sessions, each with 25 queued updates, removal must interrupt the
 writer and empty its queue plus all three subscription/writer registries. The
 executor must terminate after broadcaster shutdown. This uses white-box checks

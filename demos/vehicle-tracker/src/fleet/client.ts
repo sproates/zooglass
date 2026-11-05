@@ -25,8 +25,9 @@ export function createFleetClient(
 
   const client = createRecoveringClient(dataPath, report, fail, {
     validateSubscription(viewId, entityId) {
-      if (!viewId || !entityId)
+      if (!viewId || !entityId) {
         throw new Error("Missing fleet subscription identity.");
+      }
       model.get(viewId, entityId);
     },
     connectionLostReason: "Fleet connection lost. Reset the demo to try again.",

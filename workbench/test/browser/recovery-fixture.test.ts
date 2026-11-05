@@ -19,7 +19,10 @@ test(
         ),
       ),
     );
-    const service = await startZooGlassSession({ views: scenario.views });
+    const service = await startZooGlassSession({
+      views: scenario.views,
+      sources: scenario.sources,
+    });
 
     try {
       const browser = await startVehicleBrowserSession(service.baseUrl, {
@@ -41,22 +44,30 @@ test(
           let disconnected = false;
 
           for (const entry of playScenario(scenario)) {
-            if (entry.kind === "client-state" && entry.state === "disconnected")
+            if (
+              entry.kind === "client-state" &&
+              entry.state === "disconnected"
+            ) {
               disconnected = true;
+            }
 
             if (
               disconnected &&
               entry.kind === "client-state" &&
               entry.state === "connected"
-            )
+            ) {
               reconnected = true;
+            }
 
-            if (reconnected) assert.notEqual(entry.kind, "source-event");
+            if (reconnected) {
+              assert.notEqual(entry.kind, "source-event");
+            }
 
             await session.execute(entry);
 
-            if (reconnected && entry.kind === "client-view-check")
+            if (reconnected && entry.kind === "client-view-check") {
               initialSnapshots++;
+            }
           }
 
           assert.equal(initialSnapshots, 2);

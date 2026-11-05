@@ -17,7 +17,10 @@ test(
   { timeout: 90_000 },
   async () => {
     const scenario = await loadScenario(fixture);
-    const service = await startZooGlassSession({ views: scenario.views });
+    const service = await startZooGlassSession({
+      views: scenario.views,
+      sources: scenario.sources,
+    });
 
     try {
       const browser = await startVehicleBrowserSession(service.baseUrl, {
@@ -61,7 +64,9 @@ test(
             JSON.stringify({
               sourceId: event.sourceId,
               type: event.type,
-              entityId: event.entityId,
+              epoch: event.epoch,
+              publicationSequence: event.publicationSequence,
+              sourceEntityId: event.entityId,
               payload: event.payload,
             }),
           );
@@ -205,8 +210,9 @@ for (const automatic of [false, true]) {
         assert.ok(port, output);
         await assert.rejects(fetch(`http://127.0.0.1:${port}/actuator/health`));
       } finally {
-        if (child.exitCode === null && child.signalCode === null)
+        if (child.exitCode === null && child.signalCode === null) {
           child.kill("SIGTERM");
+        }
 
         await exited;
       }

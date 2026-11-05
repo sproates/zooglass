@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer, type RawData } from "ws";
 
 /** One run's data proxy. Retirement closes established and pending upgrades. */
 export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
@@ -59,14 +59,18 @@ export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
 
     socket.on("close", terminate);
     upstream.on("error", () => {
-      if (!downstream) reject(502);
+      if (!downstream) {
+        reject(502);
+      }
 
       terminate();
     });
     upstream.on("close", () => {
       upstreams.delete(upstream);
       downstream?.terminate();
-      if (!downstream) socket.destroy();
+      if (!downstream) {
+        socket.destroy();
+      }
     });
     upstream.on("open", () => {
       if (retired || dataBlocked || socket.destroyed || signal.aborted) {
@@ -80,7 +84,7 @@ export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
         client.on("close", terminate);
 
         // No retained replay buffer: excessive pending output closes this route.
-        const relay = (target: WebSocket, data: Buffer, binary: boolean) => {
+        const relay = (target: WebSocket, data: RawData, binary: boolean) => {
           if (
             retired ||
             dataBlocked ||
@@ -92,16 +96,14 @@ export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
           }
 
           target.send(data, { binary }, (error) => {
-            if (error) terminate();
+            if (error) {
+              terminate();
+            }
           });
         };
 
-        client.on("message", (data, binary) =>
-          relay(upstream, data as Buffer, binary),
-        );
-        upstream.on("message", (data, binary) =>
-          relay(client, data as Buffer, binary),
-        );
+        client.on("message", (data, binary) => relay(upstream, data, binary));
+        upstream.on("message", (data, binary) => relay(client, data, binary));
       });
     });
   }
@@ -110,13 +112,15 @@ export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
     upgrade,
     async setBlocked(blocked: boolean) {
       signal.throwIfAborted();
-      if (changing)
+      if (changing) {
         throw new Error("A data fault operation is already in progress.");
+      }
       changing = true;
       try {
         dataBlocked = blocked;
-        if (blocked)
+        if (blocked) {
           await Promise.all([...routes.values()].map((stop) => stop()));
+        }
       } finally {
         changing = false;
       }
@@ -125,8 +129,12 @@ export function createBrowserDataRoute(baseUrl: string, signal: AbortSignal) {
       return (closing ??= (async () => {
         dataBlocked = true;
         await Promise.all([...routes.values()].map((stop) => stop()));
-        for (const socket of dataServer.clients) socket.terminate();
-        for (const socket of upstreams) socket.terminate();
+        for (const socket of dataServer.clients) {
+          socket.terminate();
+        }
+        for (const socket of upstreams) {
+          socket.terminate();
+        }
         await new Promise<void>((resolve) => dataServer.close(() => resolve()));
       })());
     },

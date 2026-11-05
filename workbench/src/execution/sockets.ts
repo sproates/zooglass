@@ -7,6 +7,7 @@ export const messagesBySocket = new WeakMap<WebSocket, unknown[]>();
 export async function connectClient(
   url: string,
   signal: AbortSignal,
+  captureMessages = true,
 ): Promise<WebSocket> {
   signal.throwIfAborted();
 
@@ -15,6 +16,9 @@ export async function connectClient(
 
   messagesBySocket.set(socket, messages);
   socket.addEventListener("message", (event) => {
+    if (!captureMessages) {
+      return;
+    }
     if (typeof event.data !== "string") {
       messages.push(event.data);
       return;
@@ -70,8 +74,9 @@ export async function connectClient(
 }
 
 export function closeClient(socket: WebSocket | undefined): Promise<void> {
-  if (socket === undefined || socket.readyState === WebSocket.CLOSED)
+  if (socket === undefined || socket.readyState === WebSocket.CLOSED) {
     return Promise.resolve();
+  }
 
   return new Promise((resolve, reject) => {
     const closed = () => {
@@ -96,6 +101,7 @@ export async function closeAll(operations: Promise<void>[]): Promise<void> {
     result.status === "rejected" ? [result.reason] : [],
   );
 
-  if (errors.length > 0)
+  if (errors.length > 0) {
     throw new AggregateError(errors, "Session cleanup failed.");
+  }
 }

@@ -14,7 +14,7 @@ async function register(origin: string, pair: string, acknowledge = true) {
   socket.send(JSON.stringify({ type: "register", protocolVersion: 1, pair }));
   const [data] = await next;
   const binding = JSON.parse(data.toString());
-  if (acknowledge)
+  if (acknowledge) {
     socket.send(
       JSON.stringify({
         type: "ready",
@@ -22,6 +22,7 @@ async function register(origin: string, pair: string, acknowledge = true) {
         clientId: binding.clientId,
       }),
     );
+  }
   return { socket, binding };
 }
 
@@ -117,8 +118,9 @@ test(
       while (
         !guestMessages.some((message) => message.type === "control-rejected") &&
         Date.now() < rejectedBy
-      )
+      ) {
         await new Promise((resolve) => setTimeout(resolve, 5));
+      }
       assert.equal(calls, 0);
       assert.ok(
         guestMessages.some((message) => message.type === "control-rejected"),
@@ -155,8 +157,9 @@ test(
       while (
         !errors.some((message) => message.type === "control-rejected") &&
         Date.now() < deadline
-      )
+      ) {
         await new Promise((resolve) => setTimeout(resolve, 5));
+      }
       assert.ok(errors.some((message) => message.type === "control-rejected"));
       assert.equal(calls, 1, "a queued command loses authority on handover");
 
@@ -180,7 +183,9 @@ test(
       assert.equal((await closed)[0], 1008);
     } finally {
       release();
-      for (const socket of sockets) socket.terminate();
+      for (const socket of sockets) {
+        socket.terminate();
+      }
       await host.close();
     }
   },

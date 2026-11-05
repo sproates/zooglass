@@ -31,16 +31,21 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
       this.listeners.set(name, [...(this.listeners.get(name) ?? []), listener]);
     }
     emit(name: string, message: Message = {}) {
-      if (name === "open") this.readyState = Socket.OPEN;
+      if (name === "open") {
+        this.readyState = Socket.OPEN;
+      }
 
-      for (const listener of this.listeners.get(name) ?? [])
+      for (const listener of this.listeners.get(name) ?? []) {
         listener({ data: JSON.stringify(message) });
+      }
     }
     send(data: string) {
       this.sent.push(JSON.parse(data));
     }
     close() {
-      if (this.readyState === Socket.CLOSED) return;
+      if (this.readyState === Socket.CLOSED) {
+        return;
+      }
 
       this.readyState = Socket.CLOSED;
       this.emit("close");
@@ -49,8 +54,9 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
 
   const binding: ClientBinding = {
     validateSubscription(view, entity) {
-      if (view !== "stock" || entity !== "warehouse-2")
+      if (view !== "stock" || entity !== "warehouse-2") {
         throw new Error("Unknown inventory view.");
+      }
     },
     connectionLostReason: "Inventory connection lost.",
     onConnection: (...args) => {
@@ -258,8 +264,9 @@ test(
   async () => {
     const f = await fixture({
       onConnection(state) {
-        if (state === "connected")
+        if (state === "connected") {
           throw new Error("Cannot render connected state.");
+        }
       },
     });
 
@@ -283,8 +290,9 @@ test(
   async () => {
     const f = await fixture({
       onConnection(state) {
-        if (state === "connected" || state === "error")
+        if (state === "connected" || state === "error") {
           throw new Error(`Cannot render ${state}.`);
+        }
       },
     });
 
@@ -300,8 +308,9 @@ test(
   async () => {
     const f = await fixture({
       onSubscription(_view, _entity, state) {
-        if (state === "subscribed")
+        if (state === "subscribed") {
           throw new Error("Cannot render subscription.");
+        }
       },
     });
     const socket = await f.connect();

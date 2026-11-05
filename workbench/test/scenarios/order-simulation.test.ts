@@ -40,7 +40,9 @@ async function waitFor(
     });
     if (response.ok) {
       const state = (await response.json()).data as State;
-      if (state[field]?.sequence === sequence) return state;
+      if (state[field]?.sequence === sequence) {
+        return state;
+      }
     }
     await delay(10);
   }
@@ -73,18 +75,19 @@ test(
             );
             assert.equal(state.order?.status, "accepted");
             assert.equal(state.payment?.status, "authorised");
-            if (cycle === 0)
+            if (cycle === 0) {
               assert.equal(
                 state.inventory,
                 undefined,
                 "unknown is not failure",
               );
-            else
+            } else {
               assert.equal(
                 state.inventory?.cycle,
                 cycle,
                 "previous-cycle contribution is retained honestly",
               );
+            }
           }
           if (phase === 3 && cycle > 0) {
             // This newer event is on the same orders socket, after the old-cycle delivery.
@@ -163,8 +166,9 @@ test(
                 state.inventory?.status,
                 i === 3 ? "unavailable" : i === 6 ? "released" : "reserved",
               );
-              for (const fact of Object.values(state))
+              for (const fact of Object.values(state)) {
                 assert.equal(fact.cycle, cycle + 1);
+              }
               assert.deepEqual(
                 await read(service.baseUrl, `order-${i}`, "order-tracking"),
                 {
@@ -240,4 +244,27 @@ test("finite order timeline has bounded actions, explicit faults and no payment 
     orders[3],
     "duplicate is the original report including observation time",
   );
+});
+
+test("restarting a producer against retained identities rejects done", async () => {
+  const service = await startZooGlassSession({ views: orderViews });
+  const options = { tickMs: 10, cycles: 1 };
+  try {
+    const first = await startOrderProducer(service.baseUrl, options);
+    try {
+      await first.done;
+    } finally {
+      await first.close();
+    }
+    const before = await read(service.baseUrl, "order-1");
+    const restarted = await startOrderProducer(service.baseUrl, options);
+    try {
+      await assert.rejects(restarted.done, /identityConflict/);
+      assert.deepEqual(await read(service.baseUrl, "order-1"), before);
+    } finally {
+      await restarted.close();
+    }
+  } finally {
+    await service.close();
+  }
 });

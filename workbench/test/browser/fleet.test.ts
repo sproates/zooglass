@@ -29,15 +29,18 @@ test(
         const original = WebSocket.prototype.send;
         (window as unknown as { sent: string[] }).sent = [];
         WebSocket.prototype.send = function (data) {
-          if (typeof data === "string" && this.url.includes("/views/live?"))
+          if (typeof data === "string" && this.url.includes("/views/live?")) {
             (window as unknown as { sent: string[] }).sent.push(data);
+          }
           return original.call(this, data);
         };
       });
       await page
         .getByRole("button", { name: "Vehicle 28", exact: true })
         .click();
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       assert.equal(demo.state.phase, "complete");
       assert.equal(
         await page.locator("#fleet-detail").getAttribute("data-entity-id"),
@@ -183,7 +186,9 @@ test(
         .first()
         .evaluate((node) => node.remove());
       await assert.rejects(async () => {
-        while (demo.state.phase === "ready") await demo.step();
+        while (demo.state.phase === "ready") {
+          await demo.step();
+        }
       }, /Timeout/);
       assert.equal(demo.state.phase, "failed");
     } finally {

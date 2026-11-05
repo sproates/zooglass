@@ -70,7 +70,10 @@ test("HTTP checks encode identifiers and poll until the expected data arrives", 
 
   await session.execute(check);
 
-  assert.deepEqual(urls, Array(4).fill("/views/view%20%2F%3F/entity%20%2F%23"));
+  assert.deepEqual(
+    urls,
+    Array(4).fill("/views?viewId=view+%2F%3F&entityId=entity+%2F%23"),
+  );
 });
 
 test("HTTP absence accepts 404 but rejects a present view immediately", async (t) => {
@@ -124,7 +127,10 @@ test("view definition sends only its definition and requires HTTP 201", async (t
     id: "position",
     fields: { value: [{ sourceId: "feed", type: "changed" }] },
     ordering: {
-      value: { mode: "latestBySequence" as const, sequenceField: "sequence" },
+      value: {
+        mode: "latestBySequence" as const,
+        sequenceField: "publicationSequence",
+      },
     },
   };
   const entry = {
@@ -144,7 +150,16 @@ test("view definition sends only its definition and requires HTTP 201", async (t
       method: "POST",
       path: "/views",
       type: "application/json",
-      body: definition,
+      body: {
+        id: "position",
+        fields: {
+          value: {
+            sourceId: "feed",
+            type: "changed",
+            mode: "latestBySequence",
+          },
+        },
+      },
     }),
   );
 });

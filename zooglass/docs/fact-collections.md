@@ -7,7 +7,7 @@ sequence and its own revision number.
 
 ## Configure the field
 
-Inside an existing [v2 view configuration](v2-ingestion.md), define:
+Inside an existing [view configuration](publications.md), define:
 
 ```json
 {
@@ -39,7 +39,7 @@ reclaim capacity; retraction alone does not free a slot.
 
 ## Publish a fact and its revisions
 
-Send to `/v2/events`:
+Send to `/events`:
 
 ```json
 {
@@ -67,7 +67,7 @@ collection remains present, so it can still satisfy a required-field rule.
 
 HTTP snapshots include `status.fields.<name>.facts` with `minimumBirthSequence`,
 `retainedCount` and `activeCount`. The result describes the retained window,
-not an unlimited historical audit trail. Client v2 subscriptions are a later slice.
+not an unlimited historical audit trail. Live subscribers receive installed fact and status changes.
 
 ## Retries, failures and progress
 
@@ -100,7 +100,7 @@ configuration with fresh creates; replaying already admitted creates won't seed 
 
 ## Retire old facts
 
-Send a control to `/v2/facts/retire`:
+Send a control to `/facts/retire`:
 
 ```json
 {

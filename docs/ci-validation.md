@@ -32,8 +32,8 @@ Its [tests](../.github/ci/selection.test.mjs) give concrete examples.
 | -------------------------------------------- | ------------------------------------------------------------- |
 | Markdown and recognised documentation images | Document links and CI selection tests                         |
 | ZooGlass Java tests                          | Java tests                                                    |
-| Known field-update and view-store code       | Java and Workbench real-service tests                         |
-| Known transport code                         | Java, real-service and browser tests                          |
+| Known update, view-transition and clock code       | Java and Workbench real-service tests                         |
+| Coordinator, snapshot API and known transport code                         | Java, real-service and browser tests                          |
 | Demo UI                                      | Workbench, demo and browser checks, including browser engines |
 | CI, dependencies or unclassified code        | All suites                                                    |
 

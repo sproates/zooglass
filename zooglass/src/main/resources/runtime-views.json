@@ -1,0 +1,34 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 100,
+  "identityWindow": 1000,
+  "maxHistoryEntries": 1000,
+  "sources": [
+    {
+      "id": "match-feed",
+      "epoch": "run"
+    },
+    {
+      "id": "bookmaker",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": {
+          "sourceId": "match-feed",
+          "type": "score.updated",
+          "mode": "arrival"
+        },
+        "odds": {
+          "sourceId": "bookmaker",
+          "type": "odds.updated",
+          "mode": "arrival"
+        }
+      }
+    }
+  ]
+}

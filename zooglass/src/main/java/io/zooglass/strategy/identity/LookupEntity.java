@@ -4,6 +4,7 @@ import java.util.Map;
 
 /** Exact, immutable, source-local relationship table. */
 public final class LookupEntity implements EntityResolutionStrategy {
+
     private final Map<String, String> keys;
 
     public LookupEntity(Map<String, String> keys) {

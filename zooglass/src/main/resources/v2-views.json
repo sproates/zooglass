@@ -1,9 +1,0 @@
-{
-  "contractVersion": 2,
-  "storage": "memory",
-  "maxStreams": 100,
-  "identityWindow": 1000,
-  "maxHistoryEntries": 1000,
-  "sources": [],
-  "views": []
-}

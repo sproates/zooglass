@@ -55,7 +55,9 @@ export function observeVehicleSession(
           onAbort = () => reject(combined.reason);
           combined.addEventListener("abort", onAbort, { once: true });
 
-          if (combined.aborted) onAbort();
+          if (combined.aborted) {
+            onAbort();
+          }
         });
         let actual;
 
@@ -199,19 +201,23 @@ export function observeVehicleSession(
         entry.entityId === "car-17" &&
         entry.expected
       ) {
-        if (entry.viewId === "live-map")
+        if (entry.viewId === "live-map") {
           latest = entry.expected.position as Position;
+        }
 
-        if (entry.viewId === "trip-history")
+        if (entry.viewId === "trip-history") {
           history = entry.expected.positions as Position[];
+        }
       }
 
       if (entry.kind === "client-view-check" && entry.entityId === "car-17") {
-        if (entry.viewId === "live-map")
+        if (entry.viewId === "live-map") {
           latest = entry.expected.position as Position;
+        }
 
-        if (entry.viewId === "trip-history")
+        if (entry.viewId === "trip-history") {
           history = entry.expected.positions as Position[];
+        }
 
         await check(entry);
       }

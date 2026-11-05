@@ -55,7 +55,9 @@ for (const outcome of [
             outcome === "request refused" ? new Error("Requires /F") : null,
           );
 
-          if (outcome === "clean exit") setImmediate(finish);
+          if (outcome === "clean exit") {
+            setImmediate(finish);
+          }
         } else {
           assert.ok(performance.now() - firstRequestAt >= 40);
           assert.deepEqual(args, ["/PID", "12345", "/T", "/F"]);

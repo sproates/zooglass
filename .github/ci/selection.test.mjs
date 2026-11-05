@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { selectChecks, suites, requiredResultErrors } from "./selection.mjs";
@@ -20,13 +21,15 @@ test("Java assertions need Java; core policy needs real service tests", () => {
     ["java"],
   );
   assert.deepEqual(
-    selected(["zooglass/src/main/java/io/zooglass/FieldUpdates.java"]),
+    selected(["zooglass/src/main/java/io/zooglass/runtime/ClockRollback.java"]),
     ["java", "core"],
   );
 });
 test("protocol changes retain browser consumer verification", () => {
   assert.deepEqual(
-    selected(["zooglass/src/main/java/io/zooglass/LiveViewBroadcaster.java"]),
+    selected([
+      "zooglass/src/main/java/io/zooglass/delivery/OutboundWriter.java",
+    ]),
     ["java", "core", "browser"],
   );
 });
@@ -52,7 +55,7 @@ test("mixed paths union checks; unknown modules, helpers and fixtures are conser
   }
   assert.deepEqual(
     selected([
-      "zooglass/src/main/java/io/zooglass/ViewStore.java",
+      "zooglass/src/main/java/io/zooglass/runtime/ViewTransitions.java",
       "demos/vehicle-tracker/src/view.ts",
     ]),
     ["java", "static", "core", "demo", "browser", "engines"],
@@ -75,7 +78,7 @@ test("forced full selection overrides empty and docs-only diffs", () => {
 });
 test("gate rejects failed, cancelled, skipped and missing selected jobs", () => {
   const plan = selectChecks([
-    "zooglass/src/main/java/io/zooglass/ViewStore.java",
+    "zooglass/src/main/java/io/zooglass/runtime/ViewTransitions.java",
   ]);
   const groups = {
     java: ["java"],
@@ -118,4 +121,17 @@ test("accepted update-strategy namespace keeps core validation on new modules", 
 
 test("unclassified text fixtures are not mistaken for documentation", () => {
   assert.deepEqual(selected(["workbench/test/fixtures/source.txt"]), suites);
+});
+
+test("current runtime and snapshot contract paths select their suites", () => {
+  for (const [relative, expected] of [
+    ["runtime/ViewCoordinator.java", ["java", "core", "browser"]],
+    ["runtime/ClockRollback.java", ["java", "core"]],
+    ["api/ViewSnapshot.java", ["java", "core", "browser"]],
+    ["delivery/OutboundWriter.java", ["java", "core", "browser"]],
+  ]) {
+    const path = "zooglass/src/main/java/io/zooglass/" + relative;
+    assert.ok(existsSync(new URL("../../" + path, import.meta.url)));
+    assert.deepEqual(selected([path]), expected);
+  }
 });

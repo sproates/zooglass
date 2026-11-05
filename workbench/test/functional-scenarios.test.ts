@@ -80,7 +80,7 @@ test(
 
     for (const scenario of scenarios) {
       assert.ok(output.includes(`Scenario: ${scenario.data.name}`));
-      expectedConnections += scenario.data.sources.length;
+
       expectedViewChecks += scenario.data.timeline.filter(
         (entry) => entry.kind === "view-check",
       ).length;
@@ -136,6 +136,14 @@ test(
       (output.match(/Client view check passed:/g) ?? []).length,
       expectedClientViewChecks,
       `Expected all scenario client view checks to pass.\n${output}`,
+    );
+    assert.equal(
+      (output.match(/Connected source /g) ?? []).length,
+      scenarios.reduce(
+        (count, scenario) => count + scenario.data.sources.length,
+        0,
+      ),
+      "Expected every source socket to connect before its scenario runs.",
     );
     assert.equal(
       (output.match(/WebSocket client connected:/g) ?? []).length,

@@ -4,6 +4,8 @@ import {
   closeClient,
   connectClient,
 } from "../../execution/sockets.js";
+import { publishAndCheckReceipt } from "../../execution/publication-receipt.js";
+import { scenarioEpoch } from "../../service/runtime-configuration.js";
 import { sourceIds, type OrderSource } from "./contracts.js";
 import { orderStep, ticksPerCycle, type OrderStep } from "./timeline.js";
 
@@ -22,13 +24,15 @@ export async function startOrderProducer(
   options: OrderProducerOptions = {},
 ) {
   const tickMs = options.tickMs ?? 3000;
-  if (!Number.isFinite(tickMs) || tickMs < 10)
+  if (!Number.isFinite(tickMs) || tickMs < 10) {
     throw new Error("Order tick interval must be at least 10ms.");
+  }
   if (
     options.cycles !== undefined &&
     (!Number.isSafeInteger(options.cycles) || options.cycles < 1)
-  )
+  ) {
     throw new Error("Order cycle count must be a positive safe integer.");
+  }
 
   const lifetime = new AbortController();
   const signal = options.signal
@@ -40,8 +44,9 @@ export async function startOrderProducer(
   const closeSockets = () => closeAll([...sockets.values()].map(closeClient));
 
   try {
-    for (const source of sourceIds)
-      sockets.set(source, await connectClient(url.href, signal));
+    for (const source of sourceIds) {
+      sockets.set(source, await connectClient(url.href, signal, false));
+    }
   } catch (error) {
     await closeSockets();
     throw error;
@@ -58,31 +63,46 @@ export async function startOrderProducer(
         signal.throwIfAborted();
         const step = orderStep(tick, epoch, tickMs);
         for (const action of step.actions) {
-          if (action.kind === "omit") continue;
+          if (action.kind === "omit") {
+            continue;
+          }
           if (action.kind === "disconnect") {
             await closeClient(sockets.get(action.source));
             sockets.delete(action.source);
           } else if (action.kind === "reconnect") {
-            sockets.set(action.source, await connectClient(url.href, signal));
+            sockets.set(
+              action.source,
+              await connectClient(url.href, signal, false),
+            );
           } else {
             const socket = sockets.get(action.event.sourceId);
             if (
               !socket ||
               socket.readyState !== WebSocket.OPEN ||
               socket.bufferedAmount > 65536
-            )
+            ) {
               throw new Error(
                 `Order source ${action.event.sourceId} failed or could not keep up.`,
               );
-            socket.send(JSON.stringify(action.event));
+            }
+            await publishAndCheckReceipt(
+              socket,
+              {
+                ...action.event,
+                epoch: scenarioEpoch,
+                publicationSequence: action.event.payload.sequence,
+              },
+              signal,
+            );
           }
         }
         await options.onStep?.(step);
         if (
           options.cycles === undefined ||
           tick + 1 < options.cycles * ticksPerCycle
-        )
+        ) {
           await delay(tickMs, undefined, { signal });
+        }
       }
     } finally {
       await closeSockets();

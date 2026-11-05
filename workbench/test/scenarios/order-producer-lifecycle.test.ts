@@ -21,11 +21,22 @@ async function sourceServer(t: TestContext) {
         "sources own separate sockets",
       );
       record.messages++;
+      const { sourceId, epoch, sourceEntityId, publicationSequence } = event;
+      socket.send(
+        JSON.stringify({
+          status: "applied",
+          reason: "memory",
+          stream: { sourceId, epoch, sourceEntityId },
+          publicationSequence,
+        }),
+      );
     });
   });
   await once(server, "listening");
   t.after(async () => {
-    for (const socket of server.clients) socket.terminate();
+    for (const socket of server.clients) {
+      socket.terminate();
+    }
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
   const address = server.address();
@@ -91,9 +102,10 @@ test("invalid timing and cycle limits fail before opening a source", async () =>
     { tickMs: NaN },
     { cycles: 0 },
     { cycles: 1.5 },
-  ])
+  ]) {
     await assert.rejects(
       startOrderProducer("http://127.0.0.1:1", options),
       /must be/,
     );
+  }
 });

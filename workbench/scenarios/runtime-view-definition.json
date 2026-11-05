@@ -29,7 +29,9 @@
       "entityId": "item-before-view",
       "payload": {
         "value": 0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "view-check",
@@ -60,7 +62,7 @@
       "simulationTime": 0,
       "viewId": "primary-view",
       "entityId": "item-before-view",
-      "expected": null
+      "expected": {}
     },
     {
       "kind": "source-event",
@@ -70,7 +72,9 @@
       "entityId": "item-42",
       "payload": {
         "value": 1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "view-check",
@@ -101,7 +105,7 @@
       "simulationTime": 200,
       "viewId": "secondary-view",
       "entityId": "item-42",
-      "expected": null
+      "expected": {}
     },
     {
       "kind": "source-event",
@@ -111,7 +115,9 @@
       "entityId": "item-42",
       "payload": {
         "value": 2
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "view-check",

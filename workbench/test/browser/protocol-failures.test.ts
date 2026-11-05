@@ -54,8 +54,13 @@ for (const [name, responses, expected] of cases) {
     async (t) => {
       let bad = true;
       const upstream = await peer(false, (_request, acknowledge) => {
-        if (bad) for (const response of responses) upstream.raw(response);
-        else acknowledge();
+        if (bad) {
+          for (const response of responses) {
+            upstream.raw(response);
+          }
+        } else {
+          acknowledge();
+        }
       });
 
       t.after(() => upstream.close());

@@ -1,0 +1,74 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 10000,
+  "identityWindow": 10000,
+  "maxHistoryEntries": 10000,
+  "sources": [
+    {
+      "id": "bookmaker",
+      "epoch": "test"
+    },
+    {
+      "id": "match-feed",
+      "epoch": "test"
+    },
+    {
+      "id": "vehicle-feed",
+      "epoch": "test"
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": {
+          "inputs": [
+            {
+              "sourceId": "match-feed",
+              "type": "score.updated"
+            }
+          ],
+          "mode": "arrival"
+        },
+        "odds": {
+          "inputs": [
+            {
+              "sourceId": "bookmaker",
+              "type": "odds.updated"
+            }
+          ],
+          "mode": "arrival"
+        }
+      }
+    },
+    {
+      "id": "vehicle-live-map",
+      "fields": {
+        "position": {
+          "inputs": [
+            {
+              "sourceId": "vehicle-feed",
+              "type": "vehicle.location.updated"
+            }
+          ],
+          "mode": "latestBySequence"
+        }
+      }
+    },
+    {
+      "id": "vehicle-trip-history",
+      "fields": {
+        "positions": {
+          "inputs": [
+            {
+              "sourceId": "vehicle-feed",
+              "type": "vehicle.location.updated"
+            }
+          ],
+          "mode": "historyBySequence"
+        }
+      }
+    }
+  ]
+}

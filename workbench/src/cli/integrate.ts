@@ -32,7 +32,9 @@ async function main(): Promise<void> {
       namespaceScenario(await loadScenario(resolve(path)), index),
     ),
   );
-  for (const scenario of scenarios) requireDataFaultSupport(scenario);
+  for (const scenario of scenarios) {
+    requireDataFaultSupport(scenario);
+  }
   const controller = new AbortController();
 
   const stop = () => controller.abort(new Error("Workbench interrupted."));
@@ -43,6 +45,7 @@ async function main(): Promise<void> {
   try {
     const service = await startZooGlassSession({
       views: scenarios.flatMap((scenario) => scenario.views),
+      sources: scenarios.flatMap((scenario) => scenario.sources),
       signal: controller.signal,
     });
 
@@ -62,8 +65,9 @@ async function main(): Promise<void> {
               const waitTime =
                 entry.simulationTime - (performance.now() - startedAt);
 
-              if (waitTime > 0)
+              if (waitTime > 0) {
                 await delay(waitTime, undefined, { signal: service.signal });
+              }
             }
 
             console.log(formatTraceEntry(entry));

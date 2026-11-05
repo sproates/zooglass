@@ -46,7 +46,9 @@ test(
       assert.match(trace, /View received: live-map \(car-17\): position 42/);
       assert.match(trace, /Connection: opened \(connection 1\)/);
 
-      while (demo.state.phase === "ready") await demo.step();
+      while (demo.state.phase === "ready") {
+        await demo.step();
+      }
       await page
         .locator("#next-step")
         .filter({ hasText: "No further scripted steps" })

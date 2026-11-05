@@ -1,0 +1,415 @@
+package io.zooglass.delivery;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.WebSocket;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "zooglass.config=classpath:subscription-views-test.json")
+class SubscriptionFunctionalTests {
+
+    @LocalServerPort private int port;
+
+    @Autowired private ObjectMapper objectMapper;
+
+    @Test
+    void matchingEventsUpdateTheLatestViewReturnedByHttp() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket socket = connect(httpClient);
+
+        try {
+            assertThat(
+                            objectMapper
+                                    .readTree(getView(httpClient, "match", "match-42").body())
+                                    .path("data")
+                                    .isEmpty())
+                    .isTrue();
+
+            send(socket, "match-feed", "score.updated", "match-42", "{\"home\":0,\"away\":0}");
+            send(socket, "bookmaker", "odds.updated", "match-42", "{\"homeWin\":2.1,\"draw\":3.2}");
+            send(socket, "match-feed", "score.updated", "match-42", "{\"home\":1,\"away\":0}");
+            send(socket, "match-feed", "score.updated", "match-99", "{\"home\":2,\"away\":1}");
+            send(socket, "other-feed", "score.updated", "match-42", "{\"home\":9,\"away\":9}");
+
+            JsonNode view = awaitView(httpClient, "match", "match-42", "1");
+            assertThat(view.get("viewId").asText()).isEqualTo("match");
+            assertThat(view.get("entityId").asText()).isEqualTo("match-42");
+            assertThat(view.at("/data/score/home").asInt()).isEqualTo(1);
+            assertThat(view.at("/data/score/away").asInt()).isEqualTo(0);
+            assertThat(view.at("/data/odds/homeWin").asDouble()).isEqualTo(2.1);
+
+            JsonNode otherEntity = awaitView(httpClient, "match", "match-99", "2");
+            assertThat(otherEntity.at("/data/score/home").asInt()).isEqualTo(2);
+            assertThat(otherEntity.get("data").has("odds")).isFalse();
+        } finally {
+            socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    @Test
+    void vehicleViewsApplyDifferentSequenceOrderingPolicies() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket socket = connect(httpClient);
+
+        try {
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
+                    "{\"sequence\":42,\"latitude\":51.2,\"longitude\":-0.1}");
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
+                    "{\"sequence\":40,\"latitude\":51.0,\"longitude\":-0.3}");
+            send(
+                    socket,
+                    "vehicle-feed",
+                    "vehicle.location.updated",
+                    "car-17",
+                    "{\"sequence\":41,\"latitude\":51.1,\"longitude\":-0.2}");
+
+            JsonNode liveMap =
+                    awaitView(
+                            httpClient,
+                            "vehicle-live-map",
+                            "car-17",
+                            "/data/position/sequence",
+                            "42");
+            assertThat(liveMap.at("/data/position/latitude").asDouble()).isEqualTo(51.2);
+
+            JsonNode tripHistory =
+                    awaitView(
+                            httpClient,
+                            "vehicle-trip-history",
+                            "car-17",
+                            "/data/positions/2/sequence",
+                            "42");
+            assertThat(tripHistory.at("/data/positions/0/sequence").asInt()).isEqualTo(40);
+            assertThat(tripHistory.at("/data/positions/1/sequence").asInt()).isEqualTo(41);
+            assertThat(tripHistory.at("/data/positions/2/sequence").asInt()).isEqualTo(42);
+        } finally {
+            socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    @Test
+    void viewsDefinedOverHttpStartWithEventsReceivedAfterDefinition() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket socket = connect(httpClient);
+
+        try {
+            send(socket, "match-feed", "score.updated", "item-before-view", "{\"home\":0}");
+            awaitView(httpClient, "match", "item-before-view", "0");
+
+            String definition =
+                    objectMapper.writeValueAsString(
+                            Map.of(
+                                    "id",
+                                    "runtime-items",
+                                    "fields",
+                                    Map.of(
+                                            "score",
+                                            Map.of(
+                                                    "sourceId",
+                                                    "match-feed",
+                                                    "type",
+                                                    "score.updated",
+                                                    "mode",
+                                                    "arrival"))));
+            assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(201);
+            assertThat(
+                            objectMapper
+                                    .readTree(
+                                            getView(httpClient, "runtime-items", "item-before-view")
+                                                    .body())
+                                    .path("data")
+                                    .isEmpty())
+                    .isTrue();
+
+            send(socket, "match-feed", "score.updated", "item-after-view", "{\"home\":1}");
+            JsonNode view = awaitView(httpClient, "runtime-items", "item-after-view", "1");
+            assertThat(view.at("/data/score/home").asInt()).isEqualTo(1);
+
+            assertThat(defineView(httpClient, definition).statusCode()).isEqualTo(409);
+            assertThat(defineView(httpClient, "{\"id\":\"invalid\",\"fields\":{}}").statusCode())
+                    .isEqualTo(400);
+        } finally {
+            socket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    @Test
+    void liveViewWebSocketAcknowledgesSubscriptionsAndSendsMatchingUpdates() throws Exception {
+        HttpClient httpClient = HttpClient.newHttpClient();
+        WebSocket eventSocket = connect(httpClient);
+        LiveViewClient liveViewClient = connectLiveViewClient(httpClient);
+
+        try {
+            liveViewClient
+                    .socket()
+                    .sendText(
+                            "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":\"live-match-42\"}",
+                            true)
+                    .join();
+
+            JsonNode acknowledgement =
+                    objectMapper.readTree(awaitMessage(liveViewClient.messages()));
+            assertThat(acknowledgement.get("type").asText()).isEqualTo("subscribed");
+            assertThat(acknowledgement.get("viewId").asText()).isEqualTo("match");
+            assertThat(acknowledgement.get("entityId").asText()).isEqualTo("live-match-42");
+
+            send(
+                    eventSocket,
+                    "match-feed",
+                    "score.updated",
+                    "live-match-42",
+                    "{\"home\":1,\"away\":0}");
+
+            JsonNode update = objectMapper.readTree(awaitMessage(liveViewClient.messages()));
+            assertThat(update.get("type").asText()).isEqualTo("view-update");
+            assertThat(update.get("viewId").asText()).isEqualTo("match");
+            assertThat(update.get("entityId").asText()).isEqualTo("live-match-42");
+            assertThat(update.at("/data/score/home").asInt()).isEqualTo(1);
+            assertThat(update.at("/data/score/away").asInt()).isEqualTo(0);
+        } finally {
+            liveViewClient.socket().sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+            eventSocket.sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+        }
+    }
+
+    @Test
+    void invalidLiveRequestsReturnErrorsWithoutPoisoningTheConnection() throws Exception {
+        try (var httpClient = HttpClient.newHttpClient()) {
+            var client = connectLiveViewClient(httpClient);
+            try {
+                for (var request :
+                        List.of(
+                                "{",
+                                "null",
+                                "[]",
+                                "{}",
+                                "{\"action\":3,\"viewId\":\"match\",\"entityId\":\"car\"}",
+                                "{\"action\":\"subscribe\",\"viewId\":\" \",\"entityId\":\"car\"}",
+                                "{\"action\":\"subscribe\",\"viewId\":\"match\",\"entityId\":false}",
+                                "{\"action\":\"subscribe\",\"viewId\":\"absent\",\"entityId\":\"car\"}",
+                                "{\"action\":\"other\",\"viewId\":\"match\",\"entityId\":\"car\"}")) {
+                    client.socket().sendText(request, true).join();
+                    var error = objectMapper.readTree(awaitMessage(client.messages()));
+                    assertThat(error.path("type").asText()).as(request).isEqualTo("error");
+                }
+                for (var action : List.of("subscribe", "unsubscribe")) {
+                    client.socket()
+                            .sendText(
+                                    objectMapper.writeValueAsString(
+                                            Map.of(
+                                                    "action",
+                                                    action,
+                                                    "viewId",
+                                                    "match",
+                                                    "entityId",
+                                                    "request-recovery")),
+                                    true)
+                            .join();
+                    var reply = objectMapper.readTree(awaitMessage(client.messages()));
+                    assertThat(reply.path("type").asText()).isEqualTo(action + "d");
+                }
+            } finally {
+                client.socket().sendClose(WebSocket.NORMAL_CLOSURE, "test complete").join();
+            }
+        }
+    }
+
+    @Test
+    void malformedDefinitionsAndUnknownViewsHaveExplicitHttpResults() throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            assertThat(getView(client, "absent", "car").statusCode()).isEqualTo(404);
+            assertThat(defineView(client, "{").statusCode()).isEqualTo(400);
+            assertThat(
+                            defineView(
+                                            client,
+                                            "{\"id\":\"bad-source\",\"fields\":{\"value\":{\"sourceId\":\"absent\",\"type\":\"value\",\"mode\":\"arrival\"}}}")
+                                    .statusCode())
+                    .isEqualTo(400);
+            assertThat(getView(client, "bad-source", "car").statusCode()).isEqualTo(404);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"mode\":null}"})
+    void missingLateModeIsABadRequest(String late) throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            String definition =
+                    """
+                    {"id":"late-check","fields":{"score":{"sourceId":"match-feed",
+                    "type":"score.updated","mode":"arrival","late":%s}}}
+                    """
+                            .formatted(late);
+            assertThat(defineView(client, definition).statusCode()).isEqualTo(400);
+            assertThat(getView(client, "late-check", "car").statusCode()).isEqualTo(404);
+        }
+    }
+
+    private WebSocket connect(HttpClient httpClient) {
+        return httpClient
+                .newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .buildAsync(
+                        URI.create("ws://localhost:" + port + "/events"),
+                        new WebSocket.Listener() {
+                            @Override
+                            public CompletionStage<?> onText(
+                                    WebSocket webSocket, CharSequence data, boolean last) {
+                                return WebSocket.Listener.super.onText(webSocket, data, last);
+                            }
+                        })
+                .join();
+    }
+
+    private LiveViewClient connectLiveViewClient(HttpClient httpClient) {
+        BlockingQueue<String> messages = new LinkedBlockingQueue<>();
+        WebSocket socket =
+                httpClient
+                        .newWebSocketBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .buildAsync(
+                                URI.create("ws://localhost:" + port + "/views/live"),
+                                new WebSocket.Listener() {
+                                    @Override
+                                    public void onOpen(WebSocket webSocket) {
+                                        webSocket.request(1);
+                                    }
+
+                                    @Override
+                                    public CompletionStage<?> onText(
+                                            WebSocket webSocket, CharSequence data, boolean last) {
+                                        messages.add(data.toString());
+                                        webSocket.request(1);
+                                        return null;
+                                    }
+                                })
+                        .join();
+        return new LiveViewClient(socket, messages);
+    }
+
+    private static String awaitMessage(BlockingQueue<String> messages) throws InterruptedException {
+        String message = messages.poll(5, TimeUnit.SECONDS);
+        if (message == null) {
+            throw new AssertionError("Timed out waiting for a live view WebSocket message.");
+        }
+        return message;
+    }
+
+    private HttpResponse<String> defineView(HttpClient client, String definition)
+            throws IOException, InterruptedException {
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:" + port + "/views"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(definition))
+                        .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> getView(HttpClient client, String viewId, String entityId)
+            throws IOException, InterruptedException {
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(
+                                URI.create(
+                                        "http://localhost:"
+                                                + port
+                                                + "/views/"
+                                                + viewId
+                                                + "/"
+                                                + entityId))
+                        .GET()
+                        .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private JsonNode awaitView(
+            HttpClient client, String viewId, String entityId, String expectedHomeScore)
+            throws Exception {
+        return awaitView(client, viewId, entityId, "/data/score/home", expectedHomeScore);
+    }
+
+    private JsonNode awaitView(
+            HttpClient client,
+            String viewId,
+            String entityId,
+            String dataPath,
+            String expectedValue)
+            throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+        HttpResponse<String> response;
+        do {
+            response = getView(client, viewId, entityId);
+            if (response.statusCode() == 200) {
+                JsonNode view = objectMapper.readTree(response.body());
+                if (view.at(dataPath).asText().equals(expectedValue)) {
+                    return view;
+                }
+            }
+            Thread.sleep(20);
+        } while (System.nanoTime() < deadline);
+
+        throw new AssertionError("View did not appear. Last response: " + response.statusCode());
+    }
+
+    private final Map<List<String>, Long> sequences = new HashMap<>();
+
+    private void send(
+            WebSocket socket, String sourceId, String type, String entityId, String payload) {
+        var value = objectMapper.readTree(payload);
+        long sequence =
+                value.has("sequence")
+                        ? value.path("sequence").longValue()
+                        : sequences.merge(List.of(sourceId, entityId), 1L, Long::sum);
+        socket.sendText(
+                        objectMapper.writeValueAsString(
+                                Map.of(
+                                        "sourceId",
+                                        sourceId,
+                                        "epoch",
+                                        "test",
+                                        "publicationSequence",
+                                        sequence,
+                                        "type",
+                                        type,
+                                        "sourceEntityId",
+                                        entityId,
+                                        "payload",
+                                        value)),
+                        true)
+                .join();
+    }
+
+    private record LiveViewClient(WebSocket socket, BlockingQueue<String> messages) {}
+}

@@ -17,8 +17,9 @@ export async function resetThroughBrowser(
       !/Target page, context or browser has been closed|^locator\.click: Browser closed$/.test(
         error.message,
       )
-    )
+    ) {
       throw error;
+    }
   });
 
   await Promise.all([closed, action]);

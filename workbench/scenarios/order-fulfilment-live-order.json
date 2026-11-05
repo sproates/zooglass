@@ -68,7 +68,9 @@
       "payload": {
         "status": "accepted",
         "sourceTimestamp": 1000
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",
@@ -92,7 +94,9 @@
       "payload": {
         "status": "authorised",
         "sourceTimestamp": 1180
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",
@@ -120,7 +124,9 @@
       "payload": {
         "status": "packed",
         "sourceTimestamp": 1900
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "client-view-check",
@@ -148,7 +154,9 @@
       "payload": {
         "status": "reserved",
         "sourceTimestamp": 1100
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",

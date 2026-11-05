@@ -125,6 +125,8 @@ flowchart TB
   namespace["scenario/namespace-scenario.ts<br/>Isolate scenario identifiers"]
   service["service/zooglass-session.ts<br/>Own the service process"]
   session["execution/scenario-session.ts<br/>Dispatch actions and own connections"]
+  receipt["execution/publication-receipt.ts<br/>Match publication identity and outcome"]
+  session -->|awaits the source acknowledgement| receipt
   http["execution/view-http.ts<br/>Define and check server views"]
   client["execution/node-client-executor.ts<br/>Execute client actions and check receipts"]
   sockets["execution/sockets.ts<br/>Connect, buffer and close WebSockets"]
@@ -372,6 +374,7 @@ flowchart TD
   assets -->|reuses Leaflet and tile assets| fleet["demos/vehicle/fleet-assets.ts"]
   sim -->|runs six independent sources| producer["continuous/producer.ts"]
   sim -->|loads cars| journeys["continuous/journeys.ts"]
+  producer -->|checks publication outcomes| receipts["execution/publication-receipt.ts"]
   producer -->|samples distance along roads| journeys
   journeys -->|reads attributed road geometry| routes["continuous/routes.json"]
   producer -->|chooses automatic faults| delivery["continuous/delivery.ts"]
@@ -400,6 +403,7 @@ flowchart TB
   simulation -->|starts and closes sources| producer
   producer -->|executes one bounded step at a time| timeline
   producer -->|opens and closes independent source sockets| sockets
+  producer -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
   producer -->|enumerates source identities| contracts
   timeline -->|builds domain events for six fixed slots| contracts
 ```

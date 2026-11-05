@@ -48,8 +48,9 @@ export async function startBrowserSession(
           !options.keepOpenOnFailure ||
           browser?.page.isClosed() ||
           options.signal.aborted
-        )
+        ) {
           void close().catch(() => {});
+        }
       },
       { once: true },
     );

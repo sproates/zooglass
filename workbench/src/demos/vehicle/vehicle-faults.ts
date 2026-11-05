@@ -15,13 +15,15 @@ export function createVehicleFaults(host: BrowserHost) {
 
   return {
     async execute(entry: DataConnectionFaultTraceEntry, signal: AbortSignal) {
-      if (entry.clientId !== host.clientId)
+      if (entry.clientId !== host.clientId) {
         throw new Error("Unbound fault client.");
+      }
       const cursor = host.observations.cursor();
       const identity = { runId: host.runId, clientId: host.clientId };
       if (entry.action === "break") {
-        if (interrupted)
+        if (interrupted) {
           throw new Error("The data route is already interrupted.");
+        }
         host.publish({ kind: "expect-data-fault", timeoutMs: entry.timeoutMs });
         await host.observations.wait("recovery-armed", cursor, signal, 5000);
         await host.controlDataConnection({ ...identity, action: "break" });
@@ -30,7 +32,9 @@ export function createVehicleFaults(host: BrowserHost) {
         await host.observations.wait("interrupted", cursor, signal);
         await host.observations.wait("retry-failed", cursor, signal);
       } else {
-        if (!interrupted) throw new Error("The data route is not interrupted.");
+        if (!interrupted) {
+          throw new Error("The data route is not interrupted.");
+        }
         await host.controlDataConnection({ ...identity, action: "restore" });
         host.publish({ kind: "data-fault", action: "restore" });
         await host.observations.wait("recovered", cursor, signal);
@@ -40,9 +44,13 @@ export function createVehicleFaults(host: BrowserHost) {
       }
     },
     check(entry: TraceEntry) {
-      if (!verifyInitialSnapshots || entry.kind !== "client-view-check") return;
+      if (!verifyInitialSnapshots || entry.kind !== "client-view-check") {
+        return;
+      }
       const key = JSON.stringify([entry.viewId, entry.entityId]);
-      if (checked.has(key)) return;
+      if (checked.has(key)) {
+        return;
+      }
       assert.deepEqual(
         host.observations.firstView(entry.viewId, entry.entityId),
         entry.expected,

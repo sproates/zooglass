@@ -5,6 +5,7 @@ import java.util.Map;
 
 /** Selects the first present source without comparing source sequence domains. */
 public final class SourcePriority implements ContributionSelectionStrategy {
+
     private final List<String> sources;
 
     SourcePriority(List<String> sources) {

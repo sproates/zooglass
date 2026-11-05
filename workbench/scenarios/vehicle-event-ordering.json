@@ -27,7 +27,7 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -44,7 +44,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -65,7 +65,7 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -95,7 +95,9 @@
         "sequence": 42,
         "latitude": 51.2,
         "longitude": -0.1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "client-view-check",
@@ -137,7 +139,9 @@
         "sequence": 40,
         "latitude": 51.0,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "view-check",
@@ -203,7 +207,9 @@
         "sequence": 41,
         "latitude": 51.1,
         "longitude": -0.2
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "view-check",
@@ -292,7 +298,10 @@
         "sequence": 41,
         "latitude": 99.0,
         "longitude": 99.0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41,
+      "expectedRejection": "identityConflict"
     },
     {
       "kind": "view-check",
@@ -328,7 +337,9 @@
       "payload": {
         "latitude": 51.3,
         "longitude": -0.4
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "source-event",
@@ -340,7 +351,9 @@
         "sequence": "43",
         "latitude": 51.4,
         "longitude": -0.5
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "source-event",
@@ -352,7 +365,9 @@
         "sequence": 1,
         "latitude": 51.5,
         "longitude": -0.6
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "view-check",
@@ -372,28 +387,54 @@
       "simulationTime": 54,
       "viewId": "live-map",
       "entityId": "car-missing-sequence",
-      "expected": null
+      "expected": {
+        "position": {
+          "latitude": 51.3,
+          "longitude": -0.4
+        }
+      }
     },
     {
       "kind": "view-check",
       "simulationTime": 55,
       "viewId": "trip-history",
       "entityId": "car-missing-sequence",
-      "expected": null
+      "expected": {
+        "positions": [
+          {
+            "latitude": 51.3,
+            "longitude": -0.4
+          }
+        ]
+      }
     },
     {
       "kind": "view-check",
       "simulationTime": 56,
       "viewId": "live-map",
       "entityId": "car-string-sequence",
-      "expected": null
+      "expected": {
+        "position": {
+          "sequence": "43",
+          "latitude": 51.4,
+          "longitude": -0.5
+        }
+      }
     },
     {
       "kind": "view-check",
       "simulationTime": 57,
       "viewId": "trip-history",
       "entityId": "car-string-sequence",
-      "expected": null
+      "expected": {
+        "positions": [
+          {
+            "sequence": "43",
+            "latitude": 51.4,
+            "longitude": -0.5
+          }
+        ]
+      }
     },
     {
       "kind": "client-state",
@@ -417,7 +458,9 @@
         "sequence": 43,
         "latitude": 51.3,
         "longitude": 0.0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 43
     },
     {
       "kind": "view-check",

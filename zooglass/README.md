@@ -1,223 +1,97 @@
-# Event-driven live views prototype
+# ZooGlass runtime
 
-The [source map](docs/source-map.md) explains the source files, their responsibilities
-and how they depend on each other. Start there when reading the implementation.
-
-The opt-in [v2 ingestion API](docs/v2-ingestion.md) adds publication identities,
-retry outcomes, view-local entity mappings, source priority and atomic views, with
-optional [SQLite recovery](docs/sqlite-storage.md). Configured
-[source progress and late policy](docs/source-progress.md) add scoped gap tracking
-and explicit uncertainty. The APIs below are the legacy contract
-used by the current demos.
+ZooGlass projects identified source publications into configured views. One
+coordinator owns reconciliation, atomic installation, snapshots and live delivery.
+It supports memory or SQLite storage, retries, independent update strategies,
+source priorities, progress, freshness and retained fact revisions.
 
 ## Run locally
 
-Requires JDK 25. The Maven Wrapper downloads the configured Maven version when needed.
+Use JDK 25, then build and start from this directory:
 
 ```sh
-./mvnw spring-boot:run
-```
-
-For Workbench scenarios, tests and demos, build the executable application first:
-
-```sh
-./mvnw --batch-mode -Dmaven.test.skip=true package
+./mvnw --batch-mode verify
 java -jar target/zooglass.jar
 ```
 
-Workbench's `npm run prepare:service` performs that package step. Its sessions
-launch the JAR directly with isolated ports and configuration, including after
-Reset. They never invoke Maven or rebuild a missing artifact. Rebuild explicitly
-after Java source/resource/dependency changes, with active sessions stopped.
-Use `./mvnw verify` separately to run the Java tests.
+The service listens on port 8080. `GET /actuator/health` reports readiness.
+The default `runtime-views.json` configures a match view with `match-feed` and
+`bookmaker` sources, both using epoch `run`. Supply another configuration with
+`--zooglass.config=file:/absolute/path/views.json`. For SQLite, also supply
+`--zooglass.database=/absolute/path/state.sqlite`.
 
-The health check is available at <http://localhost:8080/actuator/health>.
+The [publication guide](docs/publications.md) defines configuration, wire messages,
+acknowledgements, bounds and restart behaviour. Configuration `contractVersion: 2`
+is a data-format identifier; there is one runtime and no version-prefixed API.
 
-ZooGlass also accepts WebSocket connections at `ws://localhost:8080/events`.
-Incoming events are matched against view definitions loaded from
-`src/main/resources/views.json` at startup or added while ZooGlass is running.
-A matching event replaces that field's value in the in-memory view for its
-`entityId`.
+## Interfaces
 
-For example, a client can send:
-
-```json
-{"sourceId":"match-feed","type":"score.updated","entityId":"match-42","payload":{"home":1,"away":0}}
-```
-
-The example config maps `score.updated` events from `match-feed` to the `score`
-field and `odds.updated` events from `bookmaker` to the `odds` field of the
-`match` view. Each field can list multiple matching source and event type pairs;
-any matching event replaces that field's value. Define another view by sending
-its definition to `POST /views`, for example:
-
-```json
-{
-  "id": "orders",
-  "fields": {
-    "order": [
-      { "sourceId": "order-service", "type": "order.updated" }
-    ]
-  }
-}
-```
-
-The endpoint returns `201` when it creates the view, `400` for an invalid
-definition, and `409` if that view id already exists. A newly defined view starts
-empty and only receives events that arrive after its definition; ZooGlass does
-not retain or replay earlier events. Query the latest representation for an
-entity at `GET /views/match/match-42`. The endpoint returns JSON, or `404` if no
-matching event has populated that entity in the view yet. All view data is held
-in memory and is lost when ZooGlass restarts. Views created through `POST /views`
-are also runtime-only; put definitions in the startup config to load them again
-after a restart. The startup config can be changed with the
-`zooglass.views.config` property, using a Spring resource location such as
-`file:/path/to/views.json`.
-
-For a field that needs ordering by a numeric sequence in each event payload, a
-view can opt into a strategy. `latestBySequence` keeps only the event with the
-highest sequence for that entity. `historyBySequence` keeps the received events
-as an array in sequence order and ignores duplicate sequence numbers. For
-example:
-
-```json
-{
-  "id": "vehicle-live-map",
-  "fields": {
-    "position": [
-      { "sourceId": "vehicle-feed", "type": "vehicle.location.updated" }
-    ]
-  },
-  "ordering": {
-    "position": { "mode": "latestBySequence", "sequenceField": "sequence" }
-  }
-}
-```
-
-Ordering is configured per view field, so the same feed can drive a latest
-position view and a trip history view. The sequence must be numeric and
-monotonically describe measurement order for an entity; events without a
-numeric sequence are ignored by these strategies. This prototype does not wait
-for missing sequence numbers, detect gaps, or know when a history is complete.
-An equal numeric sequence is a duplicate even if its payload differs: the first
-accepted payload is retained, not treated as a correction. Values such as `1`
-and `1.0` compare equally. Sequence state belongs to each view field and entity.
-If two sources match the same field, they share that sequence space; they aren't
-independently deduplicated by source. Use separate fields for independent sequence
-domains. This is the prototype's current behaviour, not a general conflict policy.
-
-### Update strategy contract
-
-| Configuration for a field | State and live notifications |
+| Interface | Purpose |
 | --- | --- |
-| No ordering entry | Replace on every matching arrival, even when the payload is identical. |
-| `latestBySequence` | Replace and notify only for a greater numeric sequence. |
-| `historyBySequence` | Insert and notify only for a sequence not already in that field's history. |
+| WebSocket `/events` | Identified source publications and acknowledgements |
+| WebSocket `/progress` | Explicit source watermarks |
+| WebSocket `/facts/retire` | Advance retained-fact floors |
+| POST `/views` | Register a validated view for subsequent publications |
+| GET `/views?viewId=…&entityId=…` | Snapshot lookup for opaque IDs, including slashes and dot segments |
+| GET `/views/{viewId}/{entityId}` | Current values, provenance and status |
+| WebSocket `/views/live` | Subscribe to current and subsequent snapshots |
 
-The sequence strategies require a non-empty `sequenceField`. Unsupported modes,
-missing sequence keys in configuration and ordering entries for undefined fields
-are rejected: startup fails, or `POST /views` returns 400 without registering the
-view. Omit ordering to select arrival replacement; an explicit `arrival` mode is
-not part of the current configuration format.
+Every publication supplies `sourceId`, `epoch`, `sourceEntityId`, a positive
+safe-integer `publicationSequence`, `type` and an object `payload`. Sequence
+ordering uses the envelope's publication sequence, not a field inside the payload.
+A retry with the same identity and content returns its retained outcome; conflicting
+content is rejected. A source's sequence must be scoped to its epoch and entity.
 
-A registered definition cannot be changed in place. Use a new view ID to choose
-a different strategy; it starts with future events, without replaying prior input.
+HTTP snapshots and live updates expose selected payloads under `data`. They also
+carry `version`, `provenance`, `publicationSequences` and `status`. An ordinary
+field has one publication sequence; a history field has a sequence per item.
+Fact projections retain their configured records or numeric aggregate and expose
+fact evidence in status. A known view with no contributions returns HTTP 200 with
+empty data and explicit status; an unknown view returns 404.
 
-[Shared-source acceptance tests](src/test/java/io/zooglass/SharedSourceStrategyTests.java)
-check both startup and runtime definitions through real WebSocket subscribers.
-For input 40, 42, 41, duplicate 41, latest stays at 42 while history becomes
-[40, 41, 42]. The duplicate produces no live update in either view.
+## Live subscriptions
 
-Trip history is held entirely in memory and grows without a bound, so it is an
-exploration of the view behavior rather than a production retention policy.
-
-For example, if sequence 40 arrives, followed by 42, the history view currently
-shows `[40, 42]`. If 41 arrives later, ZooGlass inserts it into the history as
-`[40, 41, 42]`. The latest-position view remains at 42. This ordering alone
-does not prove that a sequence is missing: ZooGlass does not verify that a
-source uses contiguous sequence values for each entity on this legacy API. The Workbench's
-[`sequence-gap` scenario](../workbench/scenarios/sequence-gap.json) assumes
-that guarantee; its
-[`shared-sequence-across-entities` scenario](../workbench/scenarios/shared-sequence-across-entities.json)
-shows how a shared feed can produce the same jump without an event missing from
-that entity's history. See the Workbench notes on [what a sequence
-guarantees](../workbench/README.md#what-a-sequence-guarantees). The v2 API now exposes
-[source progress and missing ranges](docs/source-progress.md) under an explicit
-per-entity source promise. Views can [wait for required contributions](docs/source-progress.md#wait-for-required-fields). Fields can also [report receipt age](docs/source-progress.md#classify-a-field-by-receipt-age) and become stale during silence. The earlier [source progress exploration](source-progress-signals.md)
-compares the signals behind that design.
-
-Clients can subscribe to a view over `ws://localhost:8080/views/live`. Send a
-subscription request for a view and entity:
+Send this to `/views/live`:
 
 ```json
 {"action":"subscribe","viewId":"match","entityId":"match-42"}
 ```
 
-ZooGlass acknowledges the subscription with a `subscribed` message. If the view
-already has data, it also sends the current snapshot. Later matching events send
-`view-update` messages containing the full latest snapshot. Send the same
-request with `"action":"unsubscribe"` to stop receiving updates. A client
-connection is removed from all subscriptions when it closes. Updates are
-queued in order for each client, with up to 128 pending messages. If a client
-cannot keep up and its queue fills, ZooGlass closes that connection with status
-1013 rather than allowing its backlog to grow without limit.
+The server acknowledges with `type: "subscribed"`, then sends the current
+`view-update` if the entity has a published snapshot. Later installed value or
+status changes produce further updates. Use `action: "unsubscribe"` to stop;
+the server replies with `type: "unsubscribed"`. Invalid requests receive an error
+without changing subscriptions. Reconnecting clients subscribe again to obtain
+current state; delivery does not replay every intervening snapshot.
 
-Subscriptions belong to a WebSocket connection. After reconnecting, a client
-must subscribe again; ZooGlass sends the current snapshot if one exists. It does
-not replay the updates missed while the client was disconnected.
+Malformed JSON receives `Could not read live view request.` A runtime failure,
+including unavailable storage, receives `Could not process live view request.`
+The connection stays open for further requests; a failed snapshot read does not
+admit the subscription. Failed SQLite storage requires service restart recovery.
 
-`LiveViewBroadcaster` coordinates projection, subscription changes and queue
-insertion under one monitor. `SubscriptionIndex` owns both directions of
-subscription membership and uses that same monitor. Each `OutboundWriter` owns
-one bounded queue and writer task; socket writes and closes run outside the
-coordinator monitor. A writer reports its identity on failure so a late failure
-cannot remove a replacement writer. Removing a session clears its subscriptions,
-cancels its writer and releases queued messages.
+Subscription admission and snapshot capture share the coordinator monitor with
+installation. Each client has an independent FIFO writer with a 128-message
+waiting queue. Network writes occur outside the monitor. A full queue evicts that
+client and requests close code 1013; other clients and source processing continue.
+Delivery failure cannot undo an installed publication.
 
-Run the tests with:
+## Register a view
 
-```sh
-./mvnw test
-```
+POST a view object from the configuration grammar to `/views`. Successful
+registration returns 201, a valid existing ID returns 409, and an invalid definition
+returns 400. Sources must already be declared in startup configuration. Registration
+has no backfill, including retries of publications accepted before registration.
+With SQLite, the expanded configuration is committed atomically; use that expanded
+configuration on restart. Removing or redefining a registered view is unsupported.
 
-## Test types
+## Tests and ownership
 
-- **Unit tests** check one component in isolation. `ViewStoreTests` checks how
-  event matchers update the in-memory view state.
-- **Functional tests** check ZooGlass behavior as a single running system.
-  `ZooGlassFunctionalTests` checks the health endpoint, and
-  `ViewFunctionalTests` sends events over WebSocket and queries the view over
-  HTTP.
-- The [Workbench Scenario Simulator](../workbench/README.md) is intended to carry most
-  scenario testing. It drives different event and client behaviors through
-  ZooGlass and checks the resulting views.
-- **Integration tests** check behavior across a boundary between ZooGlass and
-  another system, such as Kafka delivering events to ZooGlass. We don't have
-  these yet.
+Run `./mvnw --batch-mode clean verify` for Java tests and JaCoCo coverage.
+Runtime tests own reconciliation, identity, transaction and recovery assertions;
+delivery tests exercise subscription ordering, isolation and failure handling.
+Strategy tests include independent generated ordering expectations. Workbench owns
+scenario generation, fault orchestration and verification through real interfaces.
+It does not calculate replacement ZooGlass results.
 
-## Test coverage
-
-See the [verification map](../docs/testing.md) for coverage commands, report
-boundaries and the remaining behavioural gaps.
-
-
-## Projection code responsibilities
-
-`ViewStore` owns matcher registration, entity state and the synchronised access
-boundary. `ViewDefinitions` loads configuration and validates startup/runtime
-definitions without owning registered state. `FieldStrategySelection` binds each
-field to `ArrivalReplacement`, `LatestBySequence` or `HistoryBySequence` during
-registration. These modules live in `strategy/update/`; they evaluate values
-without mutating inputs or retaining entity state. The store installs their
-replacement under its lock.
-
-One input is staged across all affected fields and views before any replacement
-is installed. If evaluation or snapshot preparation fails, existing values remain
-unchanged and no partial entity is created. This is in-memory atomicity, not
-persistence across a service restart.
-
-Startup definitions are validated before registration. Runtime definitions still
-validate before checking for a duplicate ID. Ordering, first-accepted equal
-sequences, changed-view notifications and defensive snapshot copies retain their
-existing behaviour. Configuration and snapshot-ownership tests exercise these
-boundaries through the store, alongside the independent ordering reference tests.
+See the [source map](docs/source-map.md), [verification map](../docs/testing.md),
+[Workbench guide](../workbench/README.md) and [browser demo](../demos/vehicle-tracker/README.md).

@@ -29,7 +29,9 @@
       "payload": {
         "latitude": 51.5074,
         "longitude": -0.1278
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-state",
@@ -58,7 +60,9 @@
       "payload": {
         "latitude": 51.5081,
         "longitude": -0.1269
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "source-event",
@@ -69,7 +73,9 @@
       "payload": {
         "latitude": 51.509,
         "longitude": -0.1258
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 3
     },
     {
       "kind": "view-check",
@@ -104,7 +110,9 @@
       "payload": {
         "latitude": 51.5097,
         "longitude": -0.1249
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 4
     },
     {
       "kind": "view-check",

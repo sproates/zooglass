@@ -16,8 +16,9 @@ import {
 async function next(socket: WebSocket): Promise<Message> {
   const inbox = messagesBySocket.get(socket)!;
 
-  if (!inbox.length)
+  if (!inbox.length) {
     await once(socket, "message", { signal: AbortSignal.timeout(5000) });
+  }
 
   assert.ok(inbox.length, "expected a socket receipt");
 
@@ -34,7 +35,10 @@ test(
           id: "position",
           fields: { position: [{ sourceId: "feed", type: "position" }] },
           ordering: {
-            position: { mode: "latestBySequence", sequenceField: "sequence" },
+            position: {
+              mode: "latestBySequence",
+              sequenceField: "publicationSequence",
+            },
           },
         },
       ],
@@ -62,19 +66,22 @@ test(
 
         assert.equal((await next(socket)).type, "subscribed");
 
-        if (cycle)
+        if (cycle) {
           assert.equal(
             (await next(socket)).data?.position.sequence,
             cycle * 25,
           );
+        }
 
-        for (let offset = 1; offset <= 25; offset++)
+        for (let offset = 1; offset <= 25; offset++) {
           await source.send(positionEvent("bus", cycle * 25 + offset));
-        for (let offset = 1; offset <= 25; offset++)
+        }
+        for (let offset = 1; offset <= 25; offset++) {
           assert.equal(
             (await next(socket)).data?.position.sequence,
             cycle * 25 + offset,
           );
+        }
 
         assert.equal(messagesBySocket.get(socket)!.length, 0);
         await closeClient(socket);

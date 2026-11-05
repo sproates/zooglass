@@ -35,7 +35,15 @@ test(
 
     assert.deepEqual(
       JSON.parse(await readFile(fileURLToPath(config), "utf8")),
-      { views },
+      {
+        contractVersion: 2,
+        storage: "memory",
+        maxStreams: 100_000,
+        identityWindow: 10_000,
+        maxHistoryEntries: 10_000,
+        sources: [],
+        views,
+      },
     );
     await Promise.all([session.close(), session.close()]);
 

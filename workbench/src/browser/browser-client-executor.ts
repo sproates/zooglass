@@ -39,13 +39,17 @@ export function createBrowserClientExecutor(
     }
 
     if (message.type === "completed" || message.type === "failed") {
-      if (!pending || message.commandId !== pending.id) return;
-      if (message.type === "failed") pending.error = String(message.reason);
-      else if (
+      if (!pending || message.commandId !== pending.id) {
+        return;
+      }
+      if (message.type === "failed") {
+        pending.error = String(message.reason);
+      } else if (
         !Number.isInteger(message.connectionGeneration) ||
         Number(message.connectionGeneration) < generation
-      )
+      ) {
         throw new Error("Invalid command generation.");
+      }
 
       pending.done = true;
 
@@ -56,19 +60,23 @@ export function createBrowserClientExecutor(
       message.type !== "observation" ||
       !Number.isInteger(message.connectionGeneration) ||
       !Number.isInteger(message.observationIndex)
-    )
+    ) {
       throw new Error("Invalid browser observation.");
+    }
 
     const nextGeneration = Number(message.connectionGeneration);
     const index = Number(message.observationIndex);
 
-    if (nextGeneration < generation || index <= observationIndex) return;
+    if (nextGeneration < generation || index <= observationIndex) {
+      return;
+    }
     if (nextGeneration > generation) {
       if (
         !["opened", "connecting"].includes(String(message.event)) ||
         nextGeneration !== generation + 1
-      )
+      ) {
         throw new Error("Unexpected browser connection generation.");
+      }
 
       generation = nextGeneration;
       receipts.length = 0;
@@ -77,8 +85,9 @@ export function createBrowserClientExecutor(
 
     observationIndex = index;
     events.set(String(message.event), index);
-    if (message.event === "subscribed")
+    if (message.event === "subscribed") {
       firstViews.delete(viewKey(message.viewId, message.entityId));
+    }
 
     if (message.event === "view-update") {
       if (
@@ -86,8 +95,9 @@ export function createBrowserClientExecutor(
         typeof message.entityId !== "string" ||
         !message.data ||
         typeof message.data !== "object"
-      )
+      ) {
         throw new Error("Invalid view receipt.");
+      }
 
       if (recordReceipts && receipts.length >= 256) {
         fail("Browser receipt buffer exhausted.");
@@ -95,17 +105,24 @@ export function createBrowserClientExecutor(
       }
 
       const key = viewKey(message.viewId, message.entityId);
-      if (!firstViews.has(key)) firstViews.set(key, message.data);
-      if (recordReceipts) receipts.push(message);
+      if (!firstViews.has(key)) {
+        firstViews.set(key, message.data);
+      }
+      if (recordReceipts) {
+        receipts.push(message);
+      }
     }
   }
 
   const executor: ClientExecutor = {
     async execute(entry: ClientEntry, callerSignal: AbortSignal) {
-      if (entry.clientId !== clientId)
+      if (entry.clientId !== clientId) {
         throw new Error("Browser client binding mismatch.");
+      }
 
-      if (active) throw new Error("Browser action already running.");
+      if (active) {
+        throw new Error("Browser action already running.");
+      }
 
       const timeout =
         entry.kind === "client-state" || entry.kind === "client-initial-state"
@@ -164,7 +181,9 @@ export function createBrowserClientExecutor(
         }
         operation.throwIfAborted();
 
-        if (pending.error) throw new Error(pending.error);
+        if (pending.error) {
+          throw new Error(pending.error);
+        }
       } catch (error) {
         fail(
           `Browser action failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -199,8 +218,9 @@ export function createBrowserClientExecutor(
           callerSignal,
           AbortSignal.timeout(timeoutMs),
         ]);
-        while ((events.get(event) ?? 0) <= after)
+        while ((events.get(event) ?? 0) <= after) {
           await delay(10, undefined, { signal: combined });
+        }
         combined.throwIfAborted();
       },
     },

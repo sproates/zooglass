@@ -27,7 +27,7 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -44,7 +44,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -82,7 +82,9 @@
         "sequence": 40,
         "latitude": 51.0,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "view-check",
@@ -152,7 +154,9 @@
         "sequence": 42,
         "latitude": 51.1,
         "longitude": -0.25
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "view-check",
@@ -232,7 +236,9 @@
         "sequence": 41,
         "latitude": 51.06,
         "longitude": -0.29
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "view-check",
@@ -308,7 +314,9 @@
         "sequence": 43,
         "latitude": 51.12,
         "longitude": -0.2
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 43
     },
     {
       "kind": "view-check",
@@ -408,7 +416,9 @@
         "sequence": 44,
         "latitude": 51.14,
         "longitude": -0.15
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 44
     },
     {
       "kind": "view-check",
@@ -518,7 +528,9 @@
         "sequence": 45,
         "latitude": 51.18,
         "longitude": -0.12
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 45
     },
     {
       "kind": "view-check",
@@ -638,7 +650,9 @@
         "sequence": 46,
         "latitude": 51.23,
         "longitude": -0.13
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 46
     },
     {
       "kind": "view-check",
@@ -768,7 +782,9 @@
         "sequence": 47,
         "latitude": 51.28,
         "longitude": -0.16
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 47
     },
     {
       "kind": "view-check",
@@ -908,7 +924,9 @@
         "sequence": 48,
         "latitude": 51.3,
         "longitude": -0.21
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 48
     },
     {
       "kind": "view-check",
@@ -1058,7 +1076,9 @@
         "sequence": 49,
         "latitude": 51.28,
         "longitude": -0.26
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 49
     },
     {
       "kind": "view-check",
@@ -1218,7 +1238,9 @@
         "sequence": 50,
         "latitude": 51.24,
         "longitude": -0.29
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 50
     },
     {
       "kind": "view-check",
@@ -1388,7 +1410,9 @@
         "sequence": 51,
         "latitude": 51.2,
         "longitude": -0.27
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 51
     },
     {
       "kind": "view-check",
@@ -1568,7 +1592,9 @@
         "sequence": 52,
         "latitude": 51.17,
         "longitude": -0.23
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 52
     },
     {
       "kind": "view-check",
@@ -1758,7 +1784,9 @@
         "sequence": 53,
         "latitude": 51.18,
         "longitude": -0.18
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 53
     },
     {
       "kind": "view-check",
@@ -1958,7 +1986,9 @@
         "sequence": 54,
         "latitude": 51.21,
         "longitude": -0.14
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 54
     },
     {
       "kind": "view-check",
@@ -2168,7 +2198,9 @@
         "sequence": 55,
         "latitude": 51.24,
         "longitude": -0.09
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 55
     },
     {
       "kind": "view-check",
@@ -2388,7 +2420,9 @@
         "sequence": 56,
         "latitude": 51.23,
         "longitude": -0.04
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 56
     },
     {
       "kind": "view-check",
@@ -2618,7 +2652,9 @@
         "sequence": 57,
         "latitude": 51.19,
         "longitude": -0.01
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 57
     },
     {
       "kind": "view-check",
@@ -2858,7 +2894,9 @@
         "sequence": 58,
         "latitude": 51.14,
         "longitude": -0.03
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 58
     },
     {
       "kind": "view-check",
@@ -3108,7 +3146,9 @@
         "sequence": 59,
         "latitude": 51.1,
         "longitude": -0.07
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 59
     },
     {
       "kind": "view-check",

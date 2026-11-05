@@ -72,6 +72,25 @@ class PublicationFunctionalTests {
         }
     }
 
+    @Test
+    void queryLookupPreservesOpaqueEntityIdentifiers() throws Exception {
+        try (var http = HttpClient.newHttpClient();
+                var source = new PublicationTestClient(http, port)) {
+            for (String id : java.util.List.of("a/b", ".", "..", "a+b &c#")) {
+                String text =
+                        IdentityFixtures.envelope(1, "{}").replace("\"car\"", "\"" + id + "\"");
+                assertThat(source.send(text).path("status").asText()).isEqualTo("applied");
+                String encoded =
+                        java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8);
+                assertThat(
+                                read(http, "/views?viewId=latest&entityId=" + encoded)
+                                        .path("entityId")
+                                        .asText())
+                        .isEqualTo(id);
+            }
+        }
+    }
+
     private URI url(String path) {
         return URI.create("http://localhost:" + port + path);
     }

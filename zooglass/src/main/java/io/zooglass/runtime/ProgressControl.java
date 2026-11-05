@@ -9,6 +9,12 @@ import java.util.Set;
 /** Separate strict control envelope; controls never occupy data publication identities. */
 public record ProgressControl(
         String sourceId, String epoch, String sourceEntityId, long throughSequence) {
+    public ProgressControl {
+        StoredJson.requireUnicode(sourceId);
+        StoredJson.requireUnicode(epoch);
+        StoredJson.requireUnicode(sourceEntityId);
+    }
+
     private static final JsonMapper JSON =
             JsonMapper.builder()
                     .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)

@@ -26,7 +26,7 @@ final class SqliteStateRows {
     private static final int RECEIPT_AGE_SCHEMA = 5;
     private static final int FACT_SCHEMA = 6;
     private static final JsonMapper JSON =
-            JsonMapper.builder()
+            JsonMapper.builder(StoredJson.rowFactory())
                     .withCoercionConfig(
                             LogicalType.Textual,
                             coercion -> {

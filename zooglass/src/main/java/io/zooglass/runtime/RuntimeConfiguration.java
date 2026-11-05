@@ -277,6 +277,7 @@ public record RuntimeConfiguration(
     }
 
     static RuntimeConfiguration decode(JsonMapper mapper, JsonNode document) {
+        StoredJson.validateStrings(document);
         for (var view : document.path("views")) {
             validateViewDocument(view);
         }
@@ -286,6 +287,7 @@ public record RuntimeConfiguration(
     static View parseView(String json) {
         var mapper = configurationMapper();
         var document = mapper.readTree(json);
+        StoredJson.validateStrings(document);
         validateViewDocument(document);
         return mapper.treeToValue(document, View.class);
     }

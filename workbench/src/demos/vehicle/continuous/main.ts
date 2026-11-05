@@ -12,28 +12,30 @@ export async function runContinuousDemo(args: string[]) {
   }
   // Keep the continuous CLI readable; callers can opt into per-event service logs.
   process.env.LOGGING_LEVEL_IO_ZOOGLASS ??= "WARN";
-  const simulation = await startSimulation({
-    bindAddress: args[0]?.slice(7) ?? "127.0.0.1",
-    map: interactiveMapConfiguration(),
-  });
-  console.log(
-    `Six cars are driving. Open ${simulation.origin} in any browser. Ctrl+C stops the simulation.`,
-  );
-  let stopping = false;
-  async function stop() {
-    if (stopping) {
-      return;
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  try {
+    const simulation = await startSimulation({
+      bindAddress: args[0]?.slice(7) ?? "127.0.0.1",
+      map: interactiveMapConfiguration(),
+      signal: controller.signal,
+    });
+    try {
+      console.log(
+        `Six cars are driving. Open ${simulation.origin} in any browser. Ctrl+C stops the simulation.`,
+      );
+      await simulation.done;
+    } finally {
+      await simulation.close();
     }
-    stopping = true;
-    await simulation.close();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      throw error;
+    }
+  } finally {
+    process.off("SIGINT", stop);
+    process.off("SIGTERM", stop);
   }
-  process.once("SIGINT", () => void stop());
-  process.once("SIGTERM", () => void stop());
-  void simulation.done.catch(async (error) => {
-    if (!stopping) {
-      console.error(error);
-      process.exitCode = 1;
-      await stop();
-    }
-  });
 }

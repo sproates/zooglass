@@ -28,6 +28,9 @@ public record FactRetirement(
                 || !FactEnvelope.validNumber(minimumBirthSequence)) {
             throw new IllegalArgumentException("Invalid fact retirement");
         }
+        StoredJson.requireUnicode(viewId);
+        StoredJson.requireUnicode(entityId);
+        fields.forEach(StoredJson::requireUnicode);
         fields = fields.stream().sorted().toList();
     }
 

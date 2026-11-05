@@ -8,21 +8,30 @@ export const suites = [
   "native",
   "engines",
 ];
-const internalJava = new Set([
-  "FieldUpdates",
-  "ViewStore",
-  "ViewDefinitions",
-  "ViewConfiguration",
-]);
-const protocolJava = new Set([
-  "ViewSnapshot",
-  "ViewController",
-  "LiveViewWebSocketHandler",
-  "EventLoggingWebSocketHandler",
-  "LiveViewBroadcaster",
-  "OutboundWriter",
-  "SubscriptionIndex",
-]);
+const javaRoot = "zooglass/src/main/java/io/zooglass/";
+const internalJava = new Set(
+  [
+    "runtime/BoundView.java",
+    "runtime/ClockRollback.java",
+    "runtime/ViewTransitions.java",
+    "runtime/ConfigurationValidation.java",
+    "runtime/RuntimeConfiguration.java",
+  ].map((file) => javaRoot + file),
+);
+const protocolJava = new Set(
+  [
+    "api/ViewSnapshot.java",
+    "runtime/ViewCoordinator.java",
+    "runtime/RuntimeEndpoints.java",
+    "runtime/EventIngress.java",
+    "runtime/ProgressIngress.java",
+    "runtime/FactRetirementIngress.java",
+    "delivery/SnapshotSubscriptions.java",
+    "delivery/SnapshotBroadcaster.java",
+    "delivery/OutboundWriter.java",
+    "delivery/SubscriptionIndex.java",
+  ].map((file) => javaRoot + file),
+);
 
 export function isDocumentation(path) {
   return (
@@ -54,13 +63,10 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     ) {
       // The accepted first strategy slice is pure field-update policy.
       add(["java", "core"], path);
-    } else if (
-      /^zooglass\/src\/main\/java\/io\/zooglass\/[^/]+\.java$/.test(path)
-    ) {
-      const name = path.split("/").at(-1).replace(".java", "");
-      if (internalJava.has(name)) add(["java", "core"], path);
-      else if (protocolJava.has(name)) add(["java", "core", "browser"], path);
-      else add(suites, path);
+    } else if (internalJava.has(path)) {
+      add(["java", "core"], path);
+    } else if (protocolJava.has(path)) {
+      add(["java", "core", "browser"], path);
     } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
     } else if (/^workbench\/src\/demos\/orders\/.*\.ts$/.test(path)) {

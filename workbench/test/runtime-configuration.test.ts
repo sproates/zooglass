@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { parseView } from "../src/scenario/scenario-view.js";
 import {
   runtimeConfiguration,
   runtimeView,
@@ -95,4 +96,17 @@ test("fields named like inherited properties default to arrival ordering", () =>
   });
   assert.equal(view.fields["constructor"].mode, "arrival");
   assert.equal(view.fields["toString"].mode, "arrival");
+});
+
+test("scenario parsing and compilation preserve a field and ordering named __proto__", () => {
+  const view = parseView(
+    JSON.parse(
+      '{"id":"v","fields":{"normal":[{"sourceId":"feed","type":"a"}],"__proto__":[{"sourceId":"feed","type":"b"}]},"ordering":{"__proto__":{"mode":"latestBySequence","sequenceField":"publicationSequence"}}}',
+    ),
+    "view",
+    new Set(["feed"]),
+  );
+  const fields = runtimeView(view).fields;
+  assert.deepEqual(Object.keys(fields).sort(), ["__proto__", "normal"]);
+  assert.equal(fields["__proto__"].mode, "latestBySequence");
 });

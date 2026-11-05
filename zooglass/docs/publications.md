@@ -150,7 +150,11 @@ Connect a WebSocket client to `ws://localhost:8080/events` and send:
 
 The identity is the source, configured epoch, entity and publication sequence.
 Sequences must be integers from 1 to 9007199254740991. They apply across event
-types within that stream. Payloads must be JSON objects.
+types within that stream. Payloads must be JSON objects. The publication envelope and its payload share
+a limit of 500 nested containers. Storage rows and snapshot responses reserve
+additional nesting for runtime metadata. Identifiers, property names and text
+values must contain valid Unicode scalar values, including paired surrogates for
+supplementary characters.
 
 A successful response looks like:
 
@@ -234,6 +238,10 @@ The separate `publicationSequences.position` is `[41]`, avoiding ambiguity with
 application fields. History mode returns an ordered array of payloads and a
 corresponding array of publication sequences. Latest mode
 does not move backwards when an older publication arrives; arrival mode does.
+
+Use `GET /views?viewId=…&entityId=…` for opaque identifiers. Encode each value
+as a query parameter, including literal plus signs. This form supports slashes,
+`.` and `..` in either ID. The path-based lookup remains available.
 
 A snapshot includes its view ID, canonical entity ID and last changed version.
 Its `status` reports missing fields, source progress and, for configured fields,

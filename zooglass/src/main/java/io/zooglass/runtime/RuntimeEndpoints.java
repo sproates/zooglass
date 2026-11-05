@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -56,6 +57,12 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
         } catch (IllegalArgumentException invalid) {
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    @GetMapping("/views")
+    public ResponseEntity<ViewSnapshot> lookup(
+            @RequestParam String viewId, @RequestParam String entityId) {
+        return snapshot(viewId, entityId);
     }
 
     @GetMapping("/views/{viewId}/{entityId}")

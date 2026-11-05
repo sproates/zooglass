@@ -8,7 +8,9 @@ export async function checkView(
   check: Extract<TraceEntry, { kind: "view-check" }>,
   signal: AbortSignal,
 ): Promise<void> {
-  const url = `${baseUrl}/views/${encodeURIComponent(check.viewId)}/${encodeURIComponent(check.entityId)}`;
+  const url = new URL("/views", baseUrl);
+  url.searchParams.set("viewId", check.viewId);
+  url.searchParams.set("entityId", check.entityId);
   const startedAt = Date.now();
   let lastActual: unknown = "view not found";
 

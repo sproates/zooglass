@@ -145,6 +145,9 @@ flowchart TB
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
+  storedJson["StoredJson.java<br/>UTF-8 validation and wrapped JSON depth"]
+  rows -->|uses row encoding limits| storedJson
+  publication -->|validates identifiers and payload| storedJson
   recovery["RecoveryValidation.java<br/>Definitions, streams and validation orchestration"]
   viewRecovery["ViewRecovery.java<br/>Candidates and exposed views"]
   targetRecovery["TargetRecovery.java<br/>Retained per-target outcomes"]

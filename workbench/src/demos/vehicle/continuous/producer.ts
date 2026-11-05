@@ -10,6 +10,7 @@ import { deliveryAt, type Delivery } from "./delivery.js";
 
 export interface ProducerOptions {
   tickMs?: number;
+  signal?: AbortSignal;
 }
 interface DelayedEvent {
   due: number;
@@ -32,6 +33,10 @@ export async function startProducer(
     throw new Error("Tick interval must be at least 10ms.");
   }
   const lifetime = new AbortController();
+  const signal = options.signal
+    ? AbortSignal.any([lifetime.signal, options.signal])
+    : lifetime.signal;
+  signal.throwIfAborted();
   const url = new URL("/events", baseUrl);
   url.protocol = "ws:";
   const sources: CarSource[] = cars.map(() => ({
@@ -50,7 +55,7 @@ export async function startProducer(
     ) {
       throw new Error("A car source failed or could not keep up.");
     }
-    return publishAndCheckReceipt(source.socket, message, lifetime.signal);
+    return publishAndCheckReceipt(source.socket, message, signal);
   }
   const event = (
     i: number,
@@ -73,7 +78,7 @@ export async function startProducer(
 
   try {
     for (const source of sources) {
-      source.socket = await connectClient(url.href, lifetime.signal, false);
+      source.socket = await connectClient(url.href, signal, false);
     }
   } catch (error) {
     await Promise.allSettled(
@@ -94,7 +99,7 @@ export async function startProducer(
     }
 
     if (source.previous === "offline") {
-      source.socket = await connectClient(url.href, lifetime.signal, false);
+      source.socket = await connectClient(url.href, signal, false);
       await notice(i, tick, "source reconnected");
     }
     if (source.delayed && source.delayed.due <= tick) {
@@ -135,12 +140,12 @@ export async function startProducer(
 
   const done = (async () => {
     let tick = 0;
-    while (!lifetime.signal.aborted) {
+    while (!signal.aborted) {
       for (let i = 0; i < cars.length; i++) {
         sources[i].previous = await deliver(i, tick);
       }
       tick++;
-      await delay(tickMs, undefined, { signal: lifetime.signal });
+      await delay(tickMs, undefined, { signal: signal });
     }
   })().finally(async () => {
     await Promise.allSettled(

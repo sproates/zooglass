@@ -14,7 +14,7 @@ function parseOrdering(
     throw new Error(`Expected ${label}.ordering to be an object.`);
   }
 
-  const ordering: Record<string, ScenarioOrdering> = {};
+  const ordering = new Map<string, ScenarioOrdering>();
 
   for (const [fieldName, orderingInput] of Object.entries(input)) {
     if (!Object.hasOwn(fields, fieldName)) {
@@ -38,16 +38,16 @@ function parseOrdering(
       );
     }
 
-    ordering[fieldName] = {
+    ordering.set(fieldName, {
       mode: orderingInput.mode,
       sequenceField: requiredString(
         orderingInput.sequenceField,
         `${label}.ordering.${fieldName}.sequenceField`,
       ),
-    };
+    });
   }
 
-  return ordering;
+  return Object.fromEntries(ordering);
 }
 
 export function parseView(
@@ -63,7 +63,7 @@ export function parseView(
     throw new Error(`Expected ${label}.fields to be a non-empty object.`);
   }
 
-  const fields: Record<string, ScenarioEventMatcher[]> = {};
+  const entries = new Map<string, ScenarioEventMatcher[]>();
 
   for (const [fieldName, matchersInput] of Object.entries(input.fields)) {
     requiredString(fieldName, `${label} field name`);
@@ -74,34 +74,38 @@ export function parseView(
       );
     }
 
-    fields[fieldName] = matchersInput.map((matcher, matcherIndex) => {
-      if (!isRecord(matcher)) {
-        throw new Error(
-          `Expected ${label}.fields.${fieldName}[${matcherIndex}] to be an object.`,
+    entries.set(
+      fieldName,
+      matchersInput.map((matcher, matcherIndex) => {
+        if (!isRecord(matcher)) {
+          throw new Error(
+            `Expected ${label}.fields.${fieldName}[${matcherIndex}] to be an object.`,
+          );
+        }
+
+        const sourceId = requiredString(
+          matcher.sourceId,
+          `${label}.fields.${fieldName}[${matcherIndex}].sourceId`,
         );
-      }
 
-      const sourceId = requiredString(
-        matcher.sourceId,
-        `${label}.fields.${fieldName}[${matcherIndex}].sourceId`,
-      );
+        if (!sourceIds.has(sourceId)) {
+          throw new Error(
+            `View field "${fieldName}" refers to unknown source "${sourceId}".`,
+          );
+        }
 
-      if (!sourceIds.has(sourceId)) {
-        throw new Error(
-          `View field "${fieldName}" refers to unknown source "${sourceId}".`,
-        );
-      }
-
-      return {
-        sourceId,
-        type: requiredString(
-          matcher.type,
-          `${label}.fields.${fieldName}[${matcherIndex}].type`,
-        ),
-      };
-    });
+        return {
+          sourceId,
+          type: requiredString(
+            matcher.type,
+            `${label}.fields.${fieldName}[${matcherIndex}].type`,
+          ),
+        };
+      }),
+    );
   }
 
+  const fields = Object.fromEntries(entries);
   const id = requiredString(input.id, `${label}.id`);
 
   if (input.ordering === undefined) {

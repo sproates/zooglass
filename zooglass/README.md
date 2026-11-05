@@ -32,6 +32,7 @@ is a data-format identifier; there is one runtime and no version-prefixed API.
 | WebSocket `/progress` | Explicit source watermarks |
 | WebSocket `/facts/retire` | Advance retained-fact floors |
 | POST `/views` | Register a validated view for subsequent publications |
+| GET `/views?viewId=…&entityId=…` | Snapshot lookup for opaque IDs, including slashes and dot segments |
 | GET `/views/{viewId}/{entityId}` | Current values, provenance and status |
 | WebSocket `/views/live` | Subscribe to current and subsequent snapshots |
 

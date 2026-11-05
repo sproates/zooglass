@@ -90,6 +90,14 @@ final class ConfigurationValidation {
                     throw new IllegalArgumentException(
                             "Entity resolver must reference a source used by its view");
                 }
+                if (entity.keys() != null) {
+                    entity.keys()
+                            .forEach(
+                                    (key, value) -> {
+                                        StoredJson.requireUnicode(key);
+                                        StoredJson.requireUnicode(value);
+                                    });
+                }
                 EntityStrategySelection.select(entity.mode(), entity.keys());
             }
         }
@@ -150,6 +158,7 @@ final class ConfigurationValidation {
     }
 
     private static boolean name(String value) {
+        StoredJson.requireUnicode(value);
         return value != null && !value.isBlank();
     }
 }

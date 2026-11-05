@@ -224,7 +224,8 @@ flowchart TB
   publication["Publication.java<br/>Envelope and stream key"]
   outcome["PublicationOutcome.java<br/>Structured source result"]
   coordinator["ViewCoordinator.java<br/>Admit, stage and install"]
-  config["V2Configuration.java<br/>Validate startup definitions"]
+  config["V2Configuration.java<br/>Decode startup definitions"]
+  configValidation["ConfigurationValidation.java<br/>References and strategy compatibility"]
   bound["BoundView.java<br/>Bind resolvers, updates and selectors"]
   entitySelection["strategy/identity/EntityStrategySelection.java"]
   entityStrategy["strategy/identity/EntityResolutionStrategy.java"]
@@ -238,7 +239,9 @@ flowchart TB
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
-  recovery["RecoveryValidation.java<br/>Definitions and recovered state"]
+  recovery["RecoveryValidation.java<br/>Definitions, streams and validation orchestration"]
+  viewRecovery["ViewRecovery.java<br/>Candidates and exposed views"]
+  targetRecovery["TargetRecovery.java<br/>Retained per-target outcomes"]
   image["StateImage.java<br/>Candidates, views, identities and versions"]
   health["V2StorageHealth.java<br/>Service health status"]
   selection["strategy/update/FieldStrategySelection.java"]
@@ -250,6 +253,7 @@ flowchart TB
   ingress -->|applies publication| coordinator
   ingress -.->|serialises| outcome
   coordinator -->|loads definitions and limits| config
+  config -->|checks decoded definitions| configValidation
   coordinator -->|compares retained content| parser
   transitions["ViewTransitions.java<br/>Stage values and status across views"]
   status["ViewStatus.java<br/>Project public metadata"]
@@ -262,6 +266,8 @@ flowchart TB
   store -.->|owns installed image| image
   sqlite -->|loads and saves rows in a transaction| rows
   rows -->|checks restored state and configuration| recovery
+  recovery -->|validates selected values and provenance| viewRecovery
+  recovery -->|validates receipt outcomes| targetRecovery
   health -->|checks storage availability| coordinator
   coordinator -.->|returns| outcome
   contributionSelection["strategy/contribution/ContributionStrategySelection.java"]
@@ -305,8 +311,10 @@ status is unchanged. Progress, source observation and floor changes are visible
 metadata and can advance the version without changing selected values.
 
 `SqliteStateRows` owns the schema and JSON row format. `RecoveryValidation`
-checks stored definitions, target outcomes, candidate provenance and the selected
-winner before the service becomes ready. `SchemaMigration` enriches schema-1/2
+checks stored definitions and stream receipts, delegates retained target outcomes
+to `TargetRecovery`, and delegates candidate provenance and selected values to
+`ViewRecovery` before the service becomes ready. `ConfigurationValidation` checks
+references and compatible strategies after startup definitions are decoded. `SchemaMigration` enriches schema-1/2
 rows in that same transaction;
 old receipts retain unknown (`null`) target outcomes. `BoundView` invokes its
 source resolver only after matching the source/type. Unknown mappings produce

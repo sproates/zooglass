@@ -133,6 +133,7 @@ Use these conventions for TypeScript changes:
   conceal a missing check. Any necessary suppression must be narrow and explain
   why it is safe.
 - **Control flow:** prefer `const`; use `let` only for reassignment and avoid `var`.
+  Use braces for conditional and loop bodies.
   Prefer straightforward branches over nested conditional expressions. Handle
   promise failures and make ownership of background tasks, listeners and timers
   explicit, including their cleanup.

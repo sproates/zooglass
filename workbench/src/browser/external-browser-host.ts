@@ -52,23 +52,29 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
     return task;
   };
   const roles = () => {
-    for (const viewer of viewers.values())
+    for (const viewer of viewers.values()) {
       viewer.run?.publish({
         kind: "viewer-session",
         viewerId: viewer.lease.id,
         controller: leases.isController(viewer.lease.id),
         viewers: leases.list(),
       });
+    }
   };
   function detach(viewer: ViewerConnection) {
-    if (viewers.get(viewer.lease.id) !== viewer) return;
+    if (viewers.get(viewer.lease.id) !== viewer) {
+      return;
+    }
     viewers.delete(viewer.lease.id);
     leases.disconnect(viewer.lease.id);
     viewer.ready = false;
-    if (viewer.run) track(viewer.run.close());
+    if (viewer.run) {
+      track(viewer.run.close());
+    }
     viewer.socket.terminate();
-    if (leases.isController(viewer.lease.id) && !closing)
+    if (leases.isController(viewer.lease.id) && !closing) {
       options.onControllerLost();
+    }
     roles();
   }
   function command(
@@ -79,8 +85,9 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
   ) {
     // Admission and execution checks prevent queued work surviving role transfer or Reset.
     const checkAuthority = leases.authority(viewer.lease.id);
-    if (pendingCommands >= 16)
+    if (pendingCommands >= 16) {
       throw new Error("Control command queue is full.");
+    }
     pendingCommands++;
     const admitted = epoch;
     const targetRun = target ? viewers.get(target)?.run : undefined;
@@ -94,8 +101,9 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
         viewers.get(viewer.lease.id) !== viewer ||
         viewer.run !== run ||
         !viewer.ready
-      )
+      ) {
         throw new Error("This viewer or run has been replaced.");
+      }
       await options.onControl(action, target);
     });
     commands = result
@@ -114,14 +122,16 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
       closing ||
       boundEpoch !== epoch ||
       viewers.get(viewer.lease.id) !== viewer
-    )
+    ) {
       return;
+    }
     const run = createBrowserRun(baseUrl, {
       clientId: viewer.lease.id,
       recordReceipts: false,
       send(message) {
-        if (viewer.run !== run || viewer.socket.readyState !== WebSocket.OPEN)
+        if (viewer.run !== run || viewer.socket.readyState !== WebSocket.OPEN) {
           return false;
+        }
         viewer.socket.send(JSON.stringify(message));
         return true;
       },
@@ -147,44 +157,61 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
         options.readinessTimeoutMs ?? 15_000,
       );
       await options.onReady(run);
-      if (boundEpoch !== epoch || viewer.run !== run) return;
+      if (boundEpoch !== epoch || viewer.run !== run) {
+        return;
+      }
       viewer.ready = true;
-      if (latestState) run.publish(latestState);
+      if (latestState) {
+        run.publish(latestState);
+      }
       roles();
     } catch {
-      if (boundEpoch === epoch && viewer.run === run) detach(viewer);
+      if (boundEpoch === epoch && viewer.run === run) {
+        detach(viewer);
+      }
     }
   }
   server.on("connection", (socket) => {
     let viewer: ViewerConnection | undefined;
     const deadline = setTimeout(() => socket.terminate(), 5_000);
     socket.on("pong", () => {
-      if (viewer) viewer.alive = true;
+      if (viewer) {
+        viewer.alive = true;
+      }
     });
     socket.on("error", () => socket.terminate());
     socket.on("close", () => {
       clearTimeout(deadline);
-      if (viewer) detach(viewer);
+      if (viewer) {
+        detach(viewer);
+      }
     });
     socket.on("message", (data, binary) => {
       try {
-        if (binary) throw new Error();
+        if (binary) {
+          throw new Error();
+        }
         const message = JSON.parse(data.toString());
-        if (!message || typeof message !== "object") throw new Error();
+        if (!message || typeof message !== "object") {
+          throw new Error();
+        }
         if (!viewer) {
           if (
             message.type !== "register" ||
             message.protocolVersion !== 1 ||
             !baseUrl ||
             replacing
-          )
+          ) {
             throw new Error();
+          }
           const lease = leases.claim(message);
           viewer = { lease, socket, ready: false, alive: true };
           viewers.set(lease.id, viewer);
           clearTimeout(deadline);
           track(bind(viewer));
-        } else viewer.run?.receive(message);
+        } else {
+          viewer.run?.receive(message);
+        }
       } catch {
         socket.close(1008, "Invalid viewer registration or message.");
       }
@@ -212,16 +239,21 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
         item.run?.ready &&
         item.run.dataPath === request.url,
     );
-    if (viewer) viewer.run!.upgrade(request, socket, head);
-    else socket.end("HTTP/1.1 403 Rejected\r\nConnection: close\r\n\r\n");
+    const run = viewer?.run;
+    if (run) {
+      run.upgrade(request, socket, head);
+    } else {
+      socket.end("HTTP/1.1 403 Rejected\r\nConnection: close\r\n\r\n");
+    }
   });
   http.server.on("error", () => {
     lifetime.abort(new Error("External browser host failed."));
   });
   const heartbeat = setInterval(() => {
     for (const viewer of viewers.values()) {
-      if (!viewer.alive) detach(viewer);
-      else {
+      if (!viewer.alive) {
+        detach(viewer);
+      } else {
         viewer.alive = false;
         viewer.socket.ping();
       }
@@ -231,7 +263,9 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
     origin: http.origin,
     signal: lifetime.signal,
     pair(name: string, controller = false) {
-      if (closing) throw new Error("Host closed.");
+      if (closing) {
+        throw new Error("Host closed.");
+      }
       const invitation = leases.issue(name, controller);
       roles();
       return {
@@ -247,15 +281,19 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
     },
     revoke(id: string) {
       const viewer = viewers.get(id);
-      if (viewer) detach(viewer);
-      else if (leases.isController(id)) options.onControllerLost();
+      if (viewer) {
+        detach(viewer);
+      } else if (leases.isController(id)) {
+        options.onControllerLost();
+      }
       leases.revoke(id);
       roles();
     },
     viewer(id: string) {
       const viewer = viewers.get(id);
-      if (!viewer?.ready || !viewer.run || viewer.run.signal.aborted)
+      if (!viewer?.ready || !viewer.run || viewer.run.signal.aborted) {
         throw new Error("Target viewer is not ready.");
+      }
       return viewer.run;
     },
     async retireRun() {
@@ -270,8 +308,9 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
       );
     },
     async replaceRun(url: string) {
-      if (closing || replacing)
+      if (closing || replacing) {
         throw new Error("Host closed or replacement already in progress.");
+      }
       replacing = true;
       epoch++;
       baseUrl = url;
@@ -284,18 +323,26 @@ export async function startExternalBrowserHost(options: ExternalHostOptions) {
       }
     },
     broadcast(event: unknown) {
-      for (const viewer of viewers.values()) viewer.run?.publish(event);
+      for (const viewer of viewers.values()) {
+        viewer.run?.publish(event);
+      }
     },
     publish(state: unknown) {
       latestState = state;
-      for (const viewer of viewers.values()) viewer.run?.publish(state);
+      for (const viewer of viewers.values()) {
+        viewer.run?.publish(state);
+      }
     },
     close(): Promise<void> {
       return (closing ??= (async () => {
         clearInterval(heartbeat);
         lifetime.abort(new Error("External host closed."));
-        for (const viewer of [...viewers.values()]) detach(viewer);
-        for (const socket of server.clients) socket.terminate();
+        for (const viewer of [...viewers.values()]) {
+          detach(viewer);
+        }
+        for (const socket of server.clients) {
+          socket.terminate();
+        }
         await Promise.allSettled([...tasks]);
         leases.clear();
         await Promise.all([

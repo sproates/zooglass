@@ -1,6 +1,7 @@
 import type { Scenario } from "./scenario.js";
 import type { TraceEntry } from "./playback.js";
 
+/** Input has already passed parseScenario, including all source/view references. */
 export function namespaceScenario(scenario: Scenario, index: number): Scenario {
   const namespace = `scenario-${index + 1}`;
   const sourceIds = new Map(
@@ -17,20 +18,19 @@ export function namespaceScenario(scenario: Scenario, index: number): Scenario {
     allViews.map((view) => [view.id, `${namespace}-${view.id}`]),
   );
 
-  const namespaceView = <T extends Scenario["views"][number]>(view: T): T =>
-    ({
-      ...view,
-      id: viewIds.get(view.id)!,
-      fields: Object.fromEntries(
-        Object.entries(view.fields).map(([name, matchers]) => [
-          name,
-          matchers.map((matcher) => ({
-            ...matcher,
-            sourceId: sourceIds.get(matcher.sourceId)!,
-          })),
-        ]),
-      ),
-    }) as T;
+  const namespaceView = <T extends Scenario["views"][number]>(view: T): T => ({
+    ...view,
+    id: viewIds.get(view.id)!,
+    fields: Object.fromEntries(
+      Object.entries(view.fields).map(([name, matchers]) => [
+        name,
+        matchers.map((matcher) => ({
+          ...matcher,
+          sourceId: sourceIds.get(matcher.sourceId)!,
+        })),
+      ]),
+    ),
+  });
 
   return {
     ...scenario,

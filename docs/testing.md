@@ -19,6 +19,11 @@ floors, independent entities, concurrent retries, detached snapshots and process
 failures. A lost-acknowledgement test checks that retrying does not repeat effects.
 Capacity failures leave both projected state and identity admission unchanged.
 
+`NumericProjectionBoundaryTests` checks exact decimal persistence across SQLite
+reopening and a later fact revision. Its literal cases include integer boundaries,
+the supported precision/scale limits and extreme exponents. Rejected values leave
+the version unchanged and permit a corrected publication with the same identity.
+
 `SqliteServiceRestartTests` starts and closes the actual service twice against one
 database. HTTP snapshots recover before new input, and source socket retries
 receive the original committed version.
@@ -194,6 +199,22 @@ It also reuses strategy instances across independent field states.
 `ViewStoreOrderingTests` retains the independent reference model, seeded delivery
 orders and duplicate permutations. Configuration, snapshot ownership and functional
 socket tests exercise the selected modules through the store and service.
+
+## Workbench component contracts
+
+Workbench tests verify the harness itself as well as its use of real service
+interfaces. `demo-step-planning.test.ts` asserts explicit step boundaries and
+delays; `timeline-fault-validation.test.ts` checks accepted fault timeouts and
+validation order. `scenario-view-validation.test.ts` checks view grammar and
+detached matcher ownership. `namespace-scenario.test.ts` checks both declared
+and runtime references while preserving client and domain identities.
+
+`demo-unit/continuous-producer.test.ts` observes actual source WebSockets through
+delayed, duplicate, lost, offline and quiet delivery. It checks ordered notices,
+reconnection and idempotent cleanup, without implementing a substitute ZooGlass
+reconciler. Existing controller, transport and process tests retain responsibility
+for cancellation, admission and resource ownership. Java tests own reconciliation,
+storage and recovery correctness; scenario checks observe their public results.
 
 ## Reproduce the reports
 

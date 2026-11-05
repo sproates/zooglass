@@ -10,7 +10,8 @@ and demonstrates the application work they remove.
 ## Next: client continuity and recovery
 
 Define what a subscriber receives when it joins, falls behind or reconnects.
-The contract builds on the shared runtime for HTTP snapshots and live delivery.
+The [proposed delivery contract](docs/design/client-delivery.md) builds on the
+shared runtime for HTTP snapshots and live delivery.
 
 ## Reconciliation and recovery
 

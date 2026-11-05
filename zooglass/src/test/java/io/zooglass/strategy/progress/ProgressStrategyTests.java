@@ -3,10 +3,10 @@ package io.zooglass.strategy.progress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.zooglass.runtime.PublicationJson;
 import io.zooglass.strategy.late.AcceptLate;
 import io.zooglass.strategy.late.LateStrategySelection;
 import io.zooglass.strategy.late.RejectBehindWatermark;
-import io.zooglass.v2.PublicationJson;
 
 import org.junit.jupiter.api.Test;
 

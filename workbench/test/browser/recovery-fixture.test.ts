@@ -19,7 +19,10 @@ test(
         ),
       ),
     );
-    const service = await startZooGlassSession({ views: scenario.views });
+    const service = await startZooGlassSession({
+      views: scenario.views,
+      sources: scenario.sources,
+    });
 
     try {
       const browser = await startVehicleBrowserSession(service.baseUrl, {

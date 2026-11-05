@@ -28,7 +28,9 @@
         "home": 0,
         "away": 0,
         "period": "first-half"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "source-event",
@@ -40,7 +42,9 @@
         "homeWin": 2.1,
         "draw": 3.2,
         "awayWin": 3.6
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "view-check",
@@ -70,7 +74,9 @@
         "home": 1,
         "away": 0,
         "period": "first-half"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "source-event",
@@ -82,7 +88,9 @@
         "homeWin": 1.55,
         "draw": 3.7,
         "awayWin": 5.4
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "view-check",

@@ -10,7 +10,7 @@ const views = [
     ordering: {
       position: {
         mode: "latestBySequence" as const,
-        sequenceField: "sequence",
+        sequenceField: "publicationSequence",
       },
     },
   },
@@ -59,9 +59,9 @@ test(
           { type: "error", message: error },
           request,
         );
-        await source.send(positionEvent("bus", index));
+        await source.send(positionEvent("bus", index + 1));
 
-        assert.equal((await healthy.next()).data?.position.sequence, index);
+        assert.equal((await healthy.next()).data?.position.sequence, index + 1);
       }
       // The same connection remains usable after rejection; a second subscribe
       // acknowledges and snapshots again but must not duplicate future fanout.
@@ -116,29 +116,36 @@ test(
           null,
           [],
           {},
-          ...["sourceId", "type", "entityId"].flatMap((field) =>
+          ...["sourceId", "type", "sourceEntityId", "epoch"].flatMap((field) =>
             [undefined, null, 42, " "].map((value) => ({
               ...validEvent,
               [field]: value,
             })),
           ),
           ...[
+            undefined,
             null,
-            [],
-            1,
-            "text",
-            {},
-            { sequence: "999" },
-            { sequence: null },
-          ].map((payload) => ({ ...validEvent, payload })),
+            0,
+            -1,
+            1.5,
+            "999",
+            Number.MAX_SAFE_INTEGER + 1,
+          ].map((publicationSequence) => ({
+            ...validEvent,
+            publicationSequence,
+          })),
+          ...[null, [], 1, "text"].map((payload) => ({
+            ...validEvent,
+            payload,
+          })),
         ].map((message) => JSON.stringify(message)),
       ];
 
       for (const [index, message] of invalidEvents.entries()) {
         source.socket.send(message);
-        await source.send(positionEvent("barrier", index));
+        await source.send(positionEvent("barrier", index + 1));
 
-        assert.equal((await viewer.next()).data?.position.sequence, index);
+        assert.equal((await viewer.next()).data?.position.sequence, index + 1);
 
         const response = await fetch(
           service.baseUrl + "/views/position/target",
@@ -186,26 +193,38 @@ test(
       clients.push(viewer);
       await viewer.subscription("barrier");
 
+      const definition = {
+        id: "position",
+        fields: {
+          position: {
+            sourceId: "feed",
+            type: "position",
+            mode: "latestBySequence",
+          },
+        },
+      };
       const definitions = [
         { fields: {} },
         { fields: { position: [] } },
-        { fields: { position: [null] } },
-        { fields: { position: [{ sourceId: "feed", type: "" }] } },
+        { fields: { position: null } },
         {
-          ordering: {
-            unknown: { mode: "latestBySequence", sequenceField: "sequence" },
+          fields: { position: { sourceId: "feed", type: "", mode: "arrival" } },
+        },
+        {
+          fields: {
+            position: {
+              sourceId: "unknown",
+              type: "position",
+              mode: "arrival",
+            },
           },
         },
         {
-          ordering: {
-            position: { mode: "unknown", sequenceField: "sequence" },
+          fields: {
+            position: { sourceId: "feed", type: "position", mode: "unknown" },
           },
         },
-        {
-          ordering: {
-            position: { mode: "latestBySequence", sequenceField: "" },
-          },
-        },
+        { fields: { position: { inputs: [], mode: "arrival" } } },
       ];
 
       const define = (body: unknown) =>
@@ -221,13 +240,13 @@ test(
         const entity = `item-${index}`;
 
         assert.equal(
-          (await define({ ...views[0], id, ...invalid })).status,
+          (await define({ ...definition, id, ...invalid })).status,
           400,
         );
         await source.send(positionEvent(entity, 1));
-        await source.send(positionEvent("barrier", index));
+        await source.send(positionEvent("barrier", index + 1));
 
-        assert.equal((await viewer.next()).data?.position.sequence, index);
+        assert.equal((await viewer.next()).data?.position.sequence, index + 1);
         assert.equal(
           (
             await fetch(`${service.baseUrl}/views/${id}/${entity}`, {
@@ -236,8 +255,8 @@ test(
           ).status,
           404,
         );
-        assert.equal((await define({ ...views[0], id })).status, 201);
-        assert.equal((await define({ ...views[0], id })).status, 409);
+        assert.equal((await define({ ...definition, id })).status, 201);
+        assert.equal((await define({ ...definition, id })).status, 409);
         await viewer.send({
           action: "subscribe",
           viewId: id,

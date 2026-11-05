@@ -1,6 +1,6 @@
 package io.zooglass.strategy.progress;
 
-import io.zooglass.v2.PublicationJson;
+import io.zooglass.runtime.PublicationJson;
 
 import java.util.ArrayList;
 import java.util.Comparator;

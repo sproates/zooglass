@@ -66,6 +66,7 @@ export async function createExternalVehicleDemo(
     async (signal): Promise<DemoRun> => {
       const service = await startZooGlassSession({
         views: scenario.views,
+        sources: scenario.sources,
         signal,
       });
       let session: Awaited<ReturnType<typeof openScenarioSession>> | undefined;

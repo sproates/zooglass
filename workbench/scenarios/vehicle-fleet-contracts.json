@@ -37,11 +37,11 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         },
         "operation": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -58,7 +58,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -122,7 +122,9 @@
         "sequence": 40,
         "latitude": 36.1408,
         "longitude": -5.3536
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "source-event",
@@ -134,7 +136,9 @@
         "sequence": 40,
         "latitude": 36.1432,
         "longitude": -5.3544
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "source-event",
@@ -146,7 +150,9 @@
         "sequence": 40,
         "latitude": 36.1387,
         "longitude": -5.3528
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "source-event",
@@ -157,7 +163,9 @@
       "payload": {
         "sequence": 100,
         "status": "available"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 100
     },
     {
       "kind": "source-event",
@@ -168,7 +176,9 @@
       "payload": {
         "sequence": 100,
         "status": "on-a-job"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 100
     },
     {
       "kind": "source-event",
@@ -179,7 +189,9 @@
       "payload": {
         "sequence": 100,
         "status": "returning"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 100
     },
     {
       "kind": "client-view-check",
@@ -293,7 +305,9 @@
         "sequence": 42,
         "latitude": 36.1412,
         "longitude": -5.3532
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "source-event",
@@ -304,7 +318,9 @@
       "payload": {
         "sequence": 102,
         "status": "available"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 102
     },
     {
       "kind": "view-check",
@@ -386,7 +402,9 @@
         "sequence": 41,
         "latitude": 36.141,
         "longitude": -5.3534
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "source-event",
@@ -397,7 +415,9 @@
       "payload": {
         "sequence": 101,
         "status": "returning"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 101
     },
     {
       "kind": "client-view-check",
@@ -435,7 +455,9 @@
         "sequence": 41,
         "latitude": 36.141,
         "longitude": -5.3534
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "source-event",
@@ -447,7 +469,9 @@
         "sequence": 42,
         "latitude": 36.15,
         "longitude": -5.36
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "source-event",
@@ -458,7 +482,9 @@
       "payload": {
         "sequence": 102,
         "status": "available"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 102
     },
     {
       "kind": "source-event",
@@ -469,7 +495,9 @@
       "payload": {
         "sequence": 102,
         "status": "returning"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 102
     },
     {
       "kind": "source-event",
@@ -481,7 +509,9 @@
         "sequence": 41,
         "latitude": 36.1389,
         "longitude": -5.3526
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "source-event",
@@ -492,7 +522,9 @@
       "payload": {
         "sequence": 101,
         "status": "available"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 101
     },
     {
       "kind": "view-check",

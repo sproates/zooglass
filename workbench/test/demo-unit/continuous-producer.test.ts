@@ -26,7 +26,7 @@ test("continuous producer sends faults in order, reconnects, and closes its sock
     socket.on("message", (bytes) => {
       const message = JSON.parse(String(bytes));
       assert.equal(message.sourceId, "fleet");
-      assert.equal(message.entityId, "car-1");
+      assert.equal(message.sourceEntityId, "car-1");
       if (message.type === "position") {
         positions.push(message.payload.sequence);
         if (message.payload.sequence === 131) {

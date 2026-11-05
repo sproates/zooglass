@@ -22,6 +22,8 @@ test("namespacing rewrites static and runtime references without changing client
         entityId: "one",
       },
       {
+        epoch: "run",
+        publicationSequence: 3,
         kind: "source-event",
         simulationTime: 2,
         sourceId: "feed",
@@ -84,6 +86,8 @@ test("namespacing rewrites static and runtime references without changing client
       entityId: "one",
     },
     {
+      epoch: "run",
+      publicationSequence: 3,
       kind: "source-event",
       simulationTime: 2,
       sourceId: "scenario-3-feed",

@@ -23,6 +23,8 @@ function trace(timeline: unknown[]) {
 
 function event(simulationTime: number) {
   return {
+    epoch: "run",
+    publicationSequence: 1,
     kind: "source-event",
     simulationTime,
     sourceId: "feed",

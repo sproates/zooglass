@@ -124,7 +124,10 @@ test("view definition sends only its definition and requires HTTP 201", async (t
     id: "position",
     fields: { value: [{ sourceId: "feed", type: "changed" }] },
     ordering: {
-      value: { mode: "latestBySequence" as const, sequenceField: "sequence" },
+      value: {
+        mode: "latestBySequence" as const,
+        sequenceField: "publicationSequence",
+      },
     },
   };
   const entry = {
@@ -144,7 +147,16 @@ test("view definition sends only its definition and requires HTTP 201", async (t
       method: "POST",
       path: "/views",
       type: "application/json",
-      body: definition,
+      body: {
+        id: "position",
+        fields: {
+          value: {
+            sourceId: "feed",
+            type: "changed",
+            mode: "latestBySequence",
+          },
+        },
+      },
     }),
   );
 });

@@ -1,3 +1,4 @@
+import { runtimeView } from "../service/runtime-configuration.js";
 import { isDeepStrictEqual } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 import type { TraceEntry } from "../scenario/playback.js";
@@ -73,11 +74,7 @@ export async function defineView(
   const response = await fetch(`${baseUrl}/views`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: entry.id,
-      fields: entry.fields,
-      ordering: entry.ordering,
-    }),
+    body: JSON.stringify(runtimeView(entry)),
     signal: AbortSignal.any([signal, AbortSignal.timeout(1_000)]),
   });
 

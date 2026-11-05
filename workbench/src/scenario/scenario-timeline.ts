@@ -295,7 +295,21 @@ function parseSourceEvent(
     throw new Error(`Expected timeline[${index}].payload to be an object.`);
   }
 
+  const epoch = requiredString(entry.epoch, `timeline[${index}].epoch`);
+  const publicationSequence = entry.publicationSequence;
+  if (
+    typeof publicationSequence !== "number" ||
+    !Number.isSafeInteger(publicationSequence) ||
+    publicationSequence < 1
+  ) {
+    throw new Error(
+      `Expected timeline[${index}].publicationSequence to be a positive safe integer.`,
+    );
+  }
+
   return {
+    epoch,
+    publicationSequence,
     kind: "source-event",
     simulationTime: entry.simulationTime,
     sourceId,

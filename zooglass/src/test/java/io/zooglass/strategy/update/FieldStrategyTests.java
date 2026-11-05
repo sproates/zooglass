@@ -3,8 +3,6 @@ package io.zooglass.strategy.update;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.zooglass.ViewConfiguration;
-
 import org.junit.jupiter.api.Test;
 
 import tools.jackson.databind.JsonNode;
@@ -17,7 +15,8 @@ class FieldStrategyTests {
 
     @Test
     void configurationSelectsConcreteModulesAndRejectsUnknownModes() {
-        assertThat(FieldStrategySelection.select(null)).isInstanceOf(ArrivalReplacement.class);
+        assertThat(FieldStrategySelection.select("arrival", "ordinal"))
+                .isInstanceOf(ArrivalReplacement.class);
         assertThat(selected("latestBySequence")).isInstanceOf(LatestBySequence.class);
         assertThat(selected("historyBySequence")).isInstanceOf(HistoryBySequence.class);
         assertThatThrownBy(() -> selected("unknown")).isInstanceOf(IllegalArgumentException.class);
@@ -92,7 +91,7 @@ class FieldStrategyTests {
     }
 
     private FieldUpdateStrategy selected(String mode) {
-        return FieldStrategySelection.select(new ViewConfiguration.Ordering(mode, "ordinal"));
+        return FieldStrategySelection.select(mode, "ordinal");
     }
 
     private JsonNode event(String sequence, String label) {

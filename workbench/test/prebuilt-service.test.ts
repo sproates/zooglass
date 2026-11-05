@@ -65,7 +65,9 @@ test(
         JSON.stringify({
           sourceId: "feed",
           type: "updated",
-          entityId: "item",
+          epoch: "run",
+          publicationSequence: 1,
+          sourceEntityId: "item",
           payload: { value: 42 },
         }),
       );
@@ -74,6 +76,10 @@ test(
         const response = await fetch(`${baseUrl}/views/isolated/item`);
         if (response.ok) {
           const snapshot = (await response.json()) as { data: unknown };
+          if (!snapshot.data || Object.keys(snapshot.data).length === 0) {
+            await delay(20);
+            continue;
+          }
           assert.deepEqual(snapshot.data, { [field]: { value: 42 } });
           socket.close();
           return;
@@ -84,16 +90,18 @@ test(
     };
 
     await sendAndRead(first.baseUrl, "first");
-    assert.equal(
-      (await fetch(`${second.baseUrl}/views/isolated/item`)).status,
-      404,
+    assert.deepEqual(
+      (await (await fetch(`${second.baseUrl}/views/isolated/item`)).json())
+        .data,
+      {},
     );
     await sendAndRead(second.baseUrl, "second");
     await first.close();
     const replacement = await start("replacement");
-    assert.equal(
-      (await fetch(`${replacement.baseUrl}/views/isolated/item`)).status,
-      404,
+    assert.deepEqual(
+      (await (await fetch(`${replacement.baseUrl}/views/isolated/item`)).json())
+        .data,
+      {},
     );
     await sendAndRead(replacement.baseUrl, "replacement");
     await Promise.all([second.close(), replacement.close()]);

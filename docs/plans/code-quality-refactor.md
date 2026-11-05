@@ -46,7 +46,7 @@ was added to the application or build.
 The structural changes follow existing ownership:
 
 - `ConfigurationValidation` checks cross-field configuration references and
-  compatible strategies; `V2Configuration` retains decoding and value definitions.
+  compatible strategies; `RuntimeConfiguration` retains decoding and value definitions.
 - `RecoveryValidation` orchestrates recovery and stream validation. `TargetRecovery`
   owns retained outcomes and `ViewRecovery` owns candidates and exposed views.
   Value and age checks keep inner candidate loops shallow. These are stateless,
@@ -69,7 +69,7 @@ behaviour rather than narrating each statement.
 
 The clean baseline at `b79b5b1` passes 313 Java tests. Comparing disassembled code
 for all 142 existing production classes after refactoring finds changed instruction
-listings only in `V2Configuration` and `RecoveryValidation`, whose validation was
+listings only in `RuntimeConfiguration` and `RecoveryValidation`, whose validation was
 extracted. Constant-pool indices are normalised for this comparison. A separate
 TypeScript syntax comparison isolates the intentional parser, owner capture,
 producer and lint changes from formatting and type-only edits. These comparisons

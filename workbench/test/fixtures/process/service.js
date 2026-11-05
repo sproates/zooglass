@@ -12,7 +12,7 @@ writeFileSync(
         .find((arg) => arg.startsWith("--server.port="))
         ?.split("=")[1],
     ),
-    config: process.env.ZOOGLASS_VIEWS_CONFIG,
+    config: process.env.ZOOGLASS_CONFIG,
   }),
 );
 if (mode === "exit") {

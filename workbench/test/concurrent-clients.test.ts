@@ -10,7 +10,7 @@ const views = [
     ordering: {
       position: {
         mode: "latestBySequence" as const,
-        sequenceField: "sequence",
+        sequenceField: "publicationSequence",
       },
     },
   },
@@ -54,12 +54,25 @@ test(
           for (let sequence = 1; sequence <= 50; sequence++) {
             await source.send(positionEvent(entity, sequence));
 
-            assert.deepEqual(await viewer.next(), {
-              type: "view-update",
-              viewId: "position",
-              entityId: entity,
-              data: { position: { sequence, padding: "" } },
+            const update = await viewer.next();
+            assert.deepEqual(update.publicationSequences, {
+              position: [sequence + 1],
             });
+            assert.ok(typeof update.version === "number" && update.version > 0);
+            assert.deepEqual(
+              {
+                type: update.type,
+                viewId: update.viewId,
+                entityId: update.entityId,
+                data: update.data,
+              },
+              {
+                type: "view-update",
+                viewId: "position",
+                entityId: entity,
+                data: { position: { sequence, padding: "" } },
+              },
+            );
           }
         }),
       );

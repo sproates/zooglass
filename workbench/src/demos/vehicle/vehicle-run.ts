@@ -61,6 +61,7 @@ export async function startVehicleRun(
   try {
     service = await startZooGlassSession({
       views: scenario.views,
+      sources: scenario.sources,
       signal: options.signal,
     });
     browser = await startVehicleBrowserSession(service.baseUrl, {

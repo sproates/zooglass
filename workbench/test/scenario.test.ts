@@ -11,6 +11,8 @@ test("rejects events that refer to an unknown source", () => {
         clients: [],
         timeline: [
           {
+            epoch: "run",
+            publicationSequence: 1,
             kind: "source-event",
             simulationTime: 0,
             sourceId: "missing",
@@ -69,7 +71,7 @@ test("rejects unsupported client states", () => {
 test("preserves ordering for startup and runtime view definitions", () => {
   const latestBySequence = {
     mode: "latestBySequence",
-    sequenceField: "sequence",
+    sequenceField: "publicationSequence",
   };
   const scenario = parseScenario({
     name: "Ordered vehicle locations",
@@ -133,13 +135,18 @@ test("rejects invalid ordering strategies and fields", () => {
 
   assert.throws(
     () =>
-      scenario({ position: { mode: "arrival", sequenceField: "sequence" } }),
+      scenario({
+        position: { mode: "arrival", sequenceField: "publicationSequence" },
+      }),
     /mode to be "latestBySequence" or "historyBySequence"/,
   );
   assert.throws(
     () =>
       scenario({
-        history: { mode: "latestBySequence", sequenceField: "sequence" },
+        history: {
+          mode: "latestBySequence",
+          sequenceField: "publicationSequence",
+        },
       }),
     /unknown field "history"/,
   );

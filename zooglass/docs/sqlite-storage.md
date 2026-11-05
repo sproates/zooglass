@@ -1,18 +1,18 @@
 # SQLite storage
 
-SQLite lets ZooGlass retain v2 views and publication identities across a service
+SQLite lets ZooGlass retain views and publication identities across a service
 restart. A retried publication remains a duplicate after recovery, and delayed
 events use the restored ordering state.
 
 ## Enable it
 
-In your [v2 configuration](v2-ingestion.md), change `"storage": "memory"` to
+In your [configuration](publications.md), change `"storage": "memory"` to
 `"storage": "sqlite"`. Start the built service with a database path:
 
 ```sh
 java -jar target/zooglass.jar \
-  --zooglass.v2.config=file:/absolute/path/v2.json \
-  --zooglass.v2.database=/absolute/local/directory/zooglass.sqlite
+  --zooglass.config=file:/absolute/path/views.json \
+  --zooglass.database=/absolute/local/directory/zooglass.sqlite
 ```
 
 The parent directory must already exist. ZooGlass creates a new database if the
@@ -20,8 +20,8 @@ file is absent. Use a local filesystem and one service instance per database.
 A second owner fails to start. Do not remove or copy the database's WAL files
 while the service is running.
 
-Memory mode remains the default. Existing legacy endpoints and demo state do not
-use this database.
+Memory mode remains the default. All interfaces use the configured store;
+Workbench starts isolated memory-mode sessions for its scenarios.
 
 ## What survives a restart
 
@@ -34,7 +34,7 @@ definitions are also stored. ZooGlass restores and validates them before accepti
 - New publications return `status: committed`, `reason: sqlite`.
 - Retained retries return `status: duplicate`, `reason: alreadyCommitted`,
   with the original commit version and target outcomes.
-- Conflicts, expired identities and capacity limits retain the v2 rejection rules.
+- Conflicts, expired identities and capacity limits retain the rejection rules.
 - A lost acknowledgement does not undo a commit. Resend the same publication.
 
 Startup configuration may reorder definitions or add sources and views. Existing
@@ -73,7 +73,7 @@ state are retained. Recovery validates ranges, source contracts and field outcom
 An unavailable database, unknown schema, incompatible configuration or invalid
 recovered state prevents startup. ZooGlass never silently switches to memory.
 
-A write or commit failure stops v2 reads and writes and makes the service health
+A write or commit failure stops reads and writes and makes the service health
 check report DOWN. The source receives a processing failure, not a committed
 acknowledgement. Resolve the storage problem and restart to recover the database's
 actual committed state, then retry.

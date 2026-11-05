@@ -109,9 +109,9 @@ source events to hide a missing recovery snapshot. The
 
 The service implementation keeps ordering policies in
 [FieldUpdates](../zooglass/src/main/java/io/zooglass/FieldUpdates.java),
-entity views in [ViewStore](../zooglass/src/main/java/io/zooglass/ViewStore.java),
+entity views in [ViewCoordinator](../zooglass/src/main/java/io/zooglass/runtime/ViewCoordinator.java),
 and subscription/delivery coordination in
-[LiveViewBroadcaster](../zooglass/src/main/java/io/zooglass/LiveViewBroadcaster.java).
+[SnapshotBroadcaster](../zooglass/src/main/java/io/zooglass/delivery/SnapshotBroadcaster.java).
 Those are the reusable responsibilities demonstrated here.
 
 Adopting ZooGlass also means operating a service and accepting its contracts.

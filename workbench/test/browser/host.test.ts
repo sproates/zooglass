@@ -17,7 +17,10 @@ test(
   { timeout: 90_000 },
   async () => {
     const scenario = await loadScenario(fixture);
-    const service = await startZooGlassSession({ views: scenario.views });
+    const service = await startZooGlassSession({
+      views: scenario.views,
+      sources: scenario.sources,
+    });
 
     try {
       const browser = await startVehicleBrowserSession(service.baseUrl, {

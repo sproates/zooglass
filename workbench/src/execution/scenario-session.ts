@@ -97,7 +97,7 @@ export async function openScenarioSession(
     for (const source of scenario.sources) {
       sourceSockets.set(
         source.id,
-        await connectClient(socketUrl("/events"), signal),
+        await connectClient(socketUrl("/events"), signal, false),
       );
       console.log(`Connected source ${source.name} (${source.id})`);
     }
@@ -128,7 +128,9 @@ export async function openScenarioSession(
         JSON.stringify({
           sourceId: entry.sourceId,
           type: entry.type,
-          entityId: entry.entityId,
+          epoch: entry.epoch,
+          publicationSequence: entry.publicationSequence,
+          sourceEntityId: entry.entityId,
           payload: entry.payload,
         }),
       );

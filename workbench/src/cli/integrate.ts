@@ -45,6 +45,7 @@ async function main(): Promise<void> {
   try {
     const service = await startZooGlassSession({
       views: scenarios.flatMap((scenario) => scenario.views),
+      sources: scenarios.flatMap((scenario) => scenario.sources),
       signal: controller.signal,
     });
 

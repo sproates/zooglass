@@ -1,6 +1,6 @@
 package io.zooglass.strategy.fact;
 
-import io.zooglass.v2.FactEnvelope;
+import io.zooglass.runtime.FactEnvelope;
 
 import tools.jackson.databind.JsonNode;
 

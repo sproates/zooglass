@@ -35,7 +35,10 @@ test(
           id: "position",
           fields: { position: [{ sourceId: "feed", type: "position" }] },
           ordering: {
-            position: { mode: "latestBySequence", sequenceField: "sequence" },
+            position: {
+              mode: "latestBySequence",
+              sequenceField: "publicationSequence",
+            },
           },
         },
       ],

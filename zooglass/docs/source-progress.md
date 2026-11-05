@@ -3,7 +3,7 @@
 Use progress tracking only when a source promises contiguous publication sequences
 for each original source entity. If a feed-wide sequence interleaves different
 entities, leave progress `untracked`: a numerical jump alone does not prove a gap.
-The [v2 ingestion guide](v2-ingestion.md) describes data publications and snapshots.
+The [publication guide](publications.md) describes data publications and snapshots.
 
 ## Configure a source and its fields
 
@@ -45,14 +45,14 @@ means `{"mode":"acceptLate"}`. Explicit defaults normalise identically.
 Reject-behind-watermark requires contiguous progress on every field input.
 Source priority still chooses by configured rank, never by progress or cross-source
 sequence comparison. Original source keys and epochs scope progress even when
-[entity mappings](v2-ingestion.md#map-source-keys-to-view-entities) combine values.
+[entity mappings](publications.md#map-source-keys-to-view-entities) combine values.
 
 Starting sequences and range bounds are positive integers up to 9007199254740991.
 Unknown settings and coercion are rejected. Source contracts and view policies
 remain immutable; changing them requires new IDs or a separate run/database.
 ## Classify a field by receipt age
 
-Add a freshness policy to a v2 field definition:
+Add a freshness policy to a field definition:
 
 ```json
 {"sourceId":"fleet","type":"position","mode":"latestBySequence",
@@ -65,7 +65,7 @@ A duplicate, watermark or ignored older position cannot refresh it. For history
 fields the clock starts again when an event adds a history entry. A lower-priority
 source has its own receipt time and cannot refresh the selected source.
 
-Read `status.fields.<field>.freshness` and `receivedAtMillis` in the v2 HTTP snapshot.
+Read `status.fields.<field>.freshness` and `receivedAtMillis` in the HTTP snapshot.
 The timestamp records when ZooGlass received the update, in UTC Unix milliseconds.
 It says nothing about when the event occurred or whether the source is connected.
 A timer changes the snapshot version and status while preserving values, provenance
@@ -99,8 +99,8 @@ last required field, another entity can use its slot.
 
 ## Declare progress
 
-Send data on `/v2/events` as before. Send watermark controls over a separate
-WebSocket connection to `ws://localhost:8080/v2/progress`:
+Send data on `/events` as before. Send watermark controls over a separate
+WebSocket connection to `ws://localhost:8080/progress`:
 
 ```json
 {"sourceId":"fleet","epoch":"trip-1","sourceEntityId":"car-1","throughSequence":42}
@@ -130,7 +130,7 @@ control receipts are not retained. This retry behaviour survives SQLite restart.
 Other rejection reasons are `invalidProgress`, `unknownSource`, `unknownEpoch`,
 `progressUntracked`, `streamLimit` and `progressLimit`. A failed processing/storage
 operation returns `failed/processingFailure` with a null version. Malformed
-controls also have a null version. Send no control fields to `/v2/events`.
+controls also have a null version. Send no control fields to `/events`.
 
 ## Read the result
 

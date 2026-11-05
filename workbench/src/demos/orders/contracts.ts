@@ -53,7 +53,10 @@ const fields = {
   payment: [{ sourceId: "payments", type: "payment.state" }],
   inventory: [{ sourceId: "inventory", type: "inventory.state" }],
 };
-const latest = { mode: "latestBySequence", sequenceField: "sequence" } as const;
+const latest = {
+  mode: "latestBySequence",
+  sequenceField: "publicationSequence",
+} as const;
 
 export const orderViews: ScenarioView[] = [
   {

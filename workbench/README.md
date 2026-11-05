@@ -136,13 +136,21 @@ has received it. The checks below deliberately cover those separate observations
 Each scenario has a name, a list of event sources, a list of clients, view
 definitions, and a timeline. View definitions map event source and type pairs
 to fields in a view. A field can be updated by more than one event type, and it
-can also set an ordering strategy using a numeric field from each event:
+can also set an ordering strategy using the envelope publication sequence:
 `latestBySequence` keeps the event with the highest sequence, while
 `historyBySequence` keeps accepted events in sequence order. These settings
 work for startup views and runtime `view-definition` entries. The
 `vehicle-event-ordering.json` scenario sends a newer vehicle position before
-older ones, then checks both views, duplicate and invalid sequences, and a
+older ones, then checks both views, conflicting identities, payload independence, and a
 client reconnect.
+
+Each `source-event` declares `epoch: "run"` and a positive safe-integer
+`publicationSequence`, scoped to its source and entity. Retries preserve both
+identity and payload. Ordering declarations use `sequenceField: "publicationSequence"`;
+application fields inside `payload` do not control ordering. Workbench translates
+these declarations into the service configuration and sends explicit envelopes.
+A known but empty view is checked with `expected: {}`; `null` asserts an unknown
+view (HTTP 404). Reconciliation remains entirely in ZooGlass.
 
 ### Actions and their completion conditions
 
@@ -319,9 +327,10 @@ npm run simulate -- scenarios/late-update.json
 then 42, and only later sends 41. The example assumes sequence numbers are
 contiguous for each vehicle. After 42 arrives, the current history view
 immediately shows `[40, 42]`; when 41 arrives, it becomes `[40, 41, 42]`. The
-latest-position view stays at 42 throughout. ZooGlass sorts the history it has
-received, but it does not currently identify the gap or mark the history as
-incomplete.
+latest-position view stays at 42 throughout. This scenario uses untracked progress, so ZooGlass sorts received history
+without claiming completeness. Configured contiguous progress and watermarks can
+identify provisional and confirmed gaps; see the
+[source-progress guide](../zooglass/docs/source-progress.md).
 
 There are a few general ways a system could handle this:
 
@@ -357,15 +366,14 @@ from that car's history: 41 belongs to a different entity. The
 `shared-sequence-across-entities.json` scenario demonstrates this alongside
 `sequence-gap.json`, where 41 really is a delayed event for car 17.
 
-To detect gaps reliably, ZooGlass would need a source contract that says the
+To detect gaps reliably, ZooGlass requires a source contract that says the
 sequence is contiguous at the scope of the view, plus a way to know the range
 that should exist. Even then, a jump between 40 and 42 only identifies an
 interior gap. Knowing that 42 is the final event, or that no more events are
 coming, requires a further signal with a documented completeness meaning, such
 as a watermark or end-of-stream marker. A heartbeat only helps if it also
-communicates a sequence or high-water mark. The prototype does not model those
-contracts or signals; its ordering strategies only order the events they
-receive.
+communicates a sequence or high-water mark. The runtime supports these contracts explicitly; these ordering scenarios
+leave progress untracked. Their ordering strategies only order received events.
 
 For a comparison of possible source progress signals and their trade-offs, see
 the [source progress exploration](../zooglass/source-progress-signals.md).

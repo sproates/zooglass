@@ -36,6 +36,8 @@ export interface ScenarioViewDefinition extends ScenarioView {
 }
 
 export interface ScenarioSourceEvent {
+  epoch: string;
+  publicationSequence: number;
   kind: "source-event";
   simulationTime: number;
   sourceId: string;

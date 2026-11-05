@@ -30,7 +30,10 @@ test(
         ),
       ),
     );
-    const service = await startZooGlassSession({ views: scenario.views });
+    const service = await startZooGlassSession({
+      views: scenario.views,
+      sources: scenario.sources,
+    });
     const resources: { close(): Promise<void> }[] = [service];
 
     t.after(async () => {

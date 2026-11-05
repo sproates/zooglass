@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import type { ScenarioView } from "../scenario/scenario.js";
+import { runtimeConfiguration } from "./runtime-configuration.js";
+import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
 export interface ZooGlassSession {
   baseUrl: string;
@@ -15,6 +16,7 @@ export interface ZooGlassSession {
 
 export interface ZooGlassSessionOptions {
   views?: ScenarioView[];
+  sources?: ScenarioSource[];
   signal?: AbortSignal;
   serviceDirectory?: string;
   /** Override the Java executable for process-ownership fixtures. */
@@ -135,10 +137,13 @@ export async function startZooGlassSession(
     const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
-    if (options.views?.length) {
+    if (options.views !== undefined) {
       const configPath = join(configDirectory, "views.json");
 
-      await writeFile(configPath, JSON.stringify({ views: options.views }));
+      await writeFile(
+        configPath,
+        JSON.stringify(runtimeConfiguration(options.views, options.sources)),
+      );
       configLocation = pathToFileURL(configPath).href;
     }
 
@@ -171,7 +176,7 @@ export async function startZooGlassSession(
         ...process.env,
         ...(configLocation === undefined
           ? {}
-          : { ZOOGLASS_VIEWS_CONFIG: configLocation }),
+          : { ZOOGLASS_CONFIG: configLocation }),
       },
     });
     child = startedChild;

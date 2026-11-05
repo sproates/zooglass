@@ -6,6 +6,8 @@ export type Message = {
   type: string;
   viewId: string;
   entityId: string;
+  version?: number;
+  publicationSequences?: Record<string, number[]>;
   data?: { position: { sequence: number; padding?: string } };
 };
 
@@ -92,7 +94,10 @@ export function positionEvent(
   return {
     sourceId: "feed",
     type: "position",
-    entityId,
+    epoch: "run",
+    sourceEntityId: entityId,
+    // Fixture payloads may start at zero; wire identities are positive.
+    publicationSequence: sequence + 1,
     payload: { sequence, padding },
   };
 }

@@ -23,8 +23,14 @@ export async function startSimulation(options: SimulationOptions = {}) {
           notice: [{ sourceId: "fleet", type: "notice" }],
         },
         ordering: {
-          position: { mode: "latestBySequence", sequenceField: "sequence" },
-          notice: { mode: "latestBySequence", sequenceField: "sequence" },
+          position: {
+            mode: "latestBySequence",
+            sequenceField: "publicationSequence",
+          },
+          notice: {
+            mode: "latestBySequence",
+            sequenceField: "publicationSequence",
+          },
         },
       },
     ],

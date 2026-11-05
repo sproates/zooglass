@@ -21,7 +21,9 @@
       "payload": {
         "home": 0,
         "away": 0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "source-event",
@@ -33,7 +35,9 @@
         "homeWin": 2.1,
         "draw": 3.2,
         "awayWin": 3.6
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "source-event",
@@ -45,7 +49,9 @@
         "homeWin": 2.05,
         "draw": 3.25,
         "awayWin": 3.7
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "source-event",
@@ -57,7 +63,9 @@
         "homeWin": 1.98,
         "draw": 3.3,
         "awayWin": 3.8
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 3
     },
     {
       "kind": "source-event",
@@ -68,7 +76,9 @@
       "payload": {
         "home": 1,
         "away": 0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "source-event",
@@ -80,7 +90,9 @@
         "homeWin": 1.62,
         "draw": 3.6,
         "awayWin": 5.1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 4
     },
     {
       "kind": "view-check",

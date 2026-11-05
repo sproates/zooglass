@@ -65,7 +65,7 @@ test("view parsing preserves both supported ordering policies and detaches match
   for (const mode of ["latestBySequence", "historyBySequence"]) {
     const input = {
       ...valid,
-      ordering: { position: { mode, sequenceField: "sequence" } },
+      ordering: { position: { mode, sequenceField: "publicationSequence" } },
     };
     const before = structuredClone(input);
     const parsed = parseView(input, "view", sourceIds);

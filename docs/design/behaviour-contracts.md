@@ -1,39 +1,29 @@
 # Behaviour contracts and safe combinations
 
-Companion to [strategy modules](strategy-modules.md). These are selected design
-choices. They distinguish the compatibility-preserving first slice
-from the richer contracts introduced afterwards. The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md)
-describes the implemented subset: identity, bounded retention, source outcomes
-and HTTP snapshots, with memory or [SQLite storage](../../zooglass/docs/sqlite-storage.md).
-Orderly restart and process-crash acceptance are covered. Progress, freshness and required-field publication are also delivered; their
-[design](progress-and-publication.md) describes the selected policies. The proposed
-[fact-revision design](fact-revisions.md) specifies correction configuration,
-retirement and bounded derived results. Recovery delivery and access contracts
-below remain subsequent work.
+Companion to [strategy modules](strategy-modules.md). The
+[publication guide](../../zooglass/docs/publications.md) describes the implemented
+identity, retention, outcomes and snapshot contracts, with memory or SQLite storage.
+Progress, freshness, required contributions, fact revisions and live delivery use
+one coordinator. Replay and access contracts below remain subsequent work.
 
-## Compatibility and configuration lifecycle
+## Configuration lifecycle
 
-The first module extraction preserves current `/events`, `/views`, `/views/live`
-and JSON ordering configuration exactly. It does not add identity requirements,
-change decimal sequence comparison or claim durable acknowledgement.
-
-Richer behaviour uses an explicitly versioned contract (`contractVersion: 2` in
-configuration and separate `/v2` endpoints). Existing definitions are not silently
-converted. A runtime definition is immutable after registration. Changing policy
-requires a new view ID, with no historical backfill in this programme. In durable
-mode, a conflicting startup definition for an existing ID is a startup error;
-identical definitions are idempotent. Reject unknown modes, fields and parameters.
+ZooGlass has one publication API at the unversioned paths. Configuration retains
+`contractVersion: 2` as a data-format identifier. The initial sequence-only runtime
+has been removed; its clients now supply explicit publication identities.
+A runtime definition is immutable after registration. Changing policy requires a
+new view ID, with no historical backfill. In durable mode, a conflicting startup
+definition is an error; restart must include definitions registered before shutdown.
+Unknown modes, fields and parameters are rejected.
 
 Source contracts and view configuration are validated as a whole before activation.
-Unknown source references, ambiguous identity mappings or unsupported combinations
-fail configuration, rather than falling back to arrival replacement. Event errors
-produce structured outcomes identifying the failed contract and correlation key;
-logs must not dump arbitrary payloads. Current legacy logging can be replaced in
-the ingress slice without changing the initial extraction.
+Unknown source references, ambiguous identity mappings and unsupported combinations
+fail configuration. Event errors produce structured outcomes identifying the failed
+contract and correlation key; logs do not dump arbitrary payloads.
 
 ## Source identity and ordering
 
-For version 2, a source declares an immutable stream epoch and entity key scope.
+A source declares an immutable stream epoch and entity key scope.
 The initial contract uses positive integer publication sequences, at most
 `9007199254740991`, scoped to `(sourceId, epoch, sourceEntityId)`. Retries preserve
 sequence and content; different publications have different sequences. Incrementing
@@ -42,7 +32,7 @@ ordering. Data from an unknown epoch is rejected. Retiring an epoch closes its
 views or starts explicitly new view identities; it cannot silently reset existing
 state. The first implementation requires stopping ingestion for this change.
 
-A version-2 publication contains source, epoch, source entity, type, publication
+A publication contains source, epoch, source entity, type, publication
 sequence and payload. Fact revisions additionally carry `birthSequence`, `revision`
 and `operation` (`create`, `revise`, `retract`). The fact key is source/epoch/entity/
 birthSequence; create requires birthSequence equal to publicationSequence and
@@ -55,8 +45,7 @@ content, including fact metadata. Object key order is immaterial. Equal identity
 and equal content is unchanged; equal identity and conflicting content is rejected
 and reported. A smaller obsolete fact revision changes no fact even if its
 publication sequence is new. Missing or malformed identity rejects the envelope
-before any state change. This stronger contract is not inferred from legacy
-sequence-only events.
+before any state change. Payload sequence fields are not substitutes for envelope identity.
 
 Each source keeps its own ordering domain. Before source-priority selection,
 latest/history processing compares only that source's contribution. Independent
@@ -80,7 +69,7 @@ Per-target outcomes and the runtime admission record commit together.
 
 ## Supported choices and defaults
 
-Defaults are conservative and visible in the effective configuration. Version 2
+Defaults are conservative and visible in the effective configuration. The runtime
 requires explicit positive bounds for retained identities, facts, entities and
 pending gaps; there is no hidden unlimited history mode. Exhaustion produces an
 explicit limit outcome rather than silently losing required metadata.
@@ -88,7 +77,7 @@ explicit limit outcome rather than silently losing required metadata.
 | Concern | Initial choices | Default and limits |
 | --- | --- | --- |
 | Entity resolution | `envelopeEntity`, `lookupEntity` | Envelope key. Lookup uses configured per-source key → canonical ID mappings; unknown/ambiguous mappings reject without buffering. Mapping changes need a new definition; retroactive joins are excluded. |
-| Contribution interpretation | `arrival`, `latestBySequence`, `historyBySequence` | Explicit per-field choice in v2. History is received history, not proof of completeness. Legacy omission still means arrival. |
+| Contribution interpretation | `arrival`, `latestBySequence`, `historyBySequence` | Explicit per-field choice in the runtime. History is received history, not proof of completeness. |
 | Multi-source conflict | `independentFields`, `sourcePriority` | Independent named fields. Priority is an explicit total ordering of sources; select the highest-ranked source with a present contribution, regardless of receipt time. Freshness does not secretly trigger fallback. |
 | Progress | `untracked`, `contiguousSequence` | Untracked reports unknown completeness. Contiguous mode requires a starting sequence and scoped watermark promise. |
 | Late event behind progress | `acceptLate`, `rejectBehindWatermark` | Accept within retention by default, expose a broken progress promise if applicable. Reject mode requires contiguous progress. Neither reconstructs missing data. |
@@ -259,7 +248,7 @@ serving and on scheduled threshold crossings even without a new source event.
 ## Delivery and access boundary
 
 The initial recovery choice is fresh snapshot, including an explicit empty snapshot
-for a known view with no published entity. A v2 subscription acknowledges the
+for a known view with no published entity. A subscription acknowledges the
 selected recovery mode, then sends its snapshot/version under the same coordination
 boundary used for commits. Later updates have greater committed versions. HTTP
 reads are individually consistent but do not form a cross-view transaction.

@@ -27,7 +27,7 @@
       "ordering": {
         "position": {
           "mode": "latestBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     },
@@ -44,7 +44,7 @@
       "ordering": {
         "positions": {
           "mode": "historyBySequence",
-          "sequenceField": "sequence"
+          "sequenceField": "publicationSequence"
         }
       }
     }
@@ -82,7 +82,9 @@
         "sequence": 40,
         "latitude": 51.0,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 40
     },
     {
       "kind": "view-check",
@@ -152,7 +154,9 @@
         "sequence": 42,
         "latitude": 51.1,
         "longitude": -0.25
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 42
     },
     {
       "kind": "view-check",
@@ -232,7 +236,9 @@
         "sequence": 41,
         "latitude": 51.06,
         "longitude": -0.29
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "view-check",
@@ -308,7 +314,9 @@
         "sequence": 41,
         "latitude": 51.06,
         "longitude": -0.29
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 41
     },
     {
       "kind": "source-event",
@@ -320,7 +328,9 @@
         "sequence": 1,
         "latitude": 51,
         "longitude": -0.3
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "view-check",
@@ -391,7 +401,9 @@
         "sequence": 43,
         "latitude": 51.12,
         "longitude": -0.2
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 43
     },
     {
       "kind": "view-check",

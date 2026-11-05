@@ -38,7 +38,10 @@ test(
     let browser: Awaited<ReturnType<typeof launchOwnedBrowser>> | undefined;
     let session: Awaited<ReturnType<typeof openScenarioSession>> | undefined;
     try {
-      service = await startZooGlassSession({ views: scenario.views });
+      service = await startZooGlassSession({
+        views: scenario.views,
+        sources: scenario.sources,
+      });
       let run = await host.replaceRun(service.baseUrl);
       browser = await launchOwnedBrowser(host.pageUrl, {
         headless: true,
@@ -103,7 +106,10 @@ test(
         await once(probe, "open");
         const retired = once(probe, "close");
         try {
-          service = await startZooGlassSession({ views: scenario.views });
+          service = await startZooGlassSession({
+            views: scenario.views,
+            sources: scenario.sources,
+          });
           run = await host.replaceRun(service.baseUrl);
           await retired;
         } finally {

@@ -19,7 +19,7 @@ Extract the three existing policies into the named update modules and bind their
 selection during view registration. Preserve current JSON, numerical semantics,
 source matching, returned snapshots and live notifications. Keep state in the
 existing store and coordination in the existing broadcaster. Do not introduce the
-later coordinator, SQLite, a v2 protocol or other strategy modules in this PR.
+later coordinator, SQLite, the publication protocol or other strategy modules in this PR.
 
 Expected size: one focused implementation PR including tests and source-map changes.
 If unexpected behavioural work is required, separate that decision instead of
@@ -48,7 +48,7 @@ that fails for that bug before the fix.
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |
 | 1. Named update modules | The first slice above; configuration demonstrably chooses executable modules. | One implementation PR. |
-| 2. Identity and durable baseline | Stage in-memory view updates first, then add explicit v2 source identity/outcomes and the local transactional state store with restart evidence. Persist the existing policies before adding many new kinds of state. | Separate ingress/state-ownership, SQLite/recovery, and acceptance changes as needed; design details stay within the agreed contracts. |
+| 2. Identity and durable baseline | Stage in-memory view updates first, then add explicit source identity/outcomes and the local transactional state store with restart evidence. Persist the existing policies before adding many new kinds of state. | Separate ingress/state-ownership, SQLite/recovery, and acceptance changes as needed; design details stay within the agreed contracts. |
 | 3. Relationships and conflict | [Concrete design](relationships-and-conflicts.md): explicit lookup keys, independently retained source candidates and priority selection. | Mapping/rejection, then contribution selection and combined tests. No retroactive mapping or arbitrary joins. |
 | 4. Progress and freshness | [Proposed concrete design](progress-and-publication.md): scoped progress/gaps, late policy, required-field publication and receipt age. | Progress/late policy first, required contributions second, freshness and combined acceptance third. No event-time window engine. |
 | 5. Retained fact corrections | [Proposed fact-revision design](fact-revisions.md): stable revisions/tombstones and bounded active-fact sum. | Retained collections with retirement/recovery first; derived numeric results next; combined acceptance closes the increment. No arbitrary recomputation graph. |
@@ -83,7 +83,7 @@ none needs to expose every setting or show every failure at once.
 | Freshness and gap policy | Vehicles: reporting silence versus late/missing position with a declared source-progress promise. | Existing continuous faults supply useful scenes; add genuine service progress metadata. |
 | Corrections and derived views | Sports: disallowed goal revises the score and retained event history; old revision redelivery has no effect. | Existing replacement fixtures; add retained-fact scenario for the new contract. |
 | Service restart and duplicate recovery | Orders: kill and restart ZooGlass, resend unacknowledged publication, observe restored state and one effect. | Workbench drives restart; the browser displays recovered snapshots. |
-| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Existing client fixtures; add v2 recovery and queue-policy evidence. |
+| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Existing client fixtures; add durable recovery and queue-policy evidence. |
 | Access loss | Orders: revoke one viewer while another remains authorised; denied reconnect. | Extend the order experience after permission enforcement is delivered. |
 
 Every scene should state its selected policy, what the viewer should notice,
@@ -158,7 +158,8 @@ distributed storage, a general expression engine and transition replay. They can
 be reconsidered through a new contract with evidence, rather than accepted as
 ambiguous configuration.
 
-The [v2 ingestion guide](../../zooglass/docs/v2-ingestion.md) documents the current
+The [publication guide](../../zooglass/docs/publications.md) documents the current
 identity baseline, including SQLite storage and orderly restart recovery.
 Process-crash acceptance now covers partial writes and commit/acknowledgement
-boundaries. V2 live delivery remains a subsequent increment.
+boundaries. Live delivery and runtime registration now use the same coordinator; see the
+[single-runtime consolidation](../plans/single-runtime.md).

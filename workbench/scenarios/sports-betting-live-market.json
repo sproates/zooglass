@@ -55,7 +55,9 @@
         "home": 0,
         "away": 0,
         "period": "first-half"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",
@@ -81,7 +83,9 @@
         "homeWin": 2.1,
         "draw": 3.2,
         "awayWin": 3.6
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",
@@ -112,7 +116,9 @@
         "home": 1,
         "away": 0,
         "period": "first-half"
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "client-view-check",
@@ -143,7 +149,9 @@
         "homeWin": 1.55,
         "draw": 3.7,
         "awayWin": 5.4
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "client-view-check",

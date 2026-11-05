@@ -44,7 +44,9 @@
       "payload": {
         "home": 1,
         "away": 0
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 1
     },
     {
       "kind": "client-view-check",
@@ -80,7 +82,9 @@
       "payload": {
         "home": 1,
         "away": 1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 2
     },
     {
       "kind": "source-event",
@@ -91,7 +95,9 @@
       "payload": {
         "home": 2,
         "away": 1
-      }
+      },
+      "epoch": "run",
+      "publicationSequence": 3
     },
     {
       "kind": "view-check",

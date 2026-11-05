@@ -43,7 +43,7 @@ export async function startOrderProducer(
 
   try {
     for (const source of sourceIds) {
-      sockets.set(source, await connectClient(url.href, signal));
+      sockets.set(source, await connectClient(url.href, signal, false));
     }
   } catch (error) {
     await closeSockets();
@@ -68,7 +68,10 @@ export async function startOrderProducer(
             await closeClient(sockets.get(action.source));
             sockets.delete(action.source);
           } else if (action.kind === "reconnect") {
-            sockets.set(action.source, await connectClient(url.href, signal));
+            sockets.set(
+              action.source,
+              await connectClient(url.href, signal, false),
+            );
           } else {
             const socket = sockets.get(action.event.sourceId);
             if (
@@ -80,7 +83,16 @@ export async function startOrderProducer(
                 `Order source ${action.event.sourceId} failed or could not keep up.`,
               );
             }
-            socket.send(JSON.stringify(action.event));
+            socket.send(
+              JSON.stringify({
+                sourceId: action.event.sourceId,
+                epoch: "run",
+                sourceEntityId: action.event.entityId,
+                publicationSequence: action.event.payload.sequence,
+                type: action.event.type,
+                payload: action.event.payload,
+              }),
+            );
           }
         }
         await options.onStep?.(step);

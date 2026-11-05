@@ -31,7 +31,7 @@ now support first/latest revision policies, explicit retirement and SQLite recov
 Fields can now calculate exact totals from retained facts. Combined correction acceptance is next.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
-modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)
+modules selected by configuration. The [publication API](zooglass/docs/publications.md)
 adds explicit publication identities and retry outcomes. Optional
 [SQLite storage](zooglass/docs/sqlite-storage.md) now restores these identities and
 views after restart. Automated process-crash checks cover partial writes and

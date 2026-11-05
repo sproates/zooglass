@@ -35,6 +35,7 @@ export async function startProducer(
     delayed: undefined,
   }));
   const paths = cars.map(journey);
+  const publicationSequences = cars.map(() => 0);
 
   function send(source: CarSource, message: string) {
     if (
@@ -50,7 +51,9 @@ export async function startProducer(
     JSON.stringify({
       sourceId: "fleet",
       type,
-      entityId: cars[i].id,
+      epoch: "run",
+      sourceEntityId: cars[i].id,
+      publicationSequence: ++publicationSequences[i],
       payload,
     });
   function notice(i: number, tick: number, text: string) {
@@ -62,7 +65,7 @@ export async function startProducer(
 
   try {
     for (const source of sources) {
-      source.socket = await connectClient(url.href, lifetime.signal);
+      source.socket = await connectClient(url.href, lifetime.signal, false);
     }
   } catch (error) {
     await Promise.allSettled(
@@ -83,7 +86,7 @@ export async function startProducer(
     }
 
     if (source.previous === "offline") {
-      source.socket = await connectClient(url.href, lifetime.signal);
+      source.socket = await connectClient(url.href, lifetime.signal, false);
       notice(i, tick, "source reconnected");
     }
     if (source.delayed && source.delayed.due <= tick) {

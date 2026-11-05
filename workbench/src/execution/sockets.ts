@@ -7,6 +7,7 @@ export const messagesBySocket = new WeakMap<WebSocket, unknown[]>();
 export async function connectClient(
   url: string,
   signal: AbortSignal,
+  captureMessages = true,
 ): Promise<WebSocket> {
   signal.throwIfAborted();
 
@@ -15,6 +16,9 @@ export async function connectClient(
 
   messagesBySocket.set(socket, messages);
   socket.addEventListener("message", (event) => {
+    if (!captureMessages) {
+      return;
+    }
     if (typeof event.data !== "string") {
       messages.push(event.data);
       return;

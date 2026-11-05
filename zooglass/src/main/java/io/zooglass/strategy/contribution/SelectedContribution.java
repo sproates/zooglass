@@ -2,8 +2,8 @@ package io.zooglass.strategy.contribution;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.zooglass.runtime.Provenance;
 import io.zooglass.strategy.freshness.ReceiptAge;
-import io.zooglass.v2.Provenance;
 
 import tools.jackson.databind.JsonNode;
 

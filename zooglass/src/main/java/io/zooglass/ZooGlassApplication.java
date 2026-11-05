@@ -7,6 +7,7 @@ import org.springframework.boot.web.server.context.WebServerPortFileWriter;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
+@org.springframework.web.socket.config.annotation.EnableWebSocket
 public class ZooGlassApplication {
 
     @Bean

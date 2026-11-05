@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test-and-build:
-    if: fromJSON(inputs.plan).static || fromJSON(inputs.plan).core || fromJSON(inputs.plan).demo
+    if: fromJSON(inputs.plan).static || fromJSON(inputs.plan).core || fromJSON(inputs.plan).demo || fromJSON(inputs.plan).reconnect
     timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: workbench/package-lock.json
 
       - uses: actions/setup-java@v6
-        if: fromJSON(inputs.plan).core
+        if: fromJSON(inputs.plan).core || (fromJSON(inputs.plan).reconnect && !fromJSON(inputs.plan).browser)
         with:
           distribution: temurin
           java-version: "25"
@@ -37,7 +37,7 @@ jobs:
 
       - run: npm ci
       - name: Build ZooGlass once before service tests
-        if: fromJSON(inputs.plan).core
+        if: fromJSON(inputs.plan).core || (fromJSON(inputs.plan).reconnect && !fromJSON(inputs.plan).browser)
         run: npm run prepare:service
       - run: npm run lint
         if: fromJSON(inputs.plan).static
@@ -53,6 +53,9 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npx c8 --reports-dir=coverage/standard npm run test:core
           test ! -d ../demos/vehicle-tracker/dist
           test -z "$(ls -A "$core_browser_cache")"
+      - name: Check socket reconnects
+        if: fromJSON(inputs.plan).reconnect && !fromJSON(inputs.plan).browser
+        run: npm run test:reconnect
       - name: Build demo assets once
         if: fromJSON(inputs.plan).demo
         run: npm run build:browser
@@ -114,7 +117,7 @@ jobs:
           if-no-files-found: warn
 
   native-lifecycle:
-    if: fromJSON(inputs.plan).native
+    if: fromJSON(inputs.plan).native || fromJSON(inputs.plan).reconnect
     strategy:
       fail-fast: false
       matrix:
@@ -141,9 +144,14 @@ jobs:
       - name: Build ZooGlass once before service tests
         run: npm run prepare:service
       - run: npx playwright install chromium
+        if: fromJSON(inputs.plan).native
       - name: Verify artifact-only concurrent launches and restart
+        if: fromJSON(inputs.plan).native
         run: npx tsx --test test/prebuilt-service.test.ts
       - run: npm run test:resources
+        if: fromJSON(inputs.plan).native
+      - run: npm run test:reconnect
+        if: fromJSON(inputs.plan).reconnect && !fromJSON(inputs.plan).native
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
@@ -211,4 +219,4 @@ jobs:
         env:
           PLAN: ${{ inputs.plan }}
           RESULTS: ${{ toJSON(needs) }}
-          GROUPS: '{"test-and-build":["static","core","demo"],"browser-host":["browser"],"native-lifecycle":["native"],"browser-engines":["engines"]}'
+          GROUPS: '{"test-and-build":["static","core","demo","reconnect"],"browser-host":["browser"],"native-lifecycle":["native","reconnect"],"browser-engines":["engines"]}'

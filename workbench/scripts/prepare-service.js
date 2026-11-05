@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // Explicit preparation only. Session startup must never call this script.
-const args = ["--batch-mode", "-Dmaven.test.skip=true", "package"];
+const args = ["--batch-mode", "-Dmaven.test.skip=true", "clean", "package"];
 
 const child = spawn(
   process.platform === "win32" ? "mvnw.cmd" : "./mvnw",

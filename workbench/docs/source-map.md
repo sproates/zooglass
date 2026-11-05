@@ -125,6 +125,8 @@ flowchart TB
   namespace["scenario/namespace-scenario.ts<br/>Isolate scenario identifiers"]
   service["service/zooglass-session.ts<br/>Own the service process"]
   session["execution/scenario-session.ts<br/>Dispatch actions and own connections"]
+  receipt["execution/publication-receipt.ts<br/>Match publication identity and outcome"]
+  session -->|awaits the source acknowledgement| receipt
   http["execution/view-http.ts<br/>Define and check server views"]
   client["execution/node-client-executor.ts<br/>Execute client actions and check receipts"]
   sockets["execution/sockets.ts<br/>Connect, buffer and close WebSockets"]

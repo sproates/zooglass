@@ -149,6 +149,9 @@ Each `source-event` declares `epoch: "run"` and a positive safe-integer
 identity and payload. Ordering declarations use `sequenceField: "publicationSequence"`;
 application fields inside `payload` do not control ordering. Workbench translates
 these declarations into the service configuration and sends explicit envelopes.
+To exercise a rejection, set `expectedRejection` on the source event to its exact
+reason, for example `identityConflict`. Each step checks the receipt before
+continuing. An exact retry can return `duplicate`.
 A known but empty view is checked with `expected: {}`; `null` asserts an unknown
 view (HTTP 404). Reconciliation remains entirely in ZooGlass.
 
@@ -156,7 +159,7 @@ view (HTTP 404). Reconciliation remains entirely in ZooGlass.
 
 | Timeline entry        | What Workbench waits for                                                                                                                                                              |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source-event`        | The event is sent on that source's open socket. Use a later check to establish processing.                                                                                            |
+| `source-event`        | The service acknowledges the publication. A rejection must match the entry’s explicit `expectedRejection` reason.                                                                     |
 | `client-state`        | `connecting` or `connected` ensures a connection is open; `disconnecting` or `disconnected` closes it. These are requested actions, not measurements of a connection's current state. |
 | `client-subscription` | The matching subscribe or unsubscribe acknowledgement for the view and entity.                                                                                                        |
 | `view-definition`     | ZooGlass accepts a new runtime view definition. It starts without replaying earlier events.                                                                                           |

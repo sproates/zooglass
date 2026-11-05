@@ -471,7 +471,8 @@
         "longitude": -5.36
       },
       "epoch": "run",
-      "publicationSequence": 42
+      "publicationSequence": 42,
+      "expectedRejection": "identityConflict"
     },
     {
       "kind": "source-event",
@@ -497,7 +498,8 @@
         "status": "returning"
       },
       "epoch": "run",
-      "publicationSequence": 102
+      "publicationSequence": 102,
+      "expectedRejection": "identityConflict"
     },
     {
       "kind": "source-event",

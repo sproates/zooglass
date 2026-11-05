@@ -4,6 +4,10 @@ SQLite lets ZooGlass retain views and publication identities across a service
 restart. A retried publication remains a duplicate after recovery, and delayed
 events use the restored ordering state.
 
+Upgrading an existing deployment requires renaming `zooglass.v2.config` and
+`zooglass.v2.database` to `zooglass.config` and `zooglass.database`. Keep the
+configured database path. Startup reports retired settings before opening storage.
+
 ## Enable it
 
 In your [configuration](publications.md), change `"storage": "memory"` to

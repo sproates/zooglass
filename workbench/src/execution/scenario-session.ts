@@ -1,3 +1,5 @@
+import { scenarioEpoch } from "../service/runtime-configuration.js";
+import { publishAndCheckReceipt } from "./publication-receipt.js";
 import { checkView, defineView } from "./view-http.js";
 import type {
   TraceEntry,
@@ -47,6 +49,17 @@ export async function openScenarioSession(
   options: ScenarioSessionOptions = {},
 ): Promise<ScenarioSession> {
   requireDataFaultSupport(scenario, !!options.executeDataFault);
+  for (const entry of scenario.timeline) {
+    if (
+      entry.kind === "source-event" &&
+      entry.epoch !== scenarioEpoch &&
+      entry.expectedRejection !== "unknownEpoch"
+    ) {
+      throw new Error(
+        `Source ${entry.sourceId} uses epoch "${entry.epoch}" but the service is configured for "${scenarioEpoch}".`,
+      );
+    }
+  }
   const controller = new AbortController();
   const signal = options.signal
     ? AbortSignal.any([controller.signal, options.signal])
@@ -124,16 +137,7 @@ export async function openScenarioSession(
         );
       }
 
-      socket.send(
-        JSON.stringify({
-          sourceId: entry.sourceId,
-          type: entry.type,
-          epoch: entry.epoch,
-          publicationSequence: entry.publicationSequence,
-          sourceEntityId: entry.entityId,
-          payload: entry.payload,
-        }),
-      );
+      await publishAndCheckReceipt(socket, entry, signal);
     } else if (entry.kind === "view-check") {
       await checkView(baseUrl, entry, signal);
     } else if (entry.kind === "view-definition") {

@@ -128,10 +128,10 @@ final class FreshnessRuntime implements AutoCloseable {
         return remaining == null ? null : Math.addExact(monotonic, remaining);
     }
 
-    void reconcile(StateStore storage) {
+    List<ViewEntity> reconcile(StateStore storage) {
         var first = deadlines.next();
         if (first == null || first > clock.monotonicMillis()) {
-            return;
+            return List.of();
         }
         var due = deadlines.due(clock.monotonicMillis());
         var old = storage.current();
@@ -158,6 +158,7 @@ final class FreshnessRuntime implements AutoCloseable {
                 sample);
         due.forEach(key -> deadlines.replace(key, null));
         arm();
+        return due.stream().map(FreshnessDeadlines.Key::entity).distinct().toList();
     }
 
     void arm() {

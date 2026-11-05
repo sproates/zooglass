@@ -300,7 +300,8 @@
         "longitude": 99.0
       },
       "epoch": "run",
-      "publicationSequence": 41
+      "publicationSequence": 41,
+      "expectedRejection": "identityConflict"
     },
     {
       "kind": "view-check",

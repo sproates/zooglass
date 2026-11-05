@@ -24,6 +24,10 @@ final class SubscriptionIndex {
                 .add(subscription);
     }
 
+    boolean hasRecipients(String viewId, String entityId) {
+        return sessionsBySubscription.containsKey(new Subscription(viewId, entityId));
+    }
+
     List<WebSocketSession> recipients(String viewId, String entityId) {
         // Sending can remove a failed recipient; iteration must use a stable snapshot.
         return List.copyOf(

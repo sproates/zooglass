@@ -12,7 +12,7 @@ import jakarta.annotation.PreDestroy;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -46,15 +47,28 @@ public final class ViewCoordinator implements AutoCloseable {
     private final ReceiptClock clock;
     private FreshnessRuntime freshness;
     private RuntimeConfiguration configuration;
-    private final List<Consumer<Snapshot>> listeners = new ArrayList<>();
+    private final List<Listener> listeners = new ArrayList<>();
     private boolean closed;
 
     @Autowired
-    public ViewCoordinator(
-            ResourceLoader resources,
-            @Value("${zooglass.config:classpath:runtime-views.json}") String location,
-            @Value("${zooglass.database:}") String database) {
-        this(RuntimeConfiguration.load(resources, location), database);
+    public ViewCoordinator(ResourceLoader resources, Environment environment) {
+        this(
+                loadConfiguration(resources, environment),
+                environment.getProperty("zooglass.database", ""));
+    }
+
+    private static RuntimeConfiguration loadConfiguration(
+            ResourceLoader resources, Environment environment) {
+        for (String setting : List.of("config", "database")) {
+            String oldName = "zooglass.v2." + setting;
+            if (environment.containsProperty(oldName)) {
+                throw new IllegalArgumentException(
+                        "Replace " + oldName + " with zooglass." + setting);
+            }
+        }
+        return RuntimeConfiguration.load(
+                resources,
+                environment.getProperty("zooglass.config", "classpath:runtime-views.json"));
     }
 
     public ViewCoordinator(RuntimeConfiguration configuration) {
@@ -352,20 +366,20 @@ public final class ViewCoordinator implements AutoCloseable {
                         freshness == null ? null : FreshnessRuntime.highWater(old, sample.wall()));
         if (freshness == null) {
             storage.install(next);
-            publishChanges(old, storage.current());
+            publishChanges(old, storage.current(), staged.touched());
             return;
         }
         var deadlines = freshness.plan(old, next, staged.touched(), sample.after());
         freshness.install(storage, old, next, sample);
         freshness.installed(deadlines);
-        publishChanges(old, storage.current());
+        publishChanges(old, storage.current(), staged.touched());
     }
 
     private synchronized void expire() {
         if (!closed && freshness != null) {
             var previous = storage.current();
-            freshness.reconcile(storage);
-            publishChanges(previous, storage.current());
+            var touched = freshness.reconcile(storage);
+            publishChanges(previous, storage.current(), touched);
         }
     }
 
@@ -401,6 +415,14 @@ public final class ViewCoordinator implements AutoCloseable {
 
     /** Called under this monitor. Listeners must only enqueue work, never perform network I/O. */
     public synchronized Runnable listen(Consumer<Snapshot> listener) {
+        return listen((viewId, entityId) -> true, listener);
+    }
+
+    private record Listener(BiPredicate<String, String> interested, Consumer<Snapshot> receive) {}
+
+    public synchronized Runnable listen(
+            BiPredicate<String, String> interested, Consumer<Snapshot> receive) {
+        var listener = new Listener(interested, receive);
         listeners.add(listener);
         return () -> {
             synchronized (this) {
@@ -471,19 +493,21 @@ public final class ViewCoordinator implements AutoCloseable {
         return true;
     }
 
-    private void publishChanges(StateImage before, StateImage after) {
+    private void publishChanges(StateImage before, StateImage after, List<ViewEntity> touched) {
         if (listeners.isEmpty() || before == after) {
             return;
         }
-        for (var entry : after.views().entrySet()) {
-            var previous = before.views().get(entry.getKey());
-            if (previous != null && previous.version() == entry.getValue().version()) {
+        for (var key : touched) {
+            var previous = before.views().get(key);
+            if (previous != null && previous.version() == after.views().get(key).version()) {
                 continue;
             }
             for (var listener : List.copyOf(listeners)) {
                 try {
-                    snapshotOf(after, entry.getKey().viewId(), entry.getKey().entityId())
-                            .ifPresent(listener);
+                    if (listener.interested().test(key.viewId(), key.entityId())) {
+                        snapshotOf(after, key.viewId(), key.entityId())
+                                .ifPresent(listener.receive());
+                    }
                 } catch (RuntimeException failure) {
                     // Delivery cannot turn a committed publication into an uncommitted one.
                     LoggerFactory.getLogger(ViewCoordinator.class)

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { openScenarioSession } from "../src/execution/scenario-session.js";
 import { parseScenario } from "../src/scenario/scenario.js";
 
 const event = {
@@ -46,4 +47,12 @@ test("scenario parsing rejects missing epochs and non-positive or unsafe identit
       /publicationSequence/,
     );
   }
+});
+
+test("connected playback rejects an unconfigured epoch before opening sockets", async () => {
+  const parsed = parseScenario(scenario({ ...event, epoch: "season-1" }));
+  await assert.rejects(
+    openScenarioSession(parsed, "http://127.0.0.1:1"),
+    /uses epoch/,
+  );
 });

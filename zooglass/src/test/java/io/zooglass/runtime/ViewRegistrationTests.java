@@ -20,6 +20,32 @@ class ViewRegistrationTests {
     @TempDir Path directory;
 
     @Test
+    void liveDeliveryConsidersOnlyTouchedEntitiesAndFiltersBeforeNotification() {
+        try (var runtime = new ViewCoordinator(IdentityFixtures.configuration(10, 100, 100))) {
+            var first = event(1);
+            runtime.apply(
+                    new Publication(
+                            first.sourceId(),
+                            first.epoch(),
+                            "other-car",
+                            1,
+                            first.type(),
+                            first.payload()));
+            var considered = new ArrayList<String>();
+            var delivered = new ArrayList<String>();
+            runtime.listen(
+                    (view, entity) -> {
+                        considered.add(entity);
+                        return view.equals("latest");
+                    },
+                    snapshot -> delivered.add(snapshot.viewId()));
+            runtime.apply(first);
+            assertThat(considered).containsOnly("car");
+            assertThat(delivered).containsExactly("latest");
+        }
+    }
+
+    @Test
     void callerSourceChangesCannotExpandTheActiveSourceSet() {
         var base = IdentityFixtures.configuration(10, 100, 100);
         var sources = new ArrayList<>(base.sources());

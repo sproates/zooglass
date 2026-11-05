@@ -296,6 +296,13 @@ function parseSourceEvent(
   }
 
   const epoch = requiredString(entry.epoch, `timeline[${index}].epoch`);
+  const expectedRejection =
+    entry.expectedRejection === undefined
+      ? undefined
+      : requiredString(
+          entry.expectedRejection,
+          `timeline[${index}].expectedRejection`,
+        );
   const publicationSequence = entry.publicationSequence;
   if (
     typeof publicationSequence !== "number" ||
@@ -309,6 +316,7 @@ function parseSourceEvent(
 
   return {
     epoch,
+    ...(expectedRejection === undefined ? {} : { expectedRejection }),
     publicationSequence,
     kind: "source-event",
     simulationTime: entry.simulationTime,

@@ -1,5 +1,7 @@
 import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
+export const scenarioEpoch = "run";
+
 /** Compile scenario declarations to the single service configuration contract. */
 export function runtimeView(view: ScenarioView) {
   return {
@@ -46,7 +48,7 @@ export function runtimeConfiguration(
     maxStreams: 100_000,
     identityWindow: 10_000,
     maxHistoryEntries: 10_000,
-    sources: [...ids].map((id) => ({ id, epoch: "run" })),
+    sources: [...ids].map((id) => ({ id, epoch: scenarioEpoch })),
     views: views.map(runtimeView),
   };
 }

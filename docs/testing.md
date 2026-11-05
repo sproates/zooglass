@@ -160,7 +160,9 @@ flowchart TB
 ```
 
 The child uses compiled classes and dependencies; tests never launch Maven.
-Timeouts and cleanup bound child lifetimes. The instrumentation lives entirely
+These short-lived JVMs use first-tier compilation to reduce startup work. The
+parent drains output on a dedicated thread and attempts a bounded thread dump
+if a live child misses a marker deadline. Timeouts and cleanup bound child lifetimes. The instrumentation lives entirely
 under `src/test` and is absent from the application JAR. These are process-crash
 checks, not power-loss or faulty-filesystem tests. Child JVM execution is not
 included in the parent JVM's JaCoCo report; the acceptance assertions provide

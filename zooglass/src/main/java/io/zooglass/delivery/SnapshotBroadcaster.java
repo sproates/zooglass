@@ -40,7 +40,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator) {
         this.objectMapper = objectMapper;
         this.coordinator = coordinator;
-        this.detach = coordinator.listen(this::sendUpdate);
+        this.detach = coordinator.listen(subscriptions::hasRecipients, this::sendUpdate);
     }
 
     public void registerSession(WebSocketSession session) {

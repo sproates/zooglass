@@ -6,19 +6,19 @@ import static io.zooglass.delivery.OutboundQueue.Admission.TOO_LARGE;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.zooglass.delivery.OutboundQueue.Frame;
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.springframework.web.socket.TextMessage;
 
 import java.util.List;
 
 @Timeout(5)
 class OutboundQueueTests {
-    private static final TextMessage A1 = new TextMessage("猫");
-    private static final TextMessage A2 = new TextMessage("🐘");
-    private static final TextMessage B1 = new TextMessage("b");
+    private static final Frame A1 = new Frame("猫");
+    private static final Frame A2 = new Frame("🐘");
+    private static final Frame B1 = new Frame("b");
 
     @Test
     void pairUsesCombinedUtf8SizeAndLeavesNoPartialReply() throws Exception {
@@ -72,7 +72,7 @@ class OutboundQueueTests {
         assertThat(queue.offerUpdate(1, A1)).isEqualTo(ACCEPTED);
         assertThat(queue.offerProtected(List.of(B1))).isEqualTo(ACCEPTED);
         assertThat(queue.offerUpdate(1, A2)).isEqualTo(FULL);
-        assertThat(queue.offerUpdate(1, new TextMessage("12345"))).isEqualTo(TOO_LARGE);
+        assertThat(queue.offerUpdate(1, new Frame("12345"))).isEqualTo(TOO_LARGE);
         assertThat(queue.take()).isSameAs(A1);
         assertThat(queue.take()).isSameAs(B1);
     }

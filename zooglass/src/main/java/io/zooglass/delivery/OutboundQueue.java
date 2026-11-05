@@ -15,8 +15,13 @@ final class OutboundQueue {
         TOO_LARGE
     }
 
-    private record Frame(TextMessage message, int bytes) {
-        Frame(TextMessage message) {
+    /** A string-backed message and its UTF-8 size, shared across recipient queues. */
+    record Frame(TextMessage message, int bytes) {
+        Frame(String payload) {
+            this(new TextMessage(payload));
+        }
+
+        private Frame(TextMessage message) {
             this(message, message.getPayloadLength());
         }
     }
@@ -30,9 +35,8 @@ final class OutboundQueue {
         this.settings = settings;
     }
 
-    synchronized Admission offerUpdate(long generation, TextMessage message) {
+    synchronized Admission offerUpdate(long generation, Frame frame) {
         var key = settings.slowClient().keyForUpdate(generation);
-        var frame = new Frame(message);
         var previous = waiting.get(key);
         long retainedBytes = bytes - (previous == null ? 0 : previous.bytes());
         int retainedCount = waiting.size() - (previous == null ? 0 : 1);
@@ -46,8 +50,7 @@ final class OutboundQueue {
     }
 
     /** Acknowledgements, errors and opening baselines always keep their own slots. */
-    synchronized Admission offerProtected(List<TextMessage> messages) {
-        var frames = messages.stream().map(Frame::new).toList();
+    synchronized Admission offerProtected(List<Frame> frames) {
         long batchBytes = frames.stream().mapToLong(Frame::bytes).sum();
         var admission = check(waiting.size(), bytes, frames.size(), batchBytes);
         if (admission == Admission.ACCEPTED) {
@@ -72,7 +75,7 @@ final class OutboundQueue {
         return Admission.ACCEPTED;
     }
 
-    synchronized TextMessage take() throws InterruptedException {
+    synchronized Frame take() throws InterruptedException {
         while (waiting.isEmpty() && !stopped) {
             wait();
         }
@@ -81,7 +84,7 @@ final class OutboundQueue {
         }
         var frame = waiting.pollFirstEntry().getValue();
         bytes -= frame.bytes();
-        return frame.message();
+        return frame;
     }
 
     synchronized void stop() {

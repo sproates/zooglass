@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import tools.jackson.databind.ObjectMapper;
@@ -96,21 +95,32 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     private void sendUpdate(ViewCoordinator.Snapshot snapshot) {
-        var update = ViewUpdate.from(snapshot);
-        for (var recipient :
-                subscriptions.recipients(snapshot.viewId(), snapshot.entityId()).entrySet()) {
-            enqueue(
-                    recipient.getKey(),
-                    writer -> writer.enqueueUpdate(recipient.getValue(), frame(update)));
+        var recipients = subscriptions.recipients(snapshot.viewId(), snapshot.entityId());
+        OutboundQueue.Frame shared;
+        try {
+            shared = frame(ViewUpdate.from(snapshot));
+        } catch (RuntimeException exception) {
+            logger.warn(
+                    "Could not prepare live view update for {}: {}",
+                    snapshot.viewId(),
+                    exception.getMessage());
+            for (var session : recipients.keySet()) {
+                removeSession(session);
+                requestClose(session, CloseStatus.SERVER_ERROR);
+            }
+            return;
         }
+        recipients.forEach(
+                (session, generation) ->
+                        enqueue(session, writer -> writer.enqueueUpdate(generation, shared)));
     }
 
     private void send(WebSocketSession session, Object message) {
         sendProtected(session, List.of(message));
     }
 
-    private TextMessage frame(Object message) {
-        return new TextMessage(objectMapper.writeValueAsString(message));
+    private OutboundQueue.Frame frame(Object message) {
+        return new OutboundQueue.Frame(objectMapper.writeValueAsString(message));
     }
 
     private void sendProtected(WebSocketSession session, List<Object> messages) {
@@ -148,7 +158,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     private void handleWriteFailure(
-            WebSocketSession session, OutboundWriter writer, IOException exception) {
+            WebSocketSession session, OutboundWriter writer, Exception exception) {
         synchronized (coordinator) {
             if (writersBySession.get(session) != writer) {
                 return;
@@ -170,7 +180,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
                         if (session.isOpen()) {
                             session.close(status);
                         }
-                    } catch (IOException exception) {
+                    } catch (IOException | RuntimeException exception) {
                         logger.warn(
                                 "Could not close slow live view client {}: {}",
                                 session.getId(),

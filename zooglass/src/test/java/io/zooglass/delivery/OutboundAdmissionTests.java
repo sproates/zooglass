@@ -6,10 +6,10 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.zooglass.delivery.OutboundQueue.Frame;
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.Collections;
@@ -42,14 +42,14 @@ class OutboundAdmissionTests {
                             new Delivery(null, null, 128, 1048576L),
                             (ignored, error) -> {});
             try {
-                var update = new TextMessage("ordinary update");
+                var update = new Frame("ordinary update");
                 assertThat(writer.enqueueProtected(List.of(update)))
                         .isEqualTo(OutboundQueue.Admission.ACCEPTED);
                 assertThat(writing.await(5, TimeUnit.SECONDS)).isTrue();
                 assertThat(writer.enqueueProtected(Collections.nCopies(127, update)))
                         .isEqualTo(OutboundQueue.Admission.ACCEPTED);
 
-                var pair = List.of(new TextMessage("acknowledgement"), new TextMessage("baseline"));
+                var pair = List.of(new Frame("acknowledgement"), new Frame("baseline"));
                 assertThat(writer.enqueueProtected(pair)).isEqualTo(OutboundQueue.Admission.FULL);
                 assertThat(writer.enqueueProtected(List.of(update)))
                         .isEqualTo(OutboundQueue.Admission.ACCEPTED);

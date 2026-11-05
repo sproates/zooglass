@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import io.zooglass.delivery.CoalesceLatestState;
 import io.zooglass.delivery.SnapshotBroadcaster;
+import io.zooglass.delivery.SnapshotSubscriptions;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,6 +24,7 @@ import org.springframework.web.socket.WebSocketSession;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -127,6 +129,75 @@ class SlowClientDeliveryTests {
             } finally {
                 release.countDown();
             }
+        }
+    }
+
+    @Test
+    void uncheckedTransportFailureReleasesWriterAndSubscription() throws Exception {
+        try (var runtime = configured(8, 32768);
+                var broadcaster = new SnapshotBroadcaster(JSON, runtime)) {
+            var client = mock(WebSocketSession.class);
+            when(client.isOpen()).thenReturn(true);
+            var output = new LinkedBlockingQueue<JsonNode>();
+            doAnswer(
+                            call -> {
+                                TextMessage frame = call.getArgument(0);
+                                if (!StandardCharsets.UTF_8
+                                        .newEncoder()
+                                        .canEncode(frame.getPayload())) {
+                                    throw new IllegalArgumentException("Malformed UTF-8 input");
+                                }
+                                output.add(JSON.readTree(frame.getPayload()));
+                                return null;
+                            })
+                    .when(client)
+                    .sendMessage(any());
+
+            var handler = new SnapshotSubscriptions(JSON, broadcaster);
+            handler.afterConnectionEstablished(client);
+            broadcaster.subscribe(client, "latest", "car");
+            expect(output, "subscribed");
+            expectVersion(output, 0);
+            handler.handleMessage(
+                    client,
+                    new TextMessage(
+                            "{\"action\":\"\\ud800\",\"viewId\":\"latest\",\"entityId\":\"car\"}"));
+            verify(client, timeout(5000)).close(any(CloseStatus.class));
+
+            // Re-registration must install a working writer with no old subscriptions.
+            broadcaster.registerSession(client);
+            assertThat(runtime.apply(IdentityFixtures.event(1)).status()).isEqualTo("applied");
+            broadcaster.sendError(client, "barrier");
+            assertThat(expect(output, "error").path("message").asText()).isEqualTo("barrier");
+        }
+    }
+
+    @Test
+    void subscribersReceiveTheSamePreparedUpdate() throws Exception {
+        try (var runtime = configured(8, 32768);
+                var broadcaster = new SnapshotBroadcaster(JSON, runtime)) {
+            var updates = new LinkedBlockingQueue<TextMessage>();
+            for (int i = 0; i < 2; i++) {
+                var client = mock(WebSocketSession.class);
+                when(client.isOpen()).thenReturn(true);
+                doAnswer(
+                                call -> {
+                                    TextMessage frame = call.getArgument(0);
+                                    if (JSON.readTree(frame.getPayload()).path("version").asLong()
+                                            == 1) {
+                                        updates.add(frame);
+                                    }
+                                    return null;
+                                })
+                        .when(client)
+                        .sendMessage(any());
+                broadcaster.registerSession(client);
+                broadcaster.subscribe(client, "latest", "car");
+            }
+            runtime.apply(IdentityFixtures.event(1));
+            var first = updates.poll(5, TimeUnit.SECONDS);
+            assertThat(first).isNotNull();
+            assertThat(updates.poll(5, TimeUnit.SECONDS)).isSameAs(first);
         }
     }
 

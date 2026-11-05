@@ -429,7 +429,9 @@ are complementary forms of evidence, not interchangeable measurements.
 of the opening pair and replacement order across subscriptions.
 `SlowClientDeliveryTests` holds a writer in flight while a client subscribes
 again. The assertions distinguish the two baselines, ordinary updates and
-control messages, and verify the requested 1009 and 1013 close codes.
+control messages, and verify the requested 1009 and 1013 close codes. The tests
+also exercise unchecked transport encoding failures and check that two subscribers
+receive the same prepared ordinary update.
 
 The tests close all owned sockets and services even on assertion failure. The
 network cases establish bounded-run cleanup and isolation; extended memory and

@@ -51,7 +51,7 @@ class FactGrammarTests {
     }
 
     @Test
-    void unsupportedSumAndFactSettingsOnOrdinaryModesAreRejected() throws Exception {
+    void sumWithoutPropertyAndFactSettingsOnOrdinaryModesAreRejected() throws Exception {
         for (String mode : new String[]{"sumActiveFacts", "latestBySequence"}) {
             var document = JSON.valueToTree(FactFixtures.configuration("memory", 10, false));
             ((tools.jackson.databind.node.ObjectNode) document.at("/views/0/fields/goals")).put("mode", mode);
@@ -60,6 +60,18 @@ class FactGrammarTests {
             assertThatThrownBy(() -> V2Configuration.load(new DefaultResourceLoader(), file.toUri().toString()))
                     .isInstanceOf(IllegalArgumentException.class);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "1", "true", "\"\"", "\"  \""})
+    void sumPropertyMustBeANonblankJsonString(String property) throws Exception {
+        var document = JSON.valueToTree(FactFixtures.scores("memory"));
+        var score = (tools.jackson.databind.node.ObjectNode) document.at("/views/0/fields/score");
+        score.set("property", JSON.readTree(property));
+        Path file = directory.resolve("bad-property.json");
+        Files.writeString(file, JSON.writeValueAsString(document));
+        assertThatThrownBy(() -> V2Configuration.load(new DefaultResourceLoader(), file.toUri().toString()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest

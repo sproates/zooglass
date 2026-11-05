@@ -121,7 +121,7 @@ final class RecoveryValidation {
                     var value = retained.value();
                     require(value != null);
                     if (binding.facts() != null) {
-                        require(value.isArray()); // Full record/projection checks are in FactRecovery.
+                        require(binding.mode().equals("sumActiveFacts") ? value.isNumber() : value.isArray());
                     } else if (binding.mode().equals("historyBySequence")) {
                         require(value.isArray() && !value.isEmpty()
                                 && value.size() <= configuration.maxHistoryEntries());

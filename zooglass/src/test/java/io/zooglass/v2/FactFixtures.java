@@ -13,6 +13,17 @@ final class FactFixtures {
                 List.of(view("original", "firstFact", limit, timed), view("corrected", "latestFactRevision", limit, timed)));
     }
 
+    static V2Configuration scores(String storage) {
+        var base = FactFixtures.configuration(storage, 10, false);
+        var views = base.views().stream().map(view -> {
+            var goals = view.fields().get("goals");
+            var score = new V2Configuration.Field("match", "goal", "sumActiveFacts", null, null, null,
+                    goals.freshness(), goals.facts(), "points");
+            return new V2Configuration.View(view.id(), Map.of("goals", goals, "score", score));
+        }).toList();
+        return new V2Configuration(2, storage, 10, 10, 20, base.sources(), views);
+    }
+
     static V2Configuration.View view(String id, String revision, long limit, boolean timed) {
         var freshness = timed ? new V2Configuration.Freshness("receiptAge", 5000L) : null;
         var field = new V2Configuration.Field("match", "goal", "activeFacts", null, null, null, freshness,

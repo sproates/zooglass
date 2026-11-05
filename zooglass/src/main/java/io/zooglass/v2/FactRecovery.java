@@ -1,6 +1,6 @@
 package io.zooglass.v2;
 
-import io.zooglass.strategy.fact.ActiveFacts;
+import io.zooglass.strategy.fact.FactProjectionSelection;
 import io.zooglass.strategy.identity.EntityStrategySelection;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +52,7 @@ final class FactRecovery {
                     require(candidates != null && candidates.keySet().equals(Set.of(input.sourceId())));
                     var candidate = candidates.get(input.sourceId());
                     require(candidate != null && provenance.equals(candidate.provenance())
-                            && PublicationJson.content(new ActiveFacts().project(facts.records()))
+                            && PublicationJson.content(FactProjectionSelection.select(config.mode(), config.property()).project(facts.records()))
                                     .equals(PublicationJson.content(candidate.value())));
                 }
             }

@@ -1,4 +1,4 @@
-# Retained fact collections
+# Retained fact collections and sums
 
 Use `activeFacts` when a source can correct or withdraw an earlier fact. ZooGlass
 keeps its revision state and returns the current active collection. A higher
@@ -26,8 +26,7 @@ Inside an existing [v2 view configuration](v2-ingestion.md), define:
 
 The source registry declares `match-feed` and its epoch. Exactly one input is
 allowed. The equivalent single-input `inputs` form is supported; source priority
-and multi-source fact collections are not. Numeric `sumActiveFacts` is the next
-slice and is currently rejected, as are `facts` settings on ordinary field modes.
+and multi-source fact collections are not. A numeric field can consume the same input and calculate a total.
 
 Choose `latestFactRevision` to follow changes, or `firstFact` to keep the first
 accepted create. The same feed can populate separate views with these different
@@ -135,6 +134,40 @@ a new publication still corrects its retained fact. Once its fact floor passes
 the birth, new deliveries cannot restore it. A retained duplicate receipt still
 returns its original outcome without reintroducing the retired fact.
 
+## Calculate a score
+
+Add this field alongside `goals` to publish the score and the corresponding list
+of goals together. The `property` names a top-level JSON number in each payload.
+
+```json
+{
+  "score": {
+    "sourceId": "match-feed",
+    "type": "goal",
+    "mode": "sumActiveFacts",
+    "property": "points",
+    "facts": {
+      "revision": "latestFactRevision",
+      "maxRetainedFacts": 200,
+      "minimumBirthSequence": 1
+    }
+  }
+}
+```
+
+Two one-point goals give a score of 2. Correct the first to two points and the
+score becomes 3. Withdraw it and the score becomes 1. Once the last goal is
+withdrawn or retired, the field publishes zero. Before its first create it is absent.
+
+Both projections use the same publication transaction. A missing, null or
+non-numeric `points` value rejects the publication with `invalidNumericContribution`.
+Retractions carry an empty payload. Each input and the final total must fit 38
+decimal digits, counting integer places implied by an exponent, with up to 18
+fractional places after removing trailing zeros. ZooGlass adds exactly and
+reports `numericRange` if a bound is exceeded. A withdrawal or retirement can
+also overflow when it removes an offsetting negative amount. On rejection the
+previous score, collections and floors remain available.
+
 ## Storage and freshness
 
 Memory mode says `applied`; SQLite says `committed`. Fact-enabled SQLite databases
@@ -154,4 +187,4 @@ not postpone an existing stale deadline. Freshness describes the field's last
 accepted source change, not the freshness of every record in its collection.
 
 See the [design](../../docs/design/fact-revisions.md) for the strategy modules,
-trade-offs and the subsequent numeric projection.
+retention rules and numeric limits.

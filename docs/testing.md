@@ -783,3 +783,10 @@ preparation, 138 standard tests, 46 browser tests, both resource workloads and
 also passed. The artifact-only test passed again after its failure-cleanup
 handling was tightened. Native Windows and Linux engine evidence is supplied
 by the PR's CI; local results do not substitute for those runs.
+
+## Numeric fact projections
+
+`FactSumTests` checks exact decimal totals, first and latest revision policies,
+withdrawals, retry identity, atomic overflow rejection and SQLite recovery.
+`FactServiceTests` reads the collection and score over HTTP after sending a
+retirement over the control socket.

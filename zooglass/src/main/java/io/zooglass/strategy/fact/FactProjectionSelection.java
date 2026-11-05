@@ -1,11 +1,13 @@
 package io.zooglass.strategy.fact;
 
-/** Only the delivered collection projection is selectable in this slice. */
 public final class FactProjectionSelection {
     private FactProjectionSelection() {}
 
-    public static ActiveFacts select(String mode) {
-        if ("activeFacts".equals(mode)) return new ActiveFacts();
-        throw new IllegalArgumentException("Unsupported fact projection");
+    public static FactProjection select(String mode, String property) {
+        if ("activeFacts".equals(mode) && property == null) return new ActiveFacts();
+        if ("sumActiveFacts".equals(mode) && property != null && !property.isBlank()) {
+            return new SumActiveFacts(property);
+        }
+        throw new IllegalArgumentException("Invalid fact projection or numeric property");
     }
 }

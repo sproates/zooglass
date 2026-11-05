@@ -33,6 +33,15 @@ class PublicationJsonTests {
     }
 
     @Test
+    void comparesEquivalentNumbersAtTheScaleLimit() {
+        var left = PublicationJson.parse(VALID.replace("\"x\":1", "\"x\":100e2147483647"));
+        var equivalent = PublicationJson.parse(VALID.replace("\"x\":1", "\"x\":1000e2147483646"));
+        var different = PublicationJson.parse(VALID.replace("\"x\":1", "\"x\":200e2147483647"));
+        assertThat(PublicationJson.content(left.payload())).isEqualTo(PublicationJson.content(equivalent.payload()));
+        assertThat(PublicationJson.content(left.payload())).isNotEqualTo(PublicationJson.content(different.payload()));
+    }
+
+    @Test
     void canonicalContentIgnoresObjectOrderAndNumericSpellingButPreservesTypesAndArrayOrder() {
         var left = IdentityFixtures.parse("fleet", "trip-1", "car", 1, "p", "{\"a\":1.00,\"b\":[true,null,2]}");
         var right = IdentityFixtures.parse("fleet", "trip-1", "car", 1, "p", "{\"b\":[true,null,2.0],\"a\":1}");

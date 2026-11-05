@@ -71,7 +71,7 @@ flowchart LR
   timing -->|rebases stored ages| policy
 ```
 
-## Decide when to publish a entity
+## Decide when to publish an entity
 
 ```mermaid
 flowchart LR

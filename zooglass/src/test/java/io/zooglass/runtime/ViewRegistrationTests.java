@@ -32,7 +32,7 @@ class ViewRegistrationTests {
             assertThat(
                             runtime.apply(FactFixtures.event(1, 1, 1, "create", "{\"points\":1}"))
                                     .status())
-                    .isEqualTo("applied");
+                    .isEqualTo(storage.equals("sqlite") ? "committed" : "applied");
             var current = runtime.snapshot("timed", "game").orElseThrow();
             assertThat(current.data().get("goals")).hasSize(1);
             assertThat(current.status().fields().get("goals").freshness()).isEqualTo("fresh");
@@ -45,6 +45,57 @@ class ViewRegistrationTests {
                                     .get("goals")
                                     .freshness())
                     .isEqualTo("stale");
+        }
+    }
+
+    @Test
+    void failedRegistrationRollsBackTheDefinitionAndSchemaUpgrade() throws Exception {
+        var file = directory.resolve("registration-failure.db");
+        var config = SqliteRecoveryTests.configuration();
+        try (var runtime = new ViewCoordinator(config, file.toString())) {
+            runtime.apply(event(1));
+        }
+        int originalSchema;
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + file);
+                var statement = connection.createStatement()) {
+            try (var schema = statement.executeQuery("PRAGMA user_version")) {
+                assertThat(schema.next()).isTrue();
+                originalSchema = schema.getInt(1);
+            }
+            statement.execute(
+                    "CREATE TRIGGER refuse_registration BEFORE INSERT ON runtime "
+                            + "WHEN json_array_length(NEW.configuration, '$.views') > "
+                            + config.views().size()
+                            + " BEGIN SELECT RAISE(ABORT, 'fixture registration failure'); END");
+        }
+        var timed =
+                new RuntimeConfiguration.View(
+                        "timed",
+                        Map.of(
+                                "position",
+                                new RuntimeConfiguration.Field(
+                                        "fleet",
+                                        "position",
+                                        "arrival",
+                                        null,
+                                        null,
+                                        null,
+                                        new RuntimeConfiguration.Freshness("receiptAge", 5000L))));
+        try (var runtime = new ViewCoordinator(config, file.toString())) {
+            assertThatThrownBy(() -> runtime.define(timed))
+                    .isInstanceOf(IllegalStateException.class);
+            assertThat(runtime.containsView("timed")).isFalse();
+            assertThat(runtime.healthy()).isFalse();
+        }
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + file);
+                var statement = connection.createStatement();
+                var schema = statement.executeQuery("PRAGMA user_version")) {
+            assertThat(schema.next()).isTrue();
+            assertThat(schema.getInt(1)).isEqualTo(originalSchema);
+        }
+        try (var recovered = new ViewCoordinator(config, file.toString())) {
+            assertThat(recovered.containsView("timed")).isFalse();
+            assertThat(recovered.apply(event(1)).status()).isEqualTo("duplicate");
         }
     }
 

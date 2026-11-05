@@ -45,12 +45,15 @@ public final class ViewStatus {
             var age = selected == null ? null : selected.age();
             String freshness = selected == null ? "absent" : age == null ? "unspecified" : age.classification();
             fields.put(field.name(), new FieldStatus(freshness, age == null ? null : age.receivedAtMillis(),
-                    field.inputs().stream().map(V2Configuration.Input::sourceId).sorted().toList()));
+                    field.inputs().stream().map(V2Configuration.Input::sourceId).sorted().toList(),
+                    factStatus(field, view)));
         }
         var statuses = new TreeMap<String, InputStatus>();
         inputs.forEach((source, binding) -> {
             String original = binding.inverse == null ? entity : binding.inverse.get(entity);
             var stream = original == null ? null : streams.get(new Publication.StreamKey(source, binding.source.epoch(), original));
+            // A retirement can reserve capacity before the source has reported anything.
+            if (stream != null && stream.reservationOnly()) stream = null;
             var progress = stream == null ? null : stream.progress();
             String completeness = "unknown";
             Long completeThrough = null;
@@ -73,6 +76,14 @@ public final class ViewStatus {
         return new Status(publication, missing, required, fields, statuses);
     }
 
+    private FactsStatus factStatus(BoundView.Field field, StateImage.StoredView view) {
+        if (field.facts() == null) return null;
+        var state = view == null ? null : view.facts().get(field.name());
+        long floor = state == null ? definition.fields().get(field.name()).facts().minimumBirthSequence() : state.floor();
+        return new FactsStatus(floor, state == null ? 0 : state.records().size(), state == null ? 0 :
+                state.records().values().stream().filter(io.zooglass.strategy.fact.FactRecord::active).count());
+    }
+
     private record InputBinding(V2Configuration.Source source, Map<String, String> inverse, ProgressStrategy strategy) {}
 
     public record Status(String publication, List<String> missingFields, List<String> missingRequiredFields,
@@ -84,7 +95,10 @@ public final class ViewStatus {
             inputs = Map.copyOf(inputs);
         }
     }
-    public record FieldStatus(String freshness, Long receivedAtMillis, List<String> inputs) {}
+    public record FactsStatus(long minimumBirthSequence, long retainedCount, long activeCount) {}
+    public record FieldStatus(String freshness, Long receivedAtMillis, List<String> inputs,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            FactsStatus facts) {}
     public record InputStatus(String state, String mode, String epoch, String sourceEntityId, Long startSequence,
             Long observedThrough, Long watermarkThrough, Long completeThrough, String completeness,
             Long admissionFloor, boolean sourceContractViolated, List<ProgressState.Missing> missingRanges) {}

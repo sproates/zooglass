@@ -258,3 +258,9 @@ retains state and identities across restart; see the [storage guide](sqlite-stor
 
 V2 live subscriptions, runtime definitions and fact revisions follow in later increments. See the [accepted contracts](../../docs/design/behaviour-contracts.md)
 for the wider design.
+
+## Correcting retained facts
+
+[Retained fact collections](fact-collections.md) add explicit create/revise/retract
+metadata, per-field first/latest revision strategies and bounded retirement.
+Ordinary update fields keep their existing semantics.

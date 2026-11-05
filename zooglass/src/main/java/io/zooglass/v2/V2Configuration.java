@@ -31,13 +31,27 @@ import java.util.Set;
 /** V2 startup definitions bind storage, source inputs and view-local strategies. */
 public record V2Configuration(int contractVersion, String storage, int maxStreams,
         int identityWindow, int maxHistoryEntries, List<Source> sources, List<View> views) {
-    private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence");
+    private static final Set<String> MODES = Set.of("arrival", "latestBySequence", "historyBySequence", "activeFacts");
 
     public record Progress(String mode, Long startSequence, Long maxReceivedRanges, Long maxMissingRanges) {}
     public record Freshness(String mode, @JsonInclude(JsonInclude.Include.NON_NULL) Long staleAfterMillis) {
         FreshnessStrategy bind() {
             return FreshnessStrategySelection.select(mode, staleAfterMillis);
         }
+    }
+
+    public record Facts(String revision, Long maxRetainedFacts, Long minimumBirthSequence) {
+        void validate() {
+            io.zooglass.strategy.fact.FactRevisionSelection.select(revision);
+            if (maxRetainedFacts == null || minimumBirthSequence == null
+                    || !FactEnvelope.validNumber(maxRetainedFacts) || !FactEnvelope.validNumber(minimumBirthSequence)) {
+                throw new IllegalArgumentException("Invalid fact bounds");
+            }
+        }
+    }
+
+    boolean tracksFacts() {
+        return views.stream().flatMap(view -> view.fields().values().stream()).anyMatch(field -> field.facts() != null);
     }
 
     boolean tracksAge() {
@@ -108,7 +122,12 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
 
     /** Single inputs normalise to shorthand; multi-input order is canonical, priority order is retained. */
     public record Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late,
-            Freshness freshness) {
+            Freshness freshness,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Facts facts) {
+        public Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late,
+                Freshness freshness) {
+            this(sourceId, type, mode, inputs, conflict, late, freshness, null);
+        }
         public Field(String sourceId, String type, String mode, List<Input> inputs, Conflict conflict, Late late) {
             this(sourceId, type, mode, inputs, conflict, late, null);
         }
@@ -175,6 +194,9 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
     static V2Configuration decode(JsonMapper mapper, tools.jackson.databind.JsonNode document) {
         for (var view : document.path("views")) {
             for (var field : view.path("fields")) {
+                if (field.has("facts") && !field.path("facts").isObject()) {
+                    throw new IllegalArgumentException("facts must be an object");
+                }
                 var freshness = field.path("freshness");
                 if (!freshness.isMissingNode() && (!freshness.isObject()
                         || ("unspecified".equals(freshness.path("mode").asText()) && freshness.has("staleAfterMillis")))) {
@@ -238,6 +260,14 @@ public record V2Configuration(int contractVersion, String storage, int maxStream
                         conflict == null ? null : conflict.sources(), inputSources);
                 if (conflict != null && !"latestBySequence".equals(field.mode())) {
                     throw new IllegalArgumentException("Source priority requires latestBySequence");
+                }
+                if ("activeFacts".equals(field.mode())) {
+                    if (field.facts() == null || field.allInputs().size() != 1 || conflict != null) {
+                        throw new IllegalArgumentException("Fact collections require one input and fact settings");
+                    }
+                    field.facts().validate();
+                } else if (field.facts() != null) {
+                    throw new IllegalArgumentException("Fact settings require a fact projection");
                 }
                 field.freshness().bind();
                 LateStrategySelection.select(field.late().mode());

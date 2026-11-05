@@ -22,7 +22,13 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
 
     record ViewEntity(String viewId, String entityId) {}
     record StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance,
-            Map<String, Map<String, SelectedContribution>> candidates) {
+            Map<String, Map<String, SelectedContribution>> candidates,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
+            Map<String, FactState> facts) {
+        StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance,
+                Map<String, Map<String, SelectedContribution>> candidates) {
+            this(version, data, provenance, candidates, Map.of());
+        }
         StoredView(long version, Map<String, JsonNode> data, Map<String, Provenance> provenance) {
             this(version, data, provenance, null);
         }
@@ -32,14 +38,15 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
             var sources = new HashMap<>(updated.get(field));
             sources.put(source, replacement);
             updated.put(field, sources);
-            return new StoredView(nextVersion, data, provenance, updated);
+            return new StoredView(nextVersion, data, provenance, updated, facts);
         }
 
         boolean pending() {
-            return !candidates.isEmpty() && data.isEmpty();
+            return (!candidates.isEmpty() || !facts.isEmpty()) && data.isEmpty();
         }
 
         StoredView {
+            facts = facts == null ? Map.of() : Map.copyOf(facts);
             if (candidates != null) {
                 var copy = new HashMap<String, Map<String, SelectedContribution>>();
                 candidates.forEach((field, values) -> copy.put(field, Map.copyOf(values)));
@@ -50,15 +57,27 @@ record StateImage(long version, Map<Publication.StreamKey, StreamState> streams,
         }
     }
 
-    record Receipt(String type, JsonNode content, long version, List<TargetOutcome> targets) {
+    record Receipt(String type, JsonNode content, long version, List<TargetOutcome> targets,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) FactEnvelope fact) {
+        Receipt(String type, JsonNode content, long version, List<TargetOutcome> targets) {
+            this(type, content, version, targets, null);
+        }
         Receipt {
             targets = targets == null ? null : List.copyOf(targets);
         }
     }
 
     record StreamState(long floor, Map<Long, Receipt> receipts,
-            ProgressState progress) {
+            ProgressState progress,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+            Boolean reservationOnly) {
+        StreamState(long floor, Map<Long, Receipt> receipts, ProgressState progress) {
+            this(floor, receipts, progress, false);
+        }
         StreamState(long floor, Map<Long, Receipt> receipts) { this(floor, receipts, null); }
-        StreamState { receipts = Map.copyOf(receipts); }
+        StreamState {
+            receipts = Map.copyOf(receipts);
+            reservationOnly = Boolean.TRUE.equals(reservationOnly);
+        }
     }
 }

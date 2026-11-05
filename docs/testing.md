@@ -30,6 +30,18 @@ before the views complete. It verifies rollback, unavailable reads/writes, DOWN
 health and successful recovery. Startup tests reject schema, configuration and
 state corruption.
 
+### Retained fact collections
+
+The `Fact*Tests` suites cover grammar, first/latest revision selection, late policy,
+unknown dependencies, limits, tombstones, retirement, mapping, presence and freshness.
+Snapshot values and input payloads are checked for detached ownership. Memory and
+SQLite cases exercise independent fields, receipts and retirement floors.
+
+`FactServiceTests` uses the actual event and retirement sockets with HTTP snapshots.
+`FactCrashTests` kills the process before and after retraction/retirement commits,
+then checks collection, tombstone/floor and retry outcomes. Recovery tests also
+exercise migration rollback and corrupted retained records.
+
 ### Receipt age
 
 The receipt-age tests inject independent wall and monotonic clocks to check the

@@ -79,7 +79,8 @@ final class FreshnessRuntime implements AutoCloseable {
         for (var key : touched) {
             for (var field : bindings.get(key.viewId()).fields()) {
                 var selected = field.selected(next.views().get(key));
-                if (selected != field.selected(old.views().get(key))) {
+                var previous = field.selected(old.views().get(key));
+                if (selected != previous && (selected == null || previous == null || selected.age() != previous.age())) {
                     replacements.put(new FreshnessDeadlines.Key(key, field), deadline(field, selected, 0, monotonic));
                 }
             }

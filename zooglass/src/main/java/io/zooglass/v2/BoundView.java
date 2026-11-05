@@ -40,7 +40,7 @@ final class BoundView {
         resolvers = Map.copyOf(selected);
         fields = definition.fields().entrySet().stream().map(entry -> {
             var config = entry.getValue();
-            var ordering = config.mode().equals("arrival") ? null
+            var ordering = config.mode().equals("arrival") || config.facts() != null ? null
                     : new ViewConfiguration.Ordering(config.mode(), "publicationSequence");
             var conflict = config.conflict();
             return new Field(entry.getKey(), config.allInputs(),
@@ -48,7 +48,8 @@ final class BoundView {
                     ContributionStrategySelection.select(conflict == null ? "independentFields" : conflict.mode(),
                             conflict == null ? null : conflict.sources(), config.allInputs().stream()
                                     .map(V2Configuration.Input::sourceId).collect(Collectors.toSet())),
-                    LateStrategySelection.select(config.late().mode()), config.freshness().bind());
+                    LateStrategySelection.select(config.late().mode()), config.freshness().bind(),
+                    config.facts() == null ? null : new BoundFactField(config.mode(), config.facts()));
         }).toList();
     }
 
@@ -73,6 +74,7 @@ final class BoundView {
             StateImage.StoredView current, int historyLimit, Long watermark, long wallMillis) {
         var candidates = new HashMap<String, Map<String, SelectedContribution>>(
                 current == null ? Map.of() : current.candidates());
+        var facts = new HashMap<String, FactState>(current == null ? Map.of() : current.facts());
         var outcomes = new ArrayList<TargetOutcome.FieldOutcome>();
         boolean updated = false;
 
@@ -82,6 +84,23 @@ final class BoundView {
             }
             if (!field.late.accepts(publication.publicationSequence(), watermark)) {
                 outcomes.add(new TargetOutcome.FieldOutcome(field.name, "rejected", "behindWatermark", false));
+                continue;
+            }
+            if (field.facts != null) {
+                BoundFactField.Result result;
+                try {
+                    result = field.facts.evaluate(facts.get(field.name), publication);
+                } catch (FactRejected rejection) {
+                    throw rejection.at(id, resolve(publication).entityId(), field.name);
+                }
+                outcomes.add(new TargetOutcome.FieldOutcome(field.name,
+                        result.rejection() == null ? "accepted" : "rejected", result.rejection(), false));
+                if (result.changed()) {
+                    facts.put(field.name, result.state());
+                    candidates.put(field.name, Map.of(publication.sourceId(), new SelectedContribution(
+                            field.facts.project(result.state()), result.state().provenance(), field.freshness.received(wallMillis))));
+                    updated = true;
+                }
                 continue;
             }
             outcomes.add(new TargetOutcome.FieldOutcome(field.name, "accepted", null, false));
@@ -102,11 +121,11 @@ final class BoundView {
         }
         if (!updated) return new Evaluation(current, List.of(), List.copyOf(outcomes));
 
-        return publish(current, candidates, outcomes);
+        return publish(current, candidates, facts, outcomes);
     }
 
     private Evaluation publish(StateImage.StoredView current, Map<String, Map<String, SelectedContribution>> candidates,
-            List<TargetOutcome.FieldOutcome> outcomes) {
+            Map<String, FactState> facts, List<TargetOutcome.FieldOutcome> outcomes) {
         var data = new HashMap<String, JsonNode>();
         var provenance = new HashMap<String, Provenance>();
         var changedFields = new ArrayList<String>();
@@ -125,8 +144,28 @@ final class BoundView {
         }
         outcomes.replaceAll(outcome -> new TargetOutcome.FieldOutcome(outcome.field(), outcome.status(),
                 outcome.reason(), changedFields.contains(outcome.field())));
-        var stored = new StateImage.StoredView(current == null ? 0 : current.version(), data, provenance, candidates);
+        var stored = new StateImage.StoredView(current == null ? 0 : current.version(), data, provenance, candidates, facts);
         return new Evaluation(stored, List.copyOf(changedFields), List.copyOf(outcomes));
+    }
+
+    Evaluation retire(StateImage.StoredView current, String sourceEntity, String epoch,
+            List<String> names, long floor) {
+        var facts = new HashMap<String, FactState>(current == null ? Map.of() : current.facts());
+        var candidates = new HashMap<String, Map<String, SelectedContribution>>(current == null ? Map.of() : current.candidates());
+        for (var field : fields) {
+            if (!names.contains(field.name)) continue;
+            var input = field.inputs.getFirst();
+            var previous = facts.get(field.name);
+            var base = previous == null ? field.facts.empty(new Provenance(input.sourceId(), epoch, sourceEntity), input.type()) : previous;
+            var next = field.facts.retire(base, floor);
+            facts.put(field.name, next);
+            if (next.present()) {
+                var oldCandidate = field.selected(current);
+                candidates.put(field.name, Map.of(input.sourceId(), new SelectedContribution(
+                        field.facts.project(next), next.provenance(), oldCandidate.age())));
+            }
+        }
+        return publish(current, candidates, facts, new ArrayList<>());
     }
 
     record Evaluation(StateImage.StoredView stored, List<String> changedFields, List<TargetOutcome.FieldOutcome> fields) {}
@@ -135,7 +174,7 @@ final class BoundView {
 
     record Field(String name, List<V2Configuration.Input> inputs, boolean history,
             FieldUpdateStrategy strategy, ContributionSelectionStrategy selection, LateDeliveryStrategy late,
-            FreshnessStrategy freshness) {
+            FreshnessStrategy freshness, BoundFactField facts) {
         SelectedContribution selected(StateImage.StoredView row) {
             var retained = row == null ? null : row.candidates().get(name);
             return retained == null ? null : selection.select(retained);

@@ -33,7 +33,7 @@ final class ClockRollback {
                     var age = retained.age();
                     // A candidate replaced by this event was received after the clock jump.
                     // Expiry changes age metadata but keeps the same immutable value.
-                    if (retained.value() != source.getValue().value() || age == null
+                    if ((retained.value() != source.getValue().value() && age != source.getValue().age()) || age == null
                             || age.receivedAtMillis() == null || age.hasUncertainClock()) continue;
                     var flagged = new ReceiptAge(age.receivedAtMillis(), age.classification(), true);
                     row = row.replaceCandidate(field.getKey(), source.getKey(), retained.withAge(flagged), row.version());

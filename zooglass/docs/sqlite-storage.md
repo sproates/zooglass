@@ -132,3 +132,11 @@ in that same transaction. Their running deadlines still use monotonic time.
 On restart those receipts become age-unknown even if wall time has caught up.
 Schema upgrade, configuration and startup age reconciliation commit together.
 If the initial clock write fails, the previous configuration can reopen the database.
+
+## Retained facts
+
+[Fact-enabled configurations](fact-collections.md) use schema 6. Field records,
+tombstones, retirement floors, projections and fact metadata in publication
+receipts commit together. A floor may survive without a present contribution.
+Recovery validates records and recalculates projections before readiness.
+Non-fact configurations retain their schema-4/5 encoding.

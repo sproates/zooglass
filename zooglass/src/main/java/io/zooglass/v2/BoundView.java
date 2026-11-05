@@ -49,7 +49,7 @@ final class BoundView {
                             conflict == null ? null : conflict.sources(), config.allInputs().stream()
                                     .map(V2Configuration.Input::sourceId).collect(Collectors.toSet())),
                     LateStrategySelection.select(config.late().mode()), config.freshness().bind(),
-                    config.facts() == null ? null : new BoundFactField(config.mode(), config.facts()));
+                    config.facts() == null ? null : new BoundFactField(config.mode(), config.property(), config.facts()));
         }).toList();
     }
 
@@ -88,8 +88,10 @@ final class BoundView {
             }
             if (field.facts != null) {
                 BoundFactField.Result result;
+                tools.jackson.databind.JsonNode projected = null;
                 try {
                     result = field.facts.evaluate(facts.get(field.name), publication);
+                    if (result.changed()) projected = field.facts.project(result.state());
                 } catch (FactRejected rejection) {
                     throw rejection.at(id, resolve(publication).entityId(), field.name);
                 }
@@ -98,7 +100,7 @@ final class BoundView {
                 if (result.changed()) {
                     facts.put(field.name, result.state());
                     candidates.put(field.name, Map.of(publication.sourceId(), new SelectedContribution(
-                            field.facts.project(result.state()), result.state().provenance(), field.freshness.received(wallMillis))));
+                            projected, result.state().provenance(), field.freshness.received(wallMillis))));
                     updated = true;
                 }
                 continue;

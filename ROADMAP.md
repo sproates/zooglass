@@ -28,7 +28,7 @@ source priority.
 The accepted [revision design](docs/design/fact-revisions.md) defines how to
 correct or retract retained facts. [Retained collections](zooglass/docs/fact-collections.md)
 now support first/latest revision policies, explicit retirement and SQLite recovery.
-Bounded numeric sums are next, followed by combined correction acceptance.
+Fields can now calculate exact totals from retained facts. Combined correction acceptance is next.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

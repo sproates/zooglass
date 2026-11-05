@@ -1,7 +1,7 @@
 # Correcting and withdrawing retained facts
 
-Status: accepted design. Retained collections, revision policies and retirement
-are implemented; numeric sums remain the next slice. The
+Status: accepted design. Retained collections, revision policies, retirement and exact numeric sums
+are implemented. The
 [usage guide](../../zooglass/docs/fact-collections.md) describes the delivered API.
 No browser work or new client transport is introduced in this increment.
 
@@ -233,8 +233,7 @@ reapplying the retired fact.
 
 ## Modules and runtime ownership
 
-The retained-collection modules are implemented; `SumActiveFacts` follows in the
-numeric-result slice.
+`ActiveFacts` and `SumActiveFacts` implement the field projections.
 Keep small interfaces local to each strategy family.
 
 | Module | Responsibility |

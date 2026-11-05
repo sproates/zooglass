@@ -24,8 +24,12 @@ flowchart TB
   bound -->|selects revision policy| selection["strategy/fact/FactRevisionSelection.java"]
   selection -->|firstFact| first["strategy/fact/FirstFact.java"]
   selection -->|latestFactRevision| latest["strategy/fact/LatestFactRevision.java"]
-  bound -->|binds active projection| projection["strategy/fact/FactProjectionSelection.java"]
+  bound -->|binds configured projection| projection["strategy/fact/FactProjectionSelection.java"]
   projection -->|activeFacts| active["strategy/fact/ActiveFacts.java"]
+  projection -->|sumActiveFacts and property| sum["strategy/fact/SumActiveFacts.java"]
+  bound -->|validates input and projects retained records| contract["strategy/fact/FactProjection.java"]
+  active -.->|implements| contract
+  sum -.->|implements| contract
 ```
 
 ```mermaid

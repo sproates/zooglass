@@ -24,7 +24,7 @@ class FactServiceTests {
     @Timeout(60)
     void sourceAndRetirementSocketsExposeCommittedCollectionsOverHttp() throws Exception {
         var config = directory.resolve("views.json");
-        Files.writeString(config, JSON.writeValueAsString(configuration("sqlite", 10, false)));
+        Files.writeString(config, JSON.writeValueAsString(scores("sqlite")));
         try (var app = new SpringApplicationBuilder(ZooGlassApplication.class).run("--server.port=0",
                 "--spring.main.banner-mode=off", "--zooglass.v2.config=" + config.toUri(),
                 "--zooglass.v2.database=" + directory.resolve("state.db"));
@@ -33,15 +33,15 @@ class FactServiceTests {
             try (var source = new PublicationTestClient(http, port);
                     var retirements = new PublicationTestClient(http, port, "/v2/facts/retire")) {
                 assertThat(retirements.send("{}").path("reason").asText()).isEqualTo("invalidFactRetirement");
-                var unknown = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{}")));
+                var unknown = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{\"points\":2}")));
                 assertThat(unknown.path("reason").asText()).isEqualTo("unknownFact");
                 assertThat(unknown.at("/targets/0/fields/0/field").asText()).isEqualTo("goals");
-                assertThat(source.send(JSON.writeValueAsString(event(1, 1, 1, "create", "{}"))).path("status").asText())
+                assertThat(source.send(JSON.writeValueAsString(event(1, 1, 1, "create", "{\"points\":1}"))).path("status").asText())
                         .isEqualTo("committed");
-                var correction = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{}")));
+                var correction = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{\"points\":2}")));
                 assertThat(correction.at("/targets/0/fields/0/reason").asText()).isEqualTo("factImmutable");
                 assertThat(correction.at("/targets/1/status").asText()).isEqualTo("accepted");
-                var control = JSON.writeValueAsString(retire("corrected", 2));
+                var control = JSON.writeValueAsString(new FactRetirement("corrected", "game", java.util.List.of("goals", "score"), 2));
                 assertThat(retirements.send(control).path("status").asText()).isEqualTo("committed");
                 var retry = retirements.send(control);
                 assertThat(retry.path("kind").asText()).isEqualTo("factRetirement");
@@ -50,10 +50,12 @@ class FactServiceTests {
                         .GET().build(), HttpResponse.BodyHandlers.ofString());
                 assertThat(response.statusCode()).isEqualTo(200);
                 var snapshot = JSON.readTree(response.body());
+                assertThat(snapshot.at("/data/score").isNumber()).isTrue();
+                assertThat(snapshot.at("/data/score").intValue()).isZero();
                 assertThat(snapshot.at("/data/goals").isArray()).isTrue();
                 assertThat(snapshot.at("/data/goals")).isEmpty();
                 assertThat(snapshot.at("/status/fields/goals/facts/minimumBirthSequence").longValue()).isEqualTo(2);
-                assertThat(source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{}"))).path("status").asText())
+                assertThat(source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{\"points\":2}"))).path("status").asText())
                         .isEqualTo("duplicate");
             }
         }

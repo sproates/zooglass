@@ -37,6 +37,11 @@ public record RuntimeConfiguration(
         List<Source> sources,
         List<View> views) {
 
+    public RuntimeConfiguration {
+        sources = sources == null ? null : List.copyOf(sources);
+        views = views == null ? null : List.copyOf(views);
+    }
+
     public record Progress(
             String mode, Long startSequence, Long maxReceivedRanges, Long maxMissingRanges) {}
 

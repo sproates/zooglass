@@ -80,6 +80,7 @@ public final class ViewStatus {
                             age == null ? null : age.receivedAtMillis(),
                             field.inputs().stream()
                                     .map(RuntimeConfiguration.Input::sourceId)
+                                    .distinct()
                                     .sorted()
                                     .toList(),
                             factStatus(field, view)));

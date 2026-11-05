@@ -63,6 +63,11 @@ the server replies with `type: "unsubscribed"`. Invalid requests receive an erro
 without changing subscriptions. Reconnecting clients subscribe again to obtain
 current state; delivery does not replay every intervening snapshot.
 
+Malformed JSON receives `Could not read live view request.` A runtime failure,
+including unavailable storage, receives `Could not process live view request.`
+The connection stays open for further requests; a failed snapshot read does not
+admit the subscription. Failed SQLite storage requires service restart recovery.
+
 Subscription admission and snapshot capture share the coordinator monitor with
 installation. Each client has an independent FIFO writer with a 128-message
 waiting queue. Network writes occur outside the monitor. A full queue evicts that

@@ -103,6 +103,14 @@ class RuntimeConfigurationTests {
         var definition = RuntimeConfiguration.parseView(valid);
         try (var runtime = new ViewCoordinator(IdentityFixtures.configuration(10, 100, 100))) {
             assertThat(runtime.define(definition)).isTrue();
+            assertThat(
+                            runtime.snapshot("combined", "car")
+                                    .orElseThrow()
+                                    .status()
+                                    .fields()
+                                    .get("position")
+                                    .inputs())
+                    .containsExactly("fleet");
             runtime.apply(IdentityFixtures.event(1));
             runtime.apply(
                     IdentityFixtures.parse(

@@ -27,13 +27,12 @@ export function vehicleStepDescriptions(scenario: Scenario): string[] {
       return "Execute the next scenario action.";
     }
 
-    const sequence = action.payload.sequence;
-
-    if (typeof sequence !== "number" || !Number.isFinite(sequence)) {
-      return `Send ${action.type} from ${action.sourceName}.`;
-    }
-
-    const key = JSON.stringify([action.sourceId, action.type, action.entityId]);
+    const sequence = action.publicationSequence;
+    const key = JSON.stringify([
+      action.sourceId,
+      action.epoch,
+      action.entityId,
+    ]);
     const domain = domains.get(key) ?? {
       sent: new Set<number>(),
       highest: -Infinity,

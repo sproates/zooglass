@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { loadScenario } from "../../src/scenario/scenario.js";
+import { loadScenario, parseScenario } from "../../src/scenario/scenario.js";
 import type { DemoState } from "../../src/control/demo-controller.js";
 import {
   vehicleStepDescriptions,
@@ -127,4 +127,51 @@ test("fleet descriptions keep ordering domains separate for entities and sources
       "Send duplicate position 42 from Vehicle locations for car-17.",
     ),
   );
+});
+
+test("descriptions use envelope ordering across event types and isolate epochs", () => {
+  const actions = [
+    { publicationSequence: 1, sequence: 10 },
+    { publicationSequence: 2, sequence: 10 },
+    { publicationSequence: 3, sequence: 5 },
+    { publicationSequence: 3, sequence: 99, type: "vehicle.operation.updated" },
+    {
+      publicationSequence: 2,
+      sequence: 100,
+      type: "vehicle.operation.updated",
+    },
+    { publicationSequence: 6, sequence: 100 },
+    {
+      publicationSequence: 5,
+      sequence: 101,
+      type: "vehicle.operation.updated",
+    },
+    { publicationSequence: 1, sequence: 10, epoch: "next" },
+  ];
+  const input = parseScenario({
+    name: "Publication identity descriptions",
+    sources: [{ id: "feed", name: "Feed" }],
+    clients: [],
+    views: [],
+    timeline: actions.map((action, simulationTime) => ({
+      kind: "source-event",
+      simulationTime,
+      sourceId: "feed",
+      epoch: action.epoch ?? "run",
+      publicationSequence: action.publicationSequence,
+      type: action.type ?? "vehicle.location.updated",
+      entityId: "car",
+      payload: { sequence: action.sequence },
+    })),
+  });
+  assert.deepEqual(vehicleStepDescriptions(input), [
+    "Send position 1 from Feed for car.",
+    "Send position 2 from Feed for car.",
+    "Send position 3 from Feed for car.",
+    "Send duplicate operation 3 from Feed for car.",
+    "Send duplicate operation 2 from Feed for car.",
+    "Send position 6 from Feed for car.",
+    "Send late operation 5 from Feed for car.",
+    "Send position 1 from Feed for car.",
+  ]);
 });

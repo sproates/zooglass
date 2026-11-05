@@ -19,6 +19,50 @@ import java.util.Map;
 class ViewRegistrationTests {
     @TempDir Path directory;
 
+    @Test
+    void callerSourceChangesCannotExpandTheActiveSourceSet() {
+        var base = IdentityFixtures.configuration(10, 100, 100);
+        var sources = new ArrayList<>(base.sources());
+        var config = new RuntimeConfiguration(2, "memory", 10, 100, 100, sources, base.views());
+        try (var runtime = new ViewCoordinator(config)) {
+            sources.add(new RuntimeConfiguration.Source("added", "trip-1"));
+            var invalid =
+                    new RuntimeConfiguration.View(
+                            "invalid",
+                            Map.of(
+                                    "value",
+                                    new RuntimeConfiguration.Field(
+                                            "added", "position", "arrival")));
+            assertThatThrownBy(() -> runtime.define(invalid))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThat(runtime.containsView("invalid")).isFalse();
+            assertThat(
+                            runtime.apply(
+                                            IdentityFixtures.parse(
+                                                    "added", "trip-1", "car", 1, "position", "{}"))
+                                    .status())
+                    .isEqualTo("unknownSource");
+            assertThat(runtime.apply(event(1)).status()).isEqualTo("applied");
+        }
+    }
+
+    @Test
+    void callerViewChangesCannotPoisonSubsequentRegistration() {
+        var base = IdentityFixtures.configuration(10, 100, 100);
+        var definitions = new ArrayList<>(base.views());
+        var config =
+                new RuntimeConfiguration(2, "memory", 10, 100, 100, base.sources(), definitions);
+        try (var runtime = new ViewCoordinator(config)) {
+            definitions.clear();
+            definitions.add(new RuntimeConfiguration.View("invalid", Map.of()));
+            assertThat(runtime.define(IdentityFixtures.view("added", "arrival"))).isTrue();
+            assertThat(runtime.containsView("invalid")).isFalse();
+            runtime.apply(event(1));
+            assertThat(runtime.snapshot("latest", "car").orElseThrow().version()).isEqualTo(1);
+            assertThat(runtime.snapshot("added", "car").orElseThrow().version()).isEqualTo(1);
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"memory", "sqlite"})
     void registeringTheFirstTimedFactViewActivatesBothPolicies(String storage) {

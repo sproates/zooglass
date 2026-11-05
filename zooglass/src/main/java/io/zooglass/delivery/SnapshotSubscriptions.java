@@ -8,6 +8,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -32,8 +33,19 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        JsonNode request;
         try {
-            JsonNode request = objectMapper.readTree(message.getPayload());
+            request = objectMapper.readTree(message.getPayload());
+        } catch (JacksonException exception) {
+            logger.warn(
+                    "Ignoring invalid live view request from client {}: {}",
+                    session.getId(),
+                    exception.getMessage());
+            broadcaster.sendError(session, "Could not read live view request.");
+            return;
+        }
+
+        try {
             if (request == null
                     || !request.isObject()
                     || !hasText(request, "action")
@@ -56,12 +68,12 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             } else {
                 broadcaster.sendError(session, "Unknown action: " + action);
             }
-        } catch (Exception exception) {
-            logger.warn(
-                    "Ignoring invalid live view request from client {}: {}",
+        } catch (RuntimeException exception) {
+            logger.error(
+                    "Could not process live view request from client {}",
                     session.getId(),
-                    exception.getMessage());
-            broadcaster.sendError(session, "Could not read live view request.");
+                    exception);
+            broadcaster.sendError(session, "Could not process live view request.");
         }
     }
 

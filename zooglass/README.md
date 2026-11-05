@@ -75,13 +75,35 @@ The connection stays open for further requests; a failed snapshot read does not
 admit the subscription. Failed SQLite storage requires service restart recovery.
 
 Subscription admission and snapshot capture share the coordinator monitor with
-installation. Each client has an independent FIFO writer with a 128-message
-waiting queue. Network writes occur outside the monitor. A full queue evicts that
-client and requests close code 1013; other clients and source processing continue.
-Delivery failure cannot undo an installed publication.
+installation. Each connection has its own writer. Network writes happen outside
+the coordinator monitor. One slow viewer can fall behind without delaying other
+viewers or source acknowledgements.
 
-The [client delivery contract](../docs/design/client-delivery.md) also describes
-the planned byte budget and slow-client policies.
+### Slow viewers
+
+The default FIFO queue allows 128 waiting messages and 1 MiB of UTF-8 payload
+per connection. To keep only the latest waiting update for each subscription,
+add this section to the startup configuration:
+
+```json
+{
+  "delivery": {
+    "slowClient": "coalesceLatestState",
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}
+```
+
+Coalescing moves the replacement to the tail and preserves baselines, replies
+and writes already in flight. Use `disconnectOnOverflow` to keep every waiting
+update in order. Both policies request close code 1013 when the queue fills.
+If a single message or the opening acknowledgement and baseline together
+exceed the entire byte budget, the close code is 1009. Increase the budget or
+reduce the view size before retrying an oversized baseline.
+
+The [delivery contract](../docs/design/client-delivery.md) covers subscription
+generations, queue boundaries and recovery.
 
 ## Register a view
 

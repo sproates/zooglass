@@ -10,7 +10,8 @@ and demonstrates the application work they remove.
 ## Next: client continuity and recovery
 
 Subscriptions now start with a fresh snapshot, including after reconnect.
-Next, implement the byte budget and slow-client policies in the
+Slow viewers have bounded queues and a choice of FIFO or latest-state delivery.
+Next, verify recovery across disconnection, retirement and restart against the
 [delivery contract](docs/design/client-delivery.md).
 
 ## Reconciliation and recovery

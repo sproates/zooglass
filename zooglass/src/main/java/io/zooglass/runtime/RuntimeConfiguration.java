@@ -2,7 +2,9 @@ package io.zooglass.runtime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.zooglass.delivery.DisconnectOnOverflow;
 import io.zooglass.delivery.FreshSnapshot;
+import io.zooglass.delivery.SlowClientPolicy;
 import io.zooglass.strategy.fact.FactRevisionSelection;
 import io.zooglass.strategy.freshness.FreshnessStrategy;
 import io.zooglass.strategy.freshness.FreshnessStrategySelection;
@@ -58,9 +60,24 @@ public record RuntimeConfiguration(
                 null);
     }
 
-    public record Delivery(FreshSnapshot recovery) {
+    public record Delivery(
+            FreshSnapshot recovery,
+            SlowClientPolicy slowClient,
+            Integer maxQueuedMessages,
+            Long maxQueuedBytes) {
+        public Delivery(FreshSnapshot recovery) {
+            this(recovery, null, null, null);
+        }
+
         public Delivery {
             recovery = recovery == null ? FreshSnapshot.INSTANCE : recovery;
+            slowClient = slowClient == null ? DisconnectOnOverflow.INSTANCE : slowClient;
+            maxQueuedMessages = maxQueuedMessages == null ? 128 : maxQueuedMessages;
+            maxQueuedBytes = maxQueuedBytes == null ? 1_048_576L : maxQueuedBytes;
+            if (maxQueuedMessages < 2 || maxQueuedBytes <= 0) {
+                throw new IllegalArgumentException(
+                        "Delivery requires at least two message slots and a positive byte budget");
+            }
         }
     }
 
@@ -313,6 +330,14 @@ public record RuntimeConfiguration(
         if (delivery.has("recovery")
                 && !FreshSnapshot.MODE.equals(delivery.path("recovery").asText())) {
             throw new IllegalArgumentException("Unsupported delivery recovery strategy");
+        }
+        if (delivery.has("slowClient") && !delivery.path("slowClient").isTextual()) {
+            throw new IllegalArgumentException("slowClient must be a strategy name");
+        }
+        for (String limit : List.of("maxQueuedMessages", "maxQueuedBytes")) {
+            if (delivery.has(limit) && !delivery.path(limit).isIntegralNumber()) {
+                throw new IllegalArgumentException(limit + " must be an integer");
+            }
         }
         for (var view : document.path("views")) {
             validateViewDocument(view);

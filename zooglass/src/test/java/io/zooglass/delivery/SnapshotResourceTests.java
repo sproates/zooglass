@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -143,7 +142,8 @@ class SnapshotResourceTests {
                     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
                     var writers = registry(broadcaster, "writersBySession");
                     Object writer = writers.get(client);
-                    var queue = (Queue<?>) ReflectionTestUtils.getField(writer, "messages");
+                    var queue = ReflectionTestUtils.getField(writer, "queue");
+                    var waiting = (Map<?, ?>) ReflectionTestUtils.getField(queue, "waiting");
                     for (int update = 0; update < 25; update++) {
                         store.apply(
                                 "feed",
@@ -151,10 +151,10 @@ class SnapshotResourceTests {
                                 "bus",
                                 json.createObjectNode().put("sequence", cycle * 25 + update + 1));
                     }
-                    assertThat(queue).isNotEmpty();
+                    assertThat(waiting).isNotEmpty();
                     broadcaster.removeSession(client);
                     assertThat(stopped.await(5, TimeUnit.SECONDS)).isTrue();
-                    assertThat(queue).isEmpty();
+                    assertThat(waiting).isEmpty();
                     for (String field :
                             List.of(
                                     "writersBySession",

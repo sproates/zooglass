@@ -106,6 +106,10 @@ flowchart LR
   update -->|project public snapshot| dto["api/ViewSnapshot"]
   broadcaster --> index["delivery/SubscriptionIndex"]
   broadcaster -->|bounded queue per session| writer["delivery/OutboundWriter"]
+  writer -->|admit and drain frames| queue["delivery/OutboundQueue"]
+  queue -->|key for a waiting update| policy["delivery/SlowClientPolicy"]
+  policy -->|keep each update| fifo["delivery/DisconnectOnOverflow"]
+  policy -->|replace by generation| latest["delivery/CoalesceLatestState"]
   writer -->|outside coordinator monitor| socket["Client socket"]
   http --> dto
 ```
@@ -297,7 +301,8 @@ to the selected strategy modules. For persistence, read `StateStore.java`,
 `SqliteState.java`, `SqliteStateRows.java` and the recovery validators.
 
 For delivery, follow `delivery/SnapshotSubscriptions.java`,
-`SnapshotBroadcaster.java` and `OutboundWriter.java`. For configuration and runtime
+`SnapshotBroadcaster.java` and `OutboundWriter.java`. `OutboundQueue.java`
+applies the selected slow-client strategy and accounts for waiting bytes. For configuration and runtime
 registration, read `RuntimeConfiguration.java`, `ConfigurationValidation.java`
 and `ViewCoordinator.define`.
 

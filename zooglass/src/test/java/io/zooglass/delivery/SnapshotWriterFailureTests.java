@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +61,42 @@ class SnapshotWriterFailureTests {
             broadcaster.registerSession(client);
             broadcaster.sendError(client, "test");
             assertThat(delivered.await(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void failedSharedEncodingClosesRecipientsAndPreservesTheCommittedView() throws Exception {
+        ObjectMapper serializer = mock(ObjectMapper.class);
+        when(serializer.writeValueAsString(any()))
+                .thenAnswer(
+                        invocation -> {
+                            Object message = invocation.getArgument(0);
+                            if (message instanceof ViewUpdate update
+                                    && update.snapshot().version() > 0) {
+                                throw new IllegalStateException("cannot encode update");
+                            }
+                            return json.writeValueAsString(message);
+                        });
+        var first = client();
+        var second = client();
+        try (var store = store();
+                var broadcaster = new SnapshotBroadcaster(serializer, store.runtime())) {
+            for (var client : List.of(first, second)) {
+                broadcaster.registerSession(client);
+                broadcaster.subscribe(client, "position", "bus");
+            }
+            store.apply("feed", "position", "bus", json.createObjectNode().put("sequence", 1));
+            assertThat(
+                            store.get("position", "bus")
+                                    .orElseThrow()
+                                    .data()
+                                    .get("position")
+                                    .path("sequence")
+                                    .intValue())
+                    .isOne();
+            for (var client : List.of(first, second)) {
+                verify(client, timeout(5000)).close(CloseStatus.SERVER_ERROR);
+            }
         }
     }
 

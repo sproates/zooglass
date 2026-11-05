@@ -40,7 +40,7 @@ class ViewRegistrationTests {
                             runtime.apply(
                                             IdentityFixtures.parse(
                                                     "added", "trip-1", "car", 1, "position", "{}"))
-                                    .status())
+                                    .reason())
                     .isEqualTo("unknownSource");
             assertThat(runtime.apply(event(1)).status()).isEqualTo("applied");
         }

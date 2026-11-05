@@ -1,5 +1,6 @@
 package io.zooglass.delivery;
 
+import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 import io.zooglass.runtime.ViewCoordinator;
 
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 /** Enqueues committed snapshots and subscription replies under the coordinator monitor. */
 @Component
@@ -28,7 +30,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
 
     private final ObjectMapper objectMapper;
     private final ViewCoordinator coordinator;
-    private final FreshSnapshot recovery;
+    private final Delivery settings;
     private final Runnable detach;
     private final ExecutorService outboundExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final SubscriptionIndex subscriptions = new SubscriptionIndex();
@@ -37,7 +39,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator) {
         this.objectMapper = objectMapper;
         this.coordinator = coordinator;
-        this.recovery = coordinator.delivery().recovery();
+        this.settings = coordinator.delivery();
         this.detach = coordinator.listen(subscriptions::hasRecipients, this::sendUpdate);
     }
 
@@ -49,6 +51,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
                             new OutboundWriter(
                                     session,
                                     outboundExecutor,
+                                    settings,
                                     (writer, failure) ->
                                             handleWriteFailure(session, writer, failure)));
         }
@@ -61,9 +64,9 @@ public class SnapshotBroadcaster implements AutoCloseable {
                 return false;
             }
 
-            var opening = recovery.openingMessages(snapshot.orElseThrow());
+            var opening = settings.recovery().openingMessages(snapshot.orElseThrow());
             subscriptions.add(session, viewId, entityId);
-            sendBatch(session, opening);
+            sendProtected(session, opening);
             return true;
         }
     }
@@ -93,20 +96,31 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     private void sendUpdate(ViewCoordinator.Snapshot snapshot) {
-        for (var session : subscriptions.recipients(snapshot.viewId(), snapshot.entityId())) {
-            sendUpdate(session, snapshot);
+        var update = ViewUpdate.from(snapshot);
+        for (var recipient :
+                subscriptions.recipients(snapshot.viewId(), snapshot.entityId()).entrySet()) {
+            enqueue(
+                    recipient.getKey(),
+                    writer -> writer.enqueueUpdate(recipient.getValue(), frame(update)));
         }
     }
 
-    private void sendUpdate(WebSocketSession session, ViewCoordinator.Snapshot snapshot) {
-        send(session, ViewUpdate.from(snapshot));
-    }
-
     private void send(WebSocketSession session, Object message) {
-        sendBatch(session, List.of(message));
+        sendProtected(session, List.of(message));
     }
 
-    private void sendBatch(WebSocketSession session, List<Object> messages) {
+    private TextMessage frame(Object message) {
+        return new TextMessage(objectMapper.writeValueAsString(message));
+    }
+
+    private void sendProtected(WebSocketSession session, List<Object> messages) {
+        enqueue(
+                session,
+                writer -> writer.enqueueProtected(messages.stream().map(this::frame).toList()));
+    }
+
+    private void enqueue(
+            WebSocketSession session, Function<OutboundWriter, OutboundQueue.Admission> offer) {
         OutboundWriter writer = writersBySession.get(session);
         if (writer == null || !session.isOpen()) {
             removeSession(session);
@@ -114,19 +128,15 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
 
         try {
-            var frames =
-                    messages.stream()
-                            .map(
-                                    message ->
-                                            new TextMessage(
-                                                    objectMapper.writeValueAsString(message)))
-                            .toList();
-            if (!writer.enqueue(frames)) {
-                logger.warn(
-                        "Closing slow live view client {} after its outbound queue filled",
-                        session.getId());
+            var admission = offer.apply(writer);
+            if (admission != OutboundQueue.Admission.ACCEPTED) {
+                logger.warn("Closing live view client {}: {}", session.getId(), admission);
                 removeSession(session);
-                closeSlowSession(session);
+                requestClose(
+                        session,
+                        admission == OutboundQueue.Admission.TOO_LARGE
+                                ? CloseStatus.TOO_BIG_TO_PROCESS
+                                : slowClientCloseStatus);
             }
         } catch (Exception exception) {
             logger.warn(
@@ -149,16 +159,16 @@ public class SnapshotBroadcaster implements AutoCloseable {
                     session.getId(),
                     exception.getMessage());
             removeSession(session);
-            closeSlowSession(session);
+            requestClose(session, slowClientCloseStatus);
         }
     }
 
-    private static void closeSlowSession(WebSocketSession session) {
+    private static void requestClose(WebSocketSession session, CloseStatus status) {
         Thread.startVirtualThread(
                 () -> {
                     try {
                         if (session.isOpen()) {
-                            session.close(slowClientCloseStatus);
+                            session.close(status);
                         }
                     } catch (IOException exception) {
                         logger.warn(

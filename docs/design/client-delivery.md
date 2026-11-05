@@ -1,6 +1,6 @@
 # Client delivery and recovery
 
-**Proposed contract.** An application that subscribes to a view gets a current
+**Delivery contract.** An application that subscribes to a view gets a current
 snapshot, followed by full snapshots as the view changes. If its connection
 breaks, it subscribes again. The first snapshot on the new connection replaces
 whatever the application retained locally, including when the new snapshot is empty.
@@ -65,9 +65,8 @@ The socket baseline is authoritative for that subscription.
 ## Slow clients
 
 Configure delivery at service startup. Each connection owns one queue across
-all its subscriptions, so it has one queue policy. The proposed defaults retain
-the existing 128 waiting messages and disconnect behaviour, and introduce a
-1 MiB waiting-byte budget per connection.
+all its subscriptions, so it has one queue policy. The default FIFO policy allows
+128 waiting messages and 1 MiB of waiting UTF-8 payload per connection.
 
 ```json
 {
@@ -117,20 +116,10 @@ client’s membership.
 
 ## Implementation and acceptance
 
-The [current service](../../zooglass/README.md#live-subscriptions) already
-coordinates subscriptions with commits and isolates socket writes. It delivers fresh baselines and bounds the waiting queue by message count.
-The byte budget and configurable slow-client policies are the next slice.
-
-1. Bind the recovery configuration to a named `FreshSnapshot` strategy. Include
-   the mode in the acknowledgement and always deliver the baseline. Update
-   Workbench and demo consumers to distinguish an acknowledged subscription from
-   one that has received its baseline.
-2. Bind the queue configuration to named `DisconnectOnOverflow` and
-   `CoalesceLatestState` strategies used by each writer. Keep queue ownership,
-   byte accounting and eviction local to the connection.
-3. Verify reconnect after missed corrections and retirement, restart under both
-   storage modes, and unsubscribe followed by resubscribe. Stall one of two
-   viewers and check that the healthy viewer and source acknowledgements continue.
+The [service](../../zooglass/README.md#slow-viewers) implements fresh baselines
+and both bounded queue policies. The next acceptance slice will exercise reconnects after
+missed corrections and retirement, restart under both storage modes, and a
+stalled viewer alongside a healthy viewer and active source.
 
 Use controlled writes for these acceptance cases so OS buffer sizes cannot
 determine the result.

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.zooglass.api.ViewSnapshot;
+import io.zooglass.delivery.CoalesceLatestState;
+import io.zooglass.delivery.DisconnectOnOverflow;
 import io.zooglass.delivery.FreshSnapshot;
 
 import org.junit.jupiter.api.Test;
@@ -83,6 +85,43 @@ class RuntimeConfigurationTests {
                         "{\"typo\":true}")) {
             Files.writeString(file, template.formatted(invalid));
             assertThatThrownBy(() -> load(file)).isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Test
+    void parsesQueuePoliciesAndRejectsUnusableBudgetsAtStartup() throws Exception {
+        String valid = Files.readString(Path.of("src/test/resources/runtime-views-test.json"));
+        Path file = directory.resolve("queue.json");
+        Files.writeString(file, valid);
+        var defaults = load(file).delivery();
+        assertThat(defaults.slowClient()).isEqualTo(DisconnectOnOverflow.INSTANCE);
+        assertThat(defaults.maxQueuedMessages()).isEqualTo(128);
+        assertThat(defaults.maxQueuedBytes()).isEqualTo(1048576L);
+
+        String template = valid.replaceFirst("\\{", "{\"delivery\":{%s},");
+        Files.writeString(
+                file,
+                template.formatted(
+                        """
+                        "slowClient":"coalesceLatestState","maxQueuedMessages":2,"maxQueuedBytes":9
+                        """));
+        var settings = load(file).delivery();
+        assertThat(settings.slowClient()).isEqualTo(CoalesceLatestState.INSTANCE);
+        assertThat(settings.maxQueuedMessages()).isEqualTo(2);
+        assertThat(settings.maxQueuedBytes()).isEqualTo(9L);
+        for (String invalid :
+                List.of(
+                        "\"slowClient\":\"discardOldest\"",
+                        "\"slowClient\":0",
+                        "\"slowClient\":null",
+                        "\"maxQueuedMessages\":1",
+                        "\"maxQueuedMessages\":2.5",
+                        "\"maxQueuedMessages\":2147483648",
+                        "\"maxQueuedBytes\":0",
+                        "\"maxQueuedBytes\":null",
+                        "\"maxQueuedBytes\":\"5\"")) {
+            Files.writeString(file, template.formatted(invalid));
+            assertThatThrownBy(() -> load(file)).as(invalid).isInstanceOf(RuntimeException.class);
         }
     }
 

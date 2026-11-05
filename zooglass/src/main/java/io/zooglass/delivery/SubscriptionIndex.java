@@ -4,21 +4,22 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /** Both directions of subscription membership, guarded by the broadcaster's monitor. */
 final class SubscriptionIndex {
 
-    private final Map<Subscription, Set<WebSocketSession>> sessionsBySubscription = new HashMap<>();
+    private long nextGeneration;
+    private final Map<Subscription, Map<WebSocketSession, Long>> sessionsBySubscription =
+            new HashMap<>();
     private final Map<WebSocketSession, Set<Subscription>> subscriptionsBySession = new HashMap<>();
 
     void add(WebSocketSession session, String viewId, String entityId) {
         var subscription = new Subscription(viewId, entityId);
         sessionsBySubscription
-                .computeIfAbsent(subscription, ignored -> new HashSet<>())
-                .add(session);
+                .computeIfAbsent(subscription, ignored -> new HashMap<>())
+                .put(session, ++nextGeneration);
         subscriptionsBySession
                 .computeIfAbsent(session, ignored -> new HashSet<>())
                 .add(subscription);
@@ -28,15 +29,15 @@ final class SubscriptionIndex {
         return sessionsBySubscription.containsKey(new Subscription(viewId, entityId));
     }
 
-    List<WebSocketSession> recipients(String viewId, String entityId) {
+    Map<WebSocketSession, Long> recipients(String viewId, String entityId) {
         // Sending can remove a failed recipient; iteration must use a stable snapshot.
-        return List.copyOf(
-                sessionsBySubscription.getOrDefault(new Subscription(viewId, entityId), Set.of()));
+        return Map.copyOf(
+                sessionsBySubscription.getOrDefault(new Subscription(viewId, entityId), Map.of()));
     }
 
     void remove(WebSocketSession session, String viewId, String entityId) {
         var subscription = new Subscription(viewId, entityId);
-        Set<WebSocketSession> sessions = sessionsBySubscription.get(subscription);
+        var sessions = sessionsBySubscription.get(subscription);
         if (sessions != null) {
             sessions.remove(session);
             if (sessions.isEmpty()) {
@@ -58,7 +59,7 @@ final class SubscriptionIndex {
             return;
         }
         for (Subscription subscription : subscriptions) {
-            Set<WebSocketSession> sessions = sessionsBySubscription.get(subscription);
+            var sessions = sessionsBySubscription.get(subscription);
             if (sessions != null) {
                 sessions.remove(session);
                 if (sessions.isEmpty()) {

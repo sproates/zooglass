@@ -17,13 +17,13 @@ public final class PublicationJson {
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
             .build();
     private static final Set<String> FIELDS = Set.of(
-            "sourceId", "epoch", "sourceEntityId", "publicationSequence", "type", "payload");
+            "sourceId", "epoch", "sourceEntityId", "publicationSequence", "type", "payload", "fact");
 
     private PublicationJson() {}
 
     public static Publication parse(String text) {
         JsonNode node = JSON.readTree(text);
-        if (node == null || !node.isObject() || node.size() != FIELDS.size()
+        if (node == null || !node.isObject() || (node.size() != 6 && node.size() != 7)
                 || node.properties().stream().anyMatch(entry -> !FIELDS.contains(entry.getKey()))) {
             throw new IllegalArgumentException("Invalid publication fields");
         }
@@ -40,10 +40,11 @@ public final class PublicationJson {
         }
         return new Publication(node.get("sourceId").asText(), node.get("epoch").asText(),
                 node.get("sourceEntityId").asText(), sequence.longValue(),
-                node.get("type").asText(), node.get("payload"));
+                node.get("type").asText(), node.get("payload"),
+                node.has("fact") ? FactEnvelope.parse(node.get("fact"), sequence.longValue(), node.get("payload")) : null);
     }
 
-    static Object content(JsonNode value) {
+    public static Object content(JsonNode value) {
         if (value.isNumber()) {
             return value.decimalValue().stripTrailingZeros();
         }

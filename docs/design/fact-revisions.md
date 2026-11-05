@@ -1,7 +1,9 @@
 # Correcting and withdrawing retained facts
 
-Status: proposed design for review. This extends the delivered v2 runtime; it
-introduces no browser work or new transport in this increment.
+Status: accepted design. Retained collections, revision policies and retirement
+are implemented; numeric sums remain the next slice. The
+[usage guide](../../zooglass/docs/fact-collections.md) describes the delivered API.
+No browser work or new client transport is introduced in this increment.
 
 A match feed reports a goal, then withdraws it after a review. An application
 should be able to consume the corrected score and event list without maintaining
@@ -25,7 +27,7 @@ Proposed field definitions, inside the existing v2 `fields` object:
 ```json
 {
   "goals": {
-    "source": "match-feed",
+    "sourceId": "match-feed",
     "type": "goal",
     "mode": "activeFacts",
     "facts": {
@@ -35,7 +37,7 @@ Proposed field definitions, inside the existing v2 `fields` object:
     }
   },
   "score": {
-    "source": "match-feed",
+    "sourceId": "match-feed",
     "type": "goal",
     "mode": "sumActiveFacts",
     "property": "points",
@@ -106,10 +108,10 @@ uses a higher revision and `retract`, with an empty object payload. A later
 
 The fact key is `(sourceId, epoch, sourceEntityId, birthSequence)`. Type is fixed
 by the create; it cannot be used to move a revision into a different collection.
-Retain a source-scoped birth/type index while any field retains that fact,
-including a tombstone. Check it before type-based routing. Its entries are bounded
-by the union of retained field records and removed only when the last referencing
-record is retired. A failed create does not allocate an index entry.
+Retain source-scoped birth/type evidence while any field retains that fact,
+including a tombstone. Check it before type-based routing. The implementation consults the bounded field records for the resolved entity,
+avoiding a second persisted index. Evidence disappears only when the last
+referencing record is retired. A failed create allocates no origin evidence.
 Birth and revision use the same positive safe-integer range as publication
 sequence. Create requires birth equal to publication sequence and revision 1.
 Revise/retract require publication sequence greater than birth and revision
@@ -117,10 +119,12 @@ at least 2. A revision number need not follow its predecessor by one.
 
 Fact metadata participates in canonical publication-content comparison. Changing
 metadata under an existing publication identity is an identity conflict even if
-the payload is unchanged. Fact envelopes can also reach ordinary fields, which
+the payload is unchanged. When at least one fact field is configured, fact envelopes can also reach ordinary fields, which
 continue processing the payload under their ordinary update policy. Ordinary
 fields make no claim to revise earlier contributions. A fact field receiving an
-ordinary envelope reports `factMetadataRequired` for that target.
+ordinary envelope reports `factMetadataRequired` for that target. A runtime with
+no configured fact fields rejects fact envelopes with `factsNotConfigured`,
+preserving its existing schema and downgrade compatibility.
 
 ## Which changes are accepted?
 
@@ -143,8 +147,8 @@ refresh age or repeat effects. Compare canonical structured payloads as well as
 operation; retain the highest revision's fingerprint even for tombstones.
 
 **A revision before its create is retryable.** If an eligible fact target does not
-know that birth, reject the whole publication with `unknownFact`, including the
-missing target names. Do not consume its identity or advance progress. After the
+know that birth, reject the whole publication with `unknownFact`, identifying the
+first target that requires the create. Do not consume its identity or advance progress. After the
 create arrives, the source can retry the same publication. There is no internal
 pending-revision queue.
 
@@ -229,7 +233,8 @@ reapplying the retired fact.
 
 ## Modules and runtime ownership
 
-These are proposed source files, to be introduced with their behaviour and tests.
+The retained-collection modules are implemented; `SumActiveFacts` follows in the
+numeric-result slice.
 Keep small interfaces local to each strategy family.
 
 | Module | Responsibility |

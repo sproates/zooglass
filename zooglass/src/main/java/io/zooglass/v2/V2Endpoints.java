@@ -12,11 +12,13 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public final class V2Endpoints implements WebSocketConfigurer {
     private final EventIngress ingress;
     private final ProgressIngress progress;
+    private final FactRetirementIngress retirement;
     private final ViewCoordinator coordinator;
 
-    public V2Endpoints(EventIngress ingress, ProgressIngress progress, ViewCoordinator coordinator) {
+    public V2Endpoints(EventIngress ingress, ProgressIngress progress, FactRetirementIngress retirement, ViewCoordinator coordinator) {
         this.ingress = ingress;
         this.progress = progress;
+        this.retirement = retirement;
         this.coordinator = coordinator;
     }
 
@@ -24,6 +26,7 @@ public final class V2Endpoints implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(ingress, "/v2/events");
         registry.addHandler(progress, "/v2/progress");
+        registry.addHandler(retirement, "/v2/facts/retire");
     }
 
     @GetMapping("/v2/views/{viewId}/{entityId}")

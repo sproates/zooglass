@@ -11,6 +11,44 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Revise and retire v2 facts
+
+The `strategy/fact/` modules own revision and projection decisions. Their state is
+retained per field in the v2 store. `FactOrigins` checks birth/type ownership from
+those bounded records; it does not own a second mutable ledger.
+
+```mermaid
+flowchart TB
+  view["v2/BoundView.java"] -->|reads field settings| config["v2/V2Configuration.java"]
+  view -->|binds selected policies| bound["v2/BoundFactField.java"]
+  bound -->|selects revision policy| selection["strategy/fact/FactRevisionSelection.java"]
+  selection -->|firstFact| first["strategy/fact/FirstFact.java"]
+  selection -->|latestFactRevision| latest["strategy/fact/LatestFactRevision.java"]
+  bound -->|binds active projection| projection["strategy/fact/FactProjectionSelection.java"]
+  projection -->|activeFacts| active["strategy/fact/ActiveFacts.java"]
+```
+
+```mermaid
+flowchart TB
+  events["v2/EventIngress.java"] -->|publication and fact metadata| coordinator["v2/ViewCoordinator.java"]
+  ingress["v2/FactRetirementIngress.java"] -->|validated control| coordinator
+  coordinator -->|checks birth and type before routing| origins["v2/FactOrigins.java"]
+  coordinator -->|stages retirement| retire["v2/FactRetirementTransitions.java"]
+  retire -->|updates named fields atomically| view["v2/BoundView.java"]
+  coordinator -->|stages source targets| transitions["v2/ViewTransitions.java"]
+  transitions -->|evaluates matching fields| view
+  view -->|revision and projection| field["v2/BoundFactField.java"]
+  field -->|returns detached records| state["v2/FactState.java"]
+  recovery["v2/RecoveryValidation.java"] -->|validates records and projections| facts["v2/FactRecovery.java"]
+```
+
+`FactEnvelope` separates publication identity from fact identity; `FactRecord`
+retains the highest accepted revision and tombstone content. `FactRetirement`
+parses floor controls and `FactRetirementOutcome` describes their results.
+`StateImage.StoredView` owns the per-field records. `ViewStatus` exposes bounded
+collection counts and floors. Existing `StateStore`/`SqliteStateRows` commit that
+state with receipts, projections, source progress and clock metadata.
+
 ## Age a selected v2 contribution
 
 ```mermaid

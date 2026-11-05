@@ -22,6 +22,7 @@ import java.util.List;
 final class SqliteStateRows {
     private static final int PROGRESS_SCHEMA = 4;
     private static final int RECEIPT_AGE_SCHEMA = 5;
+    private static final int FACT_SCHEMA = 6;
     private static final JsonMapper JSON = JsonMapper.builder()
             .withCoercionConfig(LogicalType.Textual, coercion -> {
                 for (var shape : List.of(CoercionInputShape.Integer,
@@ -45,7 +46,7 @@ final class SqliteStateRows {
     StateImage restore(V2Configuration configuration) throws SQLException {
         int schema = initialiseSchema();
         boolean fresh = schema == 0;
-        int targetSchema = configuration.tracksAge() ? RECEIPT_AGE_SCHEMA : PROGRESS_SCHEMA;
+        int targetSchema = configuration.tracksFacts() ? FACT_SCHEMA : configuration.tracksAge() ? RECEIPT_AGE_SCHEMA : PROGRESS_SCHEMA;
         if (schema > targetSchema) throw new SQLException("Stored freshness configuration is required");
         try (var statement = connection.createStatement();
                 var check = statement.executeQuery("PRAGMA quick_check")) {
@@ -91,7 +92,7 @@ final class SqliteStateRows {
             views = SchemaMigration.addCandidates(views);
         }
         Long lastWall = null;
-        if (schema == RECEIPT_AGE_SCHEMA) {
+        if (schema >= RECEIPT_AGE_SCHEMA) {
             try (var statement = connection.createStatement();
                     var row = statement.executeQuery("SELECT last_wall, typeof(last_wall) FROM runtime WHERE id=1")) {
                 if (!row.next()) throw new SQLException("Missing receipt clock metadata");
@@ -100,7 +101,7 @@ final class SqliteStateRows {
                     throw new SQLException("Invalid receipt clock");
                 }
             }
-        } else if (targetSchema == RECEIPT_AGE_SCHEMA) {
+        } else if (targetSchema >= RECEIPT_AGE_SCHEMA) {
             try (var statement = connection.createStatement()) {
                 statement.execute("ALTER TABLE runtime ADD COLUMN last_wall INTEGER");
             }
@@ -146,7 +147,7 @@ final class SqliteStateRows {
                 result.next();
                 version = result.getInt(1);
             }
-            if (version >= 1 && version <= RECEIPT_AGE_SCHEMA) {
+            if (version >= 1 && version <= FACT_SCHEMA) {
                 return version;
             }
             if (version != 0) {

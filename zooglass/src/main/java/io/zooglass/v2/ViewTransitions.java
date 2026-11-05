@@ -9,6 +9,7 @@ import java.util.Map;
 /** Stages source-driven value and metadata changes together, without installing retained state. */
 final class ViewTransitions {
     private final List<Binding> bindings;
+    private final Map<String, BoundView> byId;
 
     ViewTransitions(V2Configuration configuration) {
         bindings = configuration.views().stream().map(definition -> {
@@ -16,10 +17,11 @@ final class ViewTransitions {
             var status = new ViewStatus(definition, configuration.sources(), view);
             return new Binding(definition.id(), view, status);
         }).toList();
+        byId = bindings.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Binding::id, Binding::view));
     }
 
     Map<String, BoundView> byId() {
-        return bindings.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Binding::id, Binding::view));
+        return byId;
     }
 
     ViewStatus.Status status(String view, String entity, StateImage.StoredView stored,
@@ -58,7 +60,7 @@ final class ViewTransitions {
                 }
                 boolean accepted = evaluated.fields().stream().anyMatch(field -> field.status().equals("accepted"));
                 targets.add(new TargetOutcome(binding.id, resolution.entityId(), accepted ? "accepted" : "rejected",
-                        accepted ? null : "behindWatermark", evaluated.changedFields(), evaluated.fields()));
+                        accepted ? null : evaluated.fields().getFirst().reason(), evaluated.changedFields(), evaluated.fields()));
             }
             boolean visible = !binding.status.project(key.entityId(), current, state.streams())
                     .equals(binding.status.project(key.entityId(), next, streams))
@@ -67,7 +69,8 @@ final class ViewTransitions {
             if (visible) {
                 changed.add(binding.id);
                 next = new StateImage.StoredView(version, next == null ? Map.of() : next.data(),
-                        next == null ? Map.of() : next.provenance(), next == null ? Map.of() : next.candidates());
+                        next == null ? Map.of() : next.provenance(), next == null ? Map.of() : next.candidates(),
+                        next == null ? Map.of() : next.facts());
             }
             if (next != current) {
                 candidates.put(key, next);

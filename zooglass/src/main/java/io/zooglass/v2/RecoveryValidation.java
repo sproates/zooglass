@@ -48,7 +48,7 @@ final class RecoveryValidation {
                     settings.startSequence(), settings.maxReceivedRanges(), settings.maxMissingRanges());
             policy.validate(stream.progress(), stream.floor(), image.version());
             require(stream.receipts() != null && (!stream.receipts().isEmpty()
-                    || stream.progress() != null && stream.progress().watermarkThrough() != null)
+                    || stream.progress() != null && stream.progress().watermarkThrough() != null || FactRecovery.owns(image, key))
                     && stream.receipts().size() <= configuration.identityWindow());
             for (var receipt : stream.receipts().entrySet()) {
                 require(receipt.getKey() <= PublicationJson.MAX_SEQUENCE && receipt.getKey() >= stream.floor()
@@ -60,6 +60,7 @@ final class RecoveryValidation {
                 require(value != null && value.version() > 0 && value.version() <= image.version()
                         && value.type() != null && !value.type().isBlank()
                         && value.content() != null && value.content().isObject());
+                if (value.fact() != null) value.fact().validate(receipt.getKey(), value.content());
                 if (value.targets() != null) {
                     validateTargets(value.targets(), key, value.type(), definitions);
                     boolean rejectedLate = value.targets().stream().filter(target -> target.fields() != null)
@@ -115,7 +116,9 @@ final class RecoveryValidation {
                     require(sourceStream != null);
                     var value = retained.value();
                     require(value != null);
-                    if (binding.mode().equals("historyBySequence")) {
+                    if (binding.facts() != null) {
+                        require(value.isArray()); // Full record/projection checks are in FactRecovery.
+                    } else if (binding.mode().equals("historyBySequence")) {
                         require(value.isArray() && !value.isEmpty()
                                 && value.size() <= configuration.maxHistoryEntries());
                         long previous = 0;
@@ -140,6 +143,7 @@ final class RecoveryValidation {
                         && selected.provenance().equals(view.provenance().get(field.getKey())));
             }
         }
+        FactRecovery.validate(image, configuration);
     }
 
     private static void validateTargets(List<TargetOutcome> targets, Publication.StreamKey key,
@@ -166,13 +170,14 @@ final class RecoveryValidation {
                     for (var outcome : target.fields()) {
                         require(outcome != null);
                         if ("accepted".equals(outcome.status())) require(outcome.reason() == null);
-                        else require("rejected".equals(outcome.status()) && "behindWatermark".equals(outcome.reason())
-                                && "rejectBehindWatermark".equals(
-                                        definition.fields().get(outcome.field()).late().mode()));
+                        else require("rejected".equals(outcome.status()) && (
+                                "behindWatermark".equals(outcome.reason()) && "rejectBehindWatermark".equals(
+                                        definition.fields().get(outcome.field()).late().mode())
+                                || FactRecovery.policyRejection(outcome.reason(), definition.fields().get(outcome.field()))));
                     }
                     boolean accepted = target.fields().stream().anyMatch(field -> "accepted".equals(field.status()));
                     require(accepted ? "accepted".equals(target.status()) && target.reason() == null
-                            : "rejected".equals(target.status()) && "behindWatermark".equals(target.reason()));
+                            : "rejected".equals(target.status()) && java.util.Objects.equals(target.fields().getFirst().reason(), target.reason()));
                     validateChangedFields(target, definition, matching, accepted);
                 }
             } else {

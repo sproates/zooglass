@@ -28,6 +28,8 @@ import java.util.TreeMap;
 public final class ViewCoordinator implements AutoCloseable {
     private final Map<String, String> epochs;
     private final ViewTransitions views;
+    private final FactRetirementTransitions retirement;
+    private final boolean factsEnabled;
     private final Map<String, ProgressStrategy> progress;
     private final int maxStreams;
     private final int identityWindow;
@@ -55,9 +57,11 @@ public final class ViewCoordinator implements AutoCloseable {
     ViewCoordinator(V2Configuration configuration, String database, ReceiptClock clock) {
         this.clock = clock;
         configuration.validate();
+        factsEnabled = configuration.tracksFacts();
         epochs = new HashMap<>();
         configuration.sources().forEach(source -> epochs.put(source.id(), source.epoch()));
         views = new ViewTransitions(configuration);
+        retirement = new FactRetirementTransitions(configuration, views.byId());
         var policies = new HashMap<String, ProgressStrategy>();
         configuration.sources().forEach(source -> {
             var settings = source.progress();
@@ -96,6 +100,7 @@ public final class ViewCoordinator implements AutoCloseable {
             return rejected(event, "unknownEpoch");
         }
 
+        if (event.fact() != null && !factsEnabled) return rejected(event, "factsNotConfigured");
         StreamState stream = state.streams().get(event.stream());
         if (stream == null && state.streams().size() >= maxStreams) {
             return rejected(event, "streamLimit");
@@ -107,7 +112,7 @@ public final class ViewCoordinator implements AutoCloseable {
         Object content = PublicationJson.content(event.payload());
         Receipt previous = stream == null ? null : stream.receipts().get(event.publicationSequence());
         if (previous != null) {
-            if (!previous.type().equals(event.type())
+            if (!java.util.Objects.equals(previous.fact(), event.fact()) || !previous.type().equals(event.type())
                     || !PublicationJson.content(previous.content()).equals(content)) {
                 return rejected(event, "identityConflict");
             }
@@ -117,7 +122,11 @@ public final class ViewCoordinator implements AutoCloseable {
         }
 
         try {
+            FactOrigins.validate(event, state, views.byId());
             return stageAndInstall(event, stream);
+        } catch (FactRejected exception) {
+            return new PublicationOutcome("rejected", exception.reason(), event.stream(), event.publicationSequence(),
+                    state.version(), List.of(), exception.targets());
         } catch (ProgressRejected exception) {
             return rejected(event, exception.reason());
         } catch (ViewTransitions.PendingLimit exception) {
@@ -149,7 +158,7 @@ public final class ViewCoordinator implements AutoCloseable {
         }
         receipts.headMap(floor).clear();
         receipts.put(event.publicationSequence(),
-                new Receipt(event.type(), event.payload().deepCopy(), version, staged.targets()));
+                new Receipt(event.type(), event.payload().deepCopy(), version, staged.targets(), event.fact()));
         streams.put(event.stream(), new StreamState(floor, Map.copyOf(receipts), nextProgress));
 
         // Build the response before the one installation point. No staged object escapes.
@@ -189,6 +198,22 @@ public final class ViewCoordinator implements AutoCloseable {
             return result;
         } catch (ProgressRejected rejection) {
             return rejected(control, rejection.reason());
+        }
+    }
+
+    synchronized FactRetirementOutcome retire(FactRetirement control) {
+        expire();
+        var state = storage.current();
+        try {
+            long version = Math.incrementExact(state.version());
+            var result = retirement.stage(state, control, version);
+            if (result.staged() == null) return new FactRetirementOutcome("factRetirement", "unchanged", null,
+                    control, state.version(), result.floors(), List.of());
+            install(state, version, result.streams(), result.staged(), clock.sample());
+            return new FactRetirementOutcome("factRetirement", storage.durable() ? "committed" : "applied", null,
+                    control, version, result.floors(), result.staged().changedViews());
+        } catch (FactRejected failure) {
+            return FactRetirementOutcome.rejected(control, state.version(), failure.reason());
         }
     }
 

@@ -25,9 +25,10 @@ alongside required-field publication. See the [verification guide](docs/testing.
 Timeouts do not prove completeness, and staleness does not automatically change
 source priority.
 
-The proposed [revision design](docs/design/fact-revisions.md) defines how to
-correct or retract retained facts, retire them explicitly and update bounded
-derived values when those facts change.
+The accepted [revision design](docs/design/fact-revisions.md) defines how to
+correct or retract retained facts. [Retained collections](zooglass/docs/fact-collections.md)
+now support first/latest revision policies, explicit retirement and SQLite recovery.
+Bounded numeric sums are next, followed by combined correction acceptance.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [v2 memory API](zooglass/docs/v2-ingestion.md)

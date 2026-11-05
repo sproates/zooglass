@@ -43,7 +43,9 @@ class ClientRecoveryAcceptanceTests {
                         var control = new PublicationTestClient(http, port, "/facts/retire")) {
                     beforeRestart = disconnectAndCatchUp(http, port, source, control);
                     retire(control, "unplayed", 5);
-                    floorOnly = readBaseline(http, port, "unplayed");
+                }
+                try (var viewer = new PublicationTestClient(http, port, "/views/live")) {
+                    floorOnly = subscribe(viewer, "corrected", "unplayed");
                     assertThat(floorOnly.path("version").longValue()).isPositive();
                     assertThat(floorOnly.path("data").isObject()).isTrue();
                     assertThat(floorOnly.path("data")).isEmpty();
@@ -54,6 +56,9 @@ class ClientRecoveryAcceptanceTests {
                                             .at("/status/fields/goals/facts/minimumBirthSequence")
                                             .intValue())
                             .isEqualTo(5);
+
+                    service.close();
+                    viewer.assertDisconnectedWithoutReply();
                 }
             }
 

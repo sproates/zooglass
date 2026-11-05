@@ -7,7 +7,7 @@ export type Message = {
   viewId: string;
   entityId: string;
   version?: number;
-  status?: string;
+  status?: string | Record<string, unknown>;
   publicationSequences?: Record<string, number[]>;
   data?: { position: { sequence: number; padding?: string } };
 };

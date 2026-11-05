@@ -136,7 +136,10 @@ test(
       const [source, healthy, slow] = clients;
 
       await healthy.subscription("bus");
-      assert.deepEqual((await healthy.next()).data, {});
+      const baseline = await healthy.next();
+      assert.deepEqual(baseline.data, {});
+      assert.equal(baseline.version, 0);
+      let previousVersion = 0;
       await slow.subscription("bus");
       assert.deepEqual((await slow.next()).data, {});
       slow.socket.pause();
@@ -154,7 +157,12 @@ test(
         ]);
 
         assert.equal(receipt.status, "applied");
+        assert.ok(
+          typeof message.version === "number" &&
+            message.version > previousVersion,
+        );
         assert.equal(receipt.version, message.version);
+        previousVersion = message.version;
 
         assert.equal(message.entityId, "bus");
         assert.equal(message.data?.position.sequence, sequence);

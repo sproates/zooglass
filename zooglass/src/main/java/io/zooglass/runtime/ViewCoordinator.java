@@ -47,6 +47,11 @@ public final class ViewCoordinator implements AutoCloseable {
     private final ReceiptClock clock;
     private FreshnessRuntime freshness;
     private RuntimeConfiguration configuration;
+
+    public synchronized RuntimeConfiguration.Delivery delivery() {
+        return configuration.delivery();
+    }
+
     private final List<Listener> listeners = new ArrayList<>();
     private boolean closed;
 
@@ -62,7 +67,7 @@ public final class ViewCoordinator implements AutoCloseable {
         if (environment.containsProperty("zooglass.views.config")) {
             throw new IllegalArgumentException(
                     "Migrate the view definitions from zooglass.views.config to a runtime"
-                        + " configuration and set zooglass.config");
+                            + " configuration and set zooglass.config");
         }
         for (String setting : List.of("config", "database")) {
             String oldName = "zooglass.v2." + setting;
@@ -455,7 +460,8 @@ public final class ViewCoordinator implements AutoCloseable {
                         identityWindow,
                         historyLimit,
                         configuration.sources(),
-                        List.copyOf(definitions));
+                        List.copyOf(definitions),
+                        configuration.delivery());
         // Validate the body even when its name already exists, then distinguish a valid conflict.
         if (containsView(definition.id())) {
             var single =

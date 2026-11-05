@@ -51,6 +51,7 @@ test(
       const [source, healthy, invalid] = clients;
 
       await healthy.subscription("bus");
+      assert.deepEqual((await healthy.next()).data, {});
       for (const [index, [request, error]] of invalidRequests.entries()) {
         invalid.socket.send(request);
 
@@ -107,6 +108,7 @@ test(
 
       clients.push(viewer);
       await viewer.subscription("barrier");
+      assert.deepEqual((await viewer.next()).data, {});
       await source.send(positionEvent("target", 1));
 
       const validEvent = positionEvent("target", 999);
@@ -192,6 +194,7 @@ test(
 
       clients.push(viewer);
       await viewer.subscription("barrier");
+      assert.deepEqual((await viewer.next()).data, {});
 
       const definition = {
         id: "position",
@@ -265,9 +268,11 @@ test(
 
         assert.deepEqual(await viewer.next(), {
           type: "subscribed",
+          recovery: "freshSnapshot",
           viewId: id,
           entityId: entity,
         });
+        assert.deepEqual((await viewer.next()).data, {});
         await source.send(positionEvent(entity, 2));
 
         const update = await viewer.next();

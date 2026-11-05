@@ -1,9 +1,6 @@
 package io.zooglass.delivery;
 
-import io.zooglass.api.ViewSnapshot;
-import io.zooglass.runtime.Provenance;
 import io.zooglass.runtime.ViewCoordinator;
-import io.zooglass.runtime.ViewStatus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +9,6 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -32,6 +28,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
 
     private final ObjectMapper objectMapper;
     private final ViewCoordinator coordinator;
+    private final FreshSnapshot recovery;
     private final Runnable detach;
     private final ExecutorService outboundExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final SubscriptionIndex subscriptions = new SubscriptionIndex();
@@ -40,6 +37,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator) {
         this.objectMapper = objectMapper;
         this.coordinator = coordinator;
+        this.recovery = coordinator.delivery().recovery();
         this.detach = coordinator.listen(subscriptions::hasRecipients, this::sendUpdate);
     }
 
@@ -58,15 +56,14 @@ public class SnapshotBroadcaster implements AutoCloseable {
 
     public boolean subscribe(WebSocketSession session, String viewId, String entityId) {
         synchronized (coordinator) {
-            if (!coordinator.containsView(viewId)) {
+            var snapshot = coordinator.snapshot(viewId, entityId);
+            if (snapshot.isEmpty()) {
                 return false;
             }
 
-            var snapshot = coordinator.snapshot(viewId, entityId);
+            var opening = recovery.openingMessages(snapshot.orElseThrow());
             subscriptions.add(session, viewId, entityId);
-            send(session, new SubscriptionResponse("subscribed", viewId, entityId));
-            snapshot.filter(current -> current.version() > 0)
-                    .ifPresent(current -> sendUpdate(session, current));
+            sendBatch(session, opening);
             return true;
         }
     }
@@ -102,21 +99,14 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     private void sendUpdate(WebSocketSession session, ViewCoordinator.Snapshot snapshot) {
-        var response = ViewSnapshot.from(snapshot);
-        send(
-                session,
-                new ViewUpdate(
-                        "view-update",
-                        response.viewId(),
-                        response.entityId(),
-                        response.version(),
-                        response.data(),
-                        response.provenance(),
-                        response.publicationSequences(),
-                        response.status()));
+        send(session, ViewUpdate.from(snapshot));
     }
 
     private void send(WebSocketSession session, Object message) {
+        sendBatch(session, List.of(message));
+    }
+
+    private void sendBatch(WebSocketSession session, List<Object> messages) {
         OutboundWriter writer = writersBySession.get(session);
         if (writer == null || !session.isOpen()) {
             removeSession(session);
@@ -124,7 +114,14 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
 
         try {
-            if (!writer.enqueue(new TextMessage(objectMapper.writeValueAsString(message)))) {
+            var frames =
+                    messages.stream()
+                            .map(
+                                    message ->
+                                            new TextMessage(
+                                                    objectMapper.writeValueAsString(message)))
+                            .toList();
+            if (!writer.enqueue(frames)) {
                 logger.warn(
                         "Closing slow live view client {} after its outbound queue filled",
                         session.getId());
@@ -186,16 +183,6 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     private record SubscriptionResponse(String type, String viewId, String entityId) {}
-
-    private record ViewUpdate(
-            String type,
-            String viewId,
-            String entityId,
-            long version,
-            Map<String, JsonNode> data,
-            Map<String, Provenance> provenance,
-            Map<String, List<Long>> publicationSequences,
-            ViewStatus.Status status) {}
 
     private record ClientError(String type, String message) {}
 }

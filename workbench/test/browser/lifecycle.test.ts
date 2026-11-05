@@ -32,10 +32,10 @@ test(
       const oldBase = demo.baseUrl!;
 
       assert.equal(await old.page.locator("#history li").count(), 0);
-      assert.match(
-        await old.page.locator("#latest-status").innerText(),
-        /waiting for first snapshot/,
-      );
+      await old.page
+        .locator("#latest-status")
+        .filter({ hasText: "Waiting for a position" })
+        .waitFor();
       await old.page.locator("#step").click();
       await wait(() => demo.state.completed === 1);
 

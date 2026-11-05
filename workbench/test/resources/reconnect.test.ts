@@ -71,6 +71,8 @@ test(
             (await next(socket)).data?.position.sequence,
             cycle * 25,
           );
+        } else {
+          assert.deepEqual((await next(socket)).data, {});
         }
 
         for (let offset = 1; offset <= 25; offset++) {

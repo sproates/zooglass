@@ -44,9 +44,11 @@ test(
         dataSocket.onmessage = event => {
           const message = JSON.parse(event.data);
           receipts.push(message);
-          if (message.type === 'subscribed') resolve();
+          if (message.type === 'view-update') resolve();
         };
       })`);
+
+        assert.deepEqual(await browser.page.evaluate("receipts[1].data"), {});
 
         const source = new WebSocket(
           service.baseUrl.replace("http:", "ws:") + "/events",
@@ -72,16 +74,13 @@ test(
           );
           await browser.page.waitForFunction(
             () =>
-              (
-                globalThis as unknown as { receipts: { type: string }[] }
-              ).receipts.some((message) => message.type === "view-update"),
+              (globalThis as unknown as { receipts: unknown[] }).receipts
+                .length >= 3,
             undefined,
             { timeout: 5_000 },
           );
 
-          const data = await browser.page.evaluate(
-            "receipts.find(message => message.type === 'view-update').data",
-          );
+          const data = await browser.page.evaluate("receipts[2].data");
 
           assert.deepEqual(data, { position: event.payload });
         } finally {

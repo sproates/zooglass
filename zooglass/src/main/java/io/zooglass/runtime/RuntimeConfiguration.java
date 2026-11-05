@@ -2,6 +2,7 @@ package io.zooglass.runtime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.zooglass.delivery.FreshSnapshot;
 import io.zooglass.strategy.fact.FactRevisionSelection;
 import io.zooglass.strategy.freshness.FreshnessStrategy;
 import io.zooglass.strategy.freshness.FreshnessStrategySelection;
@@ -35,9 +36,36 @@ public record RuntimeConfiguration(
         int identityWindow,
         int maxHistoryEntries,
         List<Source> sources,
-        List<View> views) {
+        List<View> views,
+        Delivery delivery) {
+
+    public RuntimeConfiguration(
+            int contractVersion,
+            String storage,
+            int maxStreams,
+            int identityWindow,
+            int maxHistoryEntries,
+            List<Source> sources,
+            List<View> views) {
+        this(
+                contractVersion,
+                storage,
+                maxStreams,
+                identityWindow,
+                maxHistoryEntries,
+                sources,
+                views,
+                null);
+    }
+
+    public record Delivery(FreshSnapshot recovery) {
+        public Delivery {
+            recovery = recovery == null ? FreshSnapshot.INSTANCE : recovery;
+        }
+    }
 
     public RuntimeConfiguration {
+        delivery = delivery == null ? new Delivery(null) : delivery;
         sources = sources == null ? null : List.copyOf(sources);
         views = views == null ? null : List.copyOf(views);
     }
@@ -278,6 +306,14 @@ public record RuntimeConfiguration(
 
     static RuntimeConfiguration decode(JsonMapper mapper, JsonNode document) {
         StoredJson.validateStrings(document);
+        var delivery = document.path("delivery");
+        if (document.has("delivery") && !delivery.isObject()) {
+            throw new IllegalArgumentException("delivery must be an object");
+        }
+        if (delivery.has("recovery")
+                && !FreshSnapshot.MODE.equals(delivery.path("recovery").asText())) {
+            throw new IllegalArgumentException("Unsupported delivery recovery strategy");
+        }
         for (var view : document.path("views")) {
             validateViewDocument(view);
         }

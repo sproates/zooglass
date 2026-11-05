@@ -118,6 +118,43 @@ test("old-generation receipts cannot satisfy a current check; cancellation fails
   await control.executor.close();
 });
 
+test("a repeated subscribe on the same socket starts with fresh receipts", async () => {
+  const signal = new AbortController().signal;
+  const control = createBrowserClientExecutor(
+    "rider-app",
+    signal,
+    () => {},
+    () => {},
+  );
+  const pair = { viewId: check.viewId, entityId: check.entityId };
+  let index = 0;
+  const observe = (event: string, detail = {}) =>
+    control.receive({
+      type: "observation",
+      event,
+      connectionGeneration: 1,
+      observationIndex: ++index,
+      ...detail,
+    });
+
+  observe("opened");
+  observe("subscribed", pair);
+  observe("view-update", { ...pair, data: check.expected });
+  observe("subscribed", pair);
+  assert.equal(
+    control.observations.firstView(pair.viewId, pair.entityId),
+    undefined,
+  );
+  observe("view-update", { ...pair, data: {} });
+  await control.executor.execute({ ...check, expected: {} }, signal);
+
+  const cancellation = new AbortController();
+  const oldValue = control.executor.execute(check, cancellation.signal);
+  cancellation.abort();
+  await assert.rejects(oldValue);
+  await control.executor.close();
+});
+
 test("browser receipt overflow fails rather than discarding evidence", async () => {
   const failures: string[] = [];
   const control = createBrowserClientExecutor(

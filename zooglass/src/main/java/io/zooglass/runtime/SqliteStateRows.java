@@ -154,6 +154,7 @@ final class SqliteStateRows {
 
     private static String encodeConfiguration(RuntimeConfiguration configuration) {
         var document = (ObjectNode) JSON.valueToTree(configuration);
+        document.remove("delivery"); // Connection settings belong to this process.
         for (var view : document.get("views")) {
             for (var field : view.get("fields")) {
                 if ("unspecified".equals(field.at("/freshness/mode").asText())) {

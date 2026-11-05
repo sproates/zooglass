@@ -60,7 +60,7 @@ class SnapshotDeliveryTests {
             delivery.registerSession(session);
             assertThat(delivery.subscribe(session, "latest", "car")).isTrue();
             assertThat(take(messages).path("type").asText()).isEqualTo("subscribed");
-            assertThat(messages).isEmpty();
+            assertThat(take(messages).path("version").longValue()).isZero();
 
             var applied = coordinator.apply(event(1));
             var received = take(messages);
@@ -126,6 +126,7 @@ class SnapshotDeliveryTests {
             delivery.subscribe(slow, "latest", "car");
             delivery.subscribe(healthy, "latest", "car");
             take(messages);
+            assertThat(take(messages).path("version").longValue()).isZero();
             assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
             for (int sequence = 1; sequence <= 160; sequence++) {
                 coordinator.apply(event(sequence));

@@ -166,6 +166,8 @@ export function createFleetModel(vehicles: Vehicle[]) {
             : operation(fields.operation);
         state.position = nextPosition;
         state.operation = nextOperation;
+      } else if (Object.keys(fields).length === 0) {
+        state.positions = [];
       } else {
         if (!Array.isArray(fields.positions)) {
           throw new Error("Invalid fleet history.");

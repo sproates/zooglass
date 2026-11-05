@@ -69,7 +69,7 @@ class SnapshotIsolationTests {
                             String message = ((TextMessage) invocation.getArgument(0)).getPayload();
                             delivered.add(message);
                             var sequence = json.readTree(message).at("/data/position/sequence");
-                            if (sequence.isNumber() && sequence.intValue() == 129) {
+                            if (sequence.isNumber() && sequence.intValue() == 128) {
                                 try {
                                     release.await();
                                 } catch (InterruptedException exception) {
@@ -89,9 +89,14 @@ class SnapshotIsolationTests {
             assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
             broadcaster.subscribe(healthy, "position", "bus");
             assertThat(delivered.poll(5, TimeUnit.SECONDS)).contains("subscribed");
+            assertThat(
+                            json.readTree(delivered.poll(5, TimeUnit.SECONDS))
+                                    .path("version")
+                                    .longValue())
+                    .isZero();
             // The blocked acknowledgement occupies the writer, leaving exactly
-            // 128 queue slots. Every event also has to reach the healthy peer.
-            for (int sequence = 1; sequence <= 128; sequence++) {
+            // 127 free slots after the baseline. Every event also has to reach the healthy peer.
+            for (int sequence = 1; sequence <= 127; sequence++) {
                 store.apply(
                         "feed",
                         "position",
@@ -103,12 +108,12 @@ class SnapshotIsolationTests {
                         .isEqualTo(sequence);
             }
             verify(slow, never()).close(any(CloseStatus.class));
-            store.apply("feed", "position", "bus", json.createObjectNode().put("sequence", 129));
+            store.apply("feed", "position", "bus", json.createObjectNode().put("sequence", 128));
             assertThat(
                             json.readTree(delivered.poll(5, TimeUnit.SECONDS))
                                     .at("/data/position/sequence")
                                     .intValue())
-                    .isEqualTo(129);
+                    .isEqualTo(128);
             verify(slow, timeout(5000)).close(argThat(status -> status.getCode() == 1013));
             assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
             verify(slow, times(1)).sendMessage(any(TextMessage.class));

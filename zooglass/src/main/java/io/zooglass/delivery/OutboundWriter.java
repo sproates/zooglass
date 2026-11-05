@@ -4,6 +4,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -29,8 +30,13 @@ final class OutboundWriter {
         this.task = executor.submit(this::writeMessages);
     }
 
-    boolean enqueue(TextMessage message) {
-        return messages.offer(message);
+    boolean enqueue(List<TextMessage> batch) {
+        // All producers hold the coordinator monitor. The writer can only free slots.
+        if (messages.remainingCapacity() < batch.size()) {
+            return false;
+        }
+        messages.addAll(batch);
+        return true;
     }
 
     void stop() {

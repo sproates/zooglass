@@ -19,10 +19,10 @@ test(
       const page = demo.browser!.page;
       assert.equal(await page.locator("#fleet-list li").count(), 3);
       assert.equal(await page.locator("#current-sequence").textContent(), "—");
-      assert.match(
-        await page.locator("#history-status").innerText(),
-        /waiting for first snapshot/,
-      );
+      await page
+        .locator("#history-status")
+        .filter({ hasText: "empty snapshot" })
+        .waitFor();
 
       // Record protocol sends only; never supply application values.
       await page.evaluate(() => {

@@ -43,6 +43,7 @@ class MatchCorrectionAcceptanceTests {
                 var source = new PublicationTestClient(http, service.port());
                 var corrected = new PublicationTestClient(http, service.port(), "/views/live")) {
             subscribe(corrected, "corrected");
+            assertThat(corrected.nextMessage().path("version").longValue()).isZero();
             var created = source.send(CREATE);
             assertThat(created.path("status").asText()).isEqualTo("committed");
             assertGoal(corrected.nextMessage(), "A", 1, 1);

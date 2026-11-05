@@ -38,8 +38,11 @@ test(
       const reconnecting = await connect();
 
       await viewerA.subscription("car-a");
+      assert.deepEqual((await viewerA.next()).data, {});
       await viewerB.subscription("car-b");
+      assert.deepEqual((await viewerB.next()).data, {});
       await reconnecting.subscription("car-a");
+      assert.deepEqual((await reconnecting.next()).data, {});
       await sourceA.send(positionEvent("car-a", 0));
 
       assert.equal((await viewerA.next()).data?.position.sequence, 0);
@@ -133,7 +136,9 @@ test(
       const [source, healthy, slow] = clients;
 
       await healthy.subscription("bus");
+      assert.deepEqual((await healthy.next()).data, {});
       await slow.subscription("bus");
+      assert.deepEqual((await slow.next()).data, {});
       slow.socket.pause();
 
       // A bounded transport-pressure workload, not a throughput benchmark. Await

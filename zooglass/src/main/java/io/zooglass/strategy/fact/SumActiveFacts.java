@@ -41,10 +41,12 @@ public final class SumActiveFacts implements FactProjection {
     }
 
     private static BigDecimal bounded(BigDecimal value) {
+        if (value.signum() == 0) return BigDecimal.ZERO;
+        long integerPlaces = (long) value.precision() - value.scale();
+        if (integerPlaces > 38) throw new InvalidContribution("numericRange");
+
         var normalized = value.stripTrailingZeros();
-        // Count integer places implied by a positive exponent without expanding it.
-        long digits = normalized.precision() - Math.min(0L, normalized.scale());
-        if (digits > 38 || normalized.scale() > 18) throw new InvalidContribution("numericRange");
+        if (normalized.precision() > 38 || normalized.scale() > 18) throw new InvalidContribution("numericRange");
         return normalized;
     }
 

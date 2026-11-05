@@ -46,7 +46,14 @@ public final class PublicationJson {
 
     public static Object content(JsonNode value) {
         if (value.isNumber()) {
-            return value.decimalValue().stripTrailingZeros();
+            var decimal = value.decimalValue();
+            try {
+                return decimal.stripTrailingZeros();
+            } catch (ArithmeticException scaleOverflow) {
+                // More zeros can be removed than BigDecimal's scale can represent.
+                // Stop at the smallest representable scale for an exact comparison key.
+                return decimal.setScale(Integer.MIN_VALUE);
+            }
         }
         if (value.isObject()) {
             var fields = new TreeMap<String, Object>();

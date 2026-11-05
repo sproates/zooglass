@@ -36,6 +36,13 @@ class FactServiceTests {
                 var unknown = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{\"points\":2}")));
                 assertThat(unknown.path("reason").asText()).isEqualTo("unknownFact");
                 assertThat(unknown.at("/targets/0/fields/0/field").asText()).isEqualTo("goals");
+                var oversized = source.send("""
+                        {"sourceId":"match","epoch":"v1","sourceEntityId":"game","publicationSequence":1,
+                         "type":"goal","fact":{"birthSequence":1,"revision":1,"operation":"create"},
+                         "payload":{"points":100e2147483647}}
+                        """);
+                assertThat(oversized.path("reason").asText()).isEqualTo("numericRange");
+                assertThat(oversized.path("status").asText()).isEqualTo("rejected");
                 assertThat(source.send(JSON.writeValueAsString(event(1, 1, 1, "create", "{\"points\":1}"))).path("status").asText())
                         .isEqualTo("committed");
                 var correction = source.send(JSON.writeValueAsString(event(2, 1, 2, "revise", "{\"points\":2}")));

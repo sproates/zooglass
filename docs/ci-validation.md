@@ -28,14 +28,16 @@ against current main.
 The executable map is [selection.mjs](../.github/ci/selection.mjs).
 Its [tests](../.github/ci/selection.test.mjs) give concrete examples.
 
-| Change                                       | Normal checks                                                 |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| Markdown and recognised documentation images | Document links and CI selection tests                         |
-| ZooGlass Java tests                          | Java tests                                                    |
-| Known update, view-transition and clock code       | Java and Workbench real-service tests                         |
-| Coordinator, snapshot API and known transport code                         | Java, real-service and browser tests                          |
-| Demo UI                                      | Workbench, demo and browser checks, including browser engines |
-| CI, dependencies or unclassified code        | All suites                                                    |
+| Change                                                   | Normal checks                                                               |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Markdown and recognised documentation images             | Document links and CI selection tests                                       |
+| ZooGlass Java tests                                      | Java tests                                                                  |
+| Known strategy families, view transitions and clock code | Java and Workbench real-service tests                                       |
+| Coordinator, snapshot API and delivery modules           | Java, real-service and browser tests                                        |
+| Workbench socket test helper                             | Static checks, core tests and socket reconnects on Linux, macOS and Windows |
+| Socket reconnect test alone                              | Static checks and socket reconnects on all three platforms                  |
+| Demo UI                                                  | Workbench, demo and browser checks, including browser engines               |
+| CI, dependencies or unclassified code                    | All suites                                                                  |
 
 Mixed changes combine the required checks. The Actions selection summary shows
 what was selected and why. See [Testing](testing.md) for suite commands and coverage.

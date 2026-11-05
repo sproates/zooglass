@@ -7,6 +7,7 @@ export const suites = [
   "browser",
   "native",
   "engines",
+  "reconnect",
 ];
 const javaRoot = "zooglass/src/main/java/io/zooglass/";
 const internalJava = new Set(
@@ -26,10 +27,6 @@ const protocolJava = new Set(
     "runtime/EventIngress.java",
     "runtime/ProgressIngress.java",
     "runtime/FactRetirementIngress.java",
-    "delivery/SnapshotSubscriptions.java",
-    "delivery/SnapshotBroadcaster.java",
-    "delivery/OutboundWriter.java",
-    "delivery/SubscriptionIndex.java",
   ].map((file) => javaRoot + file),
 );
 
@@ -57,15 +54,19 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
       add(["java"], path);
     } else if (
-      /^zooglass\/src\/main\/java\/io\/zooglass\/strategy\/update\/[^/]+\.java$/.test(
+      /^zooglass\/src\/main\/java\/io\/zooglass\/strategy\/(?:contribution|fact|freshness|identity|late|progress|publication|update)\/[^/]+\.java$/.test(
         path,
       )
     ) {
-      // The accepted first strategy slice is pure field-update policy.
       add(["java", "core"], path);
     } else if (internalJava.has(path)) {
       add(["java", "core"], path);
-    } else if (protocolJava.has(path)) {
+    } else if (
+      protocolJava.has(path) ||
+      /^zooglass\/src\/main\/java\/io\/zooglass\/delivery\/[^/]+\.java$/.test(
+        path,
+      )
+    ) {
       add(["java", "core", "browser"], path);
     } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
@@ -88,6 +89,10 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       add(["static", "browser"], path);
     } else if (/^workbench\/test\/platform\/[^/]+\.test\.ts$/.test(path)) {
       add(["static", "engines"], path);
+    } else if (path === "workbench/test/support/live-client.ts") {
+      add(["static", "core", "reconnect"], path);
+    } else if (path === "workbench/test/resources/reconnect.test.ts") {
+      add(["static", "reconnect"], path);
     } else if (/^workbench\/test\/resources\/[^/]+\.test\.ts$/.test(path)) {
       add(["static", "browser", "native"], path);
     } else if (

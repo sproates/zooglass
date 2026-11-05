@@ -59,7 +59,8 @@ jobs:
     if: >-
       fromJSON(needs.select.outputs.plan).static || fromJSON(needs.select.outputs.plan).core ||
       fromJSON(needs.select.outputs.plan).demo || fromJSON(needs.select.outputs.plan).browser ||
-      fromJSON(needs.select.outputs.plan).native || fromJSON(needs.select.outputs.plan).engines
+      fromJSON(needs.select.outputs.plan).native || fromJSON(needs.select.outputs.plan).engines ||
+      fromJSON(needs.select.outputs.plan).reconnect
     uses: ./.github/workflows/workbench.yml
     with:
       plan: ${{ needs.select.outputs.plan }}
@@ -84,4 +85,4 @@ jobs:
         env:
           PLAN: ${{ needs.select.outputs.plan }}
           RESULTS: ${{ toJSON(needs) }}
-          GROUPS: '{"java":["java"],"workbench":["static","core","demo","browser","native","engines"]}'
+          GROUPS: '{"java":["java"],"workbench":["static","core","demo","browser","native","engines","reconnect"]}'

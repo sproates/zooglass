@@ -34,6 +34,7 @@
     "test:coverage": "c8 --reports-dir=coverage/standard npm test",
     "test:browser:coverage": "c8 --reports-dir=coverage/browser-host npm run test:browser",
     "pretest:resources": "node scripts/check-node-version.js && npm run build:browser",
+    "test:reconnect": "tsx --test test/resources/reconnect.test.ts",
     "test:resources": "tsx --test --test-concurrency=1 test/resources/*.test.ts",
     "pretest:engines": "node scripts/check-node-version.js && npm run build:browser",
     "test:engines": "tsx --test test/platform/*.test.ts",

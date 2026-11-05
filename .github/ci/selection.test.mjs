@@ -45,7 +45,7 @@ test("UI changes check consumers but do not rerun Java tests", () => {
 test("mixed paths union checks; unknown modules, helpers and fixtures are conservative", () => {
   for (const path of [
     "zooglass/src/main/java/io/zooglass/NewStrategy.java",
-    "workbench/test/support/live-client.ts",
+    "workbench/test/support/new-helper.ts",
     "zooglass/src/main/resources/views.json",
     "workbench/package-lock.json",
     ".github/workflows/ci.yml",
@@ -134,4 +134,44 @@ test("current runtime and snapshot contract paths select their suites", () => {
     assert.ok(existsSync(new URL("../../" + path, import.meta.url)));
     assert.deepEqual(selected([path]), expected);
   }
+});
+
+test("client recovery acceptance selects the Java and socket consumers", () => {
+  const acceptance = [
+    "ROADMAP.md",
+    "docs/design/client-delivery.md",
+    "docs/testing.md",
+    "workbench/test/concurrent-clients.test.ts",
+    "workbench/test/support/live-client.ts",
+    "zooglass/src/test/java/io/zooglass/runtime/ClientRecoveryAcceptanceTests.java",
+    "zooglass/src/test/java/io/zooglass/runtime/SnapshotDeliveryTests.java",
+  ];
+  assert.deepEqual(selected(acceptance), [
+    "java",
+    "static",
+    "core",
+    "reconnect",
+  ]);
+  assert.deepEqual(selected(["workbench/test/resources/reconnect.test.ts"]), [
+    "static",
+    "reconnect",
+  ]);
+  assert.deepEqual(selected(["workbench/test/resources/reset.test.ts"]), [
+    "static",
+    "browser",
+    "native",
+  ]);
+});
+
+test("fact strategies and delivery queues select their service consumers", () => {
+  const root = "zooglass/src/main/java/io/zooglass/";
+  assert.deepEqual(selected([root + "strategy/fact/SumActiveFacts.java"]), [
+    "java",
+    "core",
+  ]);
+  assert.deepEqual(selected([root + "delivery/OutboundQueue.java"]), [
+    "java",
+    "core",
+    "browser",
+  ]);
 });

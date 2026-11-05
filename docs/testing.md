@@ -826,3 +826,28 @@ by the PR's CI; local results do not substitute for those runs.
 withdrawals, retry identity, atomic overflow rejection and SQLite recovery.
 `FactServiceTests` reads the collection and score over HTTP after sending a
 retirement over the control socket.
+
+### Combined match correction acceptance
+
+[MatchCorrectionAcceptanceTests](../zooglass/src/test/java/io/zooglass/runtime/MatchCorrectionAcceptanceTests.java)
+runs one match feed against two views using the real event, retirement and
+subscription sockets and HTTP snapshots. Each view publishes a goal list and
+the sum of its active goals’ points.
+
+| Source action | First accepted fact | Latest revision |
+| --- | --- | --- |
+| Credit Player A with one point | A, score 1 | A, score 1 |
+| Correct the scorer to B and the value to two points | A, score 1 | B, score 2 in the same live update |
+| Withdraw the goal and kill the service after commit, before acknowledgement | A, score 1 after restart | Empty list, score 0 on resubscription |
+| Retry the withdrawal, create and correction | A, score 1 | Empty list, score 0 |
+| Send the older correction under a new publication identity | Immutable fact | Obsolete revision |
+| Retire births below 2 in both corrected fields, then send revision 4 for birth 1 | A, score 1 | Outside retention, empty list, score 0 |
+
+An exact retry within the publication identity window returns a duplicate
+acknowledgement. Once a field’s retirement floor passes a birth, even a higher
+revision cannot restore it in that field. The other view keeps its own floor.
+[FactCrashTests](../zooglass/src/test/java/io/zooglass/runtime/FactCrashTests.java)
+separately checks both sides of the retirement commit boundary.
+
+Run the combined check from `zooglass/` with
+`./mvnw -Dtest=MatchCorrectionAcceptanceTests test`.

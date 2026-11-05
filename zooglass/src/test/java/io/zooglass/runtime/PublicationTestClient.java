@@ -68,6 +68,10 @@ final class PublicationTestClient implements AutoCloseable {
 
     JsonNode send(String text) throws InterruptedException {
         publish(text);
+        return nextMessage();
+    }
+
+    JsonNode nextMessage() throws InterruptedException {
         String reply = replies.poll(5, TimeUnit.SECONDS);
         assertThat(reply).isNotNull();
         return JSON.readTree(reply);

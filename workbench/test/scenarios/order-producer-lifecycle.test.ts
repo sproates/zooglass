@@ -21,6 +21,15 @@ async function sourceServer(t: TestContext) {
         "sources own separate sockets",
       );
       record.messages++;
+      const { sourceId, epoch, sourceEntityId, publicationSequence } = event;
+      socket.send(
+        JSON.stringify({
+          status: "applied",
+          reason: "memory",
+          stream: { sourceId, epoch, sourceEntityId },
+          publicationSequence,
+        }),
+      );
     });
   });
   await once(server, "listening");

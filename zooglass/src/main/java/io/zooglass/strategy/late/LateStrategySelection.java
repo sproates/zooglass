@@ -8,6 +8,7 @@ public final class LateStrategySelection {
         return switch (mode) {
             case "acceptLate" -> new AcceptLate();
             case "rejectBehindWatermark" -> new RejectBehindWatermark();
+            case null -> throw new IllegalArgumentException("Late delivery mode is required");
             default -> throw new IllegalArgumentException("Unknown late delivery strategy");
         };
     }

@@ -245,3 +245,26 @@ test("finite order timeline has bounded actions, explicit faults and no payment 
     "duplicate is the original report including observation time",
   );
 });
+
+test("restarting a producer against retained identities rejects done", async () => {
+  const service = await startZooGlassSession({ views: orderViews });
+  const options = { tickMs: 10, cycles: 1 };
+  try {
+    const first = await startOrderProducer(service.baseUrl, options);
+    try {
+      await first.done;
+    } finally {
+      await first.close();
+    }
+    const before = await read(service.baseUrl, "order-1");
+    const restarted = await startOrderProducer(service.baseUrl, options);
+    try {
+      await assert.rejects(restarted.done, /identityConflict/);
+      assert.deepEqual(await read(service.baseUrl, "order-1"), before);
+    } finally {
+      await restarted.close();
+    }
+  } finally {
+    await service.close();
+  }
+});

@@ -59,6 +59,11 @@ public final class ViewCoordinator implements AutoCloseable {
 
     private static RuntimeConfiguration loadConfiguration(
             ResourceLoader resources, Environment environment) {
+        if (environment.containsProperty("zooglass.views.config")) {
+            throw new IllegalArgumentException(
+                    "Migrate the view definitions from zooglass.views.config to a runtime"
+                        + " configuration and set zooglass.config");
+        }
         for (String setting : List.of("config", "database")) {
             String oldName = "zooglass.v2." + setting;
             if (environment.containsProperty(oldName)) {

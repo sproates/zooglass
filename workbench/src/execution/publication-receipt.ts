@@ -1,9 +1,17 @@
 import { once } from "node:events";
-import type { ScenarioSourceEvent } from "../scenario/scenario-model.js";
+interface SourcePublication {
+  sourceId: string;
+  epoch: string;
+  entityId: string;
+  publicationSequence: number;
+  type: string;
+  payload: object;
+  expectedRejection?: string;
+}
 
 export async function publishAndCheckReceipt(
   socket: WebSocket,
-  event: ScenarioSourceEvent,
+  event: SourcePublication,
   signal: AbortSignal,
 ) {
   const controller = new AbortController();

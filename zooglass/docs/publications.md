@@ -9,6 +9,10 @@ views, runtime view registration, source acknowledgements, HTTP snapshots and
 live subscriptions. [Source progress and late-event policies](source-progress.md)
 add scoped watermarks, bounded missing ranges and per-field late decisions.
 
+For deployments using the original live-view setting `zooglass.views.config`
+(or `ZOOGLASS_VIEWS_CONFIG`), migrate the view definitions to the configuration
+format below and set `zooglass.config`. Startup rejects the retired setting.
+
 ## Configure and run
 
 Save a configuration such as this as `views.json`:

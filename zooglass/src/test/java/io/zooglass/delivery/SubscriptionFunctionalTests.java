@@ -3,6 +3,8 @@ package io.zooglass.delivery;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -256,6 +258,21 @@ class SubscriptionFunctionalTests {
                                     .statusCode())
                     .isEqualTo(400);
             assertThat(getView(client, "bad-source", "car").statusCode()).isEqualTo(404);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"mode\":null}"})
+    void missingLateModeIsABadRequest(String late) throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            String definition =
+                    """
+                    {"id":"late-check","fields":{"score":{"sourceId":"match-feed",
+                    "type":"score.updated","mode":"arrival","late":%s}}}
+                    """
+                            .formatted(late);
+            assertThat(defineView(client, definition).statusCode()).isEqualTo(400);
+            assertThat(getView(client, "late-check", "car").statusCode()).isEqualTo(404);
         }
     }
 

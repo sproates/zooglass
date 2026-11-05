@@ -4,6 +4,8 @@ import {
   closeClient,
   connectClient,
 } from "../../execution/sockets.js";
+import { publishAndCheckReceipt } from "../../execution/publication-receipt.js";
+import { scenarioEpoch } from "../../service/runtime-configuration.js";
 import { sourceIds, type OrderSource } from "./contracts.js";
 import { orderStep, ticksPerCycle, type OrderStep } from "./timeline.js";
 
@@ -83,15 +85,14 @@ export async function startOrderProducer(
                 `Order source ${action.event.sourceId} failed or could not keep up.`,
               );
             }
-            socket.send(
-              JSON.stringify({
-                sourceId: action.event.sourceId,
-                epoch: "run",
-                sourceEntityId: action.event.entityId,
+            await publishAndCheckReceipt(
+              socket,
+              {
+                ...action.event,
+                epoch: scenarioEpoch,
                 publicationSequence: action.event.payload.sequence,
-                type: action.event.type,
-                payload: action.event.payload,
-              }),
+              },
+              signal,
             );
           }
         }

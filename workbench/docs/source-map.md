@@ -402,6 +402,7 @@ flowchart TB
   simulation -->|starts and closes sources| producer
   producer -->|executes one bounded step at a time| timeline
   producer -->|opens and closes independent source sockets| sockets
+  producer -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
   producer -->|enumerates source identities| contracts
   timeline -->|builds domain events for six fixed slots| contracts
 ```

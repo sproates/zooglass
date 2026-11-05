@@ -5,6 +5,10 @@ suffer delays, loss, duplicates and outages. ZooGlass maintains the latest accep
 position for each car and delivers it to viewers. The map shows those received
 positions, with older reports visibly distinguished from recent ones.
 
+Each car waits for its publication receipt before its next send. Replaying an
+identical report can return a duplicate receipt. A rejected report stops the
+producer and surfaces the reason through the simulation.
+
 ## Start from a fresh checkout
 
 Install Node 26 and JDK 25, with `java` on your PATH. From the repository root:

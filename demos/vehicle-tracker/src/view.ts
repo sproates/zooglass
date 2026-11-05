@@ -57,13 +57,20 @@ function renderStatus() {
     const state = views[id];
     let text: string;
 
-    if (state.current && state.subscribed && connection === "connected") {
+    if (
+      state.received &&
+      state.current &&
+      state.subscribed &&
+      connection === "connected"
+    ) {
       text =
         id === "live-map"
           ? "Latest snapshot received"
           : history.length
             ? `${history.length} received position${history.length === 1 ? "" : "s"}`
             : "No positions received · empty snapshot";
+    } else if (state.subscribed && state.current) {
+      text = "Waiting for a position";
     } else if (state.received) {
       text = state.subscribed
         ? "Last received · waiting for a fresh snapshot"
@@ -88,7 +95,10 @@ function renderStatus() {
 
     target.textContent = text;
     target.dataset.state =
-      state.current && state.subscribed && connection === "connected"
+      state.received &&
+      state.current &&
+      state.subscribed &&
+      connection === "connected"
         ? "received"
         : state.received
           ? "retained"
@@ -188,13 +198,36 @@ function draw() {
 
 /** Only call with a snapshot received from the app's ZooGlass socket. */
 export function receiveView(viewId: string, entityId: string, data: unknown) {
-  if (entityId !== "car-17" || !data || typeof data !== "object") {
+  if (
+    entityId !== "car-17" ||
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
     throw new Error("Unexpected vehicle snapshot.");
   }
 
   const fields = data as Record<string, unknown>;
 
-  if (viewId === "live-map" && position(fields.position)) {
+  if (
+    (viewId === "live-map" || viewId === "trip-history") &&
+    Object.keys(fields).length === 0
+  ) {
+    // A status update can precede the first matching location publication.
+    views[viewId].received = false;
+    views[viewId].current = true;
+    if (viewId === "live-map") {
+      latest = undefined;
+      element("current-sequence").textContent = "—";
+      element("current-coordinates").textContent = "No position received";
+      element("position-label").textContent = "Current position";
+      element("route-description").textContent =
+        "Waiting for received positions.";
+    } else {
+      history = [];
+      element("history").replaceChildren();
+    }
+  } else if (viewId === "live-map" && position(fields.position)) {
     latest = fields.position;
     element("current-sequence").textContent = String(latest.sequence);
     element("current-coordinates").textContent = coordinates(latest);

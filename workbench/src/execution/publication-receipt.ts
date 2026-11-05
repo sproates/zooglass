@@ -1,5 +1,5 @@
 import { once } from "node:events";
-interface SourcePublication {
+export interface SourcePublication {
   sourceId: string;
   epoch: string;
   entityId: string;

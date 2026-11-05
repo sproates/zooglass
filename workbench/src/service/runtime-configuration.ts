@@ -8,7 +8,10 @@ export function runtimeView(view: ScenarioView) {
     id: view.id,
     fields: Object.fromEntries(
       Object.entries(view.fields).map(([name, inputs]) => {
-        const ordering = view.ordering?.[name];
+        const ordering =
+          view.ordering && Object.hasOwn(view.ordering, name)
+            ? view.ordering[name]
+            : undefined;
         if (ordering && ordering.sequenceField !== "publicationSequence") {
           throw new Error(
             `Scenario field ${view.id}.${name} must order by publicationSequence.`,

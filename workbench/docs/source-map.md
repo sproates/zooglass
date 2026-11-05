@@ -374,6 +374,7 @@ flowchart TD
   assets -->|reuses Leaflet and tile assets| fleet["demos/vehicle/fleet-assets.ts"]
   sim -->|runs six independent sources| producer["continuous/producer.ts"]
   sim -->|loads cars| journeys["continuous/journeys.ts"]
+  producer -->|checks publication outcomes| receipts["execution/publication-receipt.ts"]
   producer -->|samples distance along roads| journeys
   journeys -->|reads attributed road geometry| routes["continuous/routes.json"]
   producer -->|chooses automatic faults| delivery["continuous/delivery.ts"]

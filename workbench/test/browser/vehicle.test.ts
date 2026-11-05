@@ -49,6 +49,32 @@ for (const variant of ["basic", "journey"]) {
             let checkedLatePosition = false;
 
             for (const entry of playScenario(scenario)) {
+              if (
+                variant === "basic" &&
+                entry.kind === "source-event" &&
+                entry.publicationSequence === 40
+              ) {
+                await session.execute({
+                  ...entry,
+                  type: "heartbeat",
+                  payload: {},
+                  publicationSequence: 1,
+                });
+                await browser.page
+                  .locator("#latest-status")
+                  .filter({ hasText: "Waiting for a position" })
+                  .waitFor({ timeout: 5000 });
+                await browser.page
+                  .locator("#history-status")
+                  .filter({ hasText: "Waiting for a position" })
+                  .waitFor({ timeout: 5000 });
+                assert.equal(
+                  await browser.page
+                    .locator("#vehicle-marker")
+                    .getAttribute("visibility"),
+                  "hidden",
+                );
+              }
               await observed.execute(entry);
 
               if (entry.kind !== "client-view-check") {

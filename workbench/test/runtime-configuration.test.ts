@@ -80,3 +80,19 @@ test("scenario translation refuses ambiguous source competition and payload orde
     fields: { score: { sourceId: "match", type: "scored", mode: "arrival" } },
   });
 });
+
+test("fields named like inherited properties default to arrival ordering", () => {
+  const inputs = [{ sourceId: "feed", type: "sample" }];
+  const view = runtimeView({
+    id: "stats",
+    fields: { constructor: inputs, toString: inputs, latest: inputs },
+    ordering: {
+      latest: {
+        mode: "latestBySequence",
+        sequenceField: "publicationSequence",
+      },
+    },
+  });
+  assert.equal(view.fields["constructor"].mode, "arrival");
+  assert.equal(view.fields["toString"].mode, "arrival");
+});

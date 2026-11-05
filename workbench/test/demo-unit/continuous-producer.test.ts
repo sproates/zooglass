@@ -27,6 +27,17 @@ test("continuous producer sends faults in order, reconnects, and closes its sock
       const message = JSON.parse(String(bytes));
       assert.equal(message.sourceId, "fleet");
       assert.equal(message.sourceEntityId, "car-1");
+      const { sourceId, epoch, sourceEntityId, publicationSequence } = message;
+      const repeat =
+        message.type === "position" &&
+        positions.includes(message.payload.sequence);
+      socket.send(
+        JSON.stringify({
+          status: repeat ? "duplicate" : "applied",
+          stream: { sourceId, epoch, sourceEntityId },
+          publicationSequence,
+        }),
+      );
       if (message.type === "position") {
         positions.push(message.payload.sequence);
         if (message.payload.sequence === 131) {
@@ -80,5 +91,46 @@ test("continuous producer rejects invalid timing before opening sockets", async 
     await assert.rejects(startProducer("http://127.0.0.1:1", [], { tickMs }), {
       message: "Tick interval must be at least 10ms.",
     });
+  }
+});
+
+test("a rejected car report fails the producer and releases its connections", async () => {
+  const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+  const closed: Promise<unknown>[] = [];
+  try {
+    server.on("connection", (socket) => {
+      closed.push(once(socket, "close", { signal: AbortSignal.timeout(5000) }));
+      socket.on("message", (bytes) => {
+        const { sourceId, epoch, sourceEntityId, publicationSequence } =
+          JSON.parse(String(bytes));
+        socket.send(
+          JSON.stringify({
+            status: "rejected",
+            reason: "identityConflict",
+            stream: { sourceId, epoch, sourceEntityId },
+            publicationSequence,
+          }),
+        );
+      });
+    });
+    await once(server, "listening");
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const producer = await startProducer(
+      `http://127.0.0.1:${address.port}`,
+      (await loadCars()).slice(0, 2),
+      { tickMs: 10 },
+    );
+    const timer = setTimeout(() => void producer.close(), 2000);
+    try {
+      await assert.rejects(producer.done, /identityConflict/);
+      await Promise.all(closed);
+      assert.equal(server.clients.size, 0);
+    } finally {
+      clearTimeout(timer);
+      await producer.close();
+    }
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });

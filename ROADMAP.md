@@ -7,7 +7,12 @@ arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The next phase turns those behaviours into explicit strategy modules
 and demonstrates the application work they remove.
 
-## Next: corrections and retractions
+## Next: client continuity and recovery
+
+Define what a subscriber receives when it joins, falls behind or reconnects.
+The contract builds on the shared runtime for HTTP snapshots and live delivery.
+
+## Reconciliation and recovery
 
 View-local mappings and source-priority selection are delivered. ZooGlass retains
 independent source candidates, preserves hidden updates across restart and selects
@@ -28,7 +33,9 @@ source priority.
 The accepted [revision design](docs/design/fact-revisions.md) defines how to
 correct or retract retained facts. [Retained collections](zooglass/docs/fact-collections.md)
 now support first/latest revision policies, explicit retirement and SQLite recovery.
-Fields can now calculate exact totals from retained facts. Combined correction acceptance is next.
+Fields can calculate exact totals from retained facts. The
+[combined match check](docs/testing.md#combined-match-correction-acceptance)
+exercises two scoreboards through a correction, withdrawal, restart and retirement.
 
 Arrival, latest-by-sequence and history-by-sequence already have named strategy
 modules selected by configuration. The [publication API](zooglass/docs/publications.md)

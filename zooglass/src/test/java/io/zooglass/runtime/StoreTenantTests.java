@@ -158,6 +158,7 @@ class StoreTenantTests {
         Files.writeString(config, new JsonMapper()
                 .writeValueAsString(SqliteRecoveryTests.configuration()));
         new ApplicationContextRunner()
+                .withBean(io.zooglass.access.AdmissionAccess.class, io.zooglass.access.AdmissionAccess::new)
                 .withBean(ViewCoordinator.class)
                 .withPropertyValues("zooglass.config=" + config.toUri(),
                         "zooglass.database=" + database)

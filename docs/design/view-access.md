@@ -85,8 +85,8 @@ HTTP and socket errors omit protected data and details of other resources.
 
 The `OpenDemoAccess` and `ApplicationPolicyAccess` modules implement the
 two access behaviours; their [policy protocol](../../zooglass/docs/access-policy.md)
-is defined separately. Admission wiring will select one at startup for the HTTP
-and socket handlers.
+is defined separately. Admission handlers use the selected strategy for HTTP
+reads and socket handshakes/subscriptions; protected startup remains gated.
 The latter uses a policy client to obtain grants and a local grant registry
 to check deadlines and invalidate subscription generations. The writer checks
 the local grant at release. This keeps a slow policy call off the publication
@@ -139,7 +139,10 @@ authorised baseline. A client that copied data before revocation owns that copy.
 
 The durable ownership boundary and offline adoption command are implemented;
 see the [storage guide](../../zooglass/docs/sqlite-storage.md#tenant-ownership).
-Tenant-aware serving remains internal until the access handlers are complete.
+Tenant-aware startup and HTTP/WebSocket admission are exercised through internal
+test wiring. Protected serving remains gated on active release enforcement and
+an isolated operator path. The current admission boundary uses direct TLS;
+proxy termination requires its own backend-isolation verification.
 
 Implement admission first and active enforcement second. Enable protected mode
 for users only once both are in place. Workbench supplies an application policy

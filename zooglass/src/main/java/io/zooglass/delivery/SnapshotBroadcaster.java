@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.function.BooleanSupplier;
 
 /** Enqueues committed snapshots and subscription replies under the coordinator monitor. */
 @Component
@@ -56,19 +57,60 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
     }
 
+    public enum Admission { ADMITTED, UNKNOWN_VIEW, REFUSED, FAILED }
+
     public boolean subscribe(WebSocketSession session, String viewId, String entityId) {
+        return subscribe(session, viewId, entityId, () -> true) != Admission.UNKNOWN_VIEW;
+    }
+
+    public Admission subscribe(WebSocketSession session, String viewId, String entityId,
+            BooleanSupplier permitted) {
         synchronized (coordinator) {
+            if (!permitted.getAsBoolean()) {
+                return Admission.REFUSED;
+            }
             var snapshot = coordinator.snapshot(viewId, entityId);
             if (snapshot.isEmpty()) {
-                return false;
+                return permitted.getAsBoolean() ? Admission.UNKNOWN_VIEW : Admission.REFUSED;
             }
-
-            var opening = settings.recovery().openingMessages(snapshot.orElseThrow());
+            List<OutboundQueue.Frame> opening;
+            try {
+                opening = settings.recovery().openingMessages(snapshot.orElseThrow())
+                        .stream().map(this::frame).toList();
+            } catch (RuntimeException failure) {
+                logger.warn("Could not prepare subscription opening for client {}", session.getId());
+                removeSession(session);
+                return Admission.FAILED;
+            }
+            // Preparation may take time. Admit the ack and baseline only under a current grant.
+            if (!permitted.getAsBoolean()) {
+                return Admission.REFUSED;
+            }
             subscriptions.add(session, viewId, entityId);
-            sendProtected(session, opening);
-            return true;
+            enqueue(session, writer -> writer.enqueueProtected(opening));
+            return Admission.ADMITTED;
         }
     }
+
+    public void refuseSubscription(WebSocketSession session, String viewId, String entityId,
+            String code) {
+        synchronized (coordinator) {
+            if (subscriptions.recipients(viewId, entityId).containsKey(session)) {
+                closeAccess(session);
+            } else {
+                send(session, new AccessError("error", code));
+            }
+        }
+    }
+
+    public void closeAccess(WebSocketSession session) {
+        synchronized (coordinator) {
+            removeSession(session);
+            requestClose(session, CloseStatus.POLICY_VIOLATION);
+        }
+    }
+
+    private record AccessError(String type, String code) {}
 
     public void unsubscribe(WebSocketSession session, String viewId, String entityId) {
         synchronized (coordinator) {

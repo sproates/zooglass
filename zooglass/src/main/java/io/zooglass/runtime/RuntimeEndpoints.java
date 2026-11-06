@@ -1,6 +1,11 @@
 package io.zooglass.runtime;
 
 import io.zooglass.api.ViewSnapshot;
+import io.zooglass.access.AdmissionAccess;
+import io.zooglass.access.SnapshotAdmission;
+import io.zooglass.access.ViewerHandshake;
+
+import jakarta.servlet.http.HttpServletRequest;
 import io.zooglass.delivery.SnapshotSubscriptions;
 
 import org.springframework.http.ResponseEntity;
@@ -18,6 +23,8 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     private final SnapshotSubscriptions live;
+    private final AdmissionAccess access;
+    private final SnapshotAdmission reads;
     private final EventIngress ingress;
     private final ProgressIngress progress;
     private final FactRetirementIngress retirement;
@@ -28,8 +35,10 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
             EventIngress ingress,
             ProgressIngress progress,
             FactRetirementIngress retirement,
-            ViewCoordinator coordinator) {
+            ViewCoordinator coordinator, AdmissionAccess access, SnapshotAdmission reads) {
         this.live = live;
+        this.access = access;
+        this.reads = reads;
         this.ingress = ingress;
         this.progress = progress;
         this.retirement = retirement;
@@ -38,14 +47,23 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(ingress, "/events");
-        registry.addHandler(live, "/views/live");
-        registry.addHandler(progress, "/progress");
-        registry.addHandler(retirement, "/facts/retire");
+        if (!access.protectedMode()) {
+            registry.addHandler(ingress, "/events");
+            registry.addHandler(progress, "/progress");
+            registry.addHandler(retirement, "/facts/retire");
+        }
+        var viewers = registry.addHandler(live, "/views/live")
+                .addInterceptors(new ViewerHandshake(access));
+        if (access.protectedMode()) {
+            viewers.setAllowedOrigins(access.origin());
+        }
     }
 
     @PostMapping("/views")
     public ResponseEntity<Void> define(@RequestBody String body) {
+        if (access.protectedMode()) {
+            return ResponseEntity.status(403).build();
+        }
         RuntimeConfiguration.View definition;
         try {
             definition = RuntimeConfiguration.parseView(body);
@@ -61,17 +79,13 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     @GetMapping("/views")
     public ResponseEntity<ViewSnapshot> lookup(
-            @RequestParam String viewId, @RequestParam String entityId) {
-        return snapshot(viewId, entityId);
+            @RequestParam String viewId, @RequestParam String entityId, HttpServletRequest request) {
+        return reads.read(request, viewId, entityId);
     }
 
     @GetMapping("/views/{viewId}/{entityId}")
     public ResponseEntity<ViewSnapshot> snapshot(
-            @PathVariable String viewId, @PathVariable String entityId) {
-        return coordinator
-                .snapshot(viewId, entityId)
-                .map(ViewSnapshot::from)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+            @PathVariable String viewId, @PathVariable String entityId, HttpServletRequest request) {
+        return reads.read(request, viewId, entityId);
     }
 }

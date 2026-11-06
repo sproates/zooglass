@@ -4,10 +4,15 @@ The application owns identity and permissions. ZooGlass sends the caller's opaqu
 credential and the requested resource to its policy service, then uses the result
 to decide whether it may release a view.
 
-This document defines the implemented policy client and strategy modules.
-**Protected serving is not enabled yet.** HTTP and WebSocket admission, active
-revocation and delivery checks follow the [accepted access contract](../../docs/design/view-access.md).
-There are no public access configuration properties in this increment.
+This document defines the policy client, strategies and admission handlers.
+**Protected serving is not enabled yet.** Admission is exercised through internal
+test wiring; active revocation and transport-release checks follow the
+[accepted access contract](../../docs/design/view-access.md).
+
+Startup accepts `zooglass.access.mode=openDemo` (the default). Selecting
+`applicationPolicy` fails startup until active enforcement is complete. Unknown
+modes and protected settings supplied in open mode also fail, so a configuration
+mistake cannot silently enable an unprotected service.
 
 ## Strategies and settings
 
@@ -98,7 +103,37 @@ view/entity. An identity-only grant cannot authorise any resource. Decisions are
 not cached, and concurrent responses stay attached to their own requests.
 Grants exist only in memory.
 
-These are admission primitives. The next handlers must keep each socket bound
-to one subject. Active delivery must separately check and invalidate grants,
+The admission handlers keep each socket bound to one subject. Active delivery
+must separately check and invalidate grants,
 discard superseded subscription generations and close connections on access loss.
 The five-second end-to-end revocation contract depends on that enforcement too.
+
+## HTTP and WebSocket admission
+
+Both snapshot routes ask for a resource decision before looking up the view.
+They return 401 for missing or invalid credentials, 403 for denial and 503 when
+a decision is unavailable. Only an allowed lookup can reveal a 404. Protected
+responses carry `Cache-Control: no-store`. Snapshot admission checks the grant
+again after preparing the result; per-chunk transport checks are still pending.
+
+A socket authenticates before upgrade. Its subject and selected credential stay
+with that connection. Each subscription asks for a fresh decision outside the
+coordinator lock, then checks the grant when admitting its acknowledgement and
+baseline together. Expiry during message preparation refuses admission.
+
+An inactive subscription failure sends `accessDenied` or `accessUnavailable`
+without a baseline. A failure for an already-active subscription removes all
+memberships and queued messages and closes that socket with code 1008. A changed
+subject also closes it. Other sockets remain independent. Final checks for a
+frame already taken by the writer belong to active delivery enforcement.
+
+The internal protected viewer listener requires direct TLS and an allowed
+browser Origin. Cookie-based socket handshakes must provide that Origin;
+non-browser bearer clients may omit it. Forwarding headers cannot substitute
+for connector TLS evidence. The viewer listener excludes publication, progress,
+retirement, registration and management routes.
+
+Protected deployment remains gated on active enforcement and an isolated
+operator path. A trusted TLS-terminating proxy will also need explicit backend
+isolation and forwarding-header handling before it is supported; the current
+admission fixture does not enable that deployment option.

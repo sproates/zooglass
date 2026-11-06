@@ -145,11 +145,19 @@ final class SqliteStateRows {
         if (schema < targetSchema) {
             // Rewrite the enriched rows and schema marker in the same startup transaction.
             writeChanges(StateImage.empty(), restored);
-            try (var statement = connection.createStatement()) {
-                statement.execute("PRAGMA user_version=" + targetSchema);
-            }
+            StoreTenant.setSchema(connection, targetSchema);
         }
         return restored;
+    }
+
+    RuntimeConfiguration storedConfiguration() throws SQLException {
+        try (var statement = connection.createStatement();
+                var row = statement.executeQuery("SELECT configuration FROM runtime WHERE id=1")) {
+            if (!row.next()) {
+                throw new SQLException("Missing runtime metadata");
+            }
+            return RuntimeConfiguration.decode(JSON, JSON.readTree(row.getString(1)));
+        }
     }
 
     private static String encodeConfiguration(RuntimeConfiguration configuration) {
@@ -175,6 +183,9 @@ final class SqliteStateRows {
             try (var result = statement.executeQuery("PRAGMA user_version")) {
                 result.next();
                 version = result.getInt(1);
+                if (version == StoreTenant.OWNED_SCHEMA) {
+                    version = StoreTenant.dataSchema(connection);
+                }
             }
             if (version >= 1 && version <= FACT_SCHEMA) {
                 return version;

@@ -45,6 +45,11 @@ that fails for that bug before the fix.
 
 ## Delivery sequence
 
+The table records the original sequence. Following client recovery, the next
+service increment is the [view access contract](view-access.md) and its
+enforcement. Orders and sports retain their planned demo work. The order demo
+will exercise active access loss once enforcement is available.
+
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |
 | 1. Named update modules | The first slice above; configuration demonstrably chooses executable modules. | One implementation PR. |

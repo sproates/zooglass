@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/** Connection-local grants. Policy I/O and socket callbacks never run under this monitor. */
+/** Connection-local grants. Policy I/O and access-loss callbacks run outside this monitor. */
 public final class ActiveViewGrants {
 
     private final AdmissionAccess access;
@@ -125,6 +125,77 @@ public final class ActiveViewGrants {
         }
         if (lost) {
             onLoss.accept(renewal.session);
+        }
+    }
+
+    /** A failed repeat decision invalidates immediately, before delivery cleanup can wait. */
+    public boolean refuse(WebSocketSession session, ViewResource resource) {
+        synchronized (this) {
+            var connection = connections.get(session);
+            if (connection == null || !connection.grants.containsKey(resource)) {
+                return false;
+            }
+            connections.remove(session);
+        }
+        onLoss.accept(session);
+        return true;
+    }
+
+    public synchronized boolean superseded(Lease lease) {
+        return lease == null || connections.get(lease.session) != lease.connection
+                || (lease.resource != null && lease.connection.grants.get(lease.resource) != lease.generation);
+    }
+
+    /** Captures the current generation; a null resource represents a connection-level reply. */
+    public synchronized Lease capture(WebSocketSession session, ViewResource resource) {
+        var connection = connections.get(session);
+        if (connection == null) {
+            return null;
+        }
+        var generation = resource == null ? null : connection.grants.get(resource);
+        return resource != null && generation == null ? null : new Lease(session, connection, resource, generation);
+    }
+
+    /**
+     * Orders invalidation with transport submission. The handoff must only submit:
+     * waiting for network completion belongs outside this monitor.
+     */
+    public boolean release(WebSocketSession session, Lease lease, Runnable handoff) {
+        return lease != null && lease.session == session && release(lease, handoff);
+    }
+
+    boolean release(Lease lease, Runnable handoff) {
+        synchronized (this) {
+            if (lease == null || connections.get(lease.session) != lease.connection) {
+                return false;
+            }
+            if (!current(lease.connection)) {
+                connections.remove(lease.session);
+            } else {
+                if (lease.resource != null && lease.connection.grants.get(lease.resource) != lease.generation) {
+                    return false;
+                }
+                handoff.run();
+                return true;
+            }
+        }
+        onLoss.accept(lease.session);
+        return false;
+    }
+
+    /** Opaque reference to one admitted generation, including its renewed grant. */
+    public static final class Lease {
+        private final WebSocketSession session;
+        private final Connection connection;
+        private final ViewResource resource;
+        private final Generation generation;
+
+        private Lease(WebSocketSession session, Connection connection, ViewResource resource,
+                Generation generation) {
+            this.session = session;
+            this.connection = connection;
+            this.resource = resource;
+            this.generation = generation;
         }
     }
 

@@ -74,7 +74,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
                                     outboundExecutor,
                                     settings,
                                     (writer, failure) ->
-                                            handleWriteFailure(session, writer, failure)));
+                                            handleWriteFailure(session, writer, failure), grants));
         }
     }
 
@@ -121,13 +121,17 @@ public class SnapshotBroadcaster implements AutoCloseable {
                 return Admission.REFUSED;
             }
             subscriptions.add(session, viewId, entityId);
-            enqueue(session, writer -> writer.enqueueProtected(opening));
+            var admitted = scoped(session, new ViewResource(viewId, entityId), opening);
+            enqueue(session, writer -> writer.enqueueProtected(admitted));
             return Admission.ADMITTED;
         }
     }
 
     public void refuseSubscription(WebSocketSession session, String viewId, String entityId,
             String code) {
+        if (grants != null && grants.refuse(session, new ViewResource(viewId, entityId))) {
+            return;
+        }
         synchronized (coordinator) {
             if (subscriptions.recipients(viewId, entityId).containsKey(session)) {
                 closeAccess(session);
@@ -149,6 +153,9 @@ public class SnapshotBroadcaster implements AutoCloseable {
     }
 
     public void closeAccess(WebSocketSession session) {
+        if (grants != null) {
+            grants.remove(session);
+        }
         synchronized (coordinator) {
             removeSession(session);
             requestClose(session, CloseStatus.POLICY_VIOLATION);
@@ -158,16 +165,19 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private record AccessError(String type, String code) {}
 
     public void unsubscribe(WebSocketSession session, String viewId, String entityId) {
+        if (grants != null) {
+            grants.remove(session, new ViewResource(viewId, entityId));
+        }
         synchronized (coordinator) {
             subscriptions.remove(session, viewId, entityId);
-            if (grants != null) {
-                grants.remove(session, new ViewResource(viewId, entityId));
-            }
             send(session, new SubscriptionResponse("unsubscribed", viewId, entityId));
         }
     }
 
     public void removeSession(WebSocketSession session) {
+        if (grants != null) {
+            grants.remove(session);
+        }
         synchronized (coordinator) {
             OutboundWriter writer = writersBySession.remove(session);
             if (writer != null) {
@@ -175,9 +185,6 @@ public class SnapshotBroadcaster implements AutoCloseable {
             }
 
             subscriptions.removeSession(session);
-            if (grants != null) {
-                grants.remove(session);
-            }
         }
     }
 
@@ -205,7 +212,9 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
         recipients.forEach(
                 (session, generation) ->
-                        enqueue(session, writer -> writer.enqueueUpdate(generation, shared)));
+                        enqueue(session, writer -> writer.enqueueUpdate(generation,
+                                scoped(session, new ViewResource(snapshot.viewId(), snapshot.entityId()),
+                                        List.of(shared)).getFirst())));
     }
 
     private void send(WebSocketSession session, Object message) {
@@ -219,7 +228,16 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private void sendProtected(WebSocketSession session, List<Object> messages) {
         enqueue(
                 session,
-                writer -> writer.enqueueProtected(messages.stream().map(this::frame).toList()));
+                writer -> writer.enqueueProtected(scoped(session, null, messages.stream().map(this::frame).toList())));
+    }
+
+    private List<OutboundQueue.Frame> scoped(WebSocketSession session, ViewResource resource,
+            List<OutboundQueue.Frame> frames) {
+        if (grants == null) {
+            return frames;
+        }
+        var lease = grants.capture(session, resource);
+        return frames.stream().map(frame -> frame.forLease(lease)).toList();
     }
 
     private void enqueue(

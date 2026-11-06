@@ -1,11 +1,13 @@
 package io.zooglass.delivery;
 
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
+import io.zooglass.access.ActiveViewGrants;
 
 import org.springframework.web.socket.TextMessage;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Predicate;
 
 /** Only waiting frames consume budget. A take transfers ownership to the socket writer. */
 final class OutboundQueue {
@@ -15,14 +17,18 @@ final class OutboundQueue {
         TOO_LARGE
     }
 
-    /** A string-backed message and its UTF-8 size, shared across recipient queues. */
-    record Frame(TextMessage message, int bytes) {
+    /** Shared string-backed payload and UTF-8 size, with a recipient-specific generation lease. */
+    record Frame(TextMessage message, int bytes, ActiveViewGrants.Lease lease) {
         Frame(String payload) {
             this(new TextMessage(payload));
         }
 
+        Frame forLease(ActiveViewGrants.Lease lease) {
+            return new Frame(message, bytes, lease);
+        }
+
         private Frame(TextMessage message) {
-            this(message, message.getPayloadLength());
+            this(message, message.getPayloadLength(), null);
         }
     }
 
@@ -85,6 +91,17 @@ final class OutboundQueue {
         var frame = waiting.pollFirstEntry().getValue();
         bytes -= frame.bytes();
         return frame;
+    }
+
+    synchronized void discard(Predicate<Frame> obsolete) {
+        var iterator = waiting.values().iterator();
+        while (iterator.hasNext()) {
+            var frame = iterator.next();
+            if (obsolete.test(frame)) {
+                bytes -= frame.bytes();
+                iterator.remove();
+            }
+        }
     }
 
     synchronized void stop() {

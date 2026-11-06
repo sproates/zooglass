@@ -180,5 +180,12 @@ coordinator monitors, with only one frame outstanding per socket. Data already
 handed to the transport before cutoff may arrive later. Unsupported transport
 adapters cannot fall back to a blocking protected send.
 
+A native-WSS regression uses a real TLS peer that stops reading after upgrade.
+It observes a large frame remaining outstanding, queues a later update, then
+revokes access. It checks that invalidation completes, no later frame is submitted,
+a healthy viewer continues receiving updates and the stalled connection is cleaned
+up. Transport probes forward to the real Jakarta implementation; they do not
+simulate send completion.
+
 HTTP chunk checks and protected deployment wiring remain outstanding. Protected
 startup stays disabled until those boundaries are complete.

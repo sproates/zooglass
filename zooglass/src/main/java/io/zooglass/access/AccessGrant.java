@@ -41,6 +41,11 @@ public final class AccessGrant {
         return elapsed >= 0 && elapsed < lifetimeNanos;
     }
 
+    boolean renewalDue() {
+        long elapsed = clock.getAsLong() - startedNanos;
+        return elapsed < 0 || elapsed >= lifetimeNanos / 2;
+    }
+
     public boolean permits(ViewResource requested) {
         return resource != null && resource.equals(requested) && isCurrent();
     }

@@ -124,8 +124,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             broadcaster.closeAccess(session);
             return;
         }
-        var result = broadcaster.subscribe(session, resource.viewId(), resource.entityId(),
-                () -> grant.permits(resource));
+        var result = broadcaster.subscribe(session, resource, grant);
         if (result == SnapshotBroadcaster.Admission.REFUSED) {
             broadcaster.refuseSubscription(session, resource.viewId(), resource.entityId(), "accessUnavailable");
         } else if (result == SnapshotBroadcaster.Admission.FAILED) {

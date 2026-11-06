@@ -131,7 +131,8 @@ The internal protected viewer listener requires direct TLS and an allowed
 browser Origin. Cookie-based socket handshakes must provide that Origin;
 non-browser bearer clients may omit it. Forwarding headers cannot substitute
 for connector TLS evidence. The viewer listener excludes publication, progress,
-retirement, registration and management routes.
+retirement, registration and management routes. A handler-level check also blocks
+management endpoints relocated beneath the viewer URL prefix.
 
 Protected deployment remains gated on active enforcement and an isolated
 operator path. A trusted TLS-terminating proxy will also need explicit backend

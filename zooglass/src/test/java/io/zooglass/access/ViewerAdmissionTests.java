@@ -78,7 +78,8 @@ class ViewerAdmissionTests {
                 "--server.port=0", "--spring.main.banner-mode=off", "--server.ssl.enabled=true",
                 "--server.ssl.key-store=" + directory.resolve("policy.p12").toUri(),
                 "--server.ssl.key-store-password=test-password", "--server.ssl.key-store-type=PKCS12",
-                "--server.forward-headers-strategy=none");
+                "--server.forward-headers-strategy=none",
+                "--management.endpoints.web.base-path=/views/admin");
         port = ((WebServerApplicationContext) service).getWebServer().getPort();
         client = HttpClient.newBuilder().sslContext(policy.trust).build();
     }
@@ -206,6 +207,23 @@ class ViewerAdmissionTests {
         } catch (java.io.IOException expectedTlsRefusal) {
             // TLS listeners may reject a plaintext request without an HTTP response.
         }
+    }
+
+    @Test
+    void relocatedManagementRoutesRemainOutsideTheViewerBoundary() throws Exception {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        decision.set(request -> {
+            calls.incrementAndGet();
+            return "{\"decision\":\"deny\"}";
+        });
+        for (String path : new String[] {"/views/admin", "/views/admin/health"}) {
+            var response = get(path, "viewer-token");
+            assertThat(response.statusCode()).as(path).isEqualTo(403);
+            assertThat(response.body()).isEmpty();
+        }
+        assertThat(calls.get()).isZero();
+        assertThat(get("/views/match/42", "viewer-token").statusCode()).isEqualTo(403);
+        assertThat(calls.get()).isEqualTo(1);
     }
 
     @Test

@@ -46,6 +46,7 @@ flowchart TB
   endpoints["runtime/RuntimeEndpoints.java"] -->|reads via| reads["access/SnapshotAdmission.java"]
   endpoints -->|registers upgrade checks| handshake["access/ViewerHandshake.java"]
   filter["access/ViewerBoundaryFilter.java"] -->|checks transport and credentials| access["access/AdmissionAccess.java"]
+  handlers["access/ViewerHandlerBoundary.java"] -->|permits only viewer handlers after routing| endpoints
   reads -->|decides exact resource| access
   handshake -->|authenticates before upgrade| access
   sockets["delivery/SnapshotSubscriptions.java"] -->|decides each subscription| access

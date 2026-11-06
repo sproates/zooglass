@@ -253,6 +253,40 @@ class ViewerAdmissionTests {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"deny", "unauthenticated", "broken"})
+    void silentSubscriptionsRenewAndCloseOnAccessLossWithoutAffectingOtherViewers(String failure) throws Exception {
+        String shortAllow = ALLOW.replace("5000", "600");
+        decision.set(request -> shortAllow);
+        try (var first = socket(Map.of("Authorization", "Bearer first"));
+                var other = socket(Map.of("Authorization", "Bearer other"))) {
+            first.subscribe("match", "silent-" + failure);
+            first.next();
+            first.next();
+            other.subscribe("match", "silent-" + failure);
+            other.next();
+            other.next();
+
+            var renewed = new CountDownLatch(2);
+            var callers = java.util.concurrent.ConcurrentHashMap.<String>newKeySet();
+            decision.set(request -> {
+                if (callers.add(request.path("credential").path("value").asText())) {
+                    renewed.countDown();
+                }
+                return shortAllow;
+            });
+            assertThat(renewed.await(3, TimeUnit.SECONDS)).isTrue();
+            assertThat(first.closed.isDone()).isFalse();
+            assertThat(other.closed.isDone()).isFalse();
+
+            decision.set(request -> "first".equals(request.path("credential").path("value").asText())
+                    ? "{\"decision\":\"" + failure + "\"}" : shortAllow);
+            assertThat(first.closed.get(3, TimeUnit.SECONDS)).isEqualTo(1008);
+            publish("silent-" + failure, 1);
+            assertThat(other.next().path("data").has("score")).isTrue();
+        }
+    }
+
     private HttpResponse<String> get(String path, String token) throws Exception {
         var request = HttpRequest.newBuilder(URI.create("https://localhost:" + port + path))
                 .timeout(Duration.ofSeconds(5));

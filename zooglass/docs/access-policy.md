@@ -4,9 +4,9 @@ The application owns identity and permissions. ZooGlass sends the caller's opaqu
 credential and the requested resource to its policy service, then uses the result
 to decide whether it may release a view.
 
-This document defines the policy client, strategies and admission handlers.
+This document defines the policy client, admission handlers and active grant lifecycle.
 **Protected serving is not enabled yet.** Admission is exercised through internal
-test wiring; active revocation and transport-release checks follow the
+test wiring; final transport-release checks follow the
 [accepted access contract](../../docs/design/view-access.md).
 
 Startup accepts `zooglass.access.mode=openDemo` (the default). Selecting
@@ -103,10 +103,9 @@ view/entity. An identity-only grant cannot authorise any resource. Decisions are
 not cached, and concurrent responses stay attached to their own requests.
 Grants exist only in memory.
 
-The admission handlers keep each socket bound to one subject. Active delivery
-must separately check and invalidate grants,
-discard superseded subscription generations and close connections on access loss.
-The five-second end-to-end revocation contract depends on that enforcement too.
+The admission handlers keep each socket bound to one subject. Active subscriptions
+retain their grants in memory and renew them during source silence. The five-second
+end-to-end contract also requires the final transport checks described below.
 
 ## HTTP and WebSocket admission
 
@@ -138,3 +137,28 @@ Protected deployment remains gated on active enforcement and an isolated
 operator path. A trusted TLS-terminating proxy will also need explicit backend
 isolation and forwarding-header handling before it is supported; the current
 admission fixture does not enable that deployment option.
+
+## Active subscriptions
+
+`ActiveViewGrants` tracks one grant per resource and connection. A repeat
+subscription creates a new generation; renewal replies for replaced or removed
+generations are discarded. Unsubscribe, disconnect and shutdown release this state.
+No grant is restored from storage.
+
+`GrantRenewals` checks every 25 milliseconds and starts renewal halfway through a
+grant's original lifetime. Policy I/O runs outside the registry and coordinator
+locks, with at most 32 concurrent renewal calls and no waiting work queue. The
+policy client's own concurrency and timeout limits still apply. If renewal
+capacity is unavailable, the affected socket loses access rather than retaining
+an unchecked grant.
+
+Expiry, denial, authentication failure or an unavailable renewal invalidates all
+of that socket's grants and closes it with code 1008. A renewal cannot change the
+subject, tenant or resource. An allow arriving after the old grant expired cannot
+revive the connection, even if the expiry sweep has not run yet. Other viewers
+keep independent grants.
+
+This lifecycle is wired into subscription admission and cleanup. It does not yet
+check frames already taken by the writer or HTTP chunks at final transport
+handoff. Those checks remain necessary before enabling protected startup; a timer
+alone does not establish the release cutoff.

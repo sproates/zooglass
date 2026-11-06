@@ -55,6 +55,26 @@ flowchart TB
   sockets -->|admits baseline or invalidates socket| broadcaster["delivery/SnapshotBroadcaster.java"]
 ```
 
+## Active subscription grants
+
+`SnapshotBroadcaster` owns the grant registry and renewal service only for protected
+connections. Its close operation stops renewal work. Policy I/O and access-loss
+callbacks run outside the registry monitor; publication never waits for a policy
+reply. Writer handoff checks remain the next delivery boundary.
+
+```mermaid
+flowchart TB
+  broadcaster["delivery/SnapshotBroadcaster.java"] -->|registers, admits and removes grants| registry["access/ActiveViewGrants.java"]
+  broadcaster -->|starts and stops renewal service| renewals["access/GrantRenewals.java"]
+  renewals -->|sweeps expiry and runs bounded renewal work| registry
+  registry -->|requests a fresh scoped decision| admission["access/AdmissionAccess.java"]
+  registry -->|checks expiry and renewal timing| grant["access/AccessGrant.java"]
+```
+
+The registry's access-loss callback removes the socket's delivery memberships and
+queued frames before requesting closure. Each replacement has a distinct generation,
+so a delayed reply cannot update or invalidate its successor.
+
 ## Durable tenant ownership
 
 `StoreTenant` verifies ownership before recovery. The offline adoption command

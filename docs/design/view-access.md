@@ -139,8 +139,9 @@ authorised baseline. A client that copied data before revocation owns that copy.
 
 The durable ownership boundary and offline adoption command are implemented;
 see the [storage guide](../../zooglass/docs/sqlite-storage.md#tenant-ownership).
-Tenant-aware startup and HTTP/WebSocket admission are exercised through internal
-test wiring. Protected serving remains gated on active release enforcement and
+Tenant-aware startup, HTTP/WebSocket admission and active subscription renewal
+are exercised through internal test wiring. Renewal handles expiry and access loss
+during source silence; final frame and HTTP chunk release checks remain outstanding. Protected serving remains gated on active release enforcement and
 an isolated operator path. The current admission boundary uses direct TLS;
 proxy termination requires its own backend-isolation verification.
 

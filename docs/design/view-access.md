@@ -13,7 +13,7 @@ points: snapshot read, subscription admission and release to the transport.
 
 ```mermaid
 flowchart LR
-    C[Viewer] -->|GET or subscribe| Z[ZooGlass]
+    C[Viewer] -->|HTTPS or WSS| Z[ZooGlass]
     Z -->|Credential, tenant, view, entity| P[Application policy service]
     P -->|Subject and time-limited grant, or denial| Z
     Z -->|Authorised baseline and updates| C
@@ -26,12 +26,31 @@ supplies neither the tenant nor the subject. Permission covers the entire
 snapshot, including status, provenance and publication sequences. Applications
 that need different field visibility expose separately authorised views.
 
+**Store ownership.** At initialisation, record the configured tenant in an
+empty durable store in one transaction. On every subsequent open, including
+restore from backup, verify ownership before readiness or serving any route.
+Refuse a mismatched tenant. Open demo mode must also refuse a tenant-bound store.
+
+A nonempty legacy store with no owner requires explicit offline adoption.
+With ZooGlass stopped, the operator verifies the data's provenance and takes a
+backup, then supplies the database path and intended tenant ID to an adoption
+command. Under an exclusive transaction it binds only an unbound store. A
+repeated adoption for the same tenant is harmless. A conflicting owner aborts
+the operation. Ordinary startup never adopts existing data implicitly.
+
 Use a startup choice between open demo access (the existing default) and
 application policy. Protected mode requires a tenant, a fixed policy endpoint,
 service authentication and an allowed browser origin. Invalid protected
 configuration fails startup. The policy service authenticates ZooGlass and
 ZooGlass verifies the service's TLS identity. Policy calls have a bounded
 timeout and never follow redirects.
+
+**Viewer transport.** Protected viewers use HTTPS for reads and WSS for
+subscriptions, including bearer clients. Terminate TLS at ZooGlass or at a
+trusted proxy. In the latter deployment only the proxy can reach the backend
+listener, and it strips and replaces client-supplied forwarding headers.
+Expose no plaintext viewer listener. Redirecting a credential-bearing HTTP
+request would already have exposed the credential.
 
 Forward only the configured opaque session cookie or the bearer credential
 from the request. Reject ambiguous credentials. Browsers use a secure,
@@ -54,7 +73,8 @@ and each socket to one subject. A changed subject requires a new connection.
 | --- | --- |
 | Either HTTP snapshot route | Check before lookup and again at release. Missing, invalid or expired credentials receive 401. Authenticated denial receives 403. An unavailable decision receives 503. Only an authorised lookup can reveal a missing view (404). Send protected responses with `Cache-Control: no-store`. |
 | Open a socket | Validate identity at the handshake. Reject invalid credentials or origin before upgrade. Identity alone grants no subscription. |
-| Subscribe, including repeat subscribe | Obtain a fresh resource decision. Check it when admitting the acknowledgement and baseline together. A denied request receives a generic `accessDenied` error and creates no subscription. An unavailable policy returns `accessUnavailable` and no data. |
+| Subscribe to an inactive resource | Obtain a fresh resource decision. Check it when admitting the acknowledgement and baseline together. A denied request receives a generic `accessDenied` error and creates no subscription. An unavailable policy returns `accessUnavailable` and no data. |
+| Repeat subscribe to an active resource | Obtain a fresh decision. An allow admits a new generation. A denial or unavailable decision invalidates the active grant and closes the whole socket with 1008, even if another subscription is still allowed. Discard queued payloads for both generations before any further release. |
 | Reconnect after disconnect or service restart | Authenticate again and decide each requested resource anew. An allowed client gets the [current baseline](client-delivery.md). Keep grants out of the restored store. |
 
 The identity check at upgrade uses the same policy endpoint with an
@@ -89,8 +109,21 @@ Each queued baseline or update carries its subscription generation and grant
 reference. Recheck membership, generation and deadline at the final handoff of
 each frame to the transport, including frames already taken from the queue.
 Serialise invalidation with that handoff. A timer alone cannot provide the
-cutoff after a scheduling delay. Apply the same rule to HTTP response release.
-Bytes handed to the transport before cutoff can arrive afterwards.
+cutoff after a scheduling delay. Bytes handed to the transport before cutoff
+can arrive afterwards.
+
+**HTTP release.** Serialise a snapshot into application-owned bytes and offer
+bounded chunks to the HTTP transport when its writer is ready. Returning from
+the controller, completing serialisation and queuing a chunk in ZooGlass all
+precede release. Release occurs when the transport accepts a chunk. Check the
+current grant and deadline at each nonblocking handoff, ordered with invalidation.
+A stalled writer must wait outside that boundary and check again when ready.
+
+Before committing success headers, authorise the first chunk. If access fails
+while the response is still uncommitted, return the applicable error above.
+After commitment, discard the remaining bytes and abort the response stream.
+The client discards an incomplete snapshot. It cannot receive a replacement
+HTTP status or a successful end-of-body marker on the aborted response.
 
 On loss of an active grant, invalidate the socket's memberships, discard
 waiting frames and close with code 1008. Closing the whole socket gives one
@@ -110,7 +143,21 @@ WebSocket interfaces with these observations:
 - Allow one caller and deny another for the same order. Try both HTTP routes,
   an unauthorised entity, a tenant mismatch, an invalid credential and a
   disallowed browser origin. Check the response and the absence of a baseline.
-- Block a snapshot or socket write, revoke access and release the block. Observe
+- Restore tenant A's database under tenant B, with order 42 present in both.
+  Startup must fail before readiness. Check open-mode refusal, legacy-store
+  refusal and offline adoption followed by a successful same-tenant restart.
+- From the viewer network, verify HTTPS and WSS with a synthetic bearer.
+  Attempt plaintext HTTP, WebSocket and direct backend access, including spoofed
+  forwarding headers. None may reach an authenticated viewer route.
+- Subscribe to two orders on one socket. Deny a repeat request for the first,
+  then run the case again with the policy service unavailable. In each case
+  check that both subscriptions end, queued updates are discarded and another
+  viewer continues receiving updates.
+- Hold the HTTP writer before the first chunk, then between two chunks of a
+  large response. Revoke access and advance past the grant deadline before
+  resuming. Observe no further transport handoff in either case. Verify an
+  error before commitment and a truncated or reset stream after commitment.
+- Block a socket write, revoke access and release the block. Observe
   the last authorised handoff against the authority's commit time. Cover a frame
   taken from the queue, a delayed allow reply, coalescing and several subscriptions
   on one socket. A separate permitted socket must continue receiving updates.

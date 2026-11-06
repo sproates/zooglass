@@ -1,6 +1,6 @@
 # Who can read a live view?
 
-**Proposed contract.** An order operator can read order 42 while assigned to it. If
+**Accepted contract.** An order operator can read order 42 while assigned to it. If
 the assignment ends while the order is on screen, ZooGlass stops releasing its
 data within five seconds. A fresh subscription requires a new decision. Another
 operator who still has access continues receiving updates.
@@ -134,6 +134,10 @@ callbacks from the old connection. It may show data again only after a fresh
 authorised baseline. A client that copied data before revocation owns that copy.
 
 ## Delivery and acceptance
+
+The durable ownership boundary and offline adoption command are implemented;
+see the [storage guide](../../zooglass/docs/sqlite-storage.md#tenant-ownership).
+Tenant-aware serving remains internal until the access handlers are complete.
 
 Implement admission first and active enforcement second. Enable protected mode
 for users only once both are in place. Workbench supplies an application policy

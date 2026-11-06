@@ -1,5 +1,7 @@
 package io.zooglass;
 
+import io.zooglass.runtime.StoreAdoption;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,6 +19,10 @@ public class ZooGlassApplication {
     }
 
     public static void main(String[] args) {
+        if (args.length > 0 && "adopt-store".equals(args[0])) {
+            StoreAdoption.run(args);
+            return;
+        }
         SpringApplication.run(ZooGlassApplication.class, args);
     }
 }

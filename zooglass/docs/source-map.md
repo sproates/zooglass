@@ -11,6 +11,24 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Durable tenant ownership
+
+`StoreTenant` verifies ownership before recovery. The offline adoption command
+uses the same connection settings and row validation without starting Spring.
+Tenant-aware serving remains gated on the rest of the access implementation.
+
+```mermaid
+flowchart LR
+  app["ZooGlassApplication.java"] -->|dispatches adopt-store before server startup| adopt["runtime/StoreAdoption.java"]
+  adopt -->|opens existing file exclusively| connection["runtime/SqliteConnection.java"]
+  adopt -->|validates then binds tenant| tenant["runtime/StoreTenant.java"]
+  adopt -->|validates stored configuration and state| rows["runtime/SqliteStateRows.java"]
+  state["runtime/SqliteState.java"] -->|opens runtime connection| connection
+  state -->|checks owner before restoring| tenant
+  state -->|restores and persists state| rows
+  rows -->|preserves ownership across schema upgrades| tenant
+```
+
 ## Revise and retire facts
 
 The `strategy/fact/` modules own revision and projection decisions. Their state is

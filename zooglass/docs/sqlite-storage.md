@@ -27,6 +27,39 @@ while the service is running.
 Memory mode remains the default. All interfaces use the configured store;
 Workbench starts isolated memory-mode sessions for its scenarios.
 
+## Tenant ownership
+
+The store now supports the [view-access contract](../../docs/design/view-access.md).
+A bound database records its tenant before any state is restored. Opening it for
+another tenant fails, even if both tenants use the same view and entity IDs.
+Open demo mode also refuses bound databases.
+
+**Protected serving is not enabled yet.** The tenant-aware store entry point is
+internal until admission and active revocation are implemented. Existing unowned
+demo databases continue to work. Do not adopt a demo database you need to keep
+using with the current server.
+
+To prepare an existing database for protected use:
+
+1. Stop ZooGlass and verify which tenant owns the stored data.
+2. Take a backup of the stopped database.
+3. Run the offline command:
+
+   ```sh
+   java -jar target/zooglass.jar adopt-store /absolute/path/zooglass.sqlite tenant-a
+   ```
+
+The command does not start a server. It validates the existing configuration and
+state under an exclusive transaction, then records the owner. It refuses missing
+files, invalid state, a running database owner or a different recorded tenant.
+Repeating it for the same tenant is harmless. Startup never adopts an existing
+unowned database implicitly, including an initialised database with no events.
+
+Ownership uses schema 7 with a separate data-schema marker for schemas 4–6.
+Later data migrations preserve ownership. Older binaries reject schema 7; use
+the pre-adoption backup to return to unowned demo mode. Ownership is a deployment
+check, not encryption or protection against someone who can edit the database.
+
 ## What survives a restart
 
 One transaction saves the publication identity, retained sequence floor, affected

@@ -22,7 +22,7 @@ class LegacySettingsTests {
                             ? new SystemEnvironmentPropertySource("env", values)
                             : new MapPropertySource("deployment", values);
             context.getEnvironment().getPropertySources().addFirst(source);
-            context.register(ViewCoordinator.class);
+            context.register(io.zooglass.access.AdmissionAccess.class, ViewCoordinator.class);
             assertThat(catchThrowable(context::refresh))
                     .hasRootCauseMessage(
                             "Migrate the view definitions from zooglass.views.config to a runtime"
@@ -38,7 +38,7 @@ class LegacySettingsTests {
             context.getEnvironment()
                     .getPropertySources()
                     .addFirst(new MapPropertySource("deployment", Map.of(legacy, "old-setting")));
-            context.register(ViewCoordinator.class);
+            context.register(io.zooglass.access.AdmissionAccess.class, ViewCoordinator.class);
             Throwable failure = catchThrowable(context::refresh);
             assertThat(failure)
                     .isNotNull()

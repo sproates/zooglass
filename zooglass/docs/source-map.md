@@ -14,8 +14,8 @@ dependencies are omitted except where needed to explain startup.
 ## Access policy decisions
 
 The `access/` modules implement policy decisions without depending on the view
-coordinator. Admission and delivery wiring will use these primitives in later
-increments. `AccessGrant` contains process-local evidence, never durable state.
+coordinator. Admission handlers use these primitives; final transport-release
+checks follow in the active-delivery increment. `AccessGrant` contains process-local evidence, never durable state.
 
 ```mermaid
 flowchart TB
@@ -33,6 +33,27 @@ flowchart TB
 and `ViewResource` carry their results and resource identity; `PolicyClient`
 is the I/O boundary used by the application strategy. See the
 [policy protocol](access-policy.md) for settings, credentials and failure outcomes.
+
+## Viewer admission
+
+`AdmissionAccess` owns the startup gate and common credential/decision checks.
+The protected viewer listener accepts only view reads and subscriptions. It is
+constructed by acceptance tests until active delivery enforcement is ready.
+Policy I/O happens outside the coordinator monitor.
+
+```mermaid
+flowchart TB
+  endpoints["runtime/RuntimeEndpoints.java"] -->|reads via| reads["access/SnapshotAdmission.java"]
+  endpoints -->|registers upgrade checks| handshake["access/ViewerHandshake.java"]
+  filter["access/ViewerBoundaryFilter.java"] -->|checks transport and credentials| access["access/AdmissionAccess.java"]
+  handlers["access/ViewerHandlerBoundary.java"] -->|permits only viewer handlers after routing| endpoints
+  reads -->|decides exact resource| access
+  handshake -->|authenticates before upgrade| access
+  sockets["delivery/SnapshotSubscriptions.java"] -->|decides each subscription| access
+  access -->|calls selected strategy| strategy["access/ViewerAccess.java"]
+  reads -->|looks up only after allow| coordinator["runtime/ViewCoordinator.java"]
+  sockets -->|admits baseline or invalidates socket| broadcaster["delivery/SnapshotBroadcaster.java"]
+```
 
 ## Durable tenant ownership
 

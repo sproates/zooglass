@@ -1,5 +1,6 @@
 package io.zooglass.runtime;
 
+import io.zooglass.access.AdmissionAccess;
 import io.zooglass.runtime.StateImage.Receipt;
 import io.zooglass.runtime.StateImage.StoredView;
 import io.zooglass.runtime.StateImage.StreamState;
@@ -56,10 +57,10 @@ public final class ViewCoordinator implements AutoCloseable {
     private boolean closed;
 
     @Autowired
-    public ViewCoordinator(ResourceLoader resources, Environment environment) {
+    public ViewCoordinator(ResourceLoader resources, Environment environment, AdmissionAccess access) {
         this(
                 loadConfiguration(resources, environment),
-                environment.getProperty("zooglass.database", ""));
+                environment.getProperty("zooglass.database", ""), ReceiptClock.SYSTEM, access.tenant());
     }
 
     private static RuntimeConfiguration loadConfiguration(
@@ -90,6 +91,10 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock) {
+        this(configuration, database, clock, null);
+    }
+
+    ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant) {
         this.clock = clock;
         this.configuration = configuration;
         configuration.validate();
@@ -126,7 +131,7 @@ public final class ViewCoordinator implements AutoCloseable {
                         new SqliteState(
                                 database,
                                 configuration,
-                                freshness == null ? UnaryOperator.identity() : freshness::recover);
+                                freshness == null ? UnaryOperator.identity() : freshness::recover, tenant);
             } else {
                 storage = new InMemoryState();
                 if (freshness != null) {

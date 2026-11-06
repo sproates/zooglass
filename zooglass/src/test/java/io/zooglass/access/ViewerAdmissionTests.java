@@ -287,6 +287,67 @@ class ViewerAdmissionTests {
         }
     }
 
+    @Test
+    void blockedSocketCleanupDoesNotDelayAnotherViewersRenewal() throws Exception {
+        var firstPolicy = new CountDownLatch(1);
+        var healthyRenewed = new CountDownLatch(1);
+        var releasePolicy = new CountDownLatch(1);
+        var releaseCoordinator = new CountDownLatch(1);
+        var coordinatorHeld = new CountDownLatch(1);
+        decision.set(request -> ALLOW.replace("5000",
+                "first".equals(request.path("credential").path("value").asText()) ? "1000" : "3000"));
+        try (var first = socket(Map.of("Authorization", "Bearer first"));
+                var healthy = socket(Map.of("Authorization", "Bearer healthy"))) {
+            first.subscribe("match", "blocked-cleanup");
+            first.next();
+            first.next();
+            healthy.subscribe("match", "blocked-cleanup");
+            healthy.next();
+            healthy.next();
+            decision.set(request -> {
+                if ("first".equals(request.path("credential").path("value").asText())) {
+                    firstPolicy.countDown();
+                    awaitRelease(releasePolicy);
+                } else {
+                    healthyRenewed.countDown();
+                }
+                return ALLOW;
+            });
+            var blocked = CompletableFuture.runAsync(() -> {
+                synchronized (service.getBean(ViewCoordinator.class)) {
+                    coordinatorHeld.countDown();
+                    awaitRelease(releaseCoordinator);
+                }
+            });
+            try {
+                assertThat(coordinatorHeld.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(firstPolicy.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(healthyRenewed.await(4, TimeUnit.SECONDS))
+                        .as("healthy renewal proceeds while expired socket cleanup waits for coordinator")
+                        .isTrue();
+            } finally {
+                releaseCoordinator.countDown();
+                releasePolicy.countDown();
+                blocked.get(2, TimeUnit.SECONDS);
+            }
+            assertThat(first.closed.get(3, TimeUnit.SECONDS)).isEqualTo(1008);
+            publish("blocked-cleanup", 1);
+            assertThat(healthy.next().path("data").has("score")).isTrue();
+        } finally {
+            releaseCoordinator.countDown();
+            releasePolicy.countDown();
+        }
+    }
+
+    private static void awaitRelease(CountDownLatch release) {
+        try {
+            if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("Test barrier not released");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interrupted);
+        }
+    }
+
     private HttpResponse<String> get(String path, String token) throws Exception {
         var request = HttpRequest.newBuilder(URI.create("https://localhost:" + port + path))
                 .timeout(Duration.ofSeconds(5));

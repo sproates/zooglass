@@ -154,7 +154,9 @@ an unchecked grant.
 
 Expiry, denial, authentication failure or an unavailable renewal invalidates all
 of that socket's grants and closes it with code 1008. A renewal cannot change the
-subject, tenant or resource. An allow arriving after the old grant expired cannot
+subject, tenant or resource. Socket cleanup is dispatched separately after grant
+invalidation, so waiting for the coordinator cannot block renewal or expiry for
+other viewers. An allow arriving after the old grant expired cannot
 revive the connection, even if the expiry sweep has not run yet. Other viewers
 keep independent grants.
 

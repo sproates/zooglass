@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Function;
 import java.util.function.BooleanSupplier;
 
@@ -51,7 +52,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
 
     @Autowired
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator, AdmissionAccess access) {
-        this.grants = access.protectedMode() ? new ActiveViewGrants(access, this::closeAccess) : null;
+        this.grants = access.protectedMode() ? new ActiveViewGrants(access, this::requestAccessClose) : null;
         this.objectMapper = objectMapper;
         this.coordinator = coordinator;
         this.settings = coordinator.delivery();
@@ -133,6 +134,17 @@ public class SnapshotBroadcaster implements AutoCloseable {
             } else {
                 send(session, new AccessError("error", code));
             }
+        }
+    }
+
+    private void requestAccessClose(WebSocketSession session) {
+        // Grants are already invalidated. Never make expiry scans or policy workers
+        // wait for coordinator work while removing delivery state.
+        try {
+            outboundExecutor.execute(() -> closeAccess(session));
+        } catch (RejectedExecutionException stopped) {
+            // Shutdown has removed memberships and stopped writers already.
+            requestClose(session, CloseStatus.POLICY_VIOLATION);
         }
     }
 

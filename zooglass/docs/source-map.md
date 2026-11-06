@@ -71,8 +71,10 @@ flowchart TB
   registry -->|checks expiry and renewal timing| grant["access/AccessGrant.java"]
 ```
 
-The registry's access-loss callback removes the socket's delivery memberships and
-queued frames before requesting closure. Each replacement has a distinct generation,
+The registry invalidates grants first. Its access-loss callback dispatches cleanup
+on the broadcaster's virtual-thread executor, which removes delivery memberships
+and queued frames before requesting closure. Waiting for the coordinator therefore
+does not block the expiry timer or policy workers. Each replacement has a distinct generation,
 so a delayed reply cannot update or invalidate its successor.
 
 ## Durable tenant ownership

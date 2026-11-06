@@ -11,6 +11,29 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Access policy decisions
+
+The `access/` modules implement policy decisions without depending on the view
+coordinator. Admission and delivery wiring will use these primitives in later
+increments. `AccessGrant` contains process-local evidence, never durable state.
+
+```mermaid
+flowchart TB
+  selection["access/AccessStrategySelection.java"] -->|selects open access| open["access/OpenDemoAccess.java"]
+  selection -->|selects application policy| policy["access/ApplicationPolicyAccess.java"]
+  selection -->|uses validated settings| settings["access/PolicySettings.java"]
+  policy -->|starts deadline before call| grant["access/AccessGrant.java"]
+  policy -->|asks for a fresh decision| client["access/HttpsPolicyClient.java"]
+  client -->|encodes request and validates reply| json["access/PolicyJson.java"]
+  client -->|caps incoming bytes| body["access/LimitedPolicyBody.java"]
+  json -->|reads selected opaque credential| credential["access/ViewerCredential.java"]
+```
+
+`ViewerAccess` defines only these access decisions. `AccessDecision`, `PolicyReply`
+and `ViewResource` carry their results and resource identity; `PolicyClient`
+is the I/O boundary used by the application strategy. See the
+[policy protocol](access-policy.md) for settings, credentials and failure outcomes.
+
 ## Durable tenant ownership
 
 `StoreTenant` verifies ownership before recovery. The offline adoption command

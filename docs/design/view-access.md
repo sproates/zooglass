@@ -83,8 +83,10 @@ HTTP and socket errors omit protected data and details of other resources.
 
 ## Where the code belongs
 
-The proposed `OpenDemoAccess` and `ApplicationPolicyAccess` modules own the
-two configured behaviours. Startup selects one for the HTTP and socket handlers.
+The `OpenDemoAccess` and `ApplicationPolicyAccess` modules implement the
+two access behaviours; their [policy protocol](../../zooglass/docs/access-policy.md)
+is defined separately. Admission wiring will select one at startup for the HTTP
+and socket handlers.
 The latter uses a policy client to obtain grants and a local grant registry
 to check deadlines and invalidate subscription generations. The writer checks
 the local grant at release. This keeps a slow policy call off the publication

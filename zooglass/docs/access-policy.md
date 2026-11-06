@@ -6,7 +6,7 @@ to decide whether it may release a view.
 
 This document defines the policy client, admission handlers and active grant lifecycle.
 **Protected serving is not enabled yet.** Admission is exercised through internal
-test wiring; final transport-release checks follow the
+test wiring; HTTP transport-release checks and deployment wiring still follow the
 [accepted access contract](../../docs/design/view-access.md).
 
 Startup accepts `zooglass.access.mode=openDemo` (the default). Selecting
@@ -104,8 +104,8 @@ not cached, and concurrent responses stay attached to their own requests.
 Grants exist only in memory.
 
 The admission handlers keep each socket bound to one subject. Active subscriptions
-retain their grants in memory and renew them during source silence. The five-second
-end-to-end contract also requires the final transport checks described below.
+retain their grants in memory and renew them during source silence. Socket delivery
+checks the current grant again at transport handoff.
 
 ## HTTP and WebSocket admission
 
@@ -123,8 +123,9 @@ baseline together. Expiry during message preparation refuses admission.
 An inactive subscription failure sends `accessDenied` or `accessUnavailable`
 without a baseline. A failure for an already-active subscription removes all
 memberships and queued messages and closes that socket with code 1008. A changed
-subject also closes it. Other sockets remain independent. Final checks for a
-frame already taken by the writer belong to active delivery enforcement.
+subject also closes it. Other sockets remain independent. Denial invalidates the
+grant before delivery cleanup can wait for the coordinator. The writer checks
+frames already taken from the queue as well as those still waiting.
 
 The internal protected viewer listener requires direct TLS and an allowed
 browser Origin. Cookie-based socket handshakes must provide that Origin;
@@ -160,7 +161,24 @@ other viewers. An allow arriving after the old grant expired cannot
 revive the connection, even if the expiry sweep has not run yet. Other viewers
 keep independent grants.
 
-This lifecycle is wired into subscription admission and cleanup. It does not yet
-check frames already taken by the writer or HTTP chunks at final transport
-handoff. Those checks remain necessary before enabling protected startup; a timer
-alone does not establish the release cutoff.
+## Protected WebSocket release
+
+Every acknowledgement, baseline and update carries its connection and subscription
+generation. Connection-level replies also require the connection's active grants
+to remain current. Replacement and unsubscribe discard obsolete waiting frames;
+frames already taken by the writer are checked again before submission.
+
+The writer uses Jakarta WebSocket's asynchronous text submission. Under the grant
+monitor, it checks connection membership, generation and deadlines, then submits
+the frame. Invalidation uses the same monitor. A successful renewal updates the
+grant used by frames already queued for that generation; a replaced generation
+cannot borrow its successor's grant. A lease cannot authorise another connection.
+
+Release means handing the complete text frame to the transport, not its eventual
+arrival at the client. The writer waits for send completion outside the grant and
+coordinator monitors, with only one frame outstanding per socket. Data already
+handed to the transport before cutoff may arrive later. Unsupported transport
+adapters cannot fall back to a blocking protected send.
+
+HTTP chunk checks and protected deployment wiring remain outstanding. Protected
+startup stays disabled until those boundaries are complete.

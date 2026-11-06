@@ -1,6 +1,7 @@
 package io.zooglass.delivery;
 
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
+import io.zooglass.access.ActiveViewGrants;
 
 import org.springframework.web.socket.WebSocketSession;
 
@@ -17,12 +18,21 @@ final class OutboundWriter {
     private final WebSocketSession session;
     private final OutboundQueue queue;
     private final Future<?> task;
+    private final AuthorisedSocketTransport protectedTransport;
+    private final ActiveViewGrants grants;
 
     OutboundWriter(
             WebSocketSession session,
             ExecutorService executor,
             Delivery settings,
             BiConsumer<OutboundWriter, Exception> onFailure) {
+        this(session, executor, settings, onFailure, null);
+    }
+
+    OutboundWriter(WebSocketSession session, ExecutorService executor, Delivery settings,
+            BiConsumer<OutboundWriter, Exception> onFailure, ActiveViewGrants grants) {
+        this.grants = grants;
+        this.protectedTransport = grants == null ? null : new AuthorisedSocketTransport(session, grants);
         this.session = session;
         this.queue = new OutboundQueue(settings);
         this.onFailure = onFailure;
@@ -30,11 +40,19 @@ final class OutboundWriter {
     }
 
     OutboundQueue.Admission enqueueProtected(List<OutboundQueue.Frame> batch) {
+        discardSuperseded();
         return queue.offerProtected(batch);
     }
 
     OutboundQueue.Admission enqueueUpdate(long generation, OutboundQueue.Frame frame) {
+        discardSuperseded();
         return queue.offerUpdate(generation, frame);
+    }
+
+    private void discardSuperseded() {
+        if (grants != null) {
+            queue.discard(frame -> grants.superseded(frame.lease()));
+        }
     }
 
     void stop() {
@@ -49,7 +67,11 @@ final class OutboundWriter {
                 if (frame == null) {
                     return;
                 }
-                session.sendMessage(frame.message());
+                if (protectedTransport == null) {
+                    session.sendMessage(frame.message());
+                } else {
+                    protectedTransport.send(frame);
+                }
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

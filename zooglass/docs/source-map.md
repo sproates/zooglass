@@ -14,8 +14,8 @@ dependencies are omitted except where needed to explain startup.
 ## Access policy decisions
 
 The `access/` modules implement policy decisions without depending on the view
-coordinator. Admission handlers use these primitives; final transport-release
-checks follow in the active-delivery increment. `AccessGrant` contains process-local evidence, never durable state.
+coordinator. Admission and active WebSocket delivery use these primitives; HTTP transport-release
+checks follow in the next increment. `AccessGrant` contains process-local evidence, never durable state.
 
 ```mermaid
 flowchart TB
@@ -60,7 +60,7 @@ flowchart TB
 `SnapshotBroadcaster` owns the grant registry and renewal service only for protected
 connections. Its close operation stops renewal work. Policy I/O and access-loss
 callbacks run outside the registry monitor; publication never waits for a policy
-reply. Writer handoff checks remain the next delivery boundary.
+reply. The writer checks the same registry at final handoff.
 
 ```mermaid
 flowchart TB
@@ -76,6 +76,27 @@ on the broadcaster's virtual-thread executor, which removes delivery memberships
 and queued frames before requesting closure. Waiting for the coordinator therefore
 does not block the expiry timer or policy workers. Each replacement has a distinct generation,
 so a delayed reply cannot update or invalidate its successor.
+
+## Protected socket release
+
+A queued `OutboundQueue.Frame` shares its payload but holds a lease for its own
+recipient and subscription generation. Superseded waiting frames are pruned before
+new admission. The lease is also checked after `take`, so replacement, unsubscribe
+or expiry cannot be bypassed by a frame already held by the writer.
+
+```mermaid
+flowchart TB
+  broadcaster["delivery/SnapshotBroadcaster.java"] -->|captures generation leases| grants["access/ActiveViewGrants.java"]
+  broadcaster -->|queues scoped frames| writer["delivery/OutboundWriter.java"]
+  writer -->|takes and prunes frames| queue["delivery/OutboundQueue.java"]
+  writer -->|protected submission| transport["delivery/AuthorisedSocketTransport.java"]
+  transport -->|orders grant check and submission with invalidation| grants
+  transport -->|submits text asynchronously| socket("Jakarta WebSocket transport")
+```
+
+The adapter waits for completion outside grant and coordinator monitors. It does
+not substitute the blocking Spring send when a native async transport is absent.
+Open-demo writers retain their existing transport path.
 
 ## Durable tenant ownership
 

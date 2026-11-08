@@ -14,8 +14,8 @@ to connect an application's authority.
 | --- | --- |
 | Allowed access | [ProtectedDeploymentTests](../../zooglass/src/test/java/io/zooglass/access/ProtectedDeploymentTests.java) publishes through the operator socket and reads real HTTP/WSS views. [Workbench acceptance](../../workbench/test/browser/protected-access.test.ts) renders positions and subsequent updates in the basic demo. |
 | Denied access | [ViewerAdmissionTests](../../zooglass/src/test/java/io/zooglass/access/ViewerAdmissionTests.java) checks missing credentials, unauthenticated decisions, denial and unavailable decisions on HTTP and socket admission. Errors contain no view data. Workbench checks a denied subscriber stays empty. |
-| Resource and tenant isolation | `ViewerAdmissionTests.permissionForOneResourceCannotBeReusedByChangingIdentifiers` changes both entity and view IDs on HTTP and an already-authorised socket. Denied subscriptions cannot insert a baseline. [StoreTenantTests](../../zooglass/src/test/java/io/zooglass/runtime/StoreTenantTests.java) and `ProtectedDeploymentTests` reject a different tenant's database; grants do not select tenancy from client input. |
-| Revocation during updates | Workbench keeps publishing while the authority denies one viewer. That viewer closes with 1008 and clears its display; another continues receiving updates. [NativeWssBackpressureTests](../../zooglass/src/test/java/io/zooglass/access/NativeWssBackpressureTests.java) observes actual transport submissions with an unread TLS peer and verifies queued data is suppressed after invalidation. |
+| Resource and tenant isolation | `ViewerAdmissionTests.permissionForOneResourceCannotBeReusedByChangingIdentifiers` changes both entity and view IDs on HTTP and an already-authorised socket. A second populated view has a distinct payload, first read successfully by an allowed caller. Denied subscriptions cannot insert a baseline. [StoreTenantTests](../../zooglass/src/test/java/io/zooglass/runtime/StoreTenantTests.java) and `ProtectedDeploymentTests` reject a different tenant's database; grants do not select tenancy from client input. |
+| Revocation during updates | Workbench keeps publishing while the authority denies one viewer. That viewer closes with 1008 and clears its display; another continues receiving updates. [NativeWssBackpressureTests](../../zooglass/src/test/java/io/zooglass/access/NativeWssBackpressureTests.java) timestamps authority commit and actual native handoffs on one monotonic clock. It keeps publishing across the five-second cutoff, then resumes the stalled peer and checks that no queued successor is submitted. |
 | Expiry | [AccessStrategyTests](../../zooglass/src/test/java/io/zooglass/access/AccessStrategyTests.java) checks the five-second cap, shorter lifetimes and delayed replies. [GrantReleaseTests](../../zooglass/src/test/java/io/zooglass/access/GrantReleaseTests.java) rejects a handoff exactly at expiry without waiting for the timer. Workbench also exercises an authority declaring the viewer credential expired while publication continues. |
 | Reconnect and restart | `ProtectedDeploymentTests` checks fresh decisions after restart in memory and durable modes; revoked access is not restored. Workbench checks refusal while still denied, a fresh baseline after permission returns, and normal/abnormal connection loss. Old callbacks cannot repopulate cleared data. |
 | Decision failures and races | [AdmissionDeadlineTests](../../zooglass/src/test/java/io/zooglass/access/AdmissionDeadlineTests.java) expires grants during opening-message preparation. [ActiveViewGrantsTests](../../zooglass/src/test/java/io/zooglass/access/ActiveViewGrantsTests.java) covers outstanding renewal, expiry and superseded replies. [AuthorisedWriterTests](../../zooglass/src/test/java/io/zooglass/delivery/AuthorisedWriterTests.java) blocks taken or queued frames after invalidation. Workbench makes the authority return HTTP 503 during publication and observes clearing and recovery. |
@@ -29,8 +29,12 @@ that original deadline.
 
 Controlled-clock tests establish the exact cutoff. They test the instant before
 expiry and expiry itself, including a frame already removed from its queue.
-The native WSS test separately establishes that transport backpressure does not
-hold the grant monitor or delay an unrelated viewer. It delegates to the actual
+The native WSS test timestamps the authority's revocation commit and both entry
+and return of actual native send calls with `System.nanoTime()`. It compares the
+last handoff with commit plus five seconds for a flowing viewer and a stalled
+viewer. Publications continue beyond the cutoff; another allowed viewer must
+receive updates on both sides of it. The stalled peer resumes reading afterwards,
+without releasing its queued successor. The probe delegates to the actual
 asynchronous transport; it does not simulate send completion.
 
 For HTTP, [AuthorisedHttpWriterTests](../../zooglass/src/test/java/io/zooglass/delivery/AuthorisedHttpWriterTests.java)

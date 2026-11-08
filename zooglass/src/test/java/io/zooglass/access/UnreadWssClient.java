@@ -4,6 +4,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 
 import java.io.ByteArrayOutputStream;
+import java.net.SocketException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -62,6 +65,25 @@ final class UnreadWssClient implements AutoCloseable {
         for (int index = 0; index < text.length; index++) output.write(text[index] ^ mask[index % 4]);
         output.flush();
         // Deliberately no frame reads: TCP backpressure reaches the actual TLS transport.
+    }
+
+    /** Drain previously accepted bytes so the real transport can finish closing. */
+    CompletableFuture<Long> resumeReading() throws Exception {
+        socket.setReceiveBufferSize(1024 * 1024);
+        return CompletableFuture.supplyAsync(() -> {
+            long bytes = 0;
+            byte[] buffer = new byte[65536];
+            try {
+                int count;
+                while ((count = socket.getInputStream().read(buffer)) != -1) bytes += count;
+                return bytes;
+            } catch (SocketException closed) {
+                // Revocation may abort rather than gracefully finish the transport.
+                return bytes;
+            } catch (Exception failure) {
+                throw new CompletionException(failure);
+            }
+        });
     }
 
     @Override

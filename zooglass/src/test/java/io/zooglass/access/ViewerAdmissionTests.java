@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.zooglass.ZooGlassApplication;
 import io.zooglass.runtime.Publication;
+import io.zooglass.runtime.RuntimeConfiguration;
 import io.zooglass.runtime.ViewCoordinator;
 
 import org.junit.jupiter.api.AfterAll;
@@ -129,8 +130,21 @@ class ViewerAdmissionTests {
     void permissionForOneResourceCannotBeReusedByChangingIdentifiers() throws Exception {
         publish("scope-allowed", 1);
         publish("scope-denied", 1);
+        var runtime = service.getBean(ViewCoordinator.class);
+        assertThat(runtime.define(new RuntimeConfiguration.View("other", Map.of("privateDetail",
+                new RuntimeConfiguration.Field("bookmaker", "private.detail", "arrival"))))).isTrue();
+        runtime.apply(new Publication("bookmaker", "run", "scope-allowed", 1, "private.detail",
+                JSON.readTree("{\"secret\":\"second-view-only\"}")));
+        for (String path : new String[] {"/views/other/scope-allowed",
+                "/views?viewId=other&entityId=scope-allowed"}) {
+            var response = get(path, "allowed-for-both");
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(JSON.readTree(response.body()).at("/data/privateDetail/secret").asText())
+                    .isEqualTo("second-view-only");
+        }
         decision.set(request -> {
-            if (request.path("operation").asText().equals("authenticate")) return ALLOW;
+            if (request.path("operation").asText().equals("authenticate")
+                    || request.path("credential").path("value").asText().equals("allowed-for-both")) return ALLOW;
             var resource = request.path("resource");
             return resource.path("viewId").asText().equals("match")
                     && resource.path("entityId").asText().equals("scope-allowed")

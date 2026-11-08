@@ -172,6 +172,14 @@ for (const failure of ["deny", "unauthenticated", "unavailable"] as const) {
           .filter({ hasText: "connection failed" })
           .waitFor();
         await cleared(page);
+        const sequenceAtLoss = latest;
+        await healthy.waitForFunction(
+          (sequence) =>
+            Number(document.getElementById("current-sequence")?.textContent) >=
+            sequence,
+          sequenceAtLoss + 2,
+          { timeout: 5000 },
+        );
         assert.ok(
           (await page.evaluate(() => window.acceptanceClosed)).includes(1008),
         );

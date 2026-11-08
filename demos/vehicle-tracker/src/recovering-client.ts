@@ -41,6 +41,14 @@ export function createRecoveringClient(
   fail: (reason: string) => void,
   binding: ClientBinding,
 ) {
+  function clearProtectedData() {
+    try {
+      binding.clearProtectedData?.();
+    } catch {
+      // A broken renderer must not prevent connection cleanup and cancellation.
+    }
+  }
+
   const desired = new Map<string, { viewId: string; entityId: string }>();
   let generation = 0;
   let observationIndex = 0;
@@ -82,6 +90,7 @@ export function createRecoveringClient(
     }
     failed = reason;
     cancel();
+    clearProtectedData();
     instance++;
     current.close();
     try {
@@ -125,6 +134,11 @@ export function createRecoveringClient(
       },
       {
         ...binding,
+        clearProtectedData: binding.clearProtectedData
+          ? () => {
+              if (identity === instance) clearProtectedData();
+            }
+          : undefined,
         onConnection(state, reason) {
           if (identity !== instance) {
             return;
@@ -289,6 +303,7 @@ export function createRecoveringClient(
     close() {
       closed = true;
       cancel();
+      clearProtectedData();
       instance++;
       current.close();
       connected = false;

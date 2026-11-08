@@ -47,6 +47,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
         return;
       }
 
+      if (this.readyState === 0) this.emit("error");
       this.readyState = Socket.CLOSED;
       this.emit("close");
     }
@@ -86,6 +87,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     source + "\ncreateSubscriptionClient('/data', report, fail, binding)",
     {
       Error,
+      URL,
       WebSocket: Socket,
       location: { host: "local" },
       report: (event: Message) => {
@@ -124,7 +126,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     await pending;
   }
 
-  return { client, connect, subscribe, observations, calls, failures };
+  return { client, connect, subscribe, observations, calls, failures, sockets };
 }
 
 const snapshot = {
@@ -324,3 +326,72 @@ test(
     );
   },
 );
+
+for (const loss of ["close", "error"] as const) {
+  test(`protected data clears on ${loss} and late frames are ignored`, async () => {
+    let visible: unknown;
+    const f = await fixture({
+      onView: (_view, _entity, data) => {
+        visible = data;
+      },
+      clearProtectedData: () => {
+        visible = undefined;
+      },
+    });
+    const socket = await f.connect();
+    await f.subscribe(socket);
+    socket.emit("message", snapshot);
+    assert.ok(visible);
+    if (loss === "close") f.client.close();
+    else socket.emit("error");
+    assert.equal(visible, undefined);
+    socket.emit("message", snapshot);
+    assert.equal(visible, undefined);
+  });
+}
+
+test("a broken clearing callback cannot prevent socket cleanup or command rejection", async () => {
+  const f = await fixture({
+    clearProtectedData() {
+      throw new Error("Cannot clear renderer");
+    },
+  });
+  const socket = await f.connect();
+  await f.subscribe(socket);
+  f.client.fail("Access lost");
+  assert.equal(socket.readyState, 3);
+  await assert.rejects(f.client.execute({ action: "connect" }), /Access lost/);
+});
+
+for (const action of ["close", "disconnect", "fail"] as const) {
+  test(`closing during handshake settles connect: ${action}`, async () => {
+    const f = await fixture();
+    let outcome = "pending";
+    const pending = f.client.execute({ action: "connect" }).then(
+      () => {
+        outcome = "resolved";
+      },
+      () => {
+        outcome = "rejected";
+      },
+    );
+    const old = f.sockets[0];
+    if (action === "close") f.client.close();
+    else if (action === "fail") f.client.fail("Cancelled");
+    else await f.client.execute({ action: "disconnect" });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(outcome, "rejected");
+    await pending;
+    if (action !== "fail") {
+      const current = await f.connect();
+      const count = f.calls.length;
+      old.emit("open");
+      old.emit("error");
+      old.emit("close");
+      assert.equal(f.calls.length, count);
+      await f.subscribe(current);
+      assert.deepEqual(f.failures, []);
+      f.client.close();
+    }
+  });
+}

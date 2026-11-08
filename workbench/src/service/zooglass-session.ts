@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  protectedSessionConfiguration,
+  type ProtectedSessionSettings,
+} from "./protected-session.js";
 import { runtimeConfiguration } from "./runtime-configuration.js";
 import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
@@ -23,6 +27,7 @@ export interface ZooGlassSessionOptions {
   javaExecutable?: string;
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
+  protectedAccess?: ProtectedSessionSettings;
 }
 
 /** Start one owned service. A failed start cleans up before rejecting. */
@@ -158,7 +163,14 @@ export async function startZooGlassSession(
             process.platform === "win32" ? "java.exe" : "java",
           )
         : "java");
+    const protectedAccess = options.protectedAccess;
     const args = [
+      ...(protectedAccess
+        ? [
+            `-Djavax.net.ssl.trustStore=${protectedAccess.trustStore}`,
+            `-Djavax.net.ssl.trustStorePassword=${protectedAccess.trustStorePassword}`,
+          ]
+        : []),
       `-DPORTFILE=${portFile}`,
       "-jar",
       artifact,
@@ -174,6 +186,13 @@ export async function startZooGlassSession(
       detached: process.platform !== "win32",
       env: {
         ...process.env,
+        ...(protectedAccess
+          ? {
+              SPRING_APPLICATION_JSON: JSON.stringify(
+                protectedSessionConfiguration(protectedAccess),
+              ),
+            }
+          : {}),
         ...(configLocation === undefined
           ? {}
           : { ZOOGLASS_CONFIG: configLocation }),
@@ -219,9 +238,21 @@ export async function startZooGlassSession(
           if (!Number.isInteger(port) || port < 1 || port > 65535) {
             throw new Error("Waiting for ZooGlass to report its bound port.");
           }
-          baseUrl = `http://127.0.0.1:${port}`;
+          baseUrl = protectedAccess
+            ? `https://localhost:${port}`
+            : `http://127.0.0.1:${port}`;
         }
-        const response = await fetch(`${baseUrl}/actuator/health`, {
+        const healthUrl = protectedAccess
+          ? `http://127.0.0.1:${protectedAccess.operatorPort}/actuator/health`
+          : `${baseUrl}/actuator/health`;
+        const response = await fetch(healthUrl, {
+          ...(protectedAccess
+            ? {
+                headers: {
+                  Authorization: `Bearer ${protectedAccess.operatorToken}`,
+                },
+              }
+            : {}),
           signal: AbortSignal.any([signal, AbortSignal.timeout(1_000)]),
         });
 

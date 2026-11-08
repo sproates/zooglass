@@ -214,5 +214,5 @@ viewer continues reading.
 
 The production configuration path is exercised through local producer sockets,
 HTTPS reads and WSS subscriptions. Recovery tests cover memory and durable stores;
-restart always obtains fresh policy decisions. Workbench and rendered demo
-access-loss acceptance is the next delivery step.
+restart always obtains fresh policy decisions. [Workbench acceptance](../../workbench/docs/protected-client-acceptance.md)
+also checks access loss and fresh recovery in the rendered basic vehicle demo.

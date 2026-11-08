@@ -187,6 +187,11 @@ function draw() {
 
   marker.setAttribute("visibility", latest ? "visible" : "hidden");
 
+  if (!latest) {
+    marker.removeAttribute("cx");
+    marker.removeAttribute("cy");
+  }
+
   if (latest) {
     const { x, y } = point(latest);
 
@@ -271,6 +276,7 @@ export function resetView() {
     view.current = false;
     view.subscribing = false;
   }
+  element("position-label").textContent = "Current position";
   element("current-sequence").textContent = "—";
   element("current-coordinates").textContent = "No position received";
   element("history").replaceChildren();

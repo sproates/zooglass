@@ -776,3 +776,10 @@ subscription acknowledgements and connection changes. The latest 100 entries
 are retained; reset replaces the page and clears the trace. These diagnostics
 are demo-specific and do not change scenario execution or verification. See the
 [vehicle guide](../demos/vehicle-tracker/README.md#follow-the-run) for how to read them.
+
+### Protected client acceptance
+
+[Run the protected client check](docs/protected-client-acceptance.md) to exercise
+policy revocation and connection loss against a real TLS service and the basic
+vehicle demo. It uses the existing service owner and client modules, with a
+controlled HTTPS authority and explicit protected-data clearing.

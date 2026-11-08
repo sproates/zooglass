@@ -151,10 +151,10 @@ HTTP/1.1; other protocol
 versions receive 505 before policy lookup. The current admission boundary uses
 direct TLS; proxy termination requires its own backend-isolation verification.
 
-Implement admission first and active enforcement second. Enable protected mode
-for users only once both are in place. Workbench supplies an application policy
-fixture, two callers and controllable decisions. Exercise the real HTTP and
-WebSocket interfaces with these observations:
+The [Workbench client check](../../workbench/docs/protected-client-acceptance.md)
+supplies an HTTPS application policy fixture, allowed and denied callers, and
+a controllable network interruption. It verifies the basic demo’s clearing and
+fresh recovery. The complete acceptance scope includes these observations:
 
 - Allow one caller and deny another for the same order. Try both HTTP routes,
   an unauthorised entity, a tenant mismatch, an invalid credential and a

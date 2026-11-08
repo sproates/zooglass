@@ -41,7 +41,9 @@ The dotted callback arrow is not an import: `subscription-client.ts` accepts a
 The subscription client rejects unexpected acknowledgements and ignores messages
 from an old socket. The recovery wrapper adds an explicitly armed retry interval;
 without it, unexpected transport loss remains fatal. The renderer distinguishes retained data
-from a current subscribed snapshot. It does not manufacture expected scenario
+from a current subscribed snapshot. The basic client’s `protectedViews` option
+instead supplies `clearProtectedData` to reset retained and rendered snapshots
+on every socket loss. It does not manufacture expected scenario
 results or own the socket.
 
 [`activity.ts`](../src/activity.ts) renders the latest 100 diagnostic entries. It
@@ -183,3 +185,8 @@ whole route area so cars do not drive out of the default viewport. Report age is
 calculated from the accepted observation timestamp, independently of notices and
 socket activity. The eight-second threshold is a demo policy, not source-health
 inference by ZooGlass. No history subscription is created.
+
+The [protected client acceptance](../../../workbench/docs/protected-client-acceptance.md)
+uses the same basic client and renderer against a real TLS service. The recovery
+wrapper forwards the clearing callback only for its current attempt and also
+clears on terminal failure and disposal.

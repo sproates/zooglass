@@ -15,8 +15,9 @@ Recovery checks cover disconnection, retirement and restart under both storage
 modes. See the [delivery contract](docs/design/client-delivery.md).
 
 Protected serving now applies application-owned decisions to reads, subscriptions
-and delivery. Next, exercise access loss through Workbench and the demo, then
-complete the combined capability acceptance. See [authorisation over time](#authorisation-over-time).
+and delivery. Workbench acceptance now verifies access loss and fresh recovery
+in the basic demo. Next, finish the authorisation evidence review and combined
+capability acceptance. See [authorisation over time](#authorisation-over-time).
 
 ## Reconciliation and recovery
 

@@ -271,6 +271,7 @@ export function resetView() {
     view.current = false;
     view.subscribing = false;
   }
+  element("position-label").textContent = "Current position";
   element("current-sequence").textContent = "—";
   element("current-coordinates").textContent = "No position received";
   element("history").replaceChildren();

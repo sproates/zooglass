@@ -407,3 +407,27 @@ flowchart TB
   producer -->|enumerates source identities| contracts
   timeline -->|builds domain events for six fixed slots| contracts
 ```
+
+## Protected service acceptance
+
+The existing service owner also accepts explicit protected deployment settings.
+The browser acceptance fixture supplies the authority and exercises the basic
+vehicle demo; it does not replace ZooGlass's decision or delivery code.
+
+```mermaid
+flowchart TB
+  acceptance["test/browser/protected-access.test.ts"]
+  fixture["test/browser/support/protected-service.ts"]
+  authority["test/browser/support/protected-authority.ts"]
+  session["service/zooglass-session.ts"]
+  settings["service/protected-session.ts"]
+  client["demos/vehicle-tracker/src/vehicle-client.ts"]
+  acceptance -->|drives revocation, interruption and publication| fixture
+  acceptance -->|loads actual demo in Chromium| client
+  fixture -->|gets controlled HTTPS policy and generated certificates| authority
+  fixture -->|owns a real packaged service| session
+  session -->|maps TLS and operator settings| settings
+```
+
+See [protected client acceptance](protected-client-acceptance.md) for the command
+and the behaviours it verifies.

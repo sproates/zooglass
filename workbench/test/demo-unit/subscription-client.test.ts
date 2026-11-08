@@ -86,6 +86,7 @@ async function fixture(overrides: Partial<ClientBinding> = {}) {
     source + "\ncreateSubscriptionClient('/data', report, fail, binding)",
     {
       Error,
+      URL,
       WebSocket: Socket,
       location: { host: "local" },
       report: (event: Message) => {
@@ -324,3 +325,39 @@ test(
     );
   },
 );
+
+for (const loss of ["close", "error"] as const) {
+  test(`protected data clears on ${loss} and late frames are ignored`, async () => {
+    let visible: unknown;
+    const f = await fixture({
+      onView: (_view, _entity, data) => {
+        visible = data;
+      },
+      clearProtectedData: () => {
+        visible = undefined;
+      },
+    });
+    const socket = await f.connect();
+    await f.subscribe(socket);
+    socket.emit("message", snapshot);
+    assert.ok(visible);
+    if (loss === "close") f.client.close();
+    else socket.emit("error");
+    assert.equal(visible, undefined);
+    socket.emit("message", snapshot);
+    assert.equal(visible, undefined);
+  });
+}
+
+test("a broken clearing callback cannot prevent socket cleanup or command rejection", async () => {
+  const f = await fixture({
+    clearProtectedData() {
+      throw new Error("Cannot clear renderer");
+    },
+  });
+  const socket = await f.connect();
+  await f.subscribe(socket);
+  f.client.fail("Access lost");
+  assert.equal(socket.readyState, 3);
+  await assert.rejects(f.client.execute({ action: "connect" }), /Access lost/);
+});

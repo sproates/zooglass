@@ -77,8 +77,10 @@ old permission by reconnecting. Memory-mode restart starts with empty view state
 
 Real-interface acceptance tests cover local publication and registration, listener
 separation, revocation during silence, unaffected authorised viewers, and fresh
-permission decisions after restart with both storage modes. Workbench and demo
-access-loss acceptance follows separately.
+permission decisions after restart with both storage modes.
+[Workbench client acceptance](../../workbench/docs/protected-client-acceptance.md)
+checks the basic demo clearing protected data on revocation and network loss,
+then recovering through a fresh authorised baseline.
 
 The verified deployment terminates TLS at ZooGlass. TLS-terminating proxies and
 remote operator listeners are not supported by this configuration.

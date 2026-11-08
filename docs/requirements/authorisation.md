@@ -2,9 +2,10 @@
 
 Status: the [enforcement contract](../design/view-access.md) is accepted. Server-side
 admission, active revocation, transport-release checks and protected deployment
-are implemented. Real-interface tests cover isolation and recovery. Workbench
-and demo access-loss acceptance remains outstanding, so the full requirement
-is not yet signed off. See the [deployment guide](../../zooglass/docs/protected-deployment.md).
+are implemented. Real-interface tests cover isolation and recovery.
+[Workbench client acceptance](../../workbench/docs/protected-client-acceptance.md)
+covers the basic demo clearing protected data and recovering with fresh permission.
+The final requirement-to-evidence review remains outstanding. See the [deployment guide](../../zooglass/docs/protected-deployment.md).
 
 A live view can remain open for hours. Someone who was allowed to see it when
 it opened may lose that permission while updates are still arriving. ZooGlass

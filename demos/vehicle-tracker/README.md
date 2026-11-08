@@ -355,3 +355,10 @@ The local host registration is not production authorisation. See the
 TypeScript stays in `src/`, with the existing `driving/` and `fleet/` groups.
 Workbench maps these files to browser URLs; moving a file does not change the
 served URL. The [source map](docs/source-map.md) shows those bindings.
+
+## Protected view acceptance
+
+The basic client has an explicit protected mode that clears displayed and retained
+snapshots on socket loss. [Workbench acceptance](../../workbench/docs/protected-client-acceptance.md)
+checks revocation, denial, network interruption and fresh authorised recovery
+against real ZooGlass interfaces. Normal demo commands remain open demonstrations.

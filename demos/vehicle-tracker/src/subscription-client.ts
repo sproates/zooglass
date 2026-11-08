@@ -19,6 +19,8 @@ export interface ClientBinding {
     entityId: string | undefined,
   ): void;
   connectionLostReason: string;
+  /** Protected clients discard all rendered and retained data on any loss. */
+  clearProtectedData?(): void;
   onConnection(
     state:
       "disconnected" | "connecting" | "connected" | "reconnecting" | "error",
@@ -39,10 +41,19 @@ export function createSubscriptionClient(
   fail: (reason: string, transport?: boolean) => void,
   binding: ClientBinding,
 ) {
+  function clearProtectedData() {
+    try {
+      binding.clearProtectedData?.();
+    } catch {
+      // A broken renderer must not prevent connection cleanup and cancellation.
+    }
+  }
+
   let socket: WebSocket | undefined;
   let generation = 0;
   let observationIndex = 0;
   let deliberateClose = false;
+  let accepting = false;
   let failure: string | undefined;
 
   const markFailure = (reason: string, notify = true, transport = false) => {
@@ -51,6 +62,8 @@ export function createSubscriptionClient(
     }
 
     failure = reason;
+    accepting = false;
+    clearProtectedData();
     deliberateClose = true;
     acknowledgement?.reject(new Error(reason));
     acknowledgement = undefined;
@@ -94,15 +107,20 @@ export function createSubscriptionClient(
         return generation;
       }
 
-      const current = new WebSocket(`ws://${location.host}${dataPath}`);
+      const url = new URL(
+        dataPath,
+        `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`,
+      );
+      const current = new WebSocket(url.href);
 
       socket = current;
       generation++;
       deliberateClose = false;
+      accepting = true;
       subscriptions.clear();
       binding.onConnection("connecting");
       current.addEventListener("message", (event) => {
-        if (socket !== current || failure) {
+        if (socket !== current || failure || !accepting) {
           return;
         }
 
@@ -168,6 +186,8 @@ export function createSubscriptionClient(
           return;
         }
 
+        accepting = false;
+        clearProtectedData();
         subscriptions.clear();
         acknowledgement?.reject(
           new Error("Connection closed before acknowledgement."),
@@ -188,7 +208,7 @@ export function createSubscriptionClient(
         current.addEventListener(
           "open",
           () => {
-            if (socket !== current || failure) {
+            if (socket !== current || failure || !accepting) {
               return;
             }
 
@@ -210,7 +230,7 @@ export function createSubscriptionClient(
         current.addEventListener(
           "error",
           () => {
-            if (socket !== current) {
+            if (socket !== current || !accepting) {
               return;
             }
 
@@ -224,6 +244,8 @@ export function createSubscriptionClient(
       });
     } else if (command.action === "disconnect") {
       deliberateClose = true;
+      accepting = false;
+      clearProtectedData();
 
       if (socket && socket.readyState !== WebSocket.CLOSED) {
         const current = socket;
@@ -273,6 +295,8 @@ export function createSubscriptionClient(
     },
     close() {
       deliberateClose = true;
+      accepting = false;
+      clearProtectedData();
       socket?.close();
     },
   };

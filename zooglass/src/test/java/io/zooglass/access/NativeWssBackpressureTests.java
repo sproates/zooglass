@@ -34,13 +34,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 class NativeWssBackpressureTests {
     private static final JsonMapper JSON = new JsonMapper();
     private static PolicyTlsFixture policy;
-    private static final AtomicBoolean revoked = new AtomicBoolean();
+    private static final AtomicLong revokedAt = new AtomicLong();
     private static final CompletableFuture<Void> denial = new CompletableFuture<>();
+    private static final CompletableFuture<ObservedNativeSocket> movingConnected = new CompletableFuture<>();
     private static final CompletableFuture<ObservedNativeSocket> slowConnected = new CompletableFuture<>();
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -67,6 +68,7 @@ class NativeWssBackpressureTests {
                     super.afterConnectionEstablished(observed.viewer);
                     var identity = (ViewerHandshake.Identity) session.getAttributes().get(ViewerHandshake.IDENTITY);
                     if (identity.credential().value().equals("slow")) slowConnected.complete(observed);
+                    if (identity.credential().value().equals("moving")) movingConnected.complete(observed);
                 }
 
                 @Override
@@ -93,7 +95,8 @@ class NativeWssBackpressureTests {
             policy.handle("/decision", exchange -> {
                 try (exchange) {
                     var request = JSON.readTree(exchange.getRequestBody());
-                    boolean denied = revoked.get() && request.path("credential").path("value").asText().equals("slow");
+                    boolean denied = revokedAt.get() != 0
+                            && !request.path("credential").path("value").asText().equals("healthy");
                     String reply = denied ? "{\"decision\":\"deny\"}"
                             : "{\"decision\":\"allow\",\"subject\":\"operator\",\"lifetimeMillis\":5000}";
                     byte[] bytes = reply.getBytes(StandardCharsets.UTF_8);
@@ -106,7 +109,7 @@ class NativeWssBackpressureTests {
             Path config = directory.resolve("views.json");
             Files.writeString(config, """
                     {"contractVersion":2,"storage":"memory","maxStreams":10,"identityWindow":10,"maxHistoryEntries":10,
-                     "delivery":{"maxQueuedMessages":8,"maxQueuedBytes":33554432},
+                     "delivery":{"maxQueuedMessages":256,"maxQueuedBytes":33554432},
                      "sources":[{"id":"fleet","epoch":"run"}],
                      "views":[{"id":"positions","fields":{"position":
                        {"sourceId":"fleet","type":"position","mode":"latestBySequence"}}}]}
@@ -124,11 +127,19 @@ class NativeWssBackpressureTests {
                 var large = JSON.createObjectNode().put("body", "x".repeat(8 * 1024 * 1024));
                 runtime.apply(new Publication("fleet", "run", "slow", 1, "position", large));
                 try (var slow = new UnreadWssClient(policy.trust, port);
+                        var moving = new AdmissionSocket(client, URI.create("wss://localhost:" + port + "/views/live"),
+                                Map.of("Authorization", "Bearer moving"));
                         var healthy = new AdmissionSocket(client, URI.create("wss://localhost:" + port + "/views/live"),
                                 Map.of("Authorization", "Bearer healthy"))) {
                     healthy.subscribe("positions", "healthy");
                     healthy.next();
                     healthy.next();
+                    moving.subscribe("positions", "moving");
+                    moving.next();
+                    moving.next();
+                    publish(runtime, "moving", 1);
+                    assertThat(moving.next().at("/data/position/sequence").asLong()).isEqualTo(1);
+                    var flowing = movingConnected.get(3, TimeUnit.SECONDS);
                     slow.subscribe();
                     var observed = slowConnected.get(3, TimeUnit.SECONDS);
                     var ack = observed.writes.poll(3, TimeUnit.SECONDS);
@@ -147,22 +158,69 @@ class NativeWssBackpressureTests {
                     int beforeRevocation = observed.submissions.get();
                     assertThat(beforeRevocation).as("only acknowledgement and blocked baseline submitted").isEqualTo(2);
                     assertThat(stalled.completed().isDone()).isFalse();
-                    revoked.set(true);
-                    denial.get(5, TimeUnit.SECONDS);
-                    long limit = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-                    while (currentLease(grants, observed.viewer) != null && System.nanoTime() < limit) Thread.sleep(10);
+                    // The authority commits this value; policy reads and native send probes
+                    // use the same monotonic clock in this process.
+                    long committed = System.nanoTime();
+                    revokedAt.set(committed);
+                    long cutoff = committed + TimeUnit.SECONDS.toNanos(5);
+                    publishAcrossCutoff(runtime, healthy, cutoff);
+                    denial.get(1, TimeUnit.SECONDS);
                     assertThat(currentLease(grants, observed.viewer)).isNull();
                     assertThat(observed.submissions.get()).isEqualTo(beforeRevocation);
-                    runtime.apply(new Publication("fleet", "run", "healthy", 1, "position",
-                            JSON.createObjectNode().put("latitude", 36.14)));
-                    assertThat(healthy.next().at("/data/position/latitude").doubleValue()).isEqualTo(36.14);
-                    slow.close();
+                    assertThat(moving.closed.get(2, TimeUnit.SECONDS)).isEqualTo(1008);
+
+                    // Drain the old, already-submitted baseline after cutoff. Its delayed
+                    // arrival is permitted; no queued successor may now reach sendText.
+                    slow.resumeReading().get(10, TimeUnit.SECONDS);
                     observed.closed.get(5, TimeUnit.SECONDS);
                     assertThat(observed.submissions.get()).isEqualTo(beforeRevocation);
+                    assertBeforeCutoff(observed, committed, cutoff);
+                    assertBeforeCutoff(flowing, committed, cutoff);
+                    assertThat(flowing.history).anyMatch(write -> write.startedNanos() > committed);
+
                 }
             }
         }
     }
+    private static void publishAcrossCutoff(ViewCoordinator runtime, AdmissionSocket healthy, long cutoff)
+            throws Exception {
+        boolean before = false;
+        boolean after = false;
+        long sequence = 3;
+        while (System.nanoTime() < cutoff + TimeUnit.MILLISECONDS.toNanos(200)) {
+            publish(runtime, "slow", sequence);
+            publish(runtime, "moving", sequence);
+            publish(runtime, "healthy", sequence);
+            assertThat(healthy.next().at("/data/position/sequence").asLong()).isEqualTo(sequence);
+            long received = System.nanoTime();
+            before |= received < cutoff;
+            after |= received >= cutoff;
+            sequence++;
+            Thread.sleep(100);
+        }
+        assertThat(sequence).as("publications continue across the cutoff").isGreaterThan(4);
+        assertThat(before).as("healthy delivery before cutoff").isTrue();
+        assertThat(after).as("healthy delivery after cutoff").isTrue();
+    }
+
+    private static void publish(ViewCoordinator runtime, String entity, long sequence) {
+        var outcome = runtime.apply(new Publication("fleet", "run", entity, sequence, "position",
+                JSON.createObjectNode().put("sequence", sequence)));
+        assertThat(outcome.status()).isEqualTo("applied");
+    }
+
+    private static void assertBeforeCutoff(ObservedNativeSocket socket, long committed, long cutoff)
+            throws Exception {
+        assertThat(socket.history).isNotEmpty();
+        long lastHandoff = Long.MIN_VALUE;
+        for (var write : socket.history) {
+            assertThat(write.startedNanos()).as("native submission must begin before cutoff").isLessThan(cutoff);
+            lastHandoff = Math.max(lastHandoff, write.submitted().get(2, TimeUnit.SECONDS));
+        }
+        assertThat(lastHandoff - committed).as("last native handoff relative to authority commit, in nanoseconds")
+                .isLessThan(TimeUnit.SECONDS.toNanos(5));
+    }
+
     private static ActiveViewGrants.Lease currentLease(ActiveViewGrants grants, WebSocketSession viewer)
             throws Exception {
         // A regression that waits for network completion under the grant monitor must

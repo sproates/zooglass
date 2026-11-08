@@ -13,12 +13,14 @@ import java.lang.reflect.Proxy;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /** Transparent forwarding probes: every observed text write still uses the real native transport. */
 final class ObservedNativeSocket {
-    record Write(int characters, CompletableFuture<Void> submitted, CompletableFuture<Void> completed) {}
+    record Write(int characters, long startedNanos, CompletableFuture<Long> submitted, CompletableFuture<Void> completed) {}
 
     final LinkedBlockingQueue<Write> writes = new LinkedBlockingQueue<>();
+    final ConcurrentLinkedQueue<Write> history = new ConcurrentLinkedQueue<>();
     final AtomicInteger submissions = new AtomicInteger();
     final CompletableFuture<Void> closed = new CompletableFuture<>();
     final WebSocketSession viewer;
@@ -27,9 +29,10 @@ final class ObservedNativeSocket {
         var actual = ((NativeWebSocketSession) original).getNativeSession(Session.class);
         var remote = proxy(RemoteEndpoint.Async.class, (method, args) -> {
             if (method.getName().equals("sendText") && args.length == 2 && args[1] instanceof SendHandler handler) {
-                var write = new Write(((String) args[0]).length(), new CompletableFuture<>(), new CompletableFuture<>());
+                var write = new Write(((String) args[0]).length(), System.nanoTime(), new CompletableFuture<>(), new CompletableFuture<>());
                 submissions.incrementAndGet();
                 writes.add(write);
+                history.add(write);
                 args[1] = (SendHandler) result -> {
                     if (result.isOK()) write.completed.complete(null);
                     else write.completed.completeExceptionally(result.getException());
@@ -37,7 +40,7 @@ final class ObservedNativeSocket {
                 };
                 try {
                     Object result = invoke(method, actual.getAsyncRemote(), args);
-                    write.submitted.complete(null);
+                    write.submitted.complete(System.nanoTime());
                     return result;
                 } catch (Throwable failure) {
                     write.submitted.completeExceptionally(failure);

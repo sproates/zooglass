@@ -4,10 +4,10 @@ Last reviewed: 8 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
-reconnect. The next phase turns those behaviours into explicit strategy modules
-and demonstrates the application work they remove.
+reconnect. The current programme brings those behaviours together and
+demonstrates the application work they remove.
 
-## Next: access to live views
+## Next: combined capability acceptance
 
 Subscriptions now start with a fresh snapshot, including after reconnect.
 Slow viewers have bounded queues and a choice of FIFO or latest-state delivery.
@@ -16,8 +16,9 @@ modes. See the [delivery contract](docs/design/client-delivery.md).
 
 Protected serving now applies application-owned decisions to reads, subscriptions
 and delivery. Workbench acceptance now verifies access loss and fresh recovery
-in the basic demo. Next, finish the authorisation evidence review and combined
-capability acceptance. See [authorisation over time](#authorisation-over-time).
+in the basic demo. The [authorisation evidence](docs/verification/authorisation.md)
+is mapped to the contract. Next, exercise shared inputs, differing view strategies,
+gaps, corrections and restart together, then consolidate the delivery record. See [authorisation over time](#authorisation-over-time).
 
 ## Reconciliation and recovery
 
@@ -100,8 +101,8 @@ view and entity. ZooGlass enforces the decision at admission and transport relea
 [Protected deployment](zooglass/docs/protected-deployment.md) uses direct TLS,
 tenant-bound storage and an authenticated local operator listener.
 
-Workbench and demo access-loss checks remain, followed by the final
-[acceptance record](docs/requirements/authorisation.md).
+The [acceptance record](docs/verification/authorisation.md) links admission,
+release-boundary, restart and rendered-client checks to each requirement.
 
 ## Further direction
 

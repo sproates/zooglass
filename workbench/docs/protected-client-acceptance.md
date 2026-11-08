@@ -22,8 +22,9 @@ ZooGlass verifies the policy certificate using a dedicated test trust store.
 
 - An allowed viewer receives positions and history. A denied subscription receives
   neither, even when the resource exists.
-- Revoking access closes the affected WSS connection with code 1008. The demo
-  clears its position, history, route and marker. Another allowed viewer continues
+- Revocation, a credential-expired decision and an unavailable authority are
+  exercised while source publications continue. Losing access closes the affected WSS connection with code 1008. The demo
+  clears its position, history, route and marker, including hidden coordinates. Another allowed viewer continues
   receiving updates.
 - A new connection while still denied cannot reuse an earlier grant. Once access
   is restored, a fresh authorised baseline supplies the latest position.
@@ -49,3 +50,6 @@ adding login screens, session management or another browser orchestration system
 Applications remain responsible for their own rendering and cache cleanup. They
 must not keep protected snapshots in diagnostic panels or persistent browser
 storage after access loss.
+
+See the [authorisation evidence map](../../docs/verification/authorisation.md)
+for server-side scope, deadline and release-boundary checks.

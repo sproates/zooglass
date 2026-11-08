@@ -216,3 +216,6 @@ The production configuration path is exercised through local producer sockets,
 HTTPS reads and WSS subscriptions. Recovery tests cover memory and durable stores;
 restart always obtains fresh policy decisions. [Workbench acceptance](../../workbench/docs/protected-client-acceptance.md)
 also checks access loss and fresh recovery in the rendered basic vehicle demo.
+
+The [authorisation acceptance record](../../docs/verification/authorisation.md)
+maps each requirement to the checks that establish it and gives repeat commands.

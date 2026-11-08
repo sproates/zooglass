@@ -877,3 +877,10 @@ separately checks both sides of the retirement commit boundary.
 
 Run the combined check from `zooglass/` with
 `./mvnw -Dtest=MatchCorrectionAcceptanceTests test`.
+
+## Authorisation
+
+The [authorisation acceptance record](verification/authorisation.md) maps the
+requirements to HTTP/WSS, grant-deadline, tenant-store and browser checks, with
+commands to repeat them. It separates exact release-cutoff evidence from the
+client's visible access-loss outcome.

@@ -10,7 +10,9 @@ The [Gibraltar demo](../workbench/docs/continuous-driving.md) makes these
 requirements visible with six cars. ZooGlass supplies the maintained views and
 subscription snapshots. The application supplies the events and the experience
 around them. This document compares those responsibilities with an equally scoped
-custom service, using the current prototype rather than its intended future features.
+custom service, using the delivered service contracts. The
+[capability record](verification/capability-delivery.md) links the broader
+reconciliation and recovery evidence.
 
 ## The work a team would otherwise own
 
@@ -41,7 +43,8 @@ Each matches its own event type from source `fleet`, and each has its own
 [view definition](../workbench/src/demos/vehicle/continuous/simulation.ts).
 
 Suppose a car sends positions 40, 42 and then 41. ZooGlass retains 42 as its latest
-position. Another 42 is ignored, even if its payload differs. If 43 is lost
+position. An identical retry returns its retained receipt without applying twice;
+reusing that identity with different content is rejected. If 43 is lost
 permanently, the view cannot reconstruct it; the next accepted report might be 44.
 If the car goes silent, its last accepted position remains available.
 
@@ -80,18 +83,19 @@ feeds the viewer's subscription list. There is no service-side fleet discovery A
 
 **Add a source.** Build the connection or adapter that emits ZooGlass events, choose
 its source ID and event types, and add matching fields to the view definition.
-Independent sequence counters should normally use separate fields: sources matching
-one field share its ordering domain. ZooGlass does not infer how their sequences
-relate or resolve their conflicting meanings. Update the client if it displays the
-new contribution, and verify the intended behaviour.
+Independent sources retain their own sequence domains. For a shared field, configure
+its inputs and source-priority policy; use view-local entity mappings when source
+keys differ. ZooGlass does not infer which source is authoritative. Update the
+client if it displays the new contribution, and verify the intended behaviour.
 
 **Add a view.** Define its field mappings and supported ordering policies in startup
 configuration or through `POST /views`, then have clients subscribe to the new
 view/entity pairs. A new runtime view starts empty and sees only subsequent events;
 it is not backfilled. The same feed can support a latest-position view and a
-received-history view, but `historyBySequence` grows without a retention limit.
-That is why the indefinite continuous demo retains only latest values. A new
-aggregation or reconciliation rule may require service code; configuration is
+received-history view, but `historyBySequence` is bounded by `maxHistoryEntries`.
+Exceeding the limit
+rejects the publication rather than silently trimming history. The indefinite
+continuous demo retains only latest values. A new aggregation or reconciliation rule may require service code; configuration is
 limited to the policies implemented today.
 
 These examples identify concrete changes rather than promise that every extension
@@ -117,8 +121,9 @@ Those are the reusable responsibilities demonstrated here.
 Adopting ZooGlass also means operating a service and accepting its contracts.
 Memory-mode state disappears on restart; SQLite provides local transactional
 recovery. Configured progress and fact-revision policies provide explicit gap and
-correction semantics. Product authorisation and replay remain outside the current
-contracts. Sources supply scoped publication identities; conflicting retries are
+correction semantics. [Application-owned authorisation](../zooglass/docs/protected-deployment.md)
+covers reads and live delivery. Historical replay remains outside the contract.
+Sources supply scoped publication identities; conflicting retries are
 rejected rather than silently replacing accepted content.
 
 For a simple application with one feed and one screen, a small custom service may

@@ -45,10 +45,10 @@ that fails for that bug before the fix.
 
 ## Delivery sequence
 
-The table records the original sequence. Following client recovery, the next
-service increment is the [view access contract](view-access.md) and its
-enforcement. Orders and sports retain their planned demo work. The order demo
-will exercise active access loss once enforcement is available.
+The table records the original sequence, rather than current task status.
+The service capabilities, access enforcement and combined acceptance are delivered;
+see the [delivery record](../verification/capability-delivery.md). Orders and sports
+retain their planned browser work, including the order access-loss scene.
 
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |
@@ -77,7 +77,8 @@ fixed; the table defines scope boundaries rather than enormous single PRs.
 
 ## Capability-to-demo coverage
 
-Scene additions below are planned work. Preserve each demo's coherent purpose;
+The [current coverage review](../verification/capability-delivery.md#demo-coverage)
+distinguishes delivered experiences from planned scenes below. Preserve each demo's coherent purpose;
 none needs to expose every setting or show every failure at once.
 
 | Capability | Primary demo and observable scene | Existing starting point |

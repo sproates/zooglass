@@ -7,6 +7,9 @@ The tests give evidence for particular behaviours. Coverage helps locate code
 that hasn't been exercised; it doesn't establish that assertions are sufficient,
 that every event ordering is correct, or that the service is production ready.
 
+The [capability delivery record](verification/capability-delivery.md) connects
+contracts, configuration, executable examples and demo coverage.
+
 ## Publication ingestion
 
 `PublicationFunctionalTests` sends publications through the real `/events` socket and

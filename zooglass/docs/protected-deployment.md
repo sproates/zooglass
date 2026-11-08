@@ -58,7 +58,14 @@ For durable storage, choose `sqlite` in the view configuration and supply
 tenant. See [ownership and offline adoption](sqlite-storage.md#tenant-ownership).
 
 Startup refuses missing settings, plaintext viewer configuration, HTTP/2,
-forwarded-header processing and a separate management listener. A malformed
+forwarded-header processing and a separate management listener. Set
+`server.forward-headers-strategy=none` explicitly, including on cloud platforms.
+Do not configure `server.tomcat.remoteip.*`: those settings can enable a native
+forwarding valve independently of the strategy.
+
+Protected serving keeps the management base path at `/actuator` and forbids
+`management.endpoints.web.path-mapping.*`. This prevents another management
+endpoint from replacing the permitted health route. A malformed
 protected configuration never falls back to open demo mode. Port zero is supported
 for ephemeral local test listeners; use a fixed operator port for deployment.
 

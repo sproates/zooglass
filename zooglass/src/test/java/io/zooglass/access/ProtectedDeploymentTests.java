@@ -66,6 +66,30 @@ class ProtectedDeploymentTests {
     }
 
     @Test
+    void refusesActuatorRemappingThatCouldExposePolicyCredentials() {
+        assertThatThrownBy(() -> {
+            try (var ignored = start("memory", "tenant-a",
+                    "--management.endpoints.web.exposure.include=env",
+                    "--management.endpoints.web.path-mapping.env=health",
+                    "--management.endpoint.env.show-values=always")) {}
+        }).hasRootCauseMessage("Protected deployment does not allow management endpoint remapping");
+        assertThatThrownBy(() -> {
+            try (var ignored = start("memory", "tenant-a",
+                    "--management.endpoints.web.base-path=/actuator/health")) {}
+        }).hasRootCauseMessage("Protected deployment requires management base path /actuator");
+    }
+
+    @Test
+    void refusesNativeForwardingEvenWithTheExplicitNoneStrategy() {
+        for (String property : java.util.List.of("protocol-header", "remote-ip-header")) {
+            assertThatThrownBy(() -> {
+                try (var ignored = start("memory", "tenant-a",
+                        "--server.tomcat.remoteip." + property + "=X-Forwarded-Proto")) {}
+            }).hasRootCauseMessage("Protected deployment does not allow Tomcat remote-IP settings");
+        }
+    }
+
+    @Test
     void operatorCanRegisterAViewThroughTheIsolatedInterface() throws Exception {
         try (var service = start("memory")) {
             String definition = """
@@ -161,7 +185,7 @@ class ProtectedDeploymentTests {
         return start(storage, "tenant-a");
     }
 
-    private ConfigurableApplicationContext start(String storage, String tenant) throws Exception {
+    private ConfigurableApplicationContext start(String storage, String tenant, String... overrides) throws Exception {
         Path config = directory.resolve(storage + ".json");
         Files.writeString(config, """
                 {"contractVersion":2,"storage":"%s","maxStreams":10,"identityWindow":10,"maxHistoryEntries":10,
@@ -169,7 +193,7 @@ class ProtectedDeploymentTests {
                  "views":[{"id":"match","fields":{"score":
                    {"sourceId":"match-feed","type":"score.updated","mode":"latestBySequence"}}}]}
                 """.formatted(storage));
-        return new SpringApplicationBuilder(ZooGlassApplication.class).run(
+        var arguments = new java.util.ArrayList<>(java.util.List.of(
                 "--server.port=0", "--spring.main.banner-mode=off", "--server.ssl.enabled=true",
                 "--server.ssl.key-store=" + directory.resolve("policy.p12").toUri(),
                 "--server.ssl.key-store-password=test-password", "--server.ssl.key-store-type=PKCS12",
@@ -178,7 +202,9 @@ class ProtectedDeploymentTests {
                 "--zooglass.access.policy-url=" + policy.settings("/decision", Duration.ofSeconds(1), 8).endpoint(),
                 "--zooglass.access.service-token=service-secret", "--zooglass.access.operator-port=0",
                 "--zooglass.access.operator-token=" + OPERATOR, "--zooglass.config=" + config.toUri(),
-                "--zooglass.database=" + directory.resolve(storage + ".sqlite"));
+                "--zooglass.database=" + directory.resolve(storage + ".sqlite")));
+        arguments.addAll(java.util.List.of(overrides));
+        return new SpringApplicationBuilder(ZooGlassApplication.class).run(arguments.toArray(String[]::new));
     }
 
     private int viewerPort(ConfigurableApplicationContext service) {

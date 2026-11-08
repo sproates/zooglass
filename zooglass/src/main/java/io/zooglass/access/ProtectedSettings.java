@@ -1,6 +1,8 @@
 package io.zooglass.access;
 
 import org.springframework.core.env.Environment;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 
 import java.net.URI;
 import java.time.Duration;
@@ -29,11 +31,22 @@ record ProtectedSettings(PolicySettings policy, String origin, String cookie, in
         if (environment.getProperty("server.http2.enabled", Boolean.class, false)) {
             throw new IllegalArgumentException("Protected HTTP delivery requires server.http2.enabled=false");
         }
-        if (!"none".equalsIgnoreCase(environment.getProperty("server.forward-headers-strategy", "none"))) {
+        if (!"none".equalsIgnoreCase(environment.getProperty("server.forward-headers-strategy"))) {
             throw new IllegalArgumentException("Protected deployment requires server.forward-headers-strategy=none");
         }
         if (environment.containsProperty("management.server.port")) {
             throw new IllegalArgumentException("Protected deployment uses the isolated operator listener for management");
+        }
+        // Boot can install RemoteIpValve from these settings even when the strategy
+        // says none. Bind the aggregate so relaxed names and environment variables count.
+        if (configured(environment, "server.tomcat.remoteip")) {
+            throw new IllegalArgumentException("Protected deployment does not allow Tomcat remote-IP settings");
+        }
+        if (!"/actuator".equals(environment.getProperty("management.endpoints.web.base-path", "/actuator"))) {
+            throw new IllegalArgumentException("Protected deployment requires management base path /actuator");
+        }
+        if (configured(environment, "management.endpoints.web.path-mapping")) {
+            throw new IllegalArgumentException("Protected deployment does not allow management endpoint remapping");
         }
         var policy = new PolicySettings(required(environment, "tenant"),
                 uri(required(environment, "policy-url")), required(environment, "service-token"),
@@ -64,6 +77,11 @@ record ProtectedSettings(PolicySettings policy, String origin, String cookie, in
             throw new IllegalArgumentException("Allowed browser origin must be an HTTPS origin");
         }
         ViewerCredential.read(List.of(), List.of(), cookie);
+    }
+
+    private static boolean configured(Environment environment, String prefix) {
+        return !Binder.get(environment).bind(prefix, Bindable.mapOf(String.class, String.class))
+                .orElse(java.util.Map.of()).isEmpty();
     }
 
     private static URI uri(String value) {

@@ -8,6 +8,7 @@ class ProtectedSettingsTests {
     static MockEnvironment valid() {
         return new MockEnvironment().withProperty("zooglass.access.mode", "applicationPolicy")
                 .withProperty("server.ssl.enabled", "true")
+                .withProperty("server.forward-headers-strategy", "none")
                 .withProperty("zooglass.access.tenant", "tenant-a")
                 .withProperty("zooglass.access.policy-url", "https://policy.example/decision")
                 .withProperty("zooglass.access.service-token", "service-secret")
@@ -32,6 +33,37 @@ class ProtectedSettingsTests {
                 "zooglass.access.operator-port", "65536", "zooglass.access.operator-token", "short").entrySet()) {
             assertThatThrownBy(() -> ProtectedSettings.read(valid().withProperty(entry.getKey(), entry.getValue())))
                     .as(entry.getKey()).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
+    void requiresExplicitNoForwardingEvenWithCloudEnvironmentDefaults() {
+        var environment = valid();
+        var properties = (org.springframework.core.env.MapPropertySource) environment.getPropertySources().get("mockProperties");
+        properties.getSource().remove("server.forward-headers-strategy");
+        environment.setProperty("VCAP_APPLICATION", "{}");
+        assertThatThrownBy(() -> ProtectedSettings.read(environment))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("forward-headers-strategy=none");
+    }
+
+    @Test
+    void refusesRemoteIpAndManagementRemappingThroughRelaxedPropertyNames() {
+        for (String property : java.util.List.of("server.tomcat.remoteip.protocolHeader",
+                "server.tomcat.remoteip.remote-ip-header", "management.endpoints.web.path-mapping.env")) {
+            assertThatThrownBy(() -> ProtectedSettings.read(valid().withProperty(property, "health")))
+                    .as(property).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
+    void environmentVariablesCannotBypassTheInfrastructureGuards() {
+        for (String property : java.util.List.of("SERVER_TOMCAT_REMOTEIP_PROTOCOLHEADER",
+                "MANAGEMENT_ENDPOINTS_WEB_PATHMAPPING_ENV")) {
+            var environment = valid();
+            environment.getPropertySources().addFirst(new org.springframework.core.env.SystemEnvironmentPropertySource(
+                    "systemEnvironment", java.util.Map.of(property, "health")));
+            assertThatThrownBy(() -> ProtectedSettings.read(environment))
+                    .as(property).isInstanceOf(IllegalArgumentException.class);
         }
     }
 

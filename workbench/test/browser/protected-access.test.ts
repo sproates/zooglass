@@ -85,6 +85,8 @@ async function cleared(page: Page) {
   await page.waitForFunction(
     () => document.getElementById("current-sequence")?.textContent === "—",
   );
+  assert.equal(await page.locator("#vehicle-marker").getAttribute("cx"), null);
+  assert.equal(await page.locator("#vehicle-marker").getAttribute("cy"), null);
   assert.equal(await page.locator("#history li").count(), 0);
   assert.equal(await page.locator("#route-line").getAttribute("points"), "");
   assert.equal(
@@ -242,5 +244,32 @@ test(
     await position(page, 44);
     await page.evaluate(() => window.acceptanceClient.close());
     await cleared(page);
+
+    const outcome = await page.evaluate(async (endpoint) => {
+      const { createVehicleClient } = await import("/dist/vehicle-client.js");
+      const client = createVehicleClient(
+        endpoint,
+        () => {},
+        () => {},
+        { protectedViews: true },
+      );
+      const pending = client.execute({ action: "connect" }).then(
+        () => "resolved",
+        () => "rejected",
+      );
+      client.close();
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        return await Promise.race([
+          pending,
+          new Promise<string>((resolve) => {
+            timer = setTimeout(() => resolve("pending"), 2000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer!);
+      }
+    }, service.viewerUrl);
+    assert.equal(outcome, "rejected");
   },
 );

@@ -187,6 +187,11 @@ function draw() {
 
   marker.setAttribute("visibility", latest ? "visible" : "hidden");
 
+  if (!latest) {
+    marker.removeAttribute("cx");
+    marker.removeAttribute("cy");
+  }
+
   if (latest) {
     const { x, y } = point(latest);
 

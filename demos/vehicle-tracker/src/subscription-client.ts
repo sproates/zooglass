@@ -205,6 +205,13 @@ export function createSubscriptionClient(
         observe("closed");
       });
       await new Promise<void>((resolve, reject) => {
+        // Closing a handshake may emit an error after accepting has been disabled.
+        // Settle this socket's own operation even when its callbacks are obsolete.
+        current.addEventListener(
+          "close",
+          () => reject(new Error("Connection closed before opening.")),
+          { once: true },
+        );
         current.addEventListener(
           "open",
           () => {

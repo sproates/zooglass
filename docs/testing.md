@@ -856,7 +856,7 @@ retirement over the control socket.
 ### Combined match correction acceptance
 
 [MatchCorrectionAcceptanceTests](../zooglass/src/test/java/io/zooglass/runtime/MatchCorrectionAcceptanceTests.java)
-runs one match feed against two views using the real event, retirement and
+runs one match feed against two views using the real event, progress, retirement and
 subscription sockets and HTTP snapshots. Each view publishes a goal list and
 the sum of its active goals’ points.
 
@@ -864,10 +864,16 @@ the sum of its active goals’ points.
 | --- | --- | --- |
 | Credit Player A with one point | A, score 1 | A, score 1 |
 | Correct the scorer to B and the value to two points | A, score 1 | B, score 2 in the same live update |
+| Advance progress through publication 4, with publications 2 and 4 missing | Confirmed gaps 2 and 4 | The same gaps; score remains 2 |
 | Withdraw the goal and kill the service after commit, before acknowledgement | A, score 1 after restart | Empty list, score 0 on resubscription |
 | Retry the withdrawal, create and correction | A, score 1 | Empty list, score 0 |
-| Send the older correction under a new publication identity | Immutable fact | Obsolete revision |
+| Deliver missing publication 2 after restart, carrying an older revision | Immutable fact, score remains 1 | Obsolete revision, score remains 0 |
 | Retire births below 2 in both corrected fields, then send revision 4 for birth 1 | A, score 1 | Outside retention, empty list, score 0 |
+
+Both views recover their confirmed gaps and watermark with their values. The
+delayed publication fills gap 2 and marks the source’s watermark promise as
+violated, even though neither field accepts its revision. Gap 4 remains visible.
+The subscribed consumer receives that status change without resurrecting a goal.
 
 An exact retry within the publication identity window returns a duplicate
 acknowledgement. Once a field’s retirement floor passes a birth, even a higher

@@ -20,14 +20,14 @@ import java.util.List;
 class MatchCorrectionAcceptanceTests {
     private static final JsonMapper JSON = new JsonMapper();
     private static final String CREATE = goal(1, 1, "create", "{\"scorer\":\"A\",\"points\":1}");
-    private static final String CORRECT = goal(2, 2, "revise", "{\"scorer\":\"B\",\"points\":2}");
-    private static final String WITHDRAW = goal(3, 3, "retract", "{}");
+    private static final String CORRECT = goal(3, 2, "revise", "{\"scorer\":\"B\",\"points\":2}");
+    private static final String WITHDRAW = goal(5, 3, "retract", "{}");
 
     @TempDir Path directory;
 
     @Test
     @Timeout(90)
-    void twoScoreboardsFollowTheirRevisionPoliciesThroughLostAckAndRetirement() throws Exception {
+    void twoScoreboardsPreserveRevisionPoliciesAndGapsThroughCrashAndLateDelivery() throws Exception {
         Files.writeString(
                 directory.resolve("views.json"),
                 JSON.writeValueAsString(FactFixtures.scores("sqlite")));
@@ -41,6 +41,7 @@ class MatchCorrectionAcceptanceTests {
         var boundary = CrashBoundaryDriver.Boundary.AFTER_COMMIT;
         try (var service = new CrashServiceProcess(directory, boundary);
                 var source = new PublicationTestClient(http, service.port());
+                var progress = new PublicationTestClient(http, service.port(), "/progress");
                 var corrected = new PublicationTestClient(http, service.port(), "/views/live")) {
             subscribe(corrected, "corrected");
             assertThat(corrected.nextMessage().path("version").longValue()).isZero();
@@ -54,6 +55,18 @@ class MatchCorrectionAcceptanceTests {
             assertThat(update.path("version")).isEqualTo(revised.path("version"));
             assertGoal(update, "B", 2, 2);
             assertGoal(read(http, service.port(), "original"), "A", 1, 1);
+
+            assertGap(update, 2, "provisional");
+            var watermark =
+                    progress.send(
+                            JSON.writeValueAsString(new ProgressControl("match", "v1", "game", 4)));
+            assertThat(watermark.path("status").asText()).isEqualTo("committed");
+            var incomplete = corrected.nextMessage();
+            assertGaps(incomplete);
+            assertGoal(incomplete, "B", 2, 2);
+            var original = read(http, service.port(), "original");
+            assertGaps(original);
+            assertGoal(original, "A", 1, 1);
 
             service.arm();
             source.publish(WITHDRAW);
@@ -74,6 +87,9 @@ class MatchCorrectionAcceptanceTests {
             subscribe(viewer, "corrected");
             var recovered = viewer.nextMessage();
             assertWithdrawn(recovered);
+            assertGaps(recovered);
+            assertGaps(read(http, service.port(), "original"));
+            assertGoal(read(http, service.port(), "original"), "A", 1, 1);
             assertThat(recovered.at("/status/fields/goals/facts/retainedCount").intValue()).isOne();
             var withdrawalRetry = source.send(WITHDRAW);
             assertThat(withdrawalRetry.path("status").asText()).isEqualTo("duplicate");
@@ -84,15 +100,27 @@ class MatchCorrectionAcceptanceTests {
             assertThat(originalRetry.path("version")).isEqualTo(created.path("version"));
             assertThat(originalRetry.path("targets")).isEqualTo(created.path("targets"));
             assertThat(source.send(CORRECT).path("status").asText()).isEqualTo("duplicate");
-            var obsolete = source.send(goal(4, 2, "revise", "{\"scorer\":\"B\",\"points\":2}"));
-            assertRejectedFields(obsolete, "corrected", "obsoleteRevision");
-            assertRejectedFields(obsolete, "original", "factImmutable");
-            assertWithdrawn(read(http, service.port(), "corrected"));
+
+            // A delayed old revision fills one gap but cannot resurrect the withdrawn goal.
+            var delayed = source.send(goal(2, 2, "revise", "{\"scorer\":\"B\",\"points\":2}"));
+            assertRejectedFields(delayed, "corrected", "obsoleteRevision");
+            assertRejectedFields(delayed, "original", "factImmutable");
+            var lateUpdate = viewer.nextMessage();
+            assertThat(lateUpdate.path("version")).isEqualTo(delayed.path("version"));
+            assertWithdrawn(lateUpdate);
+            assertGap(lateUpdate, 4, "confirmed");
+            assertThat(lateUpdate.at("/status/inputs/match/sourceContractViolated").booleanValue())
+                    .isTrue();
+            var original = read(http, service.port(), "original");
+            assertGoal(original, "A", 1, 1);
+            assertGap(original, 4, "confirmed");
+            assertThat(original.at("/status/inputs/match/sourceContractViolated").booleanValue())
+                    .isTrue();
 
             var retirement = new FactRetirement("corrected", "game", List.of("goals", "score"), 2);
             assertThat(control.send(JSON.writeValueAsString(retirement)).path("status").asText())
                     .isEqualTo("committed");
-            var outside = source.send(goal(5, 4, "revise", "{\"scorer\":\"C\",\"points\":3}"));
+            var outside = source.send(goal(6, 4, "revise", "{\"scorer\":\"C\",\"points\":3}"));
             assertRejectedFields(outside, "corrected", "factOutsideRetention");
             assertThat(source.send(CREATE).path("status").asText()).isEqualTo("duplicate");
             var retired = read(http, service.port(), "corrected");
@@ -102,6 +130,27 @@ class MatchCorrectionAcceptanceTests {
                     .isEqualTo(2);
             assertGoal(read(http, service.port(), "original"), "A", 1, 1);
         }
+    }
+
+    private static void assertGaps(JsonNode snapshot) {
+        var input = snapshot.at("/status/inputs/match");
+        assertThat(input.path("watermarkThrough").longValue()).isEqualTo(4);
+        assertThat(input.path("completeness").asText()).isEqualTo("incomplete");
+        assertThat(input.path("missingRanges"))
+                .isEqualTo(
+                        JSON.readTree("""
+                                [{"from":2,"through":2,"status":"confirmed"},
+                                 {"from":4,"through":4,"status":"confirmed"}]
+                                """));
+    }
+
+    private static void assertGap(JsonNode snapshot, long sequence, String status) {
+        assertThat(snapshot.at("/status/inputs/match/missingRanges"))
+                .isEqualTo(
+                        JSON.readTree(
+                                """
+                                [{"from":%d,"through":%d,"status":"%s"}]
+                                """.formatted(sequence, sequence, status)));
     }
 
     private static String goal(long publication, long revision, String operation, String payload) {

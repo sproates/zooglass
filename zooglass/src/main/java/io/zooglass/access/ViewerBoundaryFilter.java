@@ -18,8 +18,10 @@ import java.io.IOException;
 public final class ViewerBoundaryFilter extends OncePerRequestFilter {
 
     private final AdmissionAccess access;
+    private final OperatorAccess operator;
 
-    public ViewerBoundaryFilter(AdmissionAccess access) {
+    public ViewerBoundaryFilter(AdmissionAccess access, OperatorAccess operator) {
+        this.operator = operator;
         this.access = access;
     }
 
@@ -31,6 +33,11 @@ public final class ViewerBoundaryFilter extends OncePerRequestFilter {
             return;
         }
         response.setHeader("Cache-Control", "no-store");
+        if (operator.listener(request)) {
+            if (operator.permits(request) && operator.route(request)) chain.doFilter(request, response);
+            else response.setStatus(403);
+            return;
+        }
         String path = request.getServletPath();
         if (!"GET".equals(request.getMethod())
                 || !("/views".equals(path) || path.startsWith("/views/"))) {

@@ -4,15 +4,10 @@ The application owns identity and permissions. ZooGlass sends the caller's opaqu
 credential and the requested resource to its policy service, then uses the result
 to decide whether it may release a view.
 
-This document defines the policy client, admission handlers and active grant lifecycle.
-**Protected serving is not enabled yet.** Admission is exercised through internal
-test wiring; protected deployment wiring still follows the
-[accepted access contract](../../docs/design/view-access.md).
-
-Startup accepts `zooglass.access.mode=openDemo` (the default). Selecting
-`applicationPolicy` fails startup until active enforcement is complete. Unknown
-modes and protected settings supplied in open mode also fail, so a configuration
-mistake cannot silently enable an unprotected service.
+This document defines policy decisions, admission and active delivery enforcement.
+Use the [protected deployment guide](protected-deployment.md) to configure direct
+TLS viewers and the isolated local operator listener. Open demo access remains
+the default; invalid protected configuration fails startup.
 
 ## Strategies and settings
 
@@ -127,17 +122,15 @@ subject also closes it. Other sockets remain independent. Denial invalidates the
 grant before delivery cleanup can wait for the coordinator. The writer checks
 frames already taken from the queue as well as those still waiting.
 
-The internal protected viewer listener requires direct TLS and an allowed
+The protected viewer listener requires direct TLS and an allowed
 browser Origin. Cookie-based socket handshakes must provide that Origin;
 non-browser bearer clients may omit it. Forwarding headers cannot substitute
 for connector TLS evidence. The viewer listener excludes publication, progress,
 retirement, registration and management routes. A handler-level check also blocks
 management endpoints relocated beneath the viewer URL prefix.
 
-Protected deployment remains gated on active enforcement and an isolated
-operator path. A trusted TLS-terminating proxy will also need explicit backend
-isolation and forwarding-header handling before it is supported; the current
-admission fixture does not enable that deployment option.
+A trusted TLS-terminating proxy needs backend isolation and forwarding-header
+handling before it is supported. This deployment requires TLS at ZooGlass.
 
 ## Active subscriptions
 
@@ -219,5 +212,7 @@ HTTPS tests check an empty failure before commitment, truncated delivery after
 commitment, and an unread TLS peer causing native backpressure while another
 viewer continues reading.
 
-Protected deployment wiring remains outstanding. Startup stays disabled until
-the isolated operator path and deployment acceptance are complete.
+The production configuration path is exercised through local producer sockets,
+HTTPS reads and WSS subscriptions. Recovery tests cover memory and durable stores;
+restart always obtains fresh policy decisions. Workbench and rendered demo
+access-loss acceptance is the next delivery step.

@@ -86,7 +86,8 @@ HTTP and socket errors omit protected data and details of other resources.
 The `OpenDemoAccess` and `ApplicationPolicyAccess` modules implement the
 two access behaviours; their [policy protocol](../../zooglass/docs/access-policy.md)
 is defined separately. Admission handlers use the selected strategy for HTTP
-reads and socket handshakes/subscriptions; protected startup remains gated.
+reads and socket handshakes/subscriptions; protected startup validates direct TLS
+and a separate local operator listener.
 The latter uses a policy client to obtain grants and a local grant registry
 to check deadlines and invalidate subscription generations. The writer checks
 the local grant at release. This keeps a slow policy call off the publication
@@ -140,12 +141,13 @@ authorised baseline. A client that copied data before revocation owns that copy.
 The durable ownership boundary and offline adoption command are implemented;
 see the [storage guide](../../zooglass/docs/sqlite-storage.md#tenant-ownership).
 Tenant-aware startup, HTTP/WebSocket admission and active subscription renewal
-are exercised through internal test wiring. Renewal handles expiry and access loss
+are exercised through the normal deployment configuration. Renewal handles expiry and access loss
 during source silence. WebSocket frames now carry generation leases and use a
 guarded asynchronous transport handoff. HTTP snapshots use bounded nonblocking
 chunks checked against their original grant, with transport abort on expiry after
-commitment. Protected serving remains gated on deployment wiring and an isolated
-operator path. Protected HTTP reads currently require HTTP/1.1; other protocol
+commitment. The [protected deployment](../../zooglass/docs/protected-deployment.md)
+uses an authenticated loopback operator listener. Protected HTTP reads require
+HTTP/1.1; other protocol
 versions receive 505 before policy lookup. The current admission boundary uses
 direct TLS; proxy termination requires its own backend-isolation verification.
 

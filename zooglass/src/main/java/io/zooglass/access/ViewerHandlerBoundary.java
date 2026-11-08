@@ -17,13 +17,14 @@ import org.springframework.web.socket.server.support.WebSocketHttpRequestHandler
 public class ViewerHandlerBoundary {
 
     @Bean
-    MappedInterceptor viewerHandlers(AdmissionAccess access) {
+    MappedInterceptor viewerHandlers(AdmissionAccess access, OperatorAccess operator) {
         // A mapped interceptor also applies to non-MVC handler mappings such as Actuator.
         return new MappedInterceptor(null, new HandlerInterceptor() {
             @Override
             public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                     Object handler) {
-                if (!access.protectedMode() || isViewer(handler)) {
+                if (!access.protectedMode()
+                        || (operator.permits(request) && operator.route(request)) || isViewer(handler)) {
                     return true;
                 }
                 response.setHeader("Cache-Control", "no-store");
@@ -34,8 +35,8 @@ public class ViewerHandlerBoundary {
     }
 
     private static boolean isViewer(Object handler) {
-        // Only the viewer socket is registered on a protected listener; its handshake
-        // interceptor authenticates before upgrade.
+        // The connector filter excludes source routes from viewer requests. The viewer
+        // handshake interceptor authenticates before upgrade.
         if (handler instanceof WebSocketHttpRequestHandler) {
             return true;
         }

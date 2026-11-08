@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 6 November 2026.
+Last reviewed: 8 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -14,8 +14,9 @@ Slow viewers have bounded queues and a choice of FIFO or latest-state delivery.
 Recovery checks cover disconnection, retirement and restart under both storage
 modes. See the [delivery contract](docs/design/client-delivery.md).
 
-Next, define who may read or subscribe to a view, and what an active viewer
-receives when its permissions change. See [authorisation over time](#authorisation-over-time).
+Protected serving now applies application-owned decisions to reads, subscriptions
+and delivery. Next, exercise access loss through Workbench and the demo, then
+complete the combined capability acceptance. See [authorisation over time](#authorisation-over-time).
 
 ## Reconciliation and recovery
 
@@ -92,12 +93,14 @@ See the [demo design](docs/plans/order-and-sports-demos.md) and
 
 ## Authorisation over time
 
-The [proposed access contract](docs/design/view-access.md) covers snapshot reads,
+The [accepted access contract](docs/design/view-access.md) covers snapshot reads,
 live subscriptions and recovery. The application decides who may read each
-view and entity. ZooGlass will enforce that decision as it delivers updates.
+view and entity. ZooGlass enforces the decision at admission and transport release.
+[Protected deployment](zooglass/docs/protected-deployment.md) uses direct TLS,
+tenant-bound storage and an authenticated local operator listener.
 
-The delivery sequence is admission checks, active revocation and expiry, then
-[acceptance through the public interfaces](docs/requirements/authorisation.md).
+Workbench and demo access-loss checks remain, followed by the final
+[acceptance record](docs/requirements/authorisation.md).
 
 ## Further direction
 

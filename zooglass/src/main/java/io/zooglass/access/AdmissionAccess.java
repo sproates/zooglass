@@ -7,16 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
 import java.util.Collections;
-import java.util.List;
 
-/** Shared HTTP/handshake admission. Protected construction is internal until release enforcement. */
+/** Shared HTTP/handshake admission using the configured access strategy. */
 @Component
 public final class AdmissionAccess {
 
-    private static final List<String> PROTECTED_SETTINGS = List.of(
-            "tenant", "policy-url", "service-token", "origin", "session-cookie", "timeout-ms", "max-concurrent");
     private final ViewerAccess strategy;
     private final String tenant;
     private final String origin;
@@ -24,19 +20,18 @@ public final class AdmissionAccess {
 
     @Autowired
     public AdmissionAccess(Environment environment) {
-        this();
-        String mode = environment.getProperty("zooglass.access.mode", "openDemo");
-        if ("openDemo".equals(mode)) {
-            if (PROTECTED_SETTINGS.stream().anyMatch(key -> environment.containsProperty("zooglass.access." + key))) {
-                throw new IllegalArgumentException("Open demo access cannot have protected access settings");
-            }
-            return;
+        var settings = ProtectedSettings.read(environment);
+        if (settings == null) {
+            strategy = AccessStrategySelection.select(AccessStrategySelection.Mode.OPEN_DEMO, null);
+            tenant = null;
+            origin = null;
+            cookie = null;
+        } else {
+            strategy = AccessStrategySelection.select(AccessStrategySelection.Mode.APPLICATION_POLICY, settings.policy());
+            tenant = settings.policy().tenant();
+            origin = settings.origin();
+            cookie = settings.cookie();
         }
-        if (!"applicationPolicy".equals(mode)) {
-            throw new IllegalArgumentException("Unknown zooglass.access.mode");
-        }
-        // No bypass flag: configuration cannot enable admission without active release checks.
-        throw new IllegalArgumentException("Application policy serving is not enabled until active delivery enforcement is complete");
     }
 
     public AdmissionAccess() {
@@ -47,16 +42,10 @@ public final class AdmissionAccess {
     }
 
     AdmissionAccess(ViewerAccess strategy, String tenant, String origin, String cookie) {
-        URI uri = URI.create(origin);
-        if (!"https".equals(uri.getScheme()) || uri.getHost() == null
-                || uri.getRawUserInfo() != null || !uri.getRawPath().isEmpty()
-                || uri.getRawQuery() != null || uri.getRawFragment() != null) {
-            throw new IllegalArgumentException("Allowed browser origin must be an HTTPS origin");
-        }
+        ProtectedSettings.validateBrowser(origin, cookie);
         if (tenant == null || tenant.isBlank() || !tenant.equals(tenant.strip())) {
             throw new IllegalArgumentException("A tenant ID is required");
         }
-        ViewerCredential.read(List.of(), List.of(), cookie);
         this.strategy = java.util.Objects.requireNonNull(strategy);
         this.tenant = tenant;
         this.origin = origin;

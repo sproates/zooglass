@@ -125,3 +125,9 @@ It does not calculate replacement ZooGlass results.
 
 See the [source map](docs/source-map.md), [verification map](../docs/testing.md),
 [Workbench guide](../workbench/README.md) and [browser demo](../demos/vehicle-tracker/README.md).
+
+## Protected serving
+
+Open demo access is the default. For application-owned permission decisions, see
+[protected deployment](docs/protected-deployment.md): HTTPS/WSS viewers, scoped
+grants and a separate local operator connection.

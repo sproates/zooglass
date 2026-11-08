@@ -58,6 +58,8 @@ final class AdmissionSocket implements AutoCloseable {
                 Map.of("action", "subscribe", "viewId", view, "entityId", entity)), true).join();
     }
 
+    void send(String message) { socket.sendText(message, true).join(); }
+
     JsonNode next() throws Exception {
         String text = messages.poll(5, TimeUnit.SECONDS);
         if (text == null) {

@@ -39,7 +39,7 @@ class AdmissionBoundaryTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"applicationPolicy", "typo", ""})
-    void startupCannotEnableProtectedOrUnknownModes(String mode) {
+    void incompleteProtectedConfigurationAndUnknownModesFailStartup(String mode) {
         assertThatThrownBy(() -> new AdmissionAccess(new MockEnvironment()
                 .withProperty("zooglass.access.mode", mode))).isInstanceOf(IllegalArgumentException.class);
     }
@@ -116,7 +116,7 @@ class AdmissionBoundaryTests {
         var filter = new ViewerBoundaryFilter(access((credential, resource) -> {
             called.set(true);
             return allow();
-        }));
+        }), new OperatorAccess(new MockEnvironment()));
         for (String path : new String[] {"/events", "/progress", "/facts/retire", "/actuator/health"}) {
             var request = request();
             request.setServletPath(path);

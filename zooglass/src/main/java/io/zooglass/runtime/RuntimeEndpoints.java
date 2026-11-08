@@ -2,6 +2,7 @@ package io.zooglass.runtime;
 
 import io.zooglass.api.ViewSnapshot;
 import io.zooglass.access.AdmissionAccess;
+import io.zooglass.access.OperatorAccess;
 import io.zooglass.delivery.HttpSnapshotDelivery;
 import io.zooglass.access.ViewerHandshake;
 
@@ -27,6 +28,7 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     private final SnapshotSubscriptions live;
     private final AdmissionAccess access;
+    private final OperatorAccess operator;
     private final HttpSnapshotDelivery reads;
     private final EventIngress ingress;
     private final ProgressIngress progress;
@@ -38,9 +40,10 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
             EventIngress ingress,
             ProgressIngress progress,
             FactRetirementIngress retirement,
-            ViewCoordinator coordinator, AdmissionAccess access, HttpSnapshotDelivery reads) {
+            ViewCoordinator coordinator, AdmissionAccess access, HttpSnapshotDelivery reads, OperatorAccess operator) {
         this.live = live;
         this.access = access;
+        this.operator = operator;
         this.reads = reads;
         this.ingress = ingress;
         this.progress = progress;
@@ -50,11 +53,11 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        if (!access.protectedMode()) {
-            registry.addHandler(ingress, "/events");
-            registry.addHandler(progress, "/progress");
-            registry.addHandler(retirement, "/facts/retire");
-        }
+        // The connector boundary filter admits these routes only for local operators
+        // in protected mode, before an upgrade can reach any source handler.
+        registry.addHandler(ingress, "/events");
+        registry.addHandler(progress, "/progress");
+        registry.addHandler(retirement, "/facts/retire");
         var viewers = registry.addHandler(live, "/views/live")
                 .addInterceptors(new ViewerHandshake(access));
         if (access.protectedMode()) {
@@ -63,8 +66,8 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
     }
 
     @PostMapping("/views")
-    public ResponseEntity<Void> define(@RequestBody String body) {
-        if (access.protectedMode()) {
+    public ResponseEntity<Void> define(@RequestBody String body, HttpServletRequest request) {
+        if (access.protectedMode() && !operator.permits(request)) {
             return ResponseEntity.status(403).build();
         }
         RuntimeConfiguration.View definition;

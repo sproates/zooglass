@@ -3,7 +3,7 @@ package io.zooglass.access;
 import java.net.URI;
 import java.time.Duration;
 
-/** Internal configuration until protected serving is enabled. Secrets are redacted. */
+/** Validated policy connection settings. Secrets are redacted. */
 public record PolicySettings(
         String tenant, URI endpoint, String serviceToken, Duration timeout, int maxConcurrent) {
 

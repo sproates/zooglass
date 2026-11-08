@@ -36,9 +36,10 @@ is the I/O boundary used by the application strategy. See the
 
 ## Viewer admission
 
-`AdmissionAccess` owns the startup gate and common credential/decision checks.
-The protected viewer listener accepts only view reads and subscriptions. It is
-constructed by acceptance tests until active delivery enforcement is ready.
+`AdmissionAccess` owns common credential/decision checks. `ProtectedSettings`
+validates the complete startup configuration.
+The protected viewer listener accepts only view reads and subscriptions.
+Operators use a distinct loopback connector and credential.
 Policy I/O happens outside the coordinator monitor.
 
 ```mermaid
@@ -54,6 +55,23 @@ flowchart TB
   access -->|calls selected strategy| strategy["access/ViewerAccess.java"]
   reads -->|looks up only after allow| coordinator["runtime/ViewCoordinator.java"]
   sockets -->|admits baseline or invalidates socket| broadcaster["delivery/SnapshotBroadcaster.java"]
+```
+
+## Protected deployment
+
+The connector valve marks operator requests using connector identity. The filter
+checks the separate operator token and permits only source, registration and
+health routes. Forwarded ports and hosts cannot select the operator role.
+
+```mermaid
+flowchart TB
+  settings["access/ProtectedSettings.java"] -->|validates policy connection| policy["access/PolicySettings.java"]
+  admission["access/AdmissionAccess.java"] -->|reads validated deployment| settings
+  operator["access/OperatorAccess.java"] -->|reads operator configuration| settings
+  listener["access/OperatorListener.java"] -->|binds loopback connector and marks requests| operator
+  filter["access/ViewerBoundaryFilter.java"] -->|checks operator listener, token and routes| operator
+  filter -->|checks viewer credentials and TLS| admission
+  endpoints["runtime/RuntimeEndpoints.java"] -->|guards view registration| operator
 ```
 
 ## Active subscription grants
@@ -127,7 +145,7 @@ holds the coordinator or a shared grant registry.
 
 `StoreTenant` verifies ownership before recovery. The offline adoption command
 uses the same connection settings and row validation without starting Spring.
-Tenant-aware serving remains gated on the rest of the access implementation.
+Protected startup supplies the configured tenant to the runtime and durable store.
 
 ```mermaid
 flowchart LR

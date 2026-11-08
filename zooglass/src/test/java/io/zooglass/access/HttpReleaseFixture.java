@@ -24,12 +24,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @TestConfiguration(proxyBeanMethods = false)
 class HttpReleaseFixture {
 
-    enum Expiry { MANUAL, BEFORE_FIRST_CHUNK, AFTER_TWO_CHUNKS }
+    enum Expiry { MANUAL, BEFORE_FIRST_CHUNK, AFTER_TWO_CHUNKS, BEFORE_EMPTY_COMMIT, ON_COMPLETE }
 
     static final class Probe {
         final Expiry expiry;
         final AtomicLong clock = new AtomicLong();
         final AtomicInteger bytes = new AtomicInteger();
+        final AtomicInteger decisions = new AtomicInteger();
+        final CompletableFuture<Boolean> committed = new CompletableFuture<>();
         final CompletableFuture<Void> stalled = new CompletableFuture<>();
         final CompletableFuture<Void> completed = new CompletableFuture<>();
         volatile WriteListener writer;
@@ -49,6 +51,7 @@ class HttpReleaseFixture {
             }
             public AccessDecision authorise(ViewerCredential credential, ViewResource resource) {
                 var probe = probes.get(resource.entityId());
+                probe.decisions.incrementAndGet();
                 return new AccessDecision.Granted(new AccessGrant("tenant-a", "operator", resource,
                         0, 1000, probe.clock::get));
             }
@@ -67,6 +70,12 @@ class HttpReleaseFixture {
             }
             chain.doFilter(request, new HttpServletResponseWrapper((HttpServletResponse) response) {
                 private ServletOutputStream observed;
+
+                @Override
+                public void setContentLength(int length) {
+                    super.setContentLength(length);
+                    if (length == 0 && probe.expiry == Expiry.BEFORE_EMPTY_COMMIT) probe.expire();
+                }
 
                 @Override
                 public ServletOutputStream getOutputStream() throws IOException {
@@ -93,14 +102,22 @@ class HttpReleaseFixture {
             @Override
             public void setWriteListener(WriteListener listener) {
                 probe.writer = listener;
+                var response = (HttpServletResponse) request.getAsyncContext().getResponse();
                 request.getAsyncContext().addListener(new AsyncListener() {
-                    public void onComplete(AsyncEvent event) { probe.completed.complete(null); }
+                    public void onComplete(AsyncEvent event) {
+                        probe.committed.complete(response.isCommitted());
+                        if (probe.expiry == Expiry.ON_COMPLETE) probe.expire();
+                        probe.completed.complete(null);
+                    }
                     public void onError(AsyncEvent event) {}
                     public void onTimeout(AsyncEvent event) {}
                     public void onStartAsync(AsyncEvent event) {}
                 });
                 output.setWriteListener(listener);
             }
+
+            @Override
+            public void flush() throws IOException { output.flush(); }
 
             @Override
             public void write(int value) throws IOException { write(new byte[] {(byte) value}, 0, 1); }

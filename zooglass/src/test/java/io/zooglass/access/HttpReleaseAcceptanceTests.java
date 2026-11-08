@@ -51,9 +51,9 @@ class HttpReleaseAcceptanceTests {
                 "--server.port=0", "--spring.main.banner-mode=off", "--server.ssl.enabled=true",
                 "--server.ssl.key-store=" + directory.resolve("policy.p12").toUri(),
                 "--server.ssl.key-store-password=test-password", "--server.ssl.key-store-type=PKCS12",
-                "--zooglass.config=" + config.toUri());
+                "--server.http2.enabled=true", "--zooglass.config=" + config.toUri());
         port = ((WebServerApplicationContext) service).getWebServer().getPort();
-        client = HttpClient.newBuilder().sslContext(tls.trust).build();
+        client = HttpClient.newBuilder().sslContext(tls.trust).version(HttpClient.Version.HTTP_1_1).build();
     }
 
     @AfterAll
@@ -62,6 +62,56 @@ class HttpReleaseAcceptanceTests {
         if (service != null) service.close();
         if (tls != null) tls.close();
         HttpReleaseFixture.probes.clear();
+    }
+
+    @Test
+    void bodylessResultCommitsWhileAllowedRatherThanAfterAsyncCompletion() throws Exception {
+        for (boolean query : new boolean[] {false, true}) {
+            String entity = "empty-completion-" + query;
+            var probe = probe(entity, HttpReleaseFixture.Expiry.ON_COMPLETE);
+            var response = get(entity, query, "unknown");
+            probe.completed.get(3, TimeUnit.SECONDS);
+            assertThat(probe.committed.get(3, TimeUnit.SECONDS)).isTrue();
+            assertThat(probe.clock.get()).isEqualTo(1_000_000_000L);
+            // Expiry after the checked commit cannot retract an already released status.
+            assertThat(response.statusCode()).isEqualTo(404);
+            assertThat(response.body()).isEmpty();
+        }
+    }
+
+    @Test
+    void expiryDuringEmptyResponsePreparationIsCheckedBeforeCommit() throws Exception {
+        for (boolean query : new boolean[] {false, true}) {
+            String entity = "empty-preparation-" + query;
+            var probe = probe(entity, HttpReleaseFixture.Expiry.BEFORE_EMPTY_COMMIT);
+            var response = get(entity, query, "unknown");
+            assertThat(response.statusCode()).isEqualTo(503);
+            assertThat(response.body()).isEmpty();
+            probe.completed.get(3, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void protectedHttp2IsRefusedBeforePolicyOrSnapshotDelivery() throws Exception {
+        try (var http2 = HttpClient.newBuilder().sslContext(tls.trust).version(HttpClient.Version.HTTP_2).build()) {
+            for (boolean query : new boolean[] {false, true}) {
+                String entity = "unsupported-" + query;
+                var probe = probe(entity, HttpReleaseFixture.Expiry.MANUAL);
+                publish(entity, 100);
+                String path = query ? "/views?viewId=positions&entityId=" + entity : "/views/positions/" + entity;
+                var request = HttpRequest.newBuilder(URI.create("https://localhost:" + port + path))
+                        .header("Authorization", "Bearer viewer").header("X-Test-Case", entity)
+                        .timeout(Duration.ofSeconds(5)).GET().build();
+                var response = http2.send(request, HttpResponse.BodyHandlers.ofString());
+                assertThat(response.version()).isEqualTo(HttpClient.Version.HTTP_2);
+                assertThat(response.statusCode()).isEqualTo(505);
+                assertThat(response.body()).isEmpty();
+                assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+                assertThat(probe.decisions.get()).isZero();
+                assertThat(probe.bytes.get()).isZero();
+                assertThat(probe.writer).isNull();
+            }
+        }
     }
 
     @Test

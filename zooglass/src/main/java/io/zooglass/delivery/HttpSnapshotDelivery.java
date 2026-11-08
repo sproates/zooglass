@@ -32,6 +32,11 @@ public final class HttpSnapshotDelivery {
 
     public ResponseEntity<ViewSnapshot> read(HttpServletRequest request, HttpServletResponse response,
             String viewId, String entityId) throws IOException {
+        if (access.protectedMode() && !"HTTP/1.1".equals(request.getProtocol())) {
+            // Tomcat's HTTP/2 DATA path can block despite servlet write readiness.
+            // Refuse it before policy or lookup; open-demo protocol support is unchanged.
+            return ResponseEntity.status(505).header("Cache-Control", "no-store").build();
+        }
         var result = admission.read(request, viewId, entityId);
         if (!access.protectedMode() || !(request.getAttribute(SnapshotAdmission.GRANT) instanceof AccessGrant grant)) {
             return result;

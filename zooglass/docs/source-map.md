@@ -102,8 +102,8 @@ Open-demo writers retain their existing transport path.
 ## Protected HTTP release
 
 `HttpSnapshotDelivery` preserves ordinary Spring responses in open-demo mode.
-Protected reads prepare JSON bytes, then start an asynchronous servlet response.
-The writer checks readiness before each bounded, grant-checked submission. Its
+Protected reads require HTTP/1.1 before policy lookup, prepare JSON bytes, then
+start an asynchronous servlet response. The writer checks readiness before each bounded, grant-checked submission. Its
 short monitor also serialises timeout/error cleanup with those submissions.
 
 ```mermaid
@@ -117,8 +117,9 @@ flowchart TB
   writer -->|aborts partial response through supplied action| abort
 ```
 
-An uncommitted expired response becomes an empty 503. A committed response is
-aborted without a normal completion marker. HTTP grants are not renewed; snapshot
+An uncommitted expired response becomes an empty 503. Empty authorised results
+are explicitly committed by a checked nonblocking flush before async completion.
+A committed response is aborted without a normal completion marker. HTTP grants are not renewed; snapshot
 bytes are released on completion, error or timeout. No policy or network wait
 holds the coordinator or a shared grant registry.
 

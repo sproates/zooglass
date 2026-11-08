@@ -198,11 +198,18 @@ deadline may arrive afterwards.
 HTTP reads use their original grant without renewal. If it expires before success
 headers are committed, the response is an empty 503: ZooGlass no longer has a
 current decision. The initial policy decision still distinguishes 401, 403 and
-503. An authorised 404 is also checked at release.
+503. An authorised 404 is also checked at release: the writer explicitly flushes
+its empty response in nonblocking mode while the grant is current, before async
+completion can commit it later.
+
+Protected HTTP reads currently require HTTP/1.1. Other versions receive an empty
+505 before policy lookup or snapshot delivery, even if the connector has HTTP/2
+enabled. Tomcat's HTTP/2 DATA path can block despite servlet readiness, so it does
+not meet this writer's contract. Open-demo protocol support is unchanged.
 
 After commitment, expiry discards the remaining bytes and aborts the transport.
 The declared content length lets clients detect an incomplete snapshot. The
-Tomcat adapter closes the connection or resets the stream rather than completing
+Tomcat adapter closes the connection rather than completing
 it normally; there is no blocking-write fallback. Clients must discard incomplete
 responses. Write readiness and network waits never hold the view coordinator.
 A five-second async timeout also cleans up a client that never resumes reading.

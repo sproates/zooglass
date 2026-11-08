@@ -43,10 +43,6 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
     @Override
     public synchronized void onWritePossible() throws IOException {
         while (!stopped && output.isReady()) {
-            if (!grant.permits(resource)) {
-                refuse();
-                return;
-            }
             if (!headersPrepared) {
                 response.setStatus(status);
                 response.setContentLength(body.length);
@@ -55,11 +51,19 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
                 }
                 headersPrepared = true;
             }
+            if (!grant.permits(resource)) {
+                refuse();
+                return;
+            }
             int length = Math.min(CHUNK_BYTES, body.length - offset);
             if (length > 0) {
                 // Servlet nonblocking mode accepts this bounded chunk without waiting for the peer.
                 output.write(body, offset, length);
                 offset += length;
+            } else {
+                // Metadata alone has not been released. Commit it now in nonblocking
+                // mode, while the grant is current, rather than during async completion.
+                output.flush();
             }
             if (offset == body.length) {
                 finish();

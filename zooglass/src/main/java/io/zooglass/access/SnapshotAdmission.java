@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-/** Authorises before lookup. Transport-release enforcement is a separate delivery step. */
+/** Authorises before lookup. HttpSnapshotDelivery checks the grant again at chunk release. */
 @Component
 public final class SnapshotAdmission {
 

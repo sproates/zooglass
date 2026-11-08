@@ -14,8 +14,8 @@ dependencies are omitted except where needed to explain startup.
 ## Access policy decisions
 
 The `access/` modules implement policy decisions without depending on the view
-coordinator. Admission and active WebSocket delivery use these primitives; HTTP transport-release
-checks follow in the next increment. `AccessGrant` contains process-local evidence, never durable state.
+coordinator. Admission, active WebSocket delivery and HTTP chunk release use these
+primitives. `AccessGrant` contains process-local evidence, never durable state.
 
 ```mermaid
 flowchart TB
@@ -43,7 +43,8 @@ Policy I/O happens outside the coordinator monitor.
 
 ```mermaid
 flowchart TB
-  endpoints["runtime/RuntimeEndpoints.java"] -->|reads via| reads["access/SnapshotAdmission.java"]
+  endpoints["runtime/RuntimeEndpoints.java"] -->|reads via| delivery["delivery/HttpSnapshotDelivery.java"]
+  delivery -->|authorises before lookup| reads["access/SnapshotAdmission.java"]
   endpoints -->|registers upgrade checks| handshake["access/ViewerHandshake.java"]
   filter["access/ViewerBoundaryFilter.java"] -->|checks transport and credentials| access["access/AdmissionAccess.java"]
   handlers["access/ViewerHandlerBoundary.java"] -->|permits only viewer handlers after routing| endpoints
@@ -97,6 +98,29 @@ flowchart TB
 The adapter waits for completion outside grant and coordinator monitors. It does
 not substitute the blocking Spring send when a native async transport is absent.
 Open-demo writers retain their existing transport path.
+
+## Protected HTTP release
+
+`HttpSnapshotDelivery` preserves ordinary Spring responses in open-demo mode.
+Protected reads prepare JSON bytes, then start an asynchronous servlet response.
+The writer checks readiness before each bounded, grant-checked submission. Its
+short monitor also serialises timeout/error cleanup with those submissions.
+
+```mermaid
+flowchart TB
+  delivery["delivery/HttpSnapshotDelivery.java"] -->|obtains authorised snapshot| admission["access/SnapshotAdmission.java"]
+  delivery -->|starts bounded chunk delivery| writer["delivery/AuthorisedHttpWriter.java"]
+  writer -->|checks original scoped deadline| grant["access/AccessGrant.java"]
+  writer -->|submits only when ready| servlet("Servlet nonblocking output")
+  delivery -->|requires native abort capability| abort["delivery/HttpTransportAbort.java"]
+  abort -->|installs per-request abort action| tomcat("Tomcat context valve")
+  writer -->|aborts partial response through supplied action| abort
+```
+
+An uncommitted expired response becomes an empty 503. A committed response is
+aborted without a normal completion marker. HTTP grants are not renewed; snapshot
+bytes are released on completion, error or timeout. No policy or network wait
+holds the coordinator or a shared grant registry.
 
 ## Durable tenant ownership
 

@@ -6,7 +6,7 @@ to decide whether it may release a view.
 
 This document defines the policy client, admission handlers and active grant lifecycle.
 **Protected serving is not enabled yet.** Admission is exercised through internal
-test wiring; HTTP transport-release checks and deployment wiring still follow the
+test wiring; protected deployment wiring still follows the
 [accepted access contract](../../docs/design/view-access.md).
 
 Startup accepts `zooglass.access.mode=openDemo` (the default). Selecting
@@ -113,7 +113,7 @@ Both snapshot routes ask for a resource decision before looking up the view.
 They return 401 for missing or invalid credentials, 403 for denial and 503 when
 a decision is unavailable. Only an allowed lookup can reveal a 404. Protected
 responses carry `Cache-Control: no-store`. Snapshot admission checks the grant
-again after preparing the result; per-chunk transport checks are still pending.
+again after preparing the result; the HTTP writer checks it at each chunk handoff.
 
 A socket authenticates before upgrade. Its subject and selected credential stay
 with that connection. Each subscription asks for a fresh decision outside the
@@ -187,5 +187,30 @@ a healthy viewer continues receiving updates and the stalled connection is clean
 up. Transport probes forward to the real Jakarta implementation; they do not
 simulate send completion.
 
-HTTP chunk checks and protected deployment wiring remain outstanding. Protected
-startup stays disabled until those boundaries are complete.
+## Protected HTTP release
+
+Both snapshot routes serialise the result into application-owned bytes before
+starting nonblocking servlet delivery. The writer waits for transport readiness,
+checks the request's scoped grant, then submits at most 8 KiB. Returning from the
+controller is not the release point. Bytes accepted by the transport before the
+deadline may arrive afterwards.
+
+HTTP reads use their original grant without renewal. If it expires before success
+headers are committed, the response is an empty 503: ZooGlass no longer has a
+current decision. The initial policy decision still distinguishes 401, 403 and
+503. An authorised 404 is also checked at release.
+
+After commitment, expiry discards the remaining bytes and aborts the transport.
+The declared content length lets clients detect an incomplete snapshot. The
+Tomcat adapter closes the connection or resets the stream rather than completing
+it normally; there is no blocking-write fallback. Clients must discard incomplete
+responses. Write readiness and network waits never hold the view coordinator.
+A five-second async timeout also cleans up a client that never resumes reading.
+
+Tests control the grant clock before the first chunk and between chunks. Real
+HTTPS tests check an empty failure before commitment, truncated delivery after
+commitment, and an unread TLS peer causing native backpressure while another
+viewer continues reading.
+
+Protected deployment wiring remains outstanding. Startup stays disabled until
+the isolated operator path and deployment acceptance are complete.

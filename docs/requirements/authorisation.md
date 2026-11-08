@@ -5,7 +5,8 @@ admission, active revocation, transport-release checks and protected deployment
 are implemented. Real-interface tests cover isolation and recovery.
 [Workbench client acceptance](../../workbench/docs/protected-client-acceptance.md)
 covers the basic demo clearing protected data and recovering with fresh permission.
-The final requirement-to-evidence review remains outstanding. See the [deployment guide](../../zooglass/docs/protected-deployment.md).
+The [acceptance record](../verification/authorisation.md) maps each applicable
+criterion to repeatable evidence. See the [deployment guide](../../zooglass/docs/protected-deployment.md).
 
 A live view can remain open for hours. Someone who was allowed to see it when
 it opened may lose that permission while updates are still arriving. ZooGlass
@@ -63,6 +64,6 @@ inspect the rendered access-loss state independently of the app's own reports.
 
 ## Enforcement contract
 
-The [proposed design](../design/view-access.md) defines the policy boundary,
-cutoff and client outcome. Completion requires implementation and the repeatable
-observations above.
+The [accepted design](../design/view-access.md) defines the policy boundary,
+cutoff and client outcome. The [acceptance record](../verification/authorisation.md)
+identifies the tests, their observations and the supported deployment scope.

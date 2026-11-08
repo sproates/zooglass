@@ -126,6 +126,40 @@ class ViewerAdmissionTests {
     }
 
     @Test
+    void permissionForOneResourceCannotBeReusedByChangingIdentifiers() throws Exception {
+        publish("scope-allowed", 1);
+        publish("scope-denied", 1);
+        decision.set(request -> {
+            if (request.path("operation").asText().equals("authenticate")) return ALLOW;
+            var resource = request.path("resource");
+            return resource.path("viewId").asText().equals("match")
+                    && resource.path("entityId").asText().equals("scope-allowed")
+                    ? ALLOW : "{\"decision\":\"deny\"}";
+        });
+        assertThat(get("/views/match/scope-allowed", "viewer-token").statusCode()).isEqualTo(200);
+        for (String path : new String[] {"/views/match/scope-denied",
+                "/views?viewId=match&entityId=scope-denied", "/views/other/scope-allowed",
+                "/views?viewId=other&entityId=scope-allowed"}) {
+            var response = get(path, "viewer-token");
+            assertThat(response.statusCode()).isEqualTo(403);
+            assertThat(response.body()).isEmpty();
+        }
+        try (var viewer = socket(Map.of("Authorization", "Bearer viewer-token"))) {
+            viewer.subscribe("match", "scope-allowed");
+            assertThat(viewer.next().path("type").asText()).isEqualTo("subscribed");
+            assertThat(viewer.next().path("data").has("score")).isTrue();
+            for (String[] resource : new String[][] {{"match", "scope-denied"}, {"other", "scope-allowed"}}) {
+                viewer.subscribe(resource[0], resource[1]);
+                assertThat(viewer.next().path("code").asText()).isEqualTo("accessDenied");
+            }
+            // An ordered acknowledgement/baseline barrier exposes any forbidden extra frame.
+            viewer.subscribe("match", "scope-allowed");
+            assertThat(viewer.next().path("type").asText()).isEqualTo("subscribed");
+            assertThat(viewer.next().path("entityId").asText()).isEqualTo("scope-allowed");
+        }
+    }
+
+    @Test
     void realHandshakeChecksCredentialsOriginAndPolicyAvailability() {
         for (var failure : Map.of("deny", 403, "unauthenticated", 401, "broken", 503).entrySet()) {
             decision.set(request -> "{\"decision\":\"" + failure.getKey() + "\"}");

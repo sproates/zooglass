@@ -15,6 +15,7 @@ export async function protectedService(t: TestContext) {
     origin,
     serviceToken,
     allowed,
+    failures,
     decisions,
   } = await protectedAuthority(t);
   const reservation = createServer();
@@ -116,6 +117,7 @@ export async function protectedService(t: TestContext) {
   return {
     origin,
     allowed,
+    failures,
     decisions,
     publish,
     viewerUrl: `wss://localhost:${gateAddress.port}/views/live`,

@@ -122,88 +122,108 @@ async function staleCallbacks(page: Page) {
   });
 }
 
-test(
-  "protected demo clears revoked data; denied viewers stay empty and recovery needs fresh admission",
-  { timeout: 90_000 },
-  async (t) => {
-    const service = await protectedService(t);
-    const browser = await chromium.launch();
-    t.after(() => browser.close());
-    await service.publish(42);
-    const page = await viewer(
-      browser,
-      service.origin,
-      service.viewerUrl,
-      "viewer",
-    );
-    const healthy = await viewer(
-      browser,
-      service.origin,
-      service.healthyUrl,
-      "healthy",
-    );
-    const denied = await viewer(
-      browser,
-      service.origin,
-      service.viewerUrl,
-      "denied",
-    );
-    await subscribe(page);
-    await subscribe(healthy);
-    await position(page, 42);
-    await assert.rejects(subscribe(denied));
-    await cleared(denied);
-
-    service.allowed.delete("viewer");
-    await page
-      .locator("#connection-status")
-      .filter({ hasText: "connection failed" })
-      .waitFor();
-    await cleared(page);
-    assert.ok(
-      (await page.evaluate(() => window.acceptanceClosed)).includes(1008),
-    );
-    await service.publish(43);
-    await position(healthy, 43);
-    await staleCallbacks(page);
-    await cleared(page);
-
-    // A new socket cannot reuse the previous connection's grants.
-    // Failed clients are replaced, as when the app begins a fresh authenticated session.
-    await page.reload();
-    await page.evaluate(async (endpoint) => {
-      const { createVehicleClient } = await import("/dist/vehicle-client.js");
-      window.acceptanceClient = createVehicleClient(
-        endpoint,
-        () => {},
-        () => {},
-        { protectedViews: true },
+for (const failure of ["deny", "unauthenticated", "unavailable"] as const) {
+  test(
+    `protected demo clears ${failure} during publication and requires fresh admission`,
+    { timeout: 90_000 },
+    async (t) => {
+      const service = await protectedService(t);
+      const browser = await chromium.launch();
+      t.after(() => browser.close());
+      await service.publish(42);
+      const page = await viewer(
+        browser,
+        service.origin,
+        service.viewerUrl,
+        "viewer",
       );
-    }, service.viewerUrl);
-    await assert.rejects(subscribe(page));
-    await cleared(page);
+      const healthy = await viewer(
+        browser,
+        service.origin,
+        service.healthyUrl,
+        "healthy",
+      );
+      const denied = await viewer(
+        browser,
+        service.origin,
+        service.viewerUrl,
+        "denied",
+      );
+      await subscribe(page);
+      await subscribe(healthy);
+      await position(page, 42);
+      await assert.rejects(subscribe(denied));
+      await cleared(denied);
 
-    service.allowed.add("viewer");
-    const recovered = await viewer(
-      browser,
-      service.origin,
-      service.viewerUrl,
-      "viewer",
-    );
-    await cleared(recovered);
-    const previousReads = service.decisions.filter(
-      (d) => d.credential === "viewer" && d.operation === "read",
-    ).length;
-    await subscribe(recovered);
-    await position(recovered, 43);
-    assert.ok(
-      service.decisions.filter(
+      service.failures.set("viewer", failure);
+      let reporting = true;
+      let latest = 42;
+      const publications = (async () => {
+        while (reporting) {
+          await service.publish(++latest);
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      })();
+      // Attach rejection handling while the page independently observes access loss.
+      void publications.catch(() => {});
+      try {
+        await page
+          .locator("#connection-status")
+          .filter({ hasText: "connection failed" })
+          .waitFor();
+        await cleared(page);
+        assert.ok(
+          (await page.evaluate(() => window.acceptanceClosed)).includes(1008),
+        );
+      } finally {
+        reporting = false;
+        await publications;
+      }
+      assert.ok(
+        latest > 42,
+        "source kept publishing during the permission change",
+      );
+      await position(healthy, latest);
+      await staleCallbacks(page);
+      await cleared(page);
+
+      // A new socket cannot reuse the previous connection's grants.
+      // Failed clients are replaced, as when the app begins a fresh authenticated session.
+      await page.reload();
+      await page.evaluate(async (endpoint) => {
+        const { createVehicleClient } = await import("/dist/vehicle-client.js");
+        window.acceptanceClient = createVehicleClient(
+          endpoint,
+          () => {},
+          () => {},
+          { protectedViews: true },
+        );
+      }, service.viewerUrl);
+      await assert.rejects(subscribe(page));
+      await cleared(page);
+
+      service.failures.delete("viewer");
+      const recovered = await viewer(
+        browser,
+        service.origin,
+        service.viewerUrl,
+        "viewer",
+      );
+      await cleared(recovered);
+      const previousReads = service.decisions.filter(
         (d) => d.credential === "viewer" && d.operation === "read",
-      ).length >=
-        previousReads + 2,
-    );
-  },
-);
+      ).length;
+      await subscribe(recovered);
+      await position(recovered, latest);
+      assert.ok(
+        service.decisions.filter(
+          (d) => d.credential === "viewer" && d.operation === "read",
+        ).length >=
+          previousReads + 2,
+      );
+    },
+  );
+}
 
 test(
   "protected demo clears deliberate and abnormal losses, rejects stale callbacks and recovers from a new baseline",

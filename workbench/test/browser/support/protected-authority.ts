@@ -80,6 +80,10 @@ export async function protectedAuthority(t: TestContext) {
     { timeout: 20_000 },
   );
 
+  const failures = new Map<
+    string,
+    "deny" | "unauthenticated" | "unavailable"
+  >();
   const allowed = new Set(["viewer", "healthy"]);
   const decisions: {
     credential: string;
@@ -106,6 +110,15 @@ export async function protectedAuthority(t: TestContext) {
             operation: request.operation,
             viewId: request.resource?.viewId,
           });
+          const failure = failures.get(credential);
+          if (failure) {
+            res
+              .writeHead(failure === "unavailable" ? 503 : 200, {
+                "Content-Type": "application/json",
+              })
+              .end(JSON.stringify({ decision: failure }));
+            return;
+          }
           const permit =
             request.tenant === "acceptance" &&
             (request.operation === "authenticate" || allowed.has(credential));
@@ -171,6 +184,7 @@ export async function protectedAuthority(t: TestContext) {
     origin,
     serviceToken,
     allowed,
+    failures,
     decisions,
   };
 }

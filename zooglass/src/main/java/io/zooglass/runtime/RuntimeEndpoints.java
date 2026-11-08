@@ -2,10 +2,11 @@ package io.zooglass.runtime;
 
 import io.zooglass.api.ViewSnapshot;
 import io.zooglass.access.AdmissionAccess;
-import io.zooglass.access.SnapshotAdmission;
+import io.zooglass.delivery.HttpSnapshotDelivery;
 import io.zooglass.access.ViewerHandshake;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import io.zooglass.delivery.SnapshotSubscriptions;
 
 import org.springframework.http.ResponseEntity;
@@ -18,13 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
+import java.io.IOException;
+
 /** The single publication, control, snapshot and subscription API. */
 @RestController
 public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     private final SnapshotSubscriptions live;
     private final AdmissionAccess access;
-    private final SnapshotAdmission reads;
+    private final HttpSnapshotDelivery reads;
     private final EventIngress ingress;
     private final ProgressIngress progress;
     private final FactRetirementIngress retirement;
@@ -35,7 +38,7 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
             EventIngress ingress,
             ProgressIngress progress,
             FactRetirementIngress retirement,
-            ViewCoordinator coordinator, AdmissionAccess access, SnapshotAdmission reads) {
+            ViewCoordinator coordinator, AdmissionAccess access, HttpSnapshotDelivery reads) {
         this.live = live;
         this.access = access;
         this.reads = reads;
@@ -79,13 +82,15 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
 
     @GetMapping("/views")
     public ResponseEntity<ViewSnapshot> lookup(
-            @RequestParam String viewId, @RequestParam String entityId, HttpServletRequest request) {
-        return reads.read(request, viewId, entityId);
+            @RequestParam String viewId, @RequestParam String entityId,
+            HttpServletRequest request, HttpServletResponse response) throws IOException {
+        return reads.read(request, response, viewId, entityId);
     }
 
     @GetMapping("/views/{viewId}/{entityId}")
     public ResponseEntity<ViewSnapshot> snapshot(
-            @PathVariable String viewId, @PathVariable String entityId, HttpServletRequest request) {
-        return reads.read(request, viewId, entityId);
+            @PathVariable String viewId, @PathVariable String entityId,
+            HttpServletRequest request, HttpServletResponse response) throws IOException {
+        return reads.read(request, response, viewId, entityId);
     }
 }

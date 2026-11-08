@@ -142,9 +142,12 @@ see the [storage guide](../../zooglass/docs/sqlite-storage.md#tenant-ownership).
 Tenant-aware startup, HTTP/WebSocket admission and active subscription renewal
 are exercised through internal test wiring. Renewal handles expiry and access loss
 during source silence. WebSocket frames now carry generation leases and use a
-guarded asynchronous transport handoff. HTTP chunk release checks remain outstanding. Protected serving remains gated on active release enforcement and
-an isolated operator path. The current admission boundary uses direct TLS;
-proxy termination requires its own backend-isolation verification.
+guarded asynchronous transport handoff. HTTP snapshots use bounded nonblocking
+chunks checked against their original grant, with transport abort on expiry after
+commitment. Protected serving remains gated on deployment wiring and an isolated
+operator path. Protected HTTP reads currently require HTTP/1.1; other protocol
+versions receive 505 before policy lookup. The current admission boundary uses
+direct TLS; proxy termination requires its own backend-isolation verification.
 
 Implement admission first and active enforcement second. Enable protected mode
 for users only once both are in place. Workbench supplies an application policy

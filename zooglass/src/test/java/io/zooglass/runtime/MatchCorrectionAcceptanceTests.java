@@ -63,7 +63,10 @@ class MatchCorrectionAcceptanceTests {
             assertThat(watermark.path("status").asText()).isEqualTo("committed");
             var incomplete = corrected.nextMessage();
             assertGaps(incomplete);
-            assertGaps(read(http, service.port(), "original"));
+            assertGoal(incomplete, "B", 2, 2);
+            var original = read(http, service.port(), "original");
+            assertGaps(original);
+            assertGoal(original, "A", 1, 1);
 
             service.arm();
             source.publish(WITHDRAW);

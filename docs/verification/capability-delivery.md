@@ -28,7 +28,7 @@ Replace the test name with any class in the table. The wider
 | Known gaps and late events | [Progress contract](../design/progress-and-publication.md), [configuration](../../zooglass/docs/source-progress.md): `contiguousSequence`, `acceptLate`, `rejectBehindWatermark` | [ProgressAcceptanceTests](../../zooglass/src/test/java/io/zooglass/runtime/ProgressAcceptanceTests.java) distinguishes delayed, confirmed missing and untracked reports. |
 | Partial inputs and reporting silence | [Publication and freshness configuration](../../zooglass/docs/source-progress.md): `requireContributions`, `receiptAge` | [ProgressCompositionTests](../../zooglass/src/test/java/io/zooglass/runtime/ProgressCompositionTests.java) combines independent progress, required fields, silence and recovery. |
 | Corrections, withdrawals and totals | [Revision contract](../design/fact-revisions.md), [configuration](../../zooglass/docs/fact-collections.md): `firstFact`, `latestFactRevision`, `activeFacts`, `sumActiveFacts` | [MatchCorrectionAcceptanceTests](../../zooglass/src/test/java/io/zooglass/runtime/MatchCorrectionAcceptanceTests.java) combines two scoreboards, gaps, revisions, a crash, retries and retirement. |
-| Returning and slow viewers | [Delivery contract](../design/client-delivery.md), [configuration](../../zooglass/README.md#slow-viewers): `freshSnapshot`, `disconnectOnOverflow`, `coalesceLatestState` | [ClientRecoveryAcceptanceTests](../../zooglass/src/test/java/io/zooglass/runtime/ClientRecoveryAcceptanceTests.java) covers restart in both storage modes; [SlowClientDeliveryTests](../../zooglass/src/test/java/io/zooglass/runtime/SlowClientDeliveryTests.java) exercises real sockets. |
+| Returning and slow viewers | [Delivery contract](../design/client-delivery.md), [configuration](../../zooglass/README.md#slow-viewers): `freshSnapshot`, `disconnectOnOverflow`, `coalesceLatestState` | [ClientRecoveryAcceptanceTests](../../zooglass/src/test/java/io/zooglass/runtime/ClientRecoveryAcceptanceTests.java) covers restart in both storage modes; [SlowClientDeliveryTests](../../zooglass/src/test/java/io/zooglass/runtime/SlowClientDeliveryTests.java) provides deterministic queue coverage with mocked transports. The [Workbench concurrent-client test](../../workbench/test/concurrent-clients.test.ts) pauses a real receiver and verifies eviction while a healthy viewer continues. |
 | Access that can be withdrawn | [Access contract](../design/view-access.md), [protected deployment](../../zooglass/docs/protected-deployment.md) | The [authorisation evidence map](authorisation.md) links admission, active revocation, transport release, tenant ownership and protected-client recovery to their tests. |
 
 ## What these capabilities remove from an application
@@ -106,8 +106,10 @@ service evidence above or require formal sign-off on a physical phone.
   throughput/latency are separate work; this record makes no performance claim.
 - A returning viewer receives current snapshots, not every missed transition.
   Independently subscribed views do not form an atomic multi-view read.
-- Gaps require an explicit scoped source promise. Silence alone proves neither
-  missing events nor source failure; receipt age is not observation age.
+- With `contiguousSequence`, sequence jumps expose provisional gaps before any
+  watermark. A scoped source watermark confirms gaps through its boundary.
+  Silence alone proves neither missing events nor source failure; receipt age
+  is not observation age.
 - Identity, history, gaps and facts have configured bounds. Retired facts cannot
   be reconstructed, and runtime view registration has no historical backfill.
 - Source priority is explicit; there is no arbitrary join or general computation

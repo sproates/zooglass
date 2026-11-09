@@ -9,7 +9,7 @@ are delivered.
 ## Initial strategy acceptance
 
 The named modules are implemented. The current configuration contract is in the
-[service guide](../../zooglass/README.md#update-strategy-contract). Shared-source
+[publication guide](../../zooglass/docs/publications.md#configure-and-run). Shared-source
 acceptance now covers live subscribers for startup and runtime definitions; the
 [test guide](../testing.md#field-update-strategies) describes the evidence.
 

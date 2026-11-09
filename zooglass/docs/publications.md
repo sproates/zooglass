@@ -91,8 +91,8 @@ sources may map to the same entity. Resolver entries must name sources used by
 the view; extra parameters or unsupported modes fail startup.
 
 The shorthand field form and expanded one-input form are equivalent and default
-to `independentFields`. Unknown field properties, including `freshness`, `update`
-and `name`, are rejected.
+to `independentFields`. Unknown field properties, including `update` and `name`, are rejected.
+Optional `freshness` is described in the [source-progress guide](source-progress.md).
 
 Match source and event type before resolving. A missing mapping rejects only
 that view's contribution; other matching views may succeed. It allocates no view

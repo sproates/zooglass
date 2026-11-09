@@ -38,7 +38,7 @@ positions 40 and 42 so the changes are easy to follow.
 
 ## Fleet selection
 
-On the fleet programme branch, select interactive mode:
+Select interactive mode:
 
 ```sh
 cd workbench
@@ -68,8 +68,8 @@ The [manifest](pages/interactive/fleet-manifest.json) supplies names and IDs onl
 ZooGlass through the [fleet contract scenario](../../workbench/docs/fleet-contracts.md).
 `--fleet` is an interactive variant and cannot be combined with `--basic`,
 `--recovery`, `--fault` or `--auto`. The existing default journey and short variants
-are retained. Automated tests exercise independent Chromium clients. Native
-iPhone/Safari acceptance remains a separate walkthrough.
+are retained. Automated tests exercise independent Chromium clients. Phone-width
+checks do not require formal sign-off on a physical device.
 
 ## Follow the run
 
@@ -267,8 +267,9 @@ is not a freshness guarantee.
 
 The ordering policies keep the first accepted payload for a sequence. Sending
 different coordinates with the same sequence does not revise that position.
-The duplicate fixture checks identical delivery; a general correction/revision
-contract remains future work.
+The duplicate fixture checks identical delivery;
+[retained-fact corrections](../../zooglass/docs/fact-collections.md) are available
+in the service but are not used by these position fixtures.
 
 The current sequence and coordinates come from the `live-map` snapshot. The
 history list and line come from `trip-history`. Each full snapshot replaces its
@@ -332,8 +333,9 @@ check both fixtures again after reset. Lifecycle tests also cover fresh state,
 old host/service closure and reset after page loss. Opt-in automatic recovery
 now has controlled-peer browser coverage for refused retries, both snapshot
 orders, cancellation and deadline expiry. The real-ZooGlass connection-loss suite
-checks source continuity and the first recovery snapshots. Final acceptance
-remains outstanding.
+checks source continuity and the first recovery snapshots. The
+[capability record](../../docs/verification/capability-delivery.md) identifies the
+current demo coverage and remaining presentation work.
 Keyboard Step/Reset, history scrolling and layouts at 320, 390 and 1280 CSS
 pixels are covered by the browser suite. This is a focused demo usability check,
 not a full accessibility audit or a check of native mobile browsers. The

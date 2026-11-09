@@ -1,81 +1,13 @@
 # ZooGlass roadmap
 
-Last reviewed: 8 November 2026.
+Last reviewed: 9 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
-reconnect. The current programme brings those behaviours together and
-demonstrates the application work they remove.
+reconnect. The [capability delivery record](docs/verification/capability-delivery.md)
+links the implemented policies to their configuration, tests and examples.
 
-## Next: combined capability acceptance
-
-Subscriptions now start with a fresh snapshot, including after reconnect.
-Slow viewers have bounded queues and a choice of FIFO or latest-state delivery.
-Recovery checks cover disconnection, retirement and restart under both storage
-modes. See the [delivery contract](docs/design/client-delivery.md).
-
-Protected serving now applies application-owned decisions to reads, subscriptions
-and delivery. Workbench acceptance now verifies access loss and fresh recovery
-in the basic demo. The [authorisation evidence](docs/verification/authorisation.md)
-is mapped to the contract. Next, exercise shared inputs, differing view strategies,
-gaps, corrections and restart together, then consolidate the delivery record. See [authorisation over time](#authorisation-over-time).
-
-## Reconciliation and recovery
-
-View-local mappings and source-priority selection are delivered. ZooGlass retains
-independent source candidates, preserves hidden updates across restart and selects
-winners without comparing unrelated sequence numbers. See the
-[relationship design](docs/design/relationships-and-conflicts.md).
-
-The accepted [design](docs/design/progress-and-publication.md) explains how
-configuration selects source-progress, late-event, receipt-age and publication
-policies. Source progress, bounded gaps, per-field late decisions and durable
-watermark outcomes are implemented. Views can now wait for required fields before
-exposing their values. Fields can also classify the age of their last accepted
-contribution and become stale during silence. Combined acceptance checks cover
-late and missing reports, shared feeds, independent source progress and silence
-alongside required-field publication. See the [verification guide](docs/testing.md#progress-and-late-policy).
-Timeouts do not prove completeness, and staleness does not automatically change
-source priority.
-
-The accepted [revision design](docs/design/fact-revisions.md) defines how to
-correct or retract retained facts. [Retained collections](zooglass/docs/fact-collections.md)
-now support first/latest revision policies, explicit retirement and SQLite recovery.
-Fields can calculate exact totals from retained facts. The
-[combined match check](docs/testing.md#combined-match-correction-acceptance)
-exercises two scoreboards through a correction, withdrawal, restart and retirement.
-
-Arrival, latest-by-sequence and history-by-sequence already have named strategy
-modules selected by configuration. The [publication API](zooglass/docs/publications.md)
-adds explicit publication identities and retry outcomes. Optional
-[SQLite storage](zooglass/docs/sqlite-storage.md) now restores these identities and
-views after restart. Automated process-crash checks cover partial writes and
-commit/acknowledgement boundaries.
-
-The [accepted strategy design](docs/design/strategy-modules.md) sets out the
-module responsibilities. The [behaviour contracts](docs/design/behaviour-contracts.md)
-and [delivery plan](docs/design/strategy-delivery.md) describe the subsequent work.
-
-## Build out the capabilities
-
-The delivery sequence brings persistence forward so later strategies build on
-clear state ownership and recovery rules:
-
-1. **Identity and durable state:** explicit source identity, transactional updates
-   and recovery after a ZooGlass restart, using a single-instance SQLite store.
-2. **Relationships and conflicts:** map contributions to the same entity and
-   configure how independent sources are combined or prioritised.
-3. **Progress and freshness:** expose known gaps, reporting age and partial inputs,
-   with explicit choices for late events and publication.
-4. **Corrections:** revise or retract retained facts and update bounded derived
-   values when those facts change.
-5. **Client recovery and queues:** define fresh-snapshot recovery and bounded
-   delivery policies for slow or disconnected consumers.
-
-Each capability includes its configuration, runtime strategy, behavioural tests
-and documentation. The delivery plan breaks these areas into focused PRs.
-
-## Demonstrate the value: orders, then sports
+## Next: order tracking, then sports
 
 The next demonstrations make the capabilities visible in familiar multi-source
 applications:
@@ -92,17 +24,6 @@ experiences follow the service capabilities they demonstrate.
 
 See the [demo design](docs/plans/order-and-sports-demos.md) and
 [capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage).
-
-## Authorisation over time
-
-The [accepted access contract](docs/design/view-access.md) covers snapshot reads,
-live subscriptions and recovery. The application decides who may read each
-view and entity. ZooGlass enforces the decision at admission and transport release.
-[Protected deployment](zooglass/docs/protected-deployment.md) uses direct TLS,
-tenant-bound storage and an authenticated local operator listener.
-
-The [acceptance record](docs/verification/authorisation.md) links admission,
-release-boundary, restart and rendered-client checks to each requirement.
 
 ## Further direction
 
@@ -127,7 +48,7 @@ for verification. The [delivery retrospective](docs/retrospectives/2026-10-30-pr
 contains the detailed history and evidence.
 
 The [product explanation](docs/what-is-zooglass.md) describes the ambition, and the
-[developer-value comparison](docs/developer-value.md) examines the work the
-prototype removes. Follow [open PRs](https://github.com/sproates/zooglass/pulls)
+[developer-value comparison](docs/developer-value.md) examines the application work
+ZooGlass removes. Follow [open PRs](https://github.com/sproates/zooglass/pulls)
 and [merged changes](https://github.com/sproates/zooglass/pulls?q=is%3Apr+is%3Amerged)
 for progress, or [CI runs](https://github.com/sproates/zooglass/actions) for check results.

@@ -109,7 +109,7 @@ across all its event types; synthetic cycle changes never reset identity.
 
 | Source/type | Content |
 | --- | --- |
-| `match-feed` / `match.state` | cycle, teams, period, simulatedClock, observedAt |
+| `match-feed` / `match.state` | cycle, teams, period, simulatedClock, scoreWindowStart, observedAt |
 | `match-feed` / `home.contribution` | fact envelope; payload kind, cycle, scorer, minute, points |
 | `match-feed` / `away.contribution` | same grammar for the away score |
 | `bookmaker` / `market.state` | cycle, status, decimal odds for home/draw/away, basedOnMatchSequence, observedAt |
@@ -234,14 +234,52 @@ reuse births; tombstones still count towards retention. At cycle end, pause that
 match's producer and drain scheduled/retry work. Send `/facts/retire` for each view,
 using the next match-feed sequence as the new minimum birth. In `match-market` and
 `first-reported`, name all four fact fields; in `scoreboard`, name both sums. They
-share the same source and mapping, so each view's retirement is atomic. Await all
-control replies before creating the next cycle's facts.
+share the same source and mapping, so each view's retirement is atomic.
+
+Require `committed`, or `unchanged` for an exact same-floor retry, from every view.
+Check the echoed view/entity/field control and the returned floor for every named
+field against the requested boundary. Receiving a reply alone is not success:
+`rejected`, `failed`, an unexpected floor or a timeout keeps that match's producer
+paused and reports a visible scenario failure. Do not publish next-cycle metadata,
+baselines or goals after partial success. Other matches may continue.
+
+A lost acknowledgement may be retried with the identical retirement control and
+boundary, using a bounded retry. Successful views need no rollback; an equal-floor
+retry is safe. Proceed only once every view has a verified result. Persistent
+failure leaves the checkpoint failed until Reset or termination, rather than
+silently advancing the timeline.
 
 Retirement spans one view, not all views together. Show an explicit cycle-transition
 state while windows differ; do not claim cross-view atomicity. Preserve the last
 match metadata's cycle until new metadata arrives, and label old market data as
-previous-cycle. Empty fact fields stay present after retirement. They do not prove
-that the new match has started; the UI uses the source's cycle and period labels.
+previous-cycle. Empty fact fields stay present with zero totals after retirement;
+zero alone does not establish the next cycle's score.
+
+Include `scoreWindowStart` in match metadata: 1 for the initial cycle, then the
+verified retirement boundary for each new cycle. The source publishes new metadata,
+then both zero-point baselines, before any goals for that cycle. In each displayed
+view, require both score fields' `status.fields.<field>.facts.minimumBirthSequence`
+to equal that metadata boundary and both `activeCount` values to be greater than
+zero before presenting a current scoreline. The baseline stays active throughout
+the cycle, so this also permits a genuine 0–0 after all goals are withdrawn.
+
+If floors disagree with metadata, show a cycle transition. If floors match but
+either count is zero, show “awaiting score”, even if the sums already contain zero.
+Apply the rule to the scoreboard-only view too; it needs no goal payloads or client
+score calculation. A new subscriber derives the same state from its own complete
+snapshot, without relying on having watched the transition.
+
+Acceptance must inspect each view after retirement, after new metadata, after
+only the home baseline and after both baselines. Only the last checkpoint exposes
+the new 0–0. Check a late subscriber at the intermediate checkpoints and a later
+withdrawal of all goals, where the surviving baselines still establish a valid zero.
+
+Also force one retirement to reject after another view has committed, and assert
+that no next-cycle publications occur and the failure is visible. Separately lose
+a committed control's acknowledgement: retry the exact control, accept verified
+`unchanged` floors, and complete the remaining views before resuming. These checks
+belong to source-foundation acceptance; browser acceptance checks the transition
+and awaiting-score labels using those same intermediate states.
 
 A fresh delayed publication correcting a retired birth must receive
 `factOutsideRetention`. A retained exact duplicate can still return its old receipt

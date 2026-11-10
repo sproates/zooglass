@@ -71,6 +71,26 @@ Label it **Simulated delivery events**: these notices come from Workbench, while
 values, provenance, gaps and freshness come from ZooGlass. Do not present simulator
 knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 
+## Early UI prototype and acceptance
+
+Before implementing the live browser experience, produce a clickable static
+prototype using representative fixture data. This is the first delivery slice
+after detailed planning, so the layout can be reviewed before integration work.
+It needs no ZooGlass instance and must be labelled as a prototype.
+
+Show the six-order board, selected-order detail and tracking view at desktop and
+phone widths. Include waiting, stale, missing-event, mixed-cycle and disconnected
+states, plus the compact interactive controls and control-free continuous mode.
+Selection and fixture-state changes should work well enough to review the flow;
+they are not a second implementation of reconciliation or playback.
+
+Provide a working LAN browser preview and keep the prototype source in the repo.
+Review the visual hierarchy, readability, state explanations and interactions with
+the project owner, make corrections, and record explicit acceptance before live
+UI implementation begins. This is design acceptance, not mandatory testing on a
+physical phone. Retain accepted screenshots and layout notes as the implementation
+reference. Later material layout changes should be reviewed against that reference.
+
 ## Components and ownership
 
 ```mermaid
@@ -285,7 +305,7 @@ expectations deliberately. Keep the old simple fixtures as compatibility coverag
 
 The current vehicle subscription callback and observation path carry only `data`.
 Introduce a typed full-snapshot callback carrying view/entity identity, `data`,
-`status`, `provenance` and `version`. Order bindings and test observations consume
+`status`, `provenance`, `publicationSequences` and `version`. Order bindings and test observations consume
 that complete snapshot. Preserve the existing vehicle data callback through a
 compatibility adapter rather than changing vehicle rendering semantics.
 
@@ -294,30 +314,33 @@ do not suppress updates because field values are equal. After reconnection, acce
 the new baseline without comparing its version against the previous connection's
 version. Preserve stale-callback guards and protected-data clearing. Verify a live
 freshness-only update changes the displayed label while its value stays fixed,
-and verify gap/provenance metadata reaches both bindings and observations.
+and verify gap/provenance metadata and selected publication sequences reach both
+bindings and observations.
 
 ### PR acceptance boundaries
 
 Deliver these coherent PRs, each with its own evidence and current documentation:
 
-1. **Configured source foundation:** typed runtime configuration input, distinct
+1. **UI prototype and acceptance:** clickable fixture-driven desktop/phone layouts,
+   LAN preview, owner feedback and recorded acceptance. No live integration.
+2. **Configured source foundation:** typed runtime configuration input, distinct
    keys, both views, courier candidates, progress/freshness scenes and bounded
    repeated execution. Own the table's Partial order through Unknown relationship
    rows, using real source and snapshot interfaces. No browser, returning-viewer
    or service-restart acceptance in this slice.
-2. **Continuous order board:** working command and finished domain-first UI,
+3. **Continuous order board:** working command and finished domain-first UI,
    both views, full-snapshot transport and status-only rendering, Returning viewer
    acceptance and cleanup. Advertise this mode only
    when usable; do not expose a placeholder interactive command.
-3. **Interactive order walkthrough:** finite checkpoints, existing controls,
+4. **Interactive order walkthrough:** finite checkpoints, existing controls,
    prepared-checkpoint adapter, Pause/Reset during waits and visible outcomes.
    Replay the source-foundation scenes, including fresh-run-only cases on Reset.
    Both modes share contracts and rendering; service restart is added next.
-4. **Recovery and protected evidence:** durable service restart plus the finite
+5. **Recovery and protected evidence:** durable service restart plus the finite
    access scenario, isolated failures and explicit test/run instructions. Own the
    Service recovery row, run/generation lifecycle changes and protected clearing.
    Verify both duplicate retry and a new publication after restart.
-5. **Acceptance and explanation:** clean setup of both commands, developer-value
+6. **Acceptance and explanation:** clean setup of both commands, developer-value
    comparison, screenshots, source maps and capability coverage update.
 
 Most correctness checks use independent clients against real ZooGlass. Browser
@@ -330,7 +353,8 @@ core strategy suites in a UI-only change.
 The final acceptance includes three complete accelerated cycles, a longer bounded
 soak across identity-window expiry, and fresh/reconnected viewers after publication
 stops. Record entity, stream, range and queue bounds. A standalone configuration
-fixture must be accepted by the real service before building the UI.
+fixture must be accepted by the real service before live UI integration. The
+static prototype does not depend on service configuration or a running service.
 
 Deferred: dynamic configuration/editor, reusable UI library, live source adapters,
 SSE, clustering, general producer recovery, comprehensive tracing/logging and

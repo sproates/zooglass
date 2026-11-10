@@ -1,6 +1,11 @@
 # Order tracking, then live sports
 
-Status: accepted design. Delivery order agreed: order tracking first, then sports.
+Status: original accepted outline. Delivery order remains order tracking first, then sports.
+
+The [detailed Order design](order-tracker.md) refreshes the Order scope against the
+delivered runtime and takes precedence for that demo. Historical capability
+limitations below describe the original design, not current ZooGlass. Sports is
+awaiting its equivalent detailed refresh.
 Neither browser demo described here is implemented yet. The existing small
 [order](../../workbench/scenarios/order-fulfilment-live-order.json) and
 [sports](../../workbench/scenarios/sports-betting-live-market.json) scenarios are

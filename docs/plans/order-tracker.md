@@ -45,6 +45,21 @@ Pause, Reset and terminal Help/Quit. Each step waits for an observable checkpoin
 The final state remains visible. Reset starts a fresh service/store and producer
 identities; it does not replay sequence 1 into the old store.
 
+The existing controller executes scenario trace entries, which cannot express all
+Order actions. Add a small prepared-checkpoint adapter: each checkpoint has an ID,
+label and abortable execution function. Keep Order publications, omissions, source
+socket actions, watermarks and result assertions in the Order modules. Both modes
+execute these same actions; continuous mode schedules them, while the adapter
+exposes finite checkpoints to the existing controls. Keep the existing trace-based
+adapter for vehicle scenarios. No plugin system or new scenario language is needed.
+
+Step completes only after its checkpoint's assertions pass. Pause prevents the
+next checkpoint from starting; an in-flight checkpoint finishes or reports its
+bounded failure, and the UI shows that it is finishing. Reset/Quit abort pending
+waits, await cleanup and invalidate callbacks from the old run. Check Pause and
+Reset during a freshness wait and source reconnect, and compare both modes' source
+deliveries for the equivalent first-cycle checkpoints.
+
 Keep the board above explanations at desktop and phone widths. On narrow screens,
 use compact order cards, with the first orders visible immediately. Each card has
 an order reference, payment, stock and delivery values, plus short missing/stale
@@ -160,22 +175,55 @@ activity elsewhere; do not make every order fail identically.
 | Duplicate | Retry the exact dispatched publication | Duplicate receipt; no additional value change. |
 | Lost payment | Skip payment sequence 2, deliver 3, then watermark through 3 | Latest payment is 3; gap 2 changes from provisional to confirmed. Newer state does not repair missing delivery. |
 | Independent failure | Close inventory's socket and withhold reports for over 15 seconds | Orders/payment continue; stock becomes stale from receipt age. Reconnection alone does not refresh it; a new accepted stock update does. |
-| Competing couriers | Backup sequence 20 arrives, then primary 1, then backup 21 | Backup wins initially, then primary wins and remains selected. Provenance identifies the winner; no cross-source sequence comparison. |
+| Competing couriers (fresh run only) | Backup sequence 20 arrives, then primary 1, then backup 21 | Backup wins initially, then primary wins and remains selected. Provenance identifies the winner; no cross-source sequence comparison. |
 | Silence without failure inference | Withhold primary while backup reports | Primary delivery becomes stale, with its last value retained. UI says last reported, not confirmed current or automatically failed. |
-| Unknown relationship | Send payment for an unmapped key | Rejected target, no accidental order row. Expected rejection is recorded explicitly. |
+| Unknown relationship | Once per fresh run, send payment for fixed unmapped key `payment-unmapped` | Receipt is `committed` with reason `sqlite`; the summary target rejects with `unknownEntityMapping`. No order row or existing view changes. |
 | Returning viewer | Disconnect a client, advance sources, reconnect while sources are paused | First subscribed snapshots contain the current state; the client replaces its old model without replaying missed messages. |
-| Service recovery | Pause producers, close service, restart against the same database | Connected viewer sees loss; restored baseline agrees on values/provenance/progress. Age status may advance with elapsed time. Retry the last committed publication and receive duplicate. |
+| Service recovery | Pause producers, close service, restart against the same database | Connected viewer sees loss; restored baseline agrees on values/provenance/progress. Age status may advance with elapsed time. Retry the last committed publication and receive duplicate, then publish the next identity successfully. |
 
 Checkpoint expectations are hand-authored, independent of the producer and
 ZooGlass reducers. Compare values and status separately; do not assume an ignored
 value means an unchanged snapshot version. Wait for receipts and observable status,
 not arbitrary sleeps. Freshness tests use bounded polling around the real timer.
 
-Service recovery is an interactive terminal checkpoint and automated acceptance
-case, not a service restart every continuous cycle. Keep producers alive across
-that controlled restart so their next identities and exact retry payload survive.
-Restarting the producer itself against an existing store is not supported by this
-demo; fail clearly rather than silently reusing identities with different content.
+For the unknown relationship scene, extend the receipt helper to return a typed
+receipt and support separate target assertions. Its current top-level acceptance
+check is insufficient: this publication commits source identity/progress even
+though the matching summary target rejects it. Tracking has no payment input and
+must not acquire a target. Assert the exact target reason, unchanged snapshots and
+no new order entity. The fixed diagnostic key consumes one bounded source stream;
+it is not retried every cycle with new keys.
+
+### Service restart ownership
+
+Service recovery is an interactive checkpoint and automated acceptance case, not
+a service restart every continuous cycle. The current composition ties producer
+cancellation to the service signal and a fixed base URL; it cannot be reused
+unchanged for restart.
+
+The outer demo run owns its temporary database directory, source counters, retained
+retry envelopes, timeline position and browser host. Pass an explicit absolute
+`zooglass.database` path to each service generation. A service generation owns its
+JVM, temporary launcher files and source/progress sockets. Closing that generation
+must not delete the run database or cancel the outer producer state.
+
+Keep the browser-facing host and data route stable. On restart, close existing
+forwarded data connections so clients observe disconnection; mark the upstream
+unavailable until the new service is healthy, then bind the route and new source
+sockets to its newly reported port. Do not leave sockets connected to a dead
+upstream or replay buffered writes implicitly.
+
+The checkpoint pauses publication, waits for outstanding receipts, stops the old
+JVM and waits for its database lock to release. It starts the new generation with
+the same configuration/database and rebinds connections. A real viewer must
+observe disconnection and a fresh subscribed baseline before publication resumes.
+Then retry the exact retained envelope, assert duplicate, and publish the next
+sequence with changed content to prove forward progress. Bound every wait.
+
+Reset instead disposes of the whole run and starts a new database and identities.
+Quit cleans up the run too. An unexpected service exit still fails the run; only
+the explicit restart checkpoint owns recovery. Restarting the producer process
+against an existing store remains unsupported and must fail clearly.
 
 ## Repetition and bounded state
 
@@ -192,6 +240,12 @@ when old gaps expire, so losing a new isolated event every cycle would eventuall
 hit `progressLimit`. This schedule needs only a fixed number of ranges. Expiry
 changes the gap label, not the fact that delivery was incomplete. The finite
 interactive scenario reproduces the loss on each fresh Reset.
+
+Courier backup-first selection also occurs only on the first cycle or a fresh
+Reset. The primary candidate survives later cycles and service restart. Repeating
+cycles show backup updates failing to displace it, primary silence becoming stale,
+and a fresh primary update restoring freshness. Never promise a return to backup
+selection merely because a new synthetic cycle begins.
 
 `cycle` labels distinguish reused synthetic slots. Fields may legitimately show
 different cycles. Required contributions govern first presence, not a transaction
@@ -222,23 +276,47 @@ See [view access](../design/view-access.md).
 ## Verification and delivery
 
 Reuse OT source tests, generic playback/reset, prepared-service ownership and
-snapshot subscription clients. Existing `ScenarioView` conversion cannot express
+the existing subscription transport mechanics. Existing `ScenarioView` conversion cannot express
 mapping, multi-source priority or progress; the launcher extension is required.
 Existing source-only tests assume shared IDs and sparse sequences, so update those
 expectations deliberately. Keep the old simple fixtures as compatibility coverage.
+
+### Browser snapshot contract
+
+The current vehicle subscription callback and observation path carry only `data`.
+Introduce a typed full-snapshot callback carrying view/entity identity, `data`,
+`status`, `provenance` and `version`. Order bindings and test observations consume
+that complete snapshot. Preserve the existing vehicle data callback through a
+compatibility adapter rather than changing vehicle rendering semantics.
+
+Replace the Order model on every accepted snapshot, including status-only updates;
+do not suppress updates because field values are equal. After reconnection, accept
+the new baseline without comparing its version against the previous connection's
+version. Preserve stale-callback guards and protected-data clearing. Verify a live
+freshness-only update changes the displayed label while its value stays fixed,
+and verify gap/provenance metadata reaches both bindings and observations.
+
+### PR acceptance boundaries
 
 Deliver these coherent PRs, each with its own evidence and current documentation:
 
 1. **Configured source foundation:** typed runtime configuration input, distinct
    keys, both views, courier candidates, progress/freshness scenes and bounded
-   repeated execution. Real-interface assertions for the table, no browser work.
+   repeated execution. Own the table's Partial order through Unknown relationship
+   rows, using real source and snapshot interfaces. No browser, returning-viewer
+   or service-restart acceptance in this slice.
 2. **Continuous order board:** working command and finished domain-first UI,
-   both views, late/reconnecting viewers and cleanup. Advertise this mode only
+   both views, full-snapshot transport and status-only rendering, Returning viewer
+   acceptance and cleanup. Advertise this mode only
    when usable; do not expose a placeholder interactive command.
 3. **Interactive order walkthrough:** finite checkpoints, existing controls,
-   reset/repeat and visible outcomes. Both modes share contracts and rendering.
+   prepared-checkpoint adapter, Pause/Reset during waits and visible outcomes.
+   Replay the source-foundation scenes, including fresh-run-only cases on Reset.
+   Both modes share contracts and rendering; service restart is added next.
 4. **Recovery and protected evidence:** durable service restart plus the finite
-   access scenario, isolated failures and explicit test/run instructions.
+   access scenario, isolated failures and explicit test/run instructions. Own the
+   Service recovery row, run/generation lifecycle changes and protected clearing.
+   Verify both duplicate retry and a new publication after restart.
 5. **Acceptance and explanation:** clean setup of both commands, developer-value
    comparison, screenshots, source maps and capability coverage update.
 

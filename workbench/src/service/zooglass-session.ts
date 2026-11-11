@@ -1,6 +1,6 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, isAbsolute } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
@@ -8,6 +8,7 @@ import {
   protectedSessionConfiguration,
   type ProtectedSessionSettings,
 } from "./protected-session.js";
+import type { RuntimeConfiguration } from "./runtime-contract.js";
 import { runtimeConfiguration } from "./runtime-configuration.js";
 import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
@@ -19,6 +20,9 @@ export interface ZooGlassSession {
 }
 
 export interface ZooGlassSessionOptions {
+  configuration?: RuntimeConfiguration;
+  /** Caller-owned absolute database path; omitted SQLite paths are session-owned. */
+  databasePath?: string;
   views?: ScenarioView[];
   sources?: ScenarioSource[];
   signal?: AbortSignal;
@@ -34,6 +38,15 @@ export interface ZooGlassSessionOptions {
 export async function startZooGlassSession(
   options: ZooGlassSessionOptions = {},
 ): Promise<ZooGlassSession> {
+  if (
+    options.configuration &&
+    (options.views !== undefined || options.sources !== undefined)
+  ) {
+    throw new Error("Use configuration or scenario views/sources, not both.");
+  }
+  if (options.databasePath !== undefined && !isAbsolute(options.databasePath)) {
+    throw new Error("Database path must be absolute.");
+  }
   const controller = new AbortController();
   const signal = options.signal
     ? AbortSignal.any([controller.signal, options.signal])
@@ -142,12 +155,15 @@ export async function startZooGlassSession(
     const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
-    if (options.views !== undefined) {
+    if (options.configuration !== undefined || options.views !== undefined) {
       const configPath = join(configDirectory, "views.json");
 
       await writeFile(
         configPath,
-        JSON.stringify(runtimeConfiguration(options.views, options.sources)),
+        JSON.stringify(
+          options.configuration ??
+            runtimeConfiguration(options.views!, options.sources),
+        ),
       );
       configLocation = pathToFileURL(configPath).href;
     }
@@ -177,6 +193,12 @@ export async function startZooGlassSession(
       "--server.address=127.0.0.1",
       "--server.port=0",
       "--zooglass.report-port=true",
+      ...(options.configuration?.storage === "sqlite" ||
+      options.databasePath !== undefined
+        ? [
+            `--zooglass.database=${options.databasePath ?? join(configDirectory, "state.sqlite")}`,
+          ]
+        : []),
     ];
 
     const startedChild = spawn(java, args, {

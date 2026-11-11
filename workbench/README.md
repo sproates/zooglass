@@ -48,7 +48,8 @@ the vehicle demo. Start there when reading `src/`. The source folders group CLI 
 browser infrastructure, playback controls and service lifecycle. Concrete demo
 composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
 The [order source foundation](docs/order-sources.md) provides service-only
-verification of independent order, payment and inventory contributions. Its
+verification of mapped order, payment, inventory and courier contributions,
+with publication gates, source priority, progress and freshness policies. Its
 browser experiences and demo commands are subsequent work.
 
 ## Run a scenario

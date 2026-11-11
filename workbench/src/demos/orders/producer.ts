@@ -6,6 +6,7 @@ import {
 } from "../../execution/sockets.js";
 import { publishAndCheckReceipt } from "../../execution/publication-receipt.js";
 import { scenarioEpoch } from "../../service/runtime-configuration.js";
+import { advanceOrderProgress } from "./progress.js";
 import { sourceIds, type OrderSource } from "./contracts.js";
 import { orderStep, ticksPerCycle, type OrderStep } from "./timeline.js";
 
@@ -18,7 +19,7 @@ export interface OrderProducerOptions {
   onStep?: (step: OrderStep) => void | Promise<void>;
 }
 
-/** Owns exactly three source connections, with an actual inventory socket outage. */
+/** Owns five source sockets and a progress socket, with an actual inventory outage. */
 export async function startOrderProducer(
   baseUrl: string,
   options: OrderProducerOptions = {},
@@ -39,11 +40,15 @@ export async function startOrderProducer(
     ? AbortSignal.any([lifetime.signal, options.signal])
     : lifetime.signal;
   const url = new URL("/events", baseUrl);
-  url.protocol = "ws:";
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const sockets = new Map<OrderSource, WebSocket>();
-  const closeSockets = () => closeAll([...sockets.values()].map(closeClient));
+  let progress: WebSocket | undefined;
+  const closeSockets = () =>
+    closeAll([...sockets.values(), progress].map(closeClient));
 
   try {
+    const progressUrl = new URL("/progress", url);
+    progress = await connectClient(progressUrl.href, signal, false);
     for (const source of sourceIds) {
       sockets.set(source, await connectClient(url.href, signal, false));
     }
@@ -66,7 +71,9 @@ export async function startOrderProducer(
           if (action.kind === "omit") {
             continue;
           }
-          if (action.kind === "disconnect") {
+          if (action.kind === "watermark") {
+            await advanceOrderProgress(progress!, action, signal);
+          } else if (action.kind === "disconnect") {
             await closeClient(sockets.get(action.source));
             sockets.delete(action.source);
           } else if (action.kind === "reconnect") {
@@ -85,15 +92,47 @@ export async function startOrderProducer(
                 `Order source ${action.event.sourceId} failed or could not keep up.`,
               );
             }
-            await publishAndCheckReceipt(
+            const receipt = await publishAndCheckReceipt(
               socket,
               {
                 ...action.event,
                 epoch: scenarioEpoch,
-                publicationSequence: action.event.payload.sequence,
+                publicationSequence: action.event.publicationSequence,
               },
               signal,
             );
+            if (
+              action.retry &&
+              (receipt.status !== "duplicate" ||
+                receipt.reason !== "alreadyCommitted")
+            ) {
+              throw new Error(
+                `Expected duplicate/alreadyCommitted for Order retry, received ${receipt.status}/${receipt.reason}.`,
+              );
+            }
+            if (action.unmapped) {
+              const targets = receipt.targets;
+              if (
+                receipt.status !== "committed" ||
+                receipt.reason !== "sqlite" ||
+                targets?.length !== 1 ||
+                targets[0].viewId !== "order-summary" ||
+                targets[0].entityId !== null ||
+                targets[0].status !== "rejected" ||
+                targets[0].reason !== "unknownEntityMapping"
+              ) {
+                throw new Error(
+                  "Expected committed publication with one unmapped summary target.",
+                );
+              }
+            } else if (
+              !receipt.targets?.length ||
+              receipt.targets.some((target) => target.status !== "accepted")
+            ) {
+              throw new Error(
+                `Unexpected Order target rejection: ${JSON.stringify(receipt.targets)}`,
+              );
+            }
           }
         }
         await options.onStep?.(step);

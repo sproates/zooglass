@@ -7,18 +7,23 @@ import {
 
 export const ticksPerCycle = 36;
 export type OrderAction =
-  | { kind: "publish"; event: OrderEvent }
+  | { kind: "publish"; event: OrderEvent; unmapped?: true; retry?: true }
   | { kind: "omit"; event: OrderEvent }
   | { kind: "disconnect"; source: OrderSource }
-  | { kind: "reconnect"; source: OrderSource };
-
+  | { kind: "reconnect"; source: OrderSource }
+  | {
+      kind: "watermark";
+      source: OrderSource;
+      entityId: string;
+      throughSequence: number;
+    };
 export interface OrderStep {
   tick: number;
   description: string;
   actions: OrderAction[];
 }
 
-/** Fixed-sized delivery schedule. Delayed reports retain their original observation time. */
+/** Fixed-size schedule: one permanent loss, repeated delays and actual source outages. */
 export function orderStep(
   tick: number,
   epoch: number,
@@ -33,16 +38,16 @@ export function orderStep(
       "Order simulation tick is outside the safe sequence range.",
     );
   }
-
   const cycle = Math.floor(tick / ticksPerCycle);
   const phase = tick % ticksPerCycle;
   const actions: OrderAction[] = [];
   const notices: string[] = [];
-  const at = (local: number, eventCycle = cycle) =>
-    epoch + (eventCycle * ticksPerCycle + local) * tickMs;
+  const at = (phase: number, c = cycle) =>
+    epoch + (c * ticksPerCycle + phase) * tickMs;
   const publish = (event: OrderEvent) =>
     actions.push({ kind: "publish", event });
-
+  const retry = (event: OrderEvent) =>
+    actions.push({ kind: "publish", event, retry: true });
   for (let i = 0; i < orderIds.length; i++) {
     const offset = i * 3;
     const local = phase - offset;
@@ -50,109 +55,94 @@ export function orderStep(
       source: OrderSource,
       revision: number,
       status: string,
-      observedPhase = phase,
-    ) => orderEvent(source, i, cycle, revision, status, at(observedPhase));
-
-    if (local === 0) {
-      publish(event("orders", 1, "accepted"));
-    }
-    if (local === 1) {
-      publish(event("payments", 1, i === 2 ? "declined" : "authorised"));
-    }
-    if (local === 4) {
-      publish(event("orders", 3, i === 2 ? "cancelled" : "dispatched"));
-    }
-    if (local === 5) {
+      observed = phase,
+    ) => orderEvent(source, i, cycle, revision, status, at(observed));
+    const orderStatus = i === 2 ? "cancelled" : "dispatched";
+    const paymentStatus = i === 2 ? "declined" : "authorised";
+    const deliveryStatus = i === 2 ? "cancelled" : "inTransit";
+    if (local === 0) publish(event("orders", 1, "accepted"));
+    if (local === 1) publish(event("payments", 1, paymentStatus));
+    if (local === 2) publish(event("courier-backup", 20, deliveryStatus));
+    if (local === 3) publish(event("courier-primary", 1, deliveryStatus));
+    if (local === 4) publish(event("orders", 3, orderStatus));
+    if (local === 5)
       publish(
         event("inventory", 1, i === 2 ? "unavailable" : "reserved", offset + 2),
       );
-      notices.push(`${orderIds[i]}: late inventory contribution`);
-    }
     if (local === 6) {
       publish(event("orders", 2, "packing", offset + 3));
-      notices.push(
-        `${orderIds[i]}: older order report delivered after newer state`,
-      );
+      notices.push(`${orderIds[i]}: delayed order report`);
     }
-    if (local === 7) {
-      publish(
-        event("orders", 3, i === 2 ? "cancelled" : "dispatched", offset + 4),
-      );
-      notices.push(`${orderIds[i]}: duplicate order report`);
-    }
+    if (local === 7) retry(event("orders", 3, orderStatus, offset + 4));
     if (local === 8) {
+      const payment = event("payments", 2, paymentStatus);
       actions.push({
-        kind: "omit",
-        event: event("payments", 2, i === 2 ? "declined" : "authorised"),
+        kind: cycle === 0 && i === 1 ? "omit" : "publish",
+        event: payment,
       });
-      notices.push(`${orderIds[i]}: payment revision 2 permanently omitted`);
+      publish(event("courier-backup", 21, deliveryStatus));
     }
-    if (local === 9) {
-      publish(event("payments", 3, i === 2 ? "declined" : "authorised"));
-    }
-  }
-
-  if (phase === 24) {
-    actions.push({ kind: "disconnect", source: "inventory" });
-    notices.push("inventory source disconnected");
-  }
-  if (phase === 25) {
-    publish(orderEvent("orders", 5, cycle, 4, "cancelled", at(phase)));
-  }
-  if (phase === 26) {
-    publish(orderEvent("payments", 5, cycle, 4, "refunded", at(phase)));
-  }
-  if (phase === 27) {
-    for (let i = 0; i < orderIds.length; i++) {
-      actions.push({
-        kind: "omit",
-        event: orderEvent(
+    if (local === 9) publish(event("payments", 3, paymentStatus));
+    if (phase === 26)
+      publish(event("payments", 4, i === 5 ? "refunded" : paymentStatus));
+    if (phase === 29) publish(event("courier-backup", 22, deliveryStatus));
+    if (phase === 32)
+      publish(
+        event(
           "inventory",
-          i,
-          cycle,
           2,
           i === 5 ? "released" : i === 2 ? "unavailable" : "reserved",
-          at(phase),
-        ),
-      });
-    }
-  }
-  if (phase === 28) {
-    actions.push({ kind: "reconnect", source: "inventory" });
-    for (let i = 0; i < orderIds.length; i++) {
-      publish(
-        orderEvent(
-          "inventory",
-          i,
-          cycle,
-          3,
-          i === 5 ? "released" : i === 2 ? "unavailable" : "reserved",
-          at(27),
         ),
       );
+    if (phase === 33)
+      publish(
+        event(
+          "courier-primary",
+          2,
+          i === 2 || i === 5 ? "cancelled" : "delivered",
+        ),
+      );
+    if (phase === 34) {
+      for (const [source, revision] of [
+        ["orders", i === 5 ? 4 : 3],
+        ["payments", 4],
+        ["inventory", 2],
+      ] as const) {
+        const last = event(source, revision, "unused");
+        actions.push({
+          kind: "watermark",
+          source,
+          entityId: last.entityId,
+          throughSequence: last.publicationSequence,
+        });
+      }
     }
-    notices.push(
-      "inventory source reconnected with latest full state; revision 2 was not delivered",
-    );
+  }
+  if (phase === 24) actions.push({ kind: "disconnect", source: "inventory" });
+  if (phase === 25)
+    publish(orderEvent("orders", 5, cycle, 4, "cancelled", at(phase)));
+  if (phase === 31) actions.push({ kind: "reconnect", source: "inventory" });
+  if (phase === 35 && cycle === 0) {
+    const event = orderEvent("payments", 0, 0, 1, "authorised", at(phase));
+    actions.push({
+      kind: "publish",
+      event: { ...event, entityId: "payment-unmapped" },
+      unmapped: true,
+    });
   }
   if (phase === 1 && cycle > 0) {
-    publish(
+    retry(
       orderEvent("orders", 0, cycle - 1, 3, "dispatched", at(4, cycle - 1)),
     );
-    notices.push(
-      "order-1: previous-cycle report delivered after new-cycle acceptance",
-    );
   }
-
   return {
     tick,
-    description: notices.join("; ") || "Independent order contributions",
+    description: notices.join("; ") || "Independent configured contributions",
     actions,
   };
 }
 
-/** Finite timeline for the later interactive binding; no timers or sockets are owned here. */
-export function orderTimeline(epoch = Date.now(), tickMs = 1000): OrderStep[] {
+export function orderTimeline(epoch = Date.now(), tickMs = 3000): OrderStep[] {
   return Array.from({ length: ticksPerCycle }, (_, tick) =>
     orderStep(tick, epoch, tickMs),
   );

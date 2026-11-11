@@ -1,6 +1,6 @@
 # Live sports: detailed demo design
 
-Status: proposed, 10 November 2026. Sports follows delivery of both Order modes.
+Status: accepted design, 10 November 2026 (PR #155). Sports follows delivery of both Order modes.
 This replaces the Sports scope in the [original outline](order-and-sports-demos.md).
 The existing sports JSON scenario and Java match acceptance tests are useful
 fixtures, not a delivered sports application.
@@ -33,6 +33,9 @@ overlap provides continuity; the different configured strategies provide the
 showcase. Do not claim fleet already exposes the newer progress/freshness metadata.
 
 ## Experience and early acceptance
+
+A [clickable fixture prototype](../../demos/live-sports/README.md) is available for
+visual review. Owner acceptance is pending; live integration has not started.
 
 The primary screen is a compact live match board. All three scorelines are visible
 on desktop; the first match is immediately visible on a phone. Selecting a match

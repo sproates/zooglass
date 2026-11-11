@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Order desk · ZooGlass prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="ZooGlass Order desk home"
+        ><span class="brand-mark">Z<span>G</span></span
+        ><span>ZooGlass <small>Order desk</small></span></a
+      >
+      <span class="prototype-label"
+        >UI prototype <span>· fixture data</span></span
+      >
+    </header>
+    <main>
+      <div class="heading">
+        <div>
+          <p class="eyebrow">Fulfilment overview</p>
+          <h1>Orders, as reported.</h1>
+        </div>
+        <span class="run-label"><i></i> Six synthetic orders</span>
+      </div>
+      <nav class="view-tabs" aria-label="View">
+        <button type="button" data-view="operations" aria-pressed="true">
+          Operations <span>06</span></button
+        ><button type="button" data-view="tracking" aria-pressed="false">
+          Tracking view <span>↗</span>
+        </button>
+      </nav>
+      <div class="workspace">
+        <section class="board" aria-labelledby="board-heading">
+          <div class="board-heading">
+            <h2 id="board-heading">Order board</h2>
+            <span>Order · payment · stock · delivery</span>
+          </div>
+          <div class="column-labels" aria-hidden="true">
+            <span>Order / item</span><span>Payment</span><span>Stock</span
+            ><span>Delivery</span>
+          </div>
+          <div id="orders"></div>
+          <div class="board-note">
+            <span class="note-dot"></span>Each service reports independently.
+            Missing does not mean failed.
+          </div>
+        </section>
+        <aside
+          id="desktop-detail"
+          class="detail-panel"
+          aria-label="Selected order"
+        ></aside>
+        <section
+          id="tracking"
+          class="tracking"
+          hidden
+          aria-label="Tracking view"
+        ></section>
+      </div>
+      <section
+        id="playback"
+        class="playback"
+        hidden
+        aria-label="Interactive prototype controls"
+      >
+        <div>
+          <span class="eyebrow">Interactive layout</span>
+          <p id="checkpoint-label"></p>
+        </div>
+        <div class="playback-buttons">
+          <button id="reset" type="button">Reset</button
+          ><button id="play" type="button">Play</button
+          ><button id="step" class="primary" type="button">
+            Step <span>→</span>
+          </button>
+        </div>
+        <p class="playback-note">
+          Illustrative fixture steps, not a live Workbench run.
+        </p>
+      </section>
+      <section class="activity" aria-label="Simulated delivery events">
+        <span>Simulated delivery events</span>
+        <p id="notice" role="status">
+          Order 1042: delayed payment report received; the newer value stays
+          selected.
+        </p>
+      </section>
+      <details class="review-tools">
+        <summary>
+          Prototype review <span>Change layout or inspect a state</span>
+        </summary>
+        <div class="review-options">
+          <label
+            >Experience<select id="mode">
+              <option value="continuous">
+                Continuous · no playback controls
+              </option>
+              <option value="interactive">
+                Interactive · checkpoint controls
+              </option>
+            </select></label
+          ><label>Selected-order fixture<select id="fixture"></select></label>
+        </div>
+        <p>
+          These controls belong to the prototype review only. No events are
+          being sent to ZooGlass. Select an order, inspect a state, or switch
+          views to review the proposed experience.
+        </p>
+      </details>
+      <footer>
+        <span>ZooGlass / Order tracker</span
+        ><span>Design preview · awaiting acceptance</span>
+      </footer>
+    </main>
+    <dialog id="mobile-detail">
+      <form method="dialog">
+        <button class="close-dialog" aria-label="Close order details">
+          Close ×
+        </button>
+      </form>
+      <div id="mobile-detail-body"></div>
+    </dialog>
+    <noscript
+      >This clickable prototype requires JavaScript. It uses local fixture data
+      only.</noscript
+    >
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

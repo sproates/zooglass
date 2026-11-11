@@ -1,4 +1,18 @@
 import { once } from "node:events";
+export interface PublicationReceipt {
+  status: "applied" | "committed" | "duplicate" | "rejected" | "failed";
+  reason: string;
+  stream: { sourceId: string; epoch: string; sourceEntityId: string };
+  publicationSequence: number;
+  version: number | null;
+  targets?: {
+    viewId: string;
+    entityId: string;
+    status: string;
+    reason: string | null;
+  }[];
+}
+
 export interface SourcePublication {
   sourceId: string;
   epoch: string;
@@ -36,7 +50,7 @@ export async function publishAndCheckReceipt(
       }),
     );
     const [message] = await receipt;
-    const result = JSON.parse(message.data);
+    const result = JSON.parse(message.data) as PublicationReceipt;
     if (
       result.stream?.sourceId !== event.sourceId ||
       result.stream?.epoch !== event.epoch ||
@@ -58,6 +72,7 @@ export async function publishAndCheckReceipt(
         `Publication ${event.sourceId}/${event.entityId} #${event.publicationSequence}: expected ${event.expectedRejection ?? "acceptance"}, received ${result.status} (${result.reason}).`,
       );
     }
+    return result;
   } finally {
     controller.abort();
     socket.removeEventListener("close", close);

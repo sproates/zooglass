@@ -193,7 +193,7 @@ activity elsewhere; do not make every order fail identically.
 | Partial order | order-1 and payment-1 arrive before reservation-1 | Summary exposes order/payment; tracking reports waiting with empty data/provenance. Inventory releases tracking's combined values. |
 | Late order | Order sequence 3 dispatched arrives before sequence 2 packing | Dispatch stays selected. The provisional gap closes when 2 arrives; a version change for status is allowed. |
 | Duplicate | Retry the exact dispatched publication | Duplicate receipt; no additional value change. |
-| Lost payment | Skip payment sequence 2, deliver 3, then watermark through 3 | Latest payment is 3; gap 2 changes from provisional to confirmed. Newer state does not repair missing delivery. |
+| Lost payment | Skip payment sequence 2, deliver 3 and 4, then watermark through 4 | Latest payment is 4; gap 2 changes from provisional to confirmed. Newer state does not repair missing delivery. |
 | Independent failure | Close inventory's socket and withhold reports for over 15 seconds | Orders/payment continue; stock becomes stale from receipt age. Reconnection alone does not refresh it; a new accepted stock update does. |
 | Competing couriers (fresh run only) | Backup sequence 20 arrives, then primary 1, then backup 21 | Backup wins initially, then primary wins and remains selected. Provenance identifies the winner; no cross-source sequence comparison. |
 | Silence without failure inference | Withhold primary while backup reports | Primary delivery becomes stale, with its last value retained. UI says last reported, not confirmed current or automatically failed. |
@@ -206,9 +206,9 @@ ZooGlass reducers. Compare values and status separately; do not assume an ignore
 value means an unchanged snapshot version. Wait for receipts and observable status,
 not arbitrary sleeps. Freshness tests use bounded polling around the real timer.
 
-For the unknown relationship scene, extend the receipt helper to return a typed
-receipt and support separate target assertions. Its current top-level acceptance
-check is insufficient: this publication commits source identity/progress even
+For the unknown relationship scene, the receipt helper returns a typed receipt
+and the producer checks targets separately. Top-level acceptance alone is
+insufficient: this publication commits source identity/progress even
 though the matching summary target rejects it. Tracking has no payment input and
 must not acquire a target. Assert the exact target reason, unchanged snapshots and
 no new order entity. The fixed diagnostic key consumes one bounded source stream;

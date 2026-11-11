@@ -398,7 +398,14 @@ flowchart TB
   timeline["demos/orders/timeline.ts"]
   service["service/zooglass-session.ts"]
   sockets["execution/sockets.ts"]
-  simulation -->|installs both view definitions| contracts
+  configuration["demos/orders/configuration.ts"]
+  progress["demos/orders/progress.ts"]
+  contract["service/runtime-contract.ts"]
+  simulation -->|selects runtime policies| configuration
+  configuration -->|maps source keys to orders| contracts
+  configuration -->|types the startup contract| contract
+  service -->|accepts explicit runtime policies| contract
+  producer -->|sends and checks watermarks| progress
   simulation -->|owns the prebuilt service| service
   simulation -->|starts and closes sources| producer
   producer -->|executes one bounded step at a time| timeline

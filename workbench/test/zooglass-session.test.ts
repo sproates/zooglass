@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile, access } from "node:fs/promises";
+import { readFile, access, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { join, dirname } from "node:path";
+import type { RuntimeConfiguration } from "../src/service/runtime-contract.js";
 import { startZooGlassSession } from "../src/service/zooglass-session.js";
 import { serviceFixture } from "./support/service-process.js";
 
@@ -107,3 +109,84 @@ test(
     );
   },
 );
+
+const configuredRuntime: RuntimeConfiguration = {
+  contractVersion: 2,
+  storage: "sqlite",
+  maxStreams: 8,
+  identityWindow: 16,
+  maxHistoryEntries: 8,
+  sources: [{ id: "warehouse", epoch: "run" }],
+  views: [
+    {
+      id: "stock",
+      fields: {
+        inventory: {
+          sourceId: "warehouse",
+          type: "stock",
+          mode: "latestBySequence",
+          freshness: { mode: "receiptAge", staleAfterMillis: 15000 },
+        },
+      },
+      publication: {
+        mode: "requireContributions",
+        fields: ["inventory"],
+        maxPendingEntities: 6,
+      },
+    },
+  ],
+};
+
+for (const callerOwned of [false, true]) {
+  test(
+    `configured session preserves policies and ${callerOwned ? "retains caller" : "removes session"} database`,
+    processTestOptions,
+    async (t) => {
+      const fixture = await serviceFixture(t, "healthy");
+      const databasePath = callerOwned
+        ? join(fixture.directory, "retained.sqlite")
+        : undefined;
+      const session = await startZooGlassSession({
+        serviceDirectory: fixture.directory,
+        javaExecutable: fixture.javaExecutable,
+        configuration: configuredRuntime,
+        databasePath,
+      });
+      t.after(() => session.close());
+      const started = await fixture.started();
+      const configPath = fileURLToPath(started.config);
+      assert.deepEqual(
+        JSON.parse(await readFile(configPath, "utf8")),
+        configuredRuntime,
+      );
+      assert.equal(
+        started.database,
+        databasePath ?? join(dirname(configPath), "state.sqlite"),
+      );
+      await writeFile(started.database!, "retained state");
+      await session.close();
+      await assert.rejects(access(configPath), { code: "ENOENT" });
+      if (callerOwned) {
+        assert.equal(
+          await readFile(started.database!, "utf8"),
+          "retained state",
+        );
+      } else {
+        await assert.rejects(access(started.database!), { code: "ENOENT" });
+      }
+    },
+  );
+}
+
+test("ambiguous configuration and relative database paths fail before startup", async () => {
+  for (const options of [{ views }, { sources: [] }]) {
+    await assert.rejects(
+      startZooGlassSession({ configuration: configuredRuntime, ...options }),
+      /not both/,
+    );
+  }
+  await assert.rejects(
+    startZooGlassSession({ databasePath: "relative.sqlite" }),
+    /must be absolute/,
+  );
+});

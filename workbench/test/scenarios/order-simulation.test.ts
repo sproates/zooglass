@@ -1,61 +1,43 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
-import { orderViews } from "../../src/demos/orders/contracts.js";
+import { liveClient } from "../support/live-client.js";
+import { orderConfiguration } from "../../src/demos/orders/configuration.js";
 import { startOrderProducer } from "../../src/demos/orders/producer.js";
 import { orderTimeline } from "../../src/demos/orders/timeline.js";
 import { startZooGlassSession } from "../../src/service/zooglass-session.js";
-import { liveClient } from "../support/live-client.js";
 
-type Fact = {
-  sequence: number;
-  cycle: number;
-  status: string;
-  observedAt: number;
-};
-type State = { order?: Fact; payment?: Fact; inventory?: Fact };
-
-async function read(
-  baseUrl: string,
-  id: string,
-  view = "order-summary",
-): Promise<State> {
-  const response = await fetch(`${baseUrl}/views/${view}/${id}`, {
-    signal: AbortSignal.timeout(2000),
+async function read(base: string, entity = "order-1", view = "order-summary") {
+  const reply = await fetch(`${base}/views/${view}/${entity}`, {
+    signal: AbortSignal.timeout(3000),
   });
-  assert.equal(response.status, 200);
-  return (await response.json()).data;
+  assert.equal(reply.status, 200);
+  return reply.json();
 }
 
-async function waitFor(
-  baseUrl: string,
-  id: string,
-  field: keyof State,
-  sequence: number,
-) {
-  const deadline = Date.now() + 5000;
-  while (Date.now() < deadline) {
-    const response = await fetch(`${baseUrl}/views/order-summary/${id}`, {
-      signal: AbortSignal.timeout(2000),
-    });
-    if (response.ok) {
-      const state = (await response.json()).data as State;
-      if (state[field]?.sequence === sequence) {
-        return state;
-      }
-    }
-    await delay(10);
+async function waitForStale(base: string) {
+  const end = Date.now() + 18000;
+  while (Date.now() < end) {
+    const state = await read(base);
+    if (
+      state.status.fields.inventory.freshness === "stale" &&
+      state.status.fields.delivery.freshness === "stale"
+    )
+      return state;
+    await delay(50);
   }
-  throw new Error(`Missing processing barrier: ${id}.${field}=${sequence}`);
+  throw new Error("Inventory and primary delivery did not become stale.");
 }
 
 test(
-  "order sources compose and reconcile three cycles through real ZooGlass",
-  { timeout: 40000 },
+  "configured Order views reconcile independent inputs, priority and progress across three cycles",
+  { timeout: 65000 },
   async () => {
-    const service = await startZooGlassSession({ views: orderViews });
+    const service = await startZooGlassSession({
+      configuration: orderConfiguration(),
+    });
     let producer: Awaited<ReturnType<typeof startOrderProducer>> | undefined;
-    const checkpoints: number[] = [];
+    let beforeDiagnostic: unknown;
     try {
       producer = await startOrderProducer(service.baseUrl, {
         tickMs: 10,
@@ -64,127 +46,135 @@ test(
         async onStep({ tick }) {
           const cycle = Math.floor(tick / 36);
           const phase = tick % 36;
-          const base = cycle * 10;
+          const state = await read(service.baseUrl);
           if (phase === 1) {
-            await waitFor(service.baseUrl, "order-1", "order", base + 1);
-            const state = await waitFor(
+            assert.equal(state.data.order.status, "accepted");
+            assert.equal(state.data.payment.status, "authorised");
+            assert.equal(state.provenance.payment.sourceEntityId, "payment-1");
+            const tracking = await read(
               service.baseUrl,
               "order-1",
-              "payment",
-              base + 1,
+              "order-tracking",
             );
-            assert.equal(state.order?.status, "accepted");
-            assert.equal(state.payment?.status, "authorised");
             if (cycle === 0) {
-              assert.equal(
-                state.inventory,
-                undefined,
-                "unknown is not failure",
-              );
+              assert.equal(tracking.status.publication, "waiting");
+              assert.deepEqual(tracking.data, {});
+              assert.deepEqual(tracking.provenance, {});
             } else {
-              assert.equal(
-                state.inventory?.cycle,
-                cycle,
-                "previous-cycle contribution is retained honestly",
-              );
+              assert.equal(tracking.data.inventory.cycle, cycle);
+              assert.equal(tracking.data.order.cycle, cycle + 1);
             }
           }
-          if (phase === 3 && cycle > 0) {
-            // This newer event is on the same orders socket, after the old-cycle delivery.
-            await waitFor(service.baseUrl, "order-2", "order", base + 1);
+          if (phase === 2) {
             assert.equal(
-              (await read(service.baseUrl, "order-1")).order?.sequence,
-              base + 1,
+              state.provenance.delivery.sourceId,
+              cycle === 0 ? "courier-backup" : "courier-primary",
             );
+          }
+          if (phase === 3) {
+            assert.equal(state.provenance.delivery.sourceId, "courier-primary");
+            assert.deepEqual(state.publicationSequences.delivery, [
+              cycle * 2 + 1,
+            ]);
+          }
+          if (phase === 4 && cycle === 0) {
+            assert.deepEqual(state.status.inputs.orders.missingRanges, [
+              { from: 2, through: 2, status: "provisional" },
+            ]);
           }
           if (phase === 5) {
-            const state = await waitFor(
+            const tracking = await read(
               service.baseUrl,
               "order-1",
-              "inventory",
-              base + 1,
+              "order-tracking",
             );
-            await waitFor(service.baseUrl, "order-1", "order", base + 3);
-            assert.equal(state.inventory?.status, "reserved");
-            assert.equal(state.payment?.sequence, base + 1);
-          }
-          if (phase === 6) {
-            // order-3 acceptance follows the delayed order-1 report on the orders socket.
-            // Check before the duplicate could hide an erroneous rollback.
-            await waitFor(service.baseUrl, "order-3", "order", base + 1);
-            const state = await read(service.baseUrl, "order-1");
-            assert.equal(state.order?.sequence, base + 3);
-            assert.equal(state.order?.status, "dispatched");
-          }
-          if (phase === 7) {
-            // order-2 dispatch follows order-1's delayed and duplicate reports on the same socket.
-            await waitFor(service.baseUrl, "order-2", "order", base + 3);
-            const state = await read(service.baseUrl, "order-1");
-            assert.equal(state.order?.sequence, base + 3);
-            assert.equal(state.order?.status, "dispatched");
-            assert.ok(state.inventory!.observedAt < state.order!.observedAt);
-          }
-          if (phase === 9) {
-            const state = await waitFor(
-              service.baseUrl,
-              "order-1",
-              "payment",
-              base + 3,
-            );
-            assert.equal(state.payment?.status, "authorised");
-            assert.equal(state.order?.sequence, base + 3);
-          }
-          if (phase === 26) {
-            await waitFor(service.baseUrl, "order-6", "order", base + 4);
-            const state = await waitFor(
-              service.baseUrl,
-              "order-6",
-              "payment",
-              base + 4,
-            );
-            assert.equal(state.order?.status, "cancelled");
-            assert.equal(state.payment?.status, "refunded");
+            assert.equal(tracking.status.publication, "ready");
+            assert.equal(tracking.data.inventory.status, "reserved");
+            assert.equal(tracking.data.payment, undefined);
             assert.equal(
-              state.inventory?.sequence,
-              base + 1,
-              "inventory is retained during its outage",
+              tracking.provenance.inventory.sourceEntityId,
+              "reservation-1",
             );
           }
-          if (phase === 28) {
-            await waitFor(service.baseUrl, "order-6", "inventory", base + 3);
+          if (phase === 6 || phase === 7) {
+            assert.equal(state.data.order.status, "dispatched");
+            assert.deepEqual(state.publicationSequences.order, [cycle * 3 + 3]);
+            assert.deepEqual(state.status.inputs.orders.missingRanges, []);
+          }
+          if (phase === 12 && cycle === 0) {
+            const second = await read(service.baseUrl, "order-2");
+            assert.deepEqual(second.status.inputs.payments.missingRanges, [
+              { from: 2, through: 2, status: "provisional" },
+            ]);
+            assert.equal(second.data.payment.status, "authorised");
+          }
+          if (phase === 28 && cycle === 0) {
+            const stale = await waitForStale(service.baseUrl);
+            assert.equal(stale.data.inventory.status, "reserved");
+            assert.equal(stale.provenance.delivery.sourceId, "courier-primary");
+            const sixth = await read(service.baseUrl, "order-6");
+            assert.equal(sixth.data.order.status, "cancelled");
+            assert.equal(sixth.data.payment.status, "refunded");
+          }
+          if ((phase === 29 || phase === 31) && cycle === 0) {
+            assert.equal(
+              state.status.fields.inventory.freshness,
+              "stale",
+              "socket reconnect cannot refresh a value",
+            );
+            assert.equal(
+              state.status.fields.delivery.freshness,
+              "stale",
+              "backup cannot refresh primary",
+            );
+          }
+          if (phase === 32)
+            assert.equal(state.status.fields.inventory.freshness, "fresh");
+          if (phase === 33)
+            assert.equal(state.status.fields.delivery.freshness, "fresh");
+          if (phase === 34) {
             for (let i = 1; i <= 6; i++) {
-              const state = await read(service.baseUrl, `order-${i}`);
+              const snapshot = await read(service.baseUrl, `order-${i}`);
+              assert.equal(snapshot.data.inventory.cycle, cycle + 1);
               assert.equal(
-                state.order?.status,
-                i === 3 || i === 6 ? "cancelled" : "dispatched",
-              );
-              assert.equal(
-                state.payment?.status,
+                snapshot.data.payment.status,
                 i === 3 ? "declined" : i === 6 ? "refunded" : "authorised",
               );
               assert.equal(
-                state.inventory?.status,
-                i === 3 ? "unavailable" : i === 6 ? "released" : "reserved",
+                snapshot.status.inputs.orders.completeness,
+                "completeThrough",
               );
-              for (const fact of Object.values(state)) {
-                assert.equal(fact.cycle, cycle + 1);
-              }
+              assert.equal(
+                snapshot.status.inputs.inventory.completeness,
+                "completeThrough",
+              );
               assert.deepEqual(
-                await read(service.baseUrl, `order-${i}`, "order-tracking"),
-                {
-                  order: state.order,
-                  inventory: state.inventory,
-                },
+                snapshot.status.inputs.payments.missingRanges,
+                i === 2 ? [{ from: 2, through: 2, status: "confirmed" }] : [],
               );
             }
-            checkpoints.push(cycle);
+            beforeDiagnostic = state;
+          }
+          if (phase === 35 && cycle === 0) {
+            assert.deepEqual(
+              state,
+              beforeDiagnostic,
+              "unmapped target leaves existing snapshot unchanged",
+            );
+            assert.deepEqual(
+              (await read(service.baseUrl, "payment-unmapped")).data,
+              {},
+            );
+            assert.equal(
+              (await read(service.baseUrl, "payment-unmapped")).version,
+              0,
+            );
           }
         },
       });
       await producer.done;
-      assert.deepEqual(checkpoints, [0, 1, 2]);
 
-      // No producers remain. A late subscription must deliver retained state immediately.
+      // With sources stopped, a late subscriber must still receive the retained view.
       const viewer = await liveClient(service.baseUrl);
       try {
         await viewer.send({
@@ -195,10 +185,15 @@ test(
         assert.equal((await viewer.next()).type, "subscribed");
         const snapshot = await viewer.next();
         assert.equal(snapshot.type, "view-update");
-        assert.deepEqual(
-          snapshot.data,
-          await read(service.baseUrl, "order-6", "order-tracking"),
+        const retained = await read(
+          service.baseUrl,
+          "order-6",
+          "order-tracking",
         );
+        assert.deepEqual(snapshot.data, retained.data);
+        assert.ok("provenance" in snapshot);
+        assert.deepEqual(snapshot.provenance, retained.provenance);
+        assert.equal(snapshot.version, retained.version);
       } finally {
         await viewer.close();
       }
@@ -209,62 +204,98 @@ test(
   },
 );
 
-test("finite order timeline has bounded actions, explicit faults and no payment revision 2", () => {
+test(
+  "continuous schedule remains bounded beyond identity retention",
+  { timeout: 180000 },
+  async () => {
+    const service = await startZooGlassSession({
+      configuration: orderConfiguration(),
+    });
+    let producer: Awaited<ReturnType<typeof startOrderProducer>> | undefined;
+    try {
+      producer = await startOrderProducer(service.baseUrl, {
+        tickMs: 10,
+        cycles: 50,
+        signal: service.signal,
+      });
+      await producer.done;
+      for (let i = 1; i <= 6; i++) {
+        const state = await read(service.baseUrl, `order-${i}`);
+        assert.equal(state.data.order.cycle, 50);
+        assert.equal(state.data.inventory.cycle, 50);
+        for (const source of ["orders", "payments", "inventory"]) {
+          const progress = state.status.inputs[source];
+          assert.ok(progress.admissionFloor > 1 || source === "inventory");
+          assert.equal(progress.sourceContractViolated, false);
+          assert.ok(progress.missingRanges.length <= 1);
+        }
+        assert.deepEqual(
+          state.status.inputs.payments.missingRanges,
+          i === 2 ? [{ from: 2, through: 2, status: "expired" }] : [],
+        );
+      }
+    } finally {
+      await producer?.close();
+      await service.close();
+    }
+  },
+);
+
+test("finite schedule has one permanent loss, exact retries and bounded work", () => {
   const timeline = orderTimeline(0, 1000);
   assert.equal(timeline.length, 36);
   assert.equal(
     timeline
       .flatMap((step) => step.actions)
       .filter((action) => action.kind === "omit").length,
-    12,
+    1,
   );
-  assert.equal(timeline[24].actions.at(-1)?.kind, "disconnect");
-  assert.equal(timeline[28].actions[0].kind, "reconnect");
+  assert.ok(timeline.every((step) => step.actions.length <= 18));
   const events = timeline.flatMap((step) =>
     step.actions.flatMap((action) =>
       action.kind === "publish" ? [action.event] : [],
     ),
   );
-  assert.equal(new Set(events.map((event) => event.entityId)).size, 6);
-  assert.equal(
-    events.some(
-      (event) => event.sourceId === "payments" && event.payload.sequence === 2,
-    ),
-    false,
-  );
   const orders = events.filter(
-    (event) => event.entityId === "order-1" && event.sourceId === "orders",
+    (event) => event.sourceId === "orders" && event.entityId === "order-1",
   );
   assert.deepEqual(
-    orders.map((event) => event.payload.sequence),
+    orders.map((event) => event.publicationSequence),
     [1, 3, 2, 3],
   );
-  assert.deepEqual(
-    orders[1],
-    orders[3],
-    "duplicate is the original report including observation time",
-  );
+  assert.deepEqual(orders[1], orders[3]);
 });
 
-test("restarting a producer against retained identities rejects done", async () => {
-  const service = await startZooGlassSession({ views: orderViews });
-  const options = { tickMs: 10, cycles: 1 };
-  try {
-    const first = await startOrderProducer(service.baseUrl, options);
+test(
+  "producer restart against retained identities fails visibly",
+  { timeout: 40000 },
+  async () => {
+    const service = await startZooGlassSession({
+      configuration: orderConfiguration(),
+    });
     try {
-      await first.done;
+      const first = await startOrderProducer(service.baseUrl, {
+        tickMs: 10,
+        cycles: 1,
+      });
+      try {
+        await first.done;
+      } finally {
+        await first.close();
+      }
+      const before = await read(service.baseUrl);
+      const restarted = await startOrderProducer(service.baseUrl, {
+        tickMs: 10,
+        cycles: 1,
+      });
+      try {
+        await assert.rejects(restarted.done, /identityConflict/);
+        assert.deepEqual(await read(service.baseUrl), before);
+      } finally {
+        await restarted.close();
+      }
     } finally {
-      await first.close();
+      await service.close();
     }
-    const before = await read(service.baseUrl, "order-1");
-    const restarted = await startOrderProducer(service.baseUrl, options);
-    try {
-      await assert.rejects(restarted.done, /identityConflict/);
-      assert.deepEqual(await read(service.baseUrl, "order-1"), before);
-    } finally {
-      await restarted.close();
-    }
-  } finally {
-    await service.close();
-  }
-});
+  },
+);

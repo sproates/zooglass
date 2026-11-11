@@ -13,6 +13,9 @@ writeFileSync(
         ?.split("=")[1],
     ),
     config: process.env.ZOOGLASS_CONFIG,
+    database: process.argv
+      .find((arg) => arg.startsWith("--zooglass.database="))
+      ?.slice("--zooglass.database=".length),
   }),
 );
 if (mode === "exit") {

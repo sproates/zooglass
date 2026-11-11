@@ -4,19 +4,20 @@ import test, { type TestContext } from "node:test";
 import { WebSocketServer } from "ws";
 import { startOrderProducer } from "../../src/demos/orders/producer.js";
 
-async function sourceServer(t: TestContext) {
+async function sourceServer(t: TestContext, failure?: "target" | "progress") {
   const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
   const connections: { source?: string; messages: number }[] = [];
   const closures: Promise<unknown>[] = [];
-  server.on("connection", (socket) => {
+  server.on("connection", (socket, request) => {
+    const progress = request.url === "/progress";
     closures.push(once(socket, "close", { signal: AbortSignal.timeout(5000) }));
     const record = { source: undefined as string | undefined, messages: 0 };
     connections.push(record);
     socket.on("message", (bytes) => {
       const event = JSON.parse(String(bytes));
-      record.source ??= event.sourceId;
+      record.source ??= progress ? "progress" : event.sourceId;
       assert.equal(
-        event.sourceId,
+        progress ? "progress" : event.sourceId,
         record.source,
         "sources own separate sockets",
       );
@@ -24,8 +25,27 @@ async function sourceServer(t: TestContext) {
       const { sourceId, epoch, sourceEntityId, publicationSequence } = event;
       socket.send(
         JSON.stringify({
-          status: "applied",
-          reason: "memory",
+          status: progress && failure === "progress" ? "rejected" : "committed",
+          reason: "sqlite",
+          ...(progress
+            ? { kind: "watermark", throughSequence: event.throughSequence }
+            : {
+                targets: [
+                  {
+                    viewId: "order-summary",
+                    entityId: event.sourceEntityId,
+                    status:
+                      event.sourceEntityId === "payment-unmapped" ||
+                      failure === "target"
+                        ? "rejected"
+                        : "accepted",
+                    reason:
+                      event.sourceEntityId === "payment-unmapped"
+                        ? "unknownEntityMapping"
+                        : null,
+                  },
+                ],
+              }),
           stream: { sourceId, epoch, sourceEntityId },
           publicationSequence,
         }),
@@ -45,7 +65,7 @@ async function sourceServer(t: TestContext) {
     server,
     connections,
     closed: () => Promise.all(closures),
-    inventoryClosed: () => closures[2],
+    inventoryClosed: () => closures[3],
     baseUrl: `http://127.0.0.1:${address.port}`,
   };
 }
@@ -58,7 +78,7 @@ test("finite order producer reconnects inventory on a new socket and releases ev
     async onStep({ tick }) {
       if (tick === 26) {
         await host.inventoryClosed();
-        assert.equal(host.server.clients.size, 2);
+        assert.equal(host.server.clients.size, 5);
       }
     },
   });
@@ -66,7 +86,15 @@ test("finite order producer reconnects inventory on a new socket and releases ev
   await producer.done;
   assert.deepEqual(
     host.connections.map((connection) => connection.source).sort(),
-    ["inventory", "inventory", "orders", "payments"],
+    [
+      "courier-backup",
+      "courier-primary",
+      "inventory",
+      "inventory",
+      "orders",
+      "payments",
+      "progress",
+    ],
   );
   await host.closed();
   assert.equal(host.server.clients.size, 0);
@@ -109,3 +137,22 @@ test("invalid timing and cycle limits fail before opening a source", async () =>
     );
   }
 });
+
+for (const failure of ["target", "progress"] as const) {
+  test(`unexpected ${failure} rejection fails the run and closes every socket`, async (t) => {
+    const host = await sourceServer(t, failure);
+    const producer = await startOrderProducer(host.baseUrl, {
+      tickMs: 10,
+      cycles: 1,
+    });
+    t.after(() => producer.close());
+    await assert.rejects(
+      producer.done,
+      failure === "target"
+        ? /Unexpected Order target rejection/
+        : /Order progress rejected/,
+    );
+    await host.closed();
+    assert.equal(host.server.clients.size, 0);
+  });
+}

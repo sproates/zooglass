@@ -5,12 +5,14 @@ export interface PublicationReceipt {
   stream: { sourceId: string; epoch: string; sourceEntityId: string };
   publicationSequence: number;
   version: number | null;
-  targets?: {
-    viewId: string;
-    entityId: string;
-    status: string;
-    reason: string | null;
-  }[];
+  targets?:
+    | {
+        viewId: string;
+        entityId: string | null;
+        status: string;
+        reason: string | null;
+      }[]
+    | null;
 }
 
 export interface SourcePublication {

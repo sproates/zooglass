@@ -7,7 +7,7 @@ import {
 
 export const ticksPerCycle = 36;
 export type OrderAction =
-  | { kind: "publish"; event: OrderEvent; unmapped?: true }
+  | { kind: "publish"; event: OrderEvent; unmapped?: true; retry?: true }
   | { kind: "omit"; event: OrderEvent }
   | { kind: "disconnect"; source: OrderSource }
   | { kind: "reconnect"; source: OrderSource }
@@ -46,6 +46,8 @@ export function orderStep(
     epoch + (c * ticksPerCycle + phase) * tickMs;
   const publish = (event: OrderEvent) =>
     actions.push({ kind: "publish", event });
+  const retry = (event: OrderEvent) =>
+    actions.push({ kind: "publish", event, retry: true });
   for (let i = 0; i < orderIds.length; i++) {
     const offset = i * 3;
     const local = phase - offset;
@@ -71,7 +73,7 @@ export function orderStep(
       publish(event("orders", 2, "packing", offset + 3));
       notices.push(`${orderIds[i]}: delayed order report`);
     }
-    if (local === 7) publish(event("orders", 3, orderStatus, offset + 4));
+    if (local === 7) retry(event("orders", 3, orderStatus, offset + 4));
     if (local === 8) {
       const payment = event("payments", 2, paymentStatus);
       actions.push({
@@ -129,7 +131,7 @@ export function orderStep(
     });
   }
   if (phase === 1 && cycle > 0) {
-    publish(
+    retry(
       orderEvent("orders", 0, cycle - 1, 3, "dispatched", at(4, cycle - 1)),
     );
   }

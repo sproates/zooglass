@@ -101,6 +101,15 @@ export async function startOrderProducer(
               },
               signal,
             );
+            if (
+              action.retry &&
+              (receipt.status !== "duplicate" ||
+                receipt.reason !== "alreadyCommitted")
+            ) {
+              throw new Error(
+                `Expected duplicate/alreadyCommitted for Order retry, received ${receipt.status}/${receipt.reason}.`,
+              );
+            }
             if (action.unmapped) {
               const targets = receipt.targets;
               if (
@@ -108,6 +117,7 @@ export async function startOrderProducer(
                 receipt.reason !== "sqlite" ||
                 targets?.length !== 1 ||
                 targets[0].viewId !== "order-summary" ||
+                targets[0].entityId !== null ||
                 targets[0].status !== "rejected" ||
                 targets[0].reason !== "unknownEntityMapping"
               ) {

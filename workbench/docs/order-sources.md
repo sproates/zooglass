@@ -86,7 +86,8 @@ order-2's missing payment revision.
 
 Once per fresh run, tick 35 publishes `payment-unmapped`. The publication is
 committed to SQLite, but its summary target rejects with `unknownEntityMapping`.
-No order row changes. The producer checks this expected target outcome and fails
+No order row changes. The rejected target has a null entity ID. Scheduled exact retries must return
+`duplicate` with reason `alreadyCommitted`. The producer checks these outcomes and fails
 on unexpected publication, target or watermark results.
 
 ## Repeated operation and bounds

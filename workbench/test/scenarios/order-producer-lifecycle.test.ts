@@ -4,10 +4,19 @@ import test, { type TestContext } from "node:test";
 import { WebSocketServer } from "ws";
 import { startOrderProducer } from "../../src/demos/orders/producer.js";
 
-async function sourceServer(t: TestContext, failure?: "target" | "progress") {
+type Failure =
+  | "target"
+  | "progress"
+  | "retry"
+  | "previous-cycle retry"
+  | "duplicate reason"
+  | "unmapped entity";
+
+async function sourceServer(t: TestContext, failure?: Failure) {
   const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
   const connections: { source?: string; messages: number }[] = [];
   const closures: Promise<unknown>[] = [];
+  const publications = new Map<string, number>();
   server.on("connection", (socket, request) => {
     const progress = request.url === "/progress";
     closures.push(once(socket, "close", { signal: AbortSignal.timeout(5000) }));
@@ -23,17 +32,43 @@ async function sourceServer(t: TestContext, failure?: "target" | "progress") {
       );
       record.messages++;
       const { sourceId, epoch, sourceEntityId, publicationSequence } = event;
+      const identity = JSON.stringify([
+        sourceId,
+        epoch,
+        sourceEntityId,
+        publicationSequence,
+      ]);
+      const count = progress ? 0 : (publications.get(identity) ?? 0) + 1;
+      if (!progress) publications.set(identity, count);
+      const duplicate = count > 1;
+      const wrongCommit =
+        (failure === "retry" && count === 2) ||
+        (failure === "previous-cycle retry" && count === 3);
+      const status =
+        progress && failure === "progress"
+          ? "rejected"
+          : duplicate && !wrongCommit
+            ? "duplicate"
+            : "committed";
+      const reason =
+        status === "duplicate" && failure !== "duplicate reason"
+          ? "alreadyCommitted"
+          : "sqlite";
+      const unmapped = sourceEntityId === "payment-unmapped";
       socket.send(
         JSON.stringify({
-          status: progress && failure === "progress" ? "rejected" : "committed",
-          reason: "sqlite",
+          status,
+          reason,
           ...(progress
             ? { kind: "watermark", throughSequence: event.throughSequence }
             : {
                 targets: [
                   {
                     viewId: "order-summary",
-                    entityId: event.sourceEntityId,
+                    entityId:
+                      unmapped && failure !== "unmapped entity"
+                        ? null
+                        : event.sourceEntityId,
                     status:
                       event.sourceEntityId === "payment-unmapped" ||
                       failure === "target"
@@ -151,6 +186,30 @@ for (const failure of ["target", "progress"] as const) {
       failure === "target"
         ? /Unexpected Order target rejection/
         : /Order progress rejected/,
+    );
+    await host.closed();
+    assert.equal(host.server.clients.size, 0);
+  });
+}
+
+for (const failure of [
+  "retry",
+  "previous-cycle retry",
+  "duplicate reason",
+  "unmapped entity",
+] as const) {
+  test(`incorrect ${failure} receipt fails the run and closes every socket`, async (t) => {
+    const host = await sourceServer(t, failure);
+    const producer = await startOrderProducer(host.baseUrl, {
+      tickMs: 10,
+      cycles: failure === "previous-cycle retry" ? 2 : 1,
+    });
+    t.after(() => producer.close());
+    await assert.rejects(
+      producer.done,
+      failure === "unmapped entity"
+        ? /unmapped summary target/
+        : /Expected duplicate\/alreadyCommitted/,
     );
     await host.closed();
     assert.equal(host.server.clients.size, 0);

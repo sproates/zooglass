@@ -757,13 +757,13 @@ dialog::backdrop {
     font-size: 11px;
   }
   .field small {
-    font-size: 9px;
+    font-size: 12px;
   }
   .field em {
-    font-size: 9px;
+    font-size: 12px;
   }
   .state-label {
-    font-size: 9px;
+    font-size: 12px;
   }
   .row-foot {
     margin-top: 0;
@@ -833,4 +833,24 @@ dialog::backdrop {
   .waiting-state h3 {
     font-size: 18px;
   }
+}
+
+.courier-reports {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.courier-reports h3 {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.courier-reports p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 10px 0 0;
+}
+.courier-reports span {
+  display: block;
 }

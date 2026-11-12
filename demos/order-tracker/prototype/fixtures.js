@@ -58,6 +58,25 @@ export const fixtures = {
     trackingReady: true,
     notice: "Payment report 3 received; report 2 remains confirmed missing.",
   },
+  courier: {
+    label: "Stale primary courier",
+    order: "Dispatched",
+    payment: "Authorised",
+    stock: "Reserved",
+    delivery: "In transit",
+    tone: "warn",
+    badge: "Selected courier is stale",
+    age: "Primary reported 42 seconds ago · backup reported 3 seconds ago",
+    explanation:
+      "Primary courier remains selected by configured priority. Its in-transit report is stale. The fresh backup reports delivered, but silence does not automatically switch authority.",
+    couriers: {
+      primary: "In transit · stale · 42 seconds ago",
+      backup: "Delivered · fresh · 3 seconds ago",
+    },
+    trackingReady: true,
+    notice:
+      "Fresh backup received. The stale primary remains selected; no automatic fallback.",
+  },
   mixed: {
     label: "Mixed cycles",
     order: "Accepted",
@@ -144,6 +163,7 @@ export const checkpoints = [
   "normal",
   "missing",
   "stale",
+  "courier",
   "mixed",
   "disconnected",
 ];

@@ -71,3 +71,25 @@ test("recovery witness rejects a lost control owner and ignores old identifiers"
   await rejected;
   active.dispose();
 });
+
+test("recovery witness preserves loss acknowledged in the same message batch as arming", async () => {
+  const f = fixture();
+  const armed = f.witness.arm(new AbortController().signal, f.snapshots);
+  f.send("armed");
+  // Separate WebSocket frames can be dispatched before the arm continuation runs.
+  f.send("lost");
+  const active = await armed;
+  try {
+    let lost = false;
+    void active.lost.then(() => {
+      lost = true;
+    });
+    await Promise.resolve();
+    assert.equal(lost, true, "Loss must not wait for the replacement baseline");
+    const baseline = active.baseline();
+    f.send("baseline", f.snapshots);
+    await baseline;
+  } finally {
+    active.dispose();
+  }
+});

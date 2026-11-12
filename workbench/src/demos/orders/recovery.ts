@@ -45,6 +45,18 @@ export async function readOrderSnapshots(
   return snapshots;
 }
 
+function acknowledgement() {
+  let resolve!: () => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<void>((accepted, failed) => {
+    resolve = accepted;
+    reject = failed;
+  });
+  // Later stages may fail while the run is still retiring or starting a JVM.
+  void promise.catch(() => {});
+  return { promise, resolve, reject };
+}
+
 /** One bounded witness on the existing control channel, never a source of view values. */
 export function recoveryWitness(clients: Set<WebSocket>) {
   let receive:
@@ -58,17 +70,20 @@ export function recoveryWitness(clients: Set<WebSocket>) {
       const timeout = AbortSignal.timeout(30000);
       const active = AbortSignal.any([signal, timeout]);
       let owner: WebSocket | undefined;
-      let stage = "armed";
-      let resolveStage!: () => void;
-      let rejectStage!: (error: unknown) => void;
-      let next = new Promise<void>((resolve, reject) => {
-        resolveStage = resolve;
-        rejectStage = reject;
-      });
-      const aborted = () => rejectStage(active.reason);
+      const stages = {
+        armed: acknowledgement(),
+        lost: acknowledgement(),
+        baseline: acknowledgement(),
+      };
+      let stage: keyof typeof stages | "done" = "armed";
+      const fail = (error: unknown) => {
+        stage = "done";
+        for (const pending of Object.values(stages)) pending.reject(error);
+      };
+      const aborted = () => fail(active.reason);
       active.addEventListener("abort", aborted, { once: true });
       const closed = () =>
-        rejectStage(
+        fail(
           new Error(
             "Recovery viewer disconnected its controls. Keep the page open and Reset.",
           ),
@@ -78,18 +93,9 @@ export function recoveryWitness(clients: Set<WebSocket>) {
         owner?.off("close", closed);
         receive = undefined;
       };
-      const advance = (nextStage: string) => {
-        const done = resolveStage;
-        stage = nextStage;
-        next = new Promise<void>((resolve, reject) => {
-          resolveStage = resolve;
-          rejectStage = reject;
-        });
-        void next.catch(() => {});
-        done();
-      };
       receive = (socket, message) => {
         if (
+          stage === "done" ||
           message.id !== id ||
           message.stage !== stage ||
           (owner && socket !== owner)
@@ -99,9 +105,12 @@ export function recoveryWitness(clients: Set<WebSocket>) {
           if (stage === "armed") {
             owner = socket;
             owner.once("close", closed);
-            advance("lost");
-          } else if (stage === "lost") advance("baseline");
-          else {
+            stage = "lost";
+            stages.armed.resolve();
+          } else if (stage === "lost") {
+            stage = "baseline";
+            stages.lost.resolve();
+          } else {
             assert.ok(Array.isArray(message.snapshots));
             assert.equal(message.snapshots.length, 12);
             const byKey = new Map(
@@ -119,10 +128,10 @@ export function recoveryWitness(clients: Set<WebSocket>) {
                 durableSnapshot(snapshot),
               );
             stage = "done";
-            resolveStage();
+            stages.baseline.resolve();
           }
         } catch (error) {
-          rejectStage(error);
+          fail(error);
         }
       };
       try {
@@ -133,13 +142,12 @@ export function recoveryWitness(clients: Set<WebSocket>) {
             socket.bufferedAmount < 65536
           )
             socket.send(JSON.stringify({ kind: "recovery", id }));
-        await next;
-        const lost = next;
+        await stages.armed.promise;
         return {
-          lost,
+          lost: stages.lost.promise,
           async baseline() {
-            await lost;
-            await next;
+            await stages.lost.promise;
+            await stages.baseline.promise;
             active.throwIfAborted();
           },
           dispose,

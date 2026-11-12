@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Matchroom · ZooGlass</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <a href="./" class="brand">ZooGlass <span>/ MATCHROOM</span></a
+      ><span class="prototype">Continuous demo</span>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Fictional football · three matches</p>
+          <h1>Match centre</h1>
+        </div>
+        <span class="edition">Independent feeds.<br />One match view.</span>
+      </div>
+      <p id="startup" class="startup" role="status">
+        Matchroom needs Chrome/Edge 120+, Firefox 121+, Safari 17+ or iOS/iPadOS
+        17+, with JavaScript, modules, WebSocket, fetch and AbortController.
+        Upgrade or use a supported browser.
+      </p>
+      <nav class="tabs" aria-label="View">
+        <button data-view="board" aria-pressed="true">Match board</button
+        ><button data-view="scoreboard" aria-pressed="false">Scoreboard</button
+        ><button data-view="comparison" aria-pressed="false">
+          Policy comparison
+        </button>
+      </nav>
+      <div id="connection" class="connection" role="status">
+        Connecting · awaiting fresh snapshots
+      </div>
+      <p id="run-status" class="connection" role="alert" hidden></p>
+      <section id="matches" class="matches" aria-label="Select match"></section>
+      <div id="board-content">
+        <section id="match-detail" aria-label="Selected match"></section>
+        <section id="market" aria-label="Bookmaker market"></section>
+      </div>
+      <section id="scoreboard-note" class="scoreboard-note" hidden>
+        <h2>A score-only view</h2>
+        <p>
+          This layout consumes the scoreboard view directly. It has match
+          details and supplied totals, with no bookmaker data or client-side
+          score calculation.
+        </p>
+      </section>
+      <section
+        id="comparison"
+        hidden
+        aria-label="Revision policy comparison"
+      ></section>
+      <section class="notice">
+        <span>Simulated delivery events</span>
+        <p id="notice" role="status">Waiting for simulated delivery events.</p>
+      </section>
+      <footer>
+        <span>ZooGlass / Live sports</span
+        ><span>Synthetic matches · no wagering</span>
+      </footer>
+    </main>
+    <noscript
+      >This live demo needs JavaScript. All source data is simulated and
+      fictional.</noscript
+    >
+    <script src="startup.js"></script>
+  </body>
+</html>

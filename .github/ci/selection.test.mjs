@@ -221,7 +221,7 @@ test("Order interactive checks and shared source delivery retain browser consume
   }
 });
 
-test("Sports source foundation checks real service contracts; new UI modules remain conservative", () => {
+test("Sports source foundation and browser composition select their consumers", () => {
   for (const module of [
     "configuration",
     "timeline",
@@ -236,5 +236,23 @@ test("Sports source foundation checks real service contracts; new UI modules rem
       "core",
     ]);
   }
-  assert.deepEqual(selected(["workbench/src/demos/sports/browser.ts"]), suites);
+  assert.deepEqual(selected(["workbench/src/demos/sports/browser.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "native",
+    "engines",
+  ]);
+  assert.deepEqual(selected(["demos/live-sports/src/view.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "engines",
+  ]);
+  assert.deepEqual(
+    selected(["workbench/src/demos/sports/new-module.ts"]),
+    suites,
+  );
 });

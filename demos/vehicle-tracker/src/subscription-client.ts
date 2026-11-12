@@ -15,7 +15,16 @@ export interface ViewSnapshot {
     missingRequiredFields: string[];
     fields: Record<
       string,
-      { freshness: string; receivedAtMillis: number | null; inputs: string[] }
+      {
+        freshness: string;
+        receivedAtMillis: number | null;
+        inputs: string[];
+        facts?: {
+          minimumBirthSequence: number;
+          retainedCount: number;
+          activeCount: number;
+        };
+      }
     >;
     inputs: Record<
       string,

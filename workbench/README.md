@@ -18,13 +18,14 @@ vehicle browser demo with interactive controls and real data-route interruption.
 [what ZooGlass is trying to build](../docs/what-is-zooglass.md) for the wider
 product explanation.
 
-## Sports source foundation
+## Watch Sports matches
 
-Run three fictional matches and two independent sources through configured fact
-collections, corrected/first-reported totals and explicit cycle retirement. The
-[source guide](docs/sports-sources.md) covers finite and continuous commands,
-real-service tests and state bounds. This is source-only delivery; live Sports
-browser integration follows separately.
+Run `npm run demo -- live-sports --continuous` after explicit service preparation.
+Open the printed URL to watch three matches, supplied scores, independent markets
+and corrected/first-reported policies. The [Sports guide](../demos/live-sports/README.md)
+covers labels, reconnect and browser support. Its [source guide](docs/sports-sources.md)
+also provides source-only commands and state-bound evidence. Interactive delivery
+follows separately.
 
 ## Watch orders or step through a walkthrough
 

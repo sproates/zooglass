@@ -1,9 +1,9 @@
 # Live sports: detailed demo design
 
 Status: accepted design, 10 November 2026 (PR #155). Sports follows delivery of both Order modes.
-Source foundation implementation is proposed for review; see the
+Source foundation is delivered on the shared branch (PR #164); see the
 [source guide](../../workbench/docs/sports-sources.md) for commands and verification.
-Live browser integration remains pending.
+Continuous browser integration is proposed for review; interactive delivery remains pending.
 This replaces the Sports scope in the [original outline](order-and-sports-demos.md).
 The existing sports JSON scenario and Java match acceptance tests are useful
 fixtures, not a delivered sports application.
@@ -38,7 +38,8 @@ showcase. Do not claim fleet already exposes the newer progress/freshness metada
 ## Experience and early acceptance
 
 A [clickable fixture prototype](../../demos/live-sports/README.md) was visually accepted on
-12 November 2026. Live integration has not started.
+12 November 2026. The continuous browser now binds that layout to live snapshots;
+see the [live guide](../../demos/live-sports/README.md).
 
 The primary screen is a compact live match board. All three scorelines are visible
 on desktop; the first match is immediately visible on a phone. Selecting a match

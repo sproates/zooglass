@@ -2,8 +2,8 @@
 
 This source foundation runs three fictional matches through a real SQLite-backed
 ZooGlass service. It supports finite and repeating operation using the same
-schedule. The accepted Sports prototype is separate; live browser integration
-is the next delivery slice.
+schedule. The [continuous Sports browser](../../demos/live-sports/README.md) consumes these
+views separately; the accepted static prototype remains a design reference.
 
 From `workbench`, with Node 26, Java 25, installed dependencies and a prepared
 `zooglass/target/zooglass.jar`:
@@ -103,8 +103,7 @@ three entities, nine view rows, six streams, bounded receipts, fact records
 then ages to expired.
 
 The lazy schedule holds a fixed set of delayed events per match and at most two
-actions per checkpoint. Source sockets capture no message history. There is no
-browser notice list yet. This is bounded-state evidence, not a throughput or heap
+actions per checkpoint. Source sockets capture no message history. The browser host retains at most 20 explanatory notices separately. This is bounded-state evidence, not a throughput or heap
 benchmark. General producer restart, new-view backfill and production feed adapters
 remain outside this slice.
 

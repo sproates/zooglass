@@ -4,9 +4,13 @@ import { pathToFileURL } from "node:url";
 export async function runDemo(args: string[]) {
   if (args.length === 1 && args[0] === "--help") {
     console.log(
-      "Demos:\n  npm run demo -- order-tracker (--continuous | --interactive) [--bind=<private IPv4>]\n  npm run demo -- vehicle-tracker --help",
+      "Demos:\n  npm run demo -- live-sports --continuous [--bind=<private IPv4>]\n  npm run demo -- order-tracker (--continuous | --interactive) [--bind=<private IPv4>]\n  npm run demo -- vehicle-tracker --help",
     );
     return;
+  }
+  if (args[0] === "live-sports") {
+    const { runSportsDemo } = await import("../demos/sports/demo.js");
+    return runSportsDemo(args.slice(1));
   }
   if (args[0] === "order-tracker") {
     const { runOrderDemo } = await import("../demos/orders/main.js");

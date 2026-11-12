@@ -29,7 +29,8 @@ flowchart TB
 
 The dotted callback arrow is not an import: `subscription-client.ts` accepts a
 `ClientBinding`. Its optional full-snapshot callback and observations now retain
-status, provenance, publication sequences and version for the Order consumer;
+status (including optional fact-window metadata), provenance, publication
+sequences and version for the Order and Sports consumers;
 the existing vehicle `onView` callback still receives only data.
 `vehicle-client.ts` supplies that binding using functions from
 `view.ts`, so protocol handling does not need to know about vehicle rendering.

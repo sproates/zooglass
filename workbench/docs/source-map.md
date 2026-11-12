@@ -13,7 +13,7 @@ A file repeated in two diagrams is the same module.
 Diagram paths are relative to `src/` unless shown otherwise. Modules are grouped
 by responsibility, with concrete demos under `src/demos/`.
 
-The `cli/demo.ts` entry point selects Order or vehicle demos.
+The `cli/demo.ts` entry point selects Order, Sports or vehicle demos.
 The `demos/vehicle/` folder contains its domain CLI (`demo.ts`), automatic playback, interactive
 composition, resource ownership, asset binding and rendered-page observer.
 Shared scenario execution, browser transport and playback controls have their
@@ -535,3 +535,32 @@ existing ZooGlass strategies; `timeline.ts` supplies synthetic source facts and
 market decisions. It does not project scores or reconcile revisions. Retirement
 blocks the producer until every view's acknowledgement is verified. Observers
 may await checkpoints for independent HTTP and live-subscriber assertions.
+
+## Sports continuous browser
+
+`cli/demo.ts` selects `live-sports --continuous`. The source-only `sports/main.ts`
+entry remains available separately. This composition reuses the delivered source
+schedule and shared service/host/data-route modules; viewers do not own the run.
+
+```mermaid
+flowchart TB
+  dispatch["cli/demo.ts"] -->|selects continuous command| demo["demos/sports/demo.ts"]
+  demo -->|owns run until signal or failure| browser["demos/sports/browser.ts"]
+  browser -->|starts prepared JAR and fresh store| service["service/zooglass-session.ts"]
+  browser -->|installs three views| config["demos/sports/configuration.ts"]
+  browser -->|starts and closes sources| producer["demos/sports/producer.ts"]
+  browser -->|formats bounded activity feed| notices["demos/sports/notices.ts"]
+  browser -->|loads passive assets| app["demos/sports/application.ts"]
+  browser -->|serves exact routes on private IPv4| host["browser/browser-http-server.ts"]
+  browser -->|proxies same-origin subscriptions| route["browser/browser-data-route.ts"]
+  app -->|reads built assets| page["../demos/live-sports/pages/index.html"]
+  producer -->|advances checkpoints| timeline["demos/sports/timeline.ts"]
+  notices -.->|checkpoint names only| timeline
+```
+
+The host exposes viewer assets, a bounded activity JSON document and the live
+subscription socket. It does not expose source/control or direct service HTTP
+routes. `browser.ts` publishes run failures and owns cleanup of sources, data
+route, HTTP host and service. Tests can block the data route or await source
+checkpoints without adding controls to the passive page. The browser consumer has
+its own [source map](../../demos/live-sports/docs/source-map.md).

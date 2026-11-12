@@ -120,6 +120,15 @@ See the [browser source map](docs/source-map.md), [source schedule](../../workbe
 and live [desktop](docs/images/continuous-desktop.png) / [phone](docs/images/continuous-phone.png) captures. Interactive [desktop](docs/images/interactive-desktop.png) and
 [phone](docs/images/interactive-phone.png) captures show the compact controls.
 
+## Final acceptance evidence
+
+The [acceptance record](../../docs/verification/2026-11-12-order-acceptance.md)
+collects three-cycle first-baseline checks, the 50-cycle retained-state inspection,
+recovery/access coverage and clean-command walkthroughs with current captures.
+The [Order developer comparison](../../docs/order-developer-value.md) explains
+what ZooGlass takes on and what changes for another order, source or view.
+Final acceptance is proposed for review; the combined programme has not merged to main.
+
 ## Accepted static reference
 
 The clickable prototype uses local fixture snapshots and does not connect to

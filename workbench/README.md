@@ -29,6 +29,8 @@ for 18 checked checkpoints with Step/Play/Pause/Reset in the page and terminal.
 The final checkpoint restarts the service against the retained store and checks a
 real viewer baseline, duplicate retry and next identity. Keep a page visible.
 Reset keeps the URL but replaces the service/store; Quit cleans up the session.
+The [Order acceptance record](../docs/verification/2026-11-12-order-acceptance.md)
+links the final cycle/bounds checks, clean setup and configuration-extension fixture.
 
 ## Watch six cars driving around Gibraltar
 

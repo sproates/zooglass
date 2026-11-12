@@ -1,8 +1,9 @@
 # Order tracker: detailed demo design
 
-Status: accepted design, 10 November 2026 (PR #154). The source-only order simulator exists;
-this document specifies the remaining work. It supersedes the Order details in
-[the original two-demo plan](order-and-sports-demos.md). The [Sports design](live-sports.md) is accepted separately.
+Status: accepted design, 10 November 2026 (PR #154). Both modes, recovery and protected access
+are delivered on the combined delivery branch. [Final acceptance evidence](../verification/2026-11-12-order-acceptance.md)
+is prepared for review. This document records the agreed scope and supersedes
+the Order details in [the original two-demo plan](order-and-sports-demos.md). The [Sports design](live-sports.md) is accepted separately.
 
 ## What this demonstrates
 

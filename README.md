@@ -45,7 +45,11 @@ explains what developers still need to build.
 
 The [Order desk](demos/order-tracker/README.md) shows real multi-source
 views, waiting/stale/gap labels and reconnect baselines using the accepted design.
-Use continuous mode or the finite checked interactive walkthrough.
+Use continuous mode or the finite checked interactive walkthrough. The
+[Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) brings
+together repeated operation, recovery, protected access and fresh setup evidence;
+the [Order developer comparison](docs/order-developer-value.md) explains the
+application work delegated and retained.
 
 The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 

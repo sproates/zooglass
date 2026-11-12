@@ -89,8 +89,12 @@ none needs to expose every setting or show every failure at once.
 | Freshness and gap policy | Vehicles: reporting silence versus late/missing position with a declared source-progress promise. | Existing continuous faults supply useful scenes; add genuine service progress metadata. |
 | Corrections and derived views | Sports: disallowed goal revises the score and retained event history; old revision redelivery has no effect. | Existing replacement fixtures; add retained-fact scenario for the new contract. |
 | Service restart and duplicate recovery | Orders: restart ZooGlass against the same store, retry a committed publication, then publish the next identity. | Interactive checkpoint checks real viewer loss, first baseline, duplicate receipt and new publication. |
-| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Existing client fixtures; add durable recovery and queue-policy evidence. |
+| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Order first-baseline and restart acceptance; shared slow-receiver and queue-policy evidence. |
 | Access loss | Orders: revoke one viewer while another remains authorised; denied reconnect. | Finite HTTPS/WSS Order acceptance checks scoped grants, revocation, clearing, stale callbacks and fresh admission. |
+
+The [Order acceptance record](../verification/2026-11-12-order-acceptance.md)
+collects the delivered Order scenes, bounds and remaining limits, with a
+[developer-value comparison](../order-developer-value.md).
 
 Every scene should state its selected policy, what the viewer should notice,
 what ZooGlass contributes and which source events are simulated. Keep detail in

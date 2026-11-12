@@ -32,7 +32,7 @@ test(
     const controller = new AbortController();
     const demo = await startOrderBrowser({
       tickMs: 15,
-      cycles: 2,
+      cycles: 3,
       signal: controller.signal,
       onStep: async (step) => {
         reached = step.tick;
@@ -181,6 +181,97 @@ test(
       stopAt = -1;
       release();
       await demo.done;
+      assert.equal(
+        reached,
+        107,
+        "Three complete cycles finished before recovery",
+      );
+      await demo.setDataBlocked(true);
+      await page.waitForFunction(() =>
+        document
+          .getElementById("connection")
+          ?.textContent?.includes("Disconnected"),
+      );
+      await page.evaluate("window.orderUpdates = []");
+      await demo.setDataBlocked(false);
+      await page.waitForFunction(
+        () =>
+          document.getElementById("connection")?.textContent ===
+          "Receiving live snapshots",
+      );
+      const finalLate = await browser.newPage();
+      await observe(finalLate);
+      await finalLate.goto(demo.origin);
+      await finalLate.waitForFunction(
+        () =>
+          document.getElementById("connection")?.textContent ===
+          "Receiving live snapshots",
+      );
+      for (const viewer of [page, finalLate]) {
+        const firstSnapshots = await viewer.evaluate(
+          `(() => {
+            const first = new Map();
+            for (const snapshot of window.orderUpdates) {
+              const key = snapshot.viewId + '/' + snapshot.entityId;
+              if (!first.has(key)) first.set(key, snapshot);
+            }
+            return [...first.values()];
+          })()`,
+        );
+        assert.equal(firstSnapshots.length, 12);
+        // Independent expected outcomes: never ask the producer to compute its own oracle.
+        for (const snapshot of firstSnapshots) {
+          const id = Number(snapshot.entityId.slice(6));
+          assert.equal(snapshot.data.order.cycle, 3);
+          assert.equal(snapshot.data.order.reference, `DEMO-3-${id}`);
+          assert.equal(
+            snapshot.data.order.status,
+            [3, 6].includes(id) ? "cancelled" : "dispatched",
+          );
+          assert.equal(
+            snapshot.data.inventory.status,
+            id === 3 ? "unavailable" : id === 6 ? "released" : "reserved",
+          );
+          assert.equal(snapshot.data.inventory.cycle, 3);
+          assert.equal(
+            snapshot.data.delivery.status,
+            [3, 6].includes(id) ? "cancelled" : "delivered",
+          );
+          assert.equal(
+            snapshot.provenance.delivery.sourceId,
+            "courier-primary",
+          );
+          assert.deepEqual(snapshot.publicationSequences.order, [
+            id === 6 ? 12 : 9,
+          ]);
+          assert.deepEqual(snapshot.publicationSequences.inventory, [6]);
+          assert.deepEqual(snapshot.publicationSequences.delivery, [6]);
+          assert.equal(snapshot.status.publication, "ready");
+          if (snapshot.viewId === "order-summary") {
+            assert.equal(
+              snapshot.data.payment.status,
+              id === 3 ? "declined" : id === 6 ? "refunded" : "authorised",
+            );
+            assert.deepEqual(snapshot.publicationSequences.payment, [12]);
+            assert.deepEqual(
+              snapshot.status.inputs.payments.missingRanges,
+              id === 2 ? [{ from: 2, through: 2, status: "confirmed" }] : [],
+            );
+          } else assert.equal(snapshot.data.payment, undefined);
+        }
+        assert.equal(await viewer.locator("#orders .order-row").count(), 6);
+      }
+      assert.equal(
+        reached,
+        107,
+        "No publication followed either viewer's first baselines",
+      );
+      assert.equal(
+        (await fetch(`${demo.origin}/activity.json`).then((r) => r.json()))
+          .length,
+        20,
+      );
+      await finalLate.close();
       await page.close();
       assert.deepEqual(errors, []);
     } finally {

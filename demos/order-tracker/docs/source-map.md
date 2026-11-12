@@ -64,3 +64,9 @@ to the renderer. No playback controls are present in continuous mode.
 The [Workbench source map](../../../workbench/docs/source-map.md#order-service-and-browser-composition)
 shows service/process ownership and the read-only data proxy. The accepted static
 prototype remains in `prototype/` as a visual reference.
+
+The [final browser acceptance](../../../workbench/test/browser/order-browser.test.ts)
+records connection observations outside the shipped model and checks the first
+snapshot for every pair after three cycles stop. Test observation history is not
+retained by the production page. The [acceptance record](../../../docs/verification/2026-11-12-order-acceptance.md)
+distinguishes these checks from the longer service-only soak.

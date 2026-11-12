@@ -11,6 +11,8 @@ flowchart TB
   startup["demos/order-tracker/pages/startup.js"]
   app["demos/order-tracker/src/app.ts"]
   connection["demos/order-tracker/src/connection.ts"]
+  controls["demos/order-tracker/src/controls.ts"]
+  app -->|interactive commands and run replacement| controls
   model["demos/order-tracker/src/model.ts"]
   view["demos/order-tracker/src/view.ts"]
   protocol["demos/vehicle-tracker/src/subscription-client.ts"]
@@ -46,7 +48,11 @@ and preserves relative module paths under `dist/`; the host serves exact routes.
 
 `app.ts` separately polls the bounded simulator notice feed. Notices describe
 scheduled deliveries, not runtime conclusions, and never feed the snapshot model.
-No playback controls are present in continuous mode.
+`controls.ts` maintains a separate, bounded control connection only in interactive
+mode. It sends Step/Play/Pause/Reset commands and displays checked progress.
+A changed run generation clears the snapshot model and closes its old data client;
+new subscriptions start when the replacement run is ready. Controls never provide
+view values. No playback controls are present in continuous mode.
 
 The [Workbench source map](../../../workbench/docs/source-map.md#order-service-and-browser-composition)
 shows service/process ownership and the read-only data proxy. The accepted static

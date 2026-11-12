@@ -1,13 +1,12 @@
 # Order tracker
 
-The continuous demo displays six synthetic orders through real ZooGlass views.
+The continuous and interactive demos display six synthetic orders through real ZooGlass views.
 The operations board and tracking presentation use the accepted visual design;
 source selection, progress, readiness and freshness come from the service.
 The [detailed design](../../docs/plans/order-tracker.md) also specifies the later
-interactive, service-recovery and protected-access slices, which are not delivered
-by this mode.
+service-recovery and protected-access slices, which remain future work.
 
-## Run the live continuous demo
+## Run the live demo
 
 From `workbench/`, install dependencies with `npm ci`. Prepare ZooGlass once with
 `npm run prepare:service` if a current `zooglass/target/zooglass.jar` is not already
@@ -15,6 +14,7 @@ available. Preparation is explicit; the demo and its tests never build the servi
 
 ```sh
 npm run demo -- order-tracker --continuous
+npm run demo -- order-tracker --interactive
 # Optional access on your private LAN:
 npm run demo -- order-tracker --continuous --bind=<private IPv4>
 ```
@@ -22,7 +22,7 @@ npm run demo -- order-tracker --continuous --bind=<private IPv4>
 Open the printed ordinary URL. Multiple and late viewers each receive their own
 current snapshots. Closing all viewers leaves the producer running. Ctrl+C closes
 the host, sockets, service and run-owned temporary SQLite store. The six slots
-repeat roughly every 108 seconds. No interactive command is advertised yet.
+repeat roughly every 108 seconds.
 
 Select a row for its source details (a named dialog on phones), or switch to the
 smaller Tracking view. Tracking subscribes directly to `order-tracking`; it does
@@ -42,6 +42,29 @@ hidden by an authorisation boundary.
 - **Simulated delivery events** is a separate bounded Workbench notice feed.
   It cannot determine the view's values or status.
 
+## Interactive walkthrough
+
+Interactive mode starts with empty views and 17 checked checkpoints. Controls sit
+below the board, as in the accepted prototype. Step sends the next scene and waits
+for independent checks against the real service. Play advances automatically;
+Pause stops future checkpoints while the current action finishes. The freshness
+scene may take about 15 seconds; the page shows that the check is still running.
+The final result remains visible with Step and Play disabled.
+
+Reset keeps the URL and page open, clears the old snapshots and starts a new
+service, SQLite store and source identities. The backup-first courier and missing
+payment scenes therefore repeat faithfully. Reset and Quit cancel pending waits
+and await cleanup; a failed check is shown and does not advance the cursor.
+If a replacement service cannot start, the page shows the failure and keeps Reset
+available to try again after the startup problem is resolved.
+
+Use the page buttons or terminal `step`, `play`, `pause`, `reset`, `help` and `quit`
+(`q` also quits). All viewers share the same walkthrough controls. This is a
+trusted local/private-LAN demo, not an authenticated control service. Continuous
+mode exposes no control channel or playback buttons. Both modes execute the same
+source deliveries and use the same snapshot rendering. Service restart against a
+retained database and protected access are separate future scenes.
+
 ## Browser baseline and verification
 
 Use Chrome/Edge 120+, Firefox 121+ or Safari 17+; iPhone/iPad require iOS/iPadOS 17+.
@@ -51,7 +74,7 @@ AbortController and animation-frame scheduling. Below the browser baseline or
 with missing capabilities, the initial HTML explains the requirements and does
 not start the app. Asset/network failures have a separate reload message.
 
-Chromium and WebKit automated checks cover desktop/phone layouts, selection,
+Chromium, Firefox and WebKit automated checks cover desktop/phone layouts, selection,
 dialog focus, startup gating and asset failure. Real-service checks cover waiting,
 status-only freshness, source provenance, sequences, gaps, multiple/late viewers
 and first reconnect snapshots while publication is paused. Browser engine testing
@@ -60,11 +83,12 @@ is not physical-device qualification or proof on every historical minimum versio
 ```sh
 # From workbench; use the prepared JAR:
 npm run build:browser
-npx tsx --test test/browser/order-browser.test.ts
+npx tsx --test test/browser/order-browser.test.ts test/browser/order-interactive.test.ts
 ```
 
 See the [browser source map](docs/source-map.md), [source schedule](../../workbench/docs/order-sources.md)
-and live [desktop](docs/images/continuous-desktop.png) / [phone](docs/images/continuous-phone.png) captures.
+and live [desktop](docs/images/continuous-desktop.png) / [phone](docs/images/continuous-phone.png) captures. Interactive [desktop](docs/images/interactive-desktop.png) and
+[phone](docs/images/interactive-phone.png) captures show the compact controls.
 
 ## Accepted static reference
 

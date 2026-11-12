@@ -427,14 +427,40 @@ flowchart TB
   configuration -->|maps source keys to orders| contracts
   configuration -->|types the startup contract| contract
   service -->|accepts explicit runtime policies| contract
-  producer -->|sends and checks watermarks| progress
+  sources["demos/orders/source-session.ts"]
+  producer -->|executes shared source actions| sources
+  sources -->|sends and checks watermarks| progress
   simulation -->|owns the prebuilt service| service
   simulation -->|starts and closes sources| producer
   producer -->|executes one bounded step at a time| timeline
-  producer -->|opens and closes independent source sockets| sockets
-  producer -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
-  producer -->|enumerates source identities| contracts
+  sources -->|opens and closes independent source sockets| sockets
+  sources -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
+  sources -->|enumerates source identities| contracts
   timeline -->|builds domain events for six fixed slots| contracts
+```
+
+### Interactive Order walkthrough
+
+`--interactive` keeps one page/control host while Reset replaces its service,
+store, source sockets and view route. Same-origin controls are shared by up to 16
+viewers; stale run-generation commands are rejected. Closing the terminal owner
+retires all resources. `checkpoints.ts` owns domain expectations; shared playback
+owns the cursor and cancellation, with its vehicle trace adapter preserved. The
+prepared adapter publishes state through the stable host even between runs, so a
+failed replacement startup remains visible and Reset can be retried.
+
+```mermaid
+flowchart TB
+  main["demos/orders/main.ts"] -->|terminal commands and lifetime| interactive["demos/orders/interactive.ts"]
+  interactive -->|domain assertions| checkpoints["demos/orders/checkpoints.ts"]
+  interactive -->|prepared executions| prepared["control/prepared-checkpoints.ts"]
+  prepared -->|reuses cursor and run lifecycle| controller["control/demo-controller.ts"]
+  controller -->|startup and run state through stable publisher| interactive
+  interactive -->|same first-cycle actions| timeline["demos/orders/timeline.ts"]
+  interactive -->|shared source delivery| sources["demos/orders/source-session.ts"]
+  interactive -->|fresh service and store per Reset| service["service/zooglass-session.ts"]
+  interactive -->|stable exact asset host| http["browser/browser-http-server.ts"]
+  interactive -->|retired and replaced per run| route["browser/browser-data-route.ts"]
 ```
 
 ## Protected service acceptance

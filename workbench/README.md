@@ -18,13 +18,15 @@ vehicle browser demo with interactive controls and real data-route interruption.
 [what ZooGlass is trying to build](../docs/what-is-zooglass.md) for the wider
 product explanation.
 
-## Watch continuous orders
+## Watch orders or step through a walkthrough
 
 Run `npm run demo -- order-tracker --continuous` after explicit service preparation.
 Add `--bind=<private IPv4>` for LAN access. The printed URL shows the accepted board
 and tracking layouts backed by five real simulated sources and ZooGlass snapshots.
 See the [Order guide](../demos/order-tracker/README.md) for status labels, recovery,
-browser requirements and limits. The interactive Order command remains future work.
+browser requirements and limits. Use `npm run demo -- order-tracker --interactive`
+for 17 checked checkpoints with Step/Play/Pause/Reset in the page and terminal.
+Reset keeps the URL but replaces the service/store; Quit cleans up the session.
 
 ## Watch six cars driving around Gibraltar
 
@@ -58,7 +60,7 @@ composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
 The [order source foundation](docs/order-sources.md) provides independent service
 verification of mapped order, payment, inventory and courier contributions,
 with publication gates, source priority, progress and freshness policies. Its
-continuous browser command is available; interactive and protected/recovery
+continuous and interactive browser commands are available; protected/recovery
 experiences remain subsequent work.
 
 ## Run a scenario

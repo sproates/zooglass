@@ -62,6 +62,7 @@ test(
           "Receiving live snapshots",
       );
       assert.equal(await page.locator("#startup").isVisible(), false);
+      assert.equal(await page.locator("#playback").isVisible(), false);
       assert.equal(await page.locator("#orders .order-row").count(), 6);
       await page.locator('[data-view="tracking"]').click();
       assert.match(

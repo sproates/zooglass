@@ -3,7 +3,7 @@
 The service-side Order foundation publishes six synthetic orders through five
 independent sources. ZooGlass joins their different entity keys, applies configured
 field strategies and exposes two views. The [continuous Order browser](../../demos/order-tracker/README.md)
-now displays these views; interactive and recovery slices remain planned.
+and interactive walkthrough display these views; recovery remains planned.
 The [Order design](../../docs/plans/order-tracker.md) describes the complete scope.
 
 ## Run the verification
@@ -115,8 +115,8 @@ expired evidence. It is behavioural retention evidence, not a memory benchmark.
 
 ## Remaining delivery
 
-Live presentation, interactive controls, service restart, protected access and
-the final developer-value comparison are subsequent slices. This foundation
+Service restart, protected access and the final developer-value comparison
+remain subsequent slices. This foundation
 covers the source-side scenes from Partial order through Unknown relationship
 in the [design's scene table](../../docs/plans/order-tracker.md#scenes-and-expected-results).
 
@@ -125,3 +125,11 @@ views directly. Its separate notice feed reports producer steps; snapshot state
 is never derived from those notices. Six product names are presentation data in
 the order source payload. The service-only composition remains available for
 independent source verification.
+
+The interactive walkthrough uses `source-session.ts` for exactly the same socket
+actions and receipt checks as `producer.ts`. `checkpoints.ts` supplies independent
+snapshot expectations; the shared prepared-checkpoint adapter feeds the existing
+playback controller. Its 17 checkpoints cover partial publication, lookup mapping,
+courier priority, delayed/retried/omitted deliveries, receipt-age staleness,
+reconnection, progress watermarks and the unmapped diagnostic key. Reset discards
+the old database instead of replaying identities into it.

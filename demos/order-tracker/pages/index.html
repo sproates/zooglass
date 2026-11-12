@@ -69,6 +69,28 @@
           aria-label="Tracking view"
         ></section>
       </div>
+      <section
+        id="playback"
+        class="playback"
+        hidden
+        aria-label="Interactive walkthrough controls"
+      >
+        <div>
+          <span class="eyebrow">Checked walkthrough</span>
+          <p id="checkpoint-label" role="status">Connecting controls…</p>
+        </div>
+        <div class="playback-buttons">
+          <button id="reset" type="button" disabled>Reset</button>
+          <button id="play" type="button" disabled>Play</button>
+          <button id="pause" type="button" disabled>Pause</button>
+          <button id="step" class="primary" type="button" disabled>
+            Step →
+          </button>
+        </div>
+        <p id="control-detail" class="playback-note" role="status">
+          Step waits for real service checks. All viewers share these controls.
+        </p>
+      </section>
       <section class="activity" aria-label="Simulated delivery events">
         <span>Simulated delivery events</span>
         <p id="notice" role="status">Waiting for simulated delivery events.</p>

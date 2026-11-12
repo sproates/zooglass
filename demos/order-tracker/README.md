@@ -3,7 +3,7 @@
 The [detailed design](../../docs/plans/order-tracker.md) describes the planned
 ZooGlass demonstration. The current deliverable is a **clickable UI prototype**
 using local fixture snapshots. It does not connect to ZooGlass or execute a
-Workbench scenario. Visual acceptance is pending.
+Workbench scenario. The visual design was accepted on 12 November 2026; live integration remains pending.
 
 ## Preview the prototype
 
@@ -43,15 +43,15 @@ order details beside it. On narrow screens, compact rows remain the primary
 content. The tracking view withholds values while required contributions are
 missing. Explanations and source rules are secondary disclosures.
 
-These are review captures, not an accepted design or live-service evidence:
+These captures preserve the accepted visual reference; they are not live-service evidence:
 
 - [Desktop board](docs/images/prototype-desktop.png)
 - [Phone-width board](docs/images/prototype-phone.png)
 - [Courier-priority phone detail](docs/images/prototype-courier.png)
 
 Review the visual hierarchy, density, order selection, tracking view, state labels
-and both control layouts. Record owner acceptance and any requested revisions
-before integrating live data. The initial version was checked in Chromium and
+and both control layouts when extending the accepted reference. The initial
+version was checked in Chromium and
 WebKit, including selection/dialogs, tracking withholding, mixed/disconnected
 states, control interactions and overflow at widths 360, 390, 768, 1024 and 1440.
 This is not device qualification or a production browser support declaration.

@@ -72,8 +72,8 @@ knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 
 ## Early UI prototype and acceptance
 
-The [clickable prototype](../../demos/order-tracker/README.md) is available for
-visual review. Owner acceptance is pending; live integration has not started.
+The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
+12 November 2026. Live integration has not started.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice

@@ -31,7 +31,8 @@ src/
 ├── service/         ZooGlass process lifecycle
 └── demos/
     ├── vehicle/     Compose shared components for the vehicle demo
-    └── orders/      Order sources, delivery schedule and service composition
+    ├── orders/      Order sources, delivery schedule and service composition
+    └── sports/      Match facts, market sources and bounded cycle retirement
 ```
 
 `scenario/` describes and prepares the work; `execution/` performs it against
@@ -501,3 +502,36 @@ flowchart TB
 
 See [protected client acceptance](protected-client-acceptance.md) for the command
 and the behaviours it verifies.
+
+## Sports source foundation
+
+`demos/sports/main.ts` runs sources without a browser. The typed Sports checkpoint
+runner includes publication, watermark and fact-retirement actions; the older
+print-only JSON scenario format is unchanged. Finite and repeating operation use
+the same lazy schedule. See the [source guide](sports-sources.md) for commands,
+observable outcomes and window-transition rules.
+
+```mermaid
+flowchart TB
+  main["demos/sports/main.ts"] -->|owns source-only run| simulation["demos/sports/simulation.ts"]
+  simulation -->|starts prepared JAR and fresh store| service["service/zooglass-session.ts"]
+  simulation -->|installs three views| configuration["demos/sports/configuration.ts"]
+  configuration -.->|typed policies| contract["service/runtime-contract.ts"]
+  simulation -->|starts and closes playback| producer["demos/sports/producer.ts"]
+  producer -->|advances finite or repeating checkpoints| timeline["demos/sports/timeline.ts"]
+  producer -->|executes before next checkpoint| sources["demos/sports/source-session.ts"]
+  sources -->|checks policy-specific target outcomes| receipts["demos/sports/receipts.ts"]
+  receipts -->|names expected fact fields| configuration
+  sources -->|sends fact metadata and validates identity| publication["execution/publication-receipt.ts"]
+  sources -->|verifies every view floor| retirement["execution/fact-retirement.ts"]
+  sources -->|watermarks and retirement transport| control["execution/control-request.ts"]
+  retirement -->|classifies bounded retry| control
+  sources -->|owns two source sockets| sockets["execution/sockets.ts"]
+  control -->|owns request socket| sockets
+```
+
+No shared execution module imports a Sports module. `configuration.ts` selects
+existing ZooGlass strategies; `timeline.ts` supplies synthetic source facts and
+market decisions. It does not project scores or reconcile revisions. Retirement
+blocks the producer until every view's acknowledgement is verified. Observers
+may await checkpoints for independent HTTP and live-subscriber assertions.

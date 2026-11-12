@@ -3,7 +3,18 @@ export interface RuntimeField {
   sourceId?: string;
   type?: string;
   inputs?: { sourceId: string; type: string }[];
-  mode: "arrival" | "latestBySequence" | "historyBySequence";
+  mode:
+    | "arrival"
+    | "latestBySequence"
+    | "historyBySequence"
+    | "activeFacts"
+    | "sumActiveFacts";
+  property?: string;
+  facts?: {
+    revision: "latestFactRevision" | "firstFact";
+    maxRetainedFacts: number;
+    minimumBirthSequence: number;
+  };
   conflict?: { mode: "sourcePriority"; sources: string[] };
   late?: { mode: "acceptLate" | "rejectBehindWatermark" };
   freshness?: { mode: "receiptAge"; staleAfterMillis: number };

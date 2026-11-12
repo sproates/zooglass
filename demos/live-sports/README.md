@@ -26,7 +26,8 @@ Continuous mode has no playback controls and repeats the same bounded source
 schedule at roughly three minutes per synthetic cycle.
 
 Interactive mode provides 21 checked scenes using **Step**, **Play**, **Pause** and
-**Reset**. Step waits for receipt and view checks. Pause allows the current check
+**Reset**, below the match/detail/comparison content and above delivery notices.
+Step waits for receipt and view checks. Pause allows the current check
 to finish, including the real 15-second market freshness wait. The finite sequence
 covers corrected and first-reported goals, missing deliveries, bookmaker outage,
 and retirement into a fresh cycle. Results stay visible at completion.

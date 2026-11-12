@@ -216,11 +216,40 @@ for (const engine of [chromium, firefox, webkit])
         );
         for (const width of [360, 390, 651, 768, 1440]) {
           await page.setViewportSize({ width, height: 1000 });
-          assert.ok(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth <= innerWidth,
-            ),
-          );
+          for (const view of ["board", "scoreboard", "comparison"]) {
+            await page.locator(`[data-view="${view}"]`).click();
+            assert.ok(
+              await page.evaluate(() => {
+                const controls = document
+                  .getElementById("playback")!
+                  .getBoundingClientRect();
+                const content = [
+                  "matches",
+                  "board-content",
+                  "scoreboard-note",
+                  "comparison",
+                ]
+                  .map((id) => document.getElementById(id)!)
+                  .filter((element) => element.getClientRects().length > 0);
+                return (
+                  content.every(
+                    (element) =>
+                      element.getBoundingClientRect().bottom <= controls.top,
+                  ) &&
+                  controls.bottom <=
+                    document
+                      .querySelector("section.notice")!
+                      .getBoundingClientRect().top
+                );
+              }),
+              `${engine.name()}/${width}/${view}: match content precedes controls and notices`,
+            );
+            assert.ok(
+              await page.evaluate(
+                () => document.documentElement.scrollWidth <= innerWidth,
+              ),
+            );
+          }
         }
         const rejection = await page.evaluate(
           () =>

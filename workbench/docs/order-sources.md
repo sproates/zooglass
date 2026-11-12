@@ -3,7 +3,7 @@
 The service-side Order foundation publishes six synthetic orders through five
 independent sources. ZooGlass joins their different entity keys, applies configured
 field strategies and exposes two views. The [continuous Order browser](../../demos/order-tracker/README.md)
-and interactive walkthrough display these views; recovery remains planned.
+and interactive walkthrough display these views, including durable service recovery.
 The [Order design](../../docs/plans/order-tracker.md) describes the complete scope.
 
 ## Run the verification
@@ -28,7 +28,7 @@ call `close()` to release the service and its temporary database.
 Each fresh run starts sequences in the `run` epoch. Restarting only the producer
 against retained identities is unsupported: changed content produces
 `identityConflict`, and the run fails visibly. Service restart with a continuing
-producer belongs to the subsequent recovery slice.
+producer is checked by the final interactive checkpoint.
 
 ## Configuration and responsibility
 
@@ -115,8 +115,8 @@ expired evidence. It is behavioural retention evidence, not a memory benchmark.
 
 ## Remaining delivery
 
-Service restart, protected access and the final developer-value comparison
-remain subsequent slices. This foundation
+The final developer-value comparison remains. Recovery and protected access are
+covered by the [Order acceptance commands](../../demos/order-tracker/README.md). This foundation
 covers the source-side scenes from Partial order through Unknown relationship
 in the [design's scene table](../../docs/plans/order-tracker.md#scenes-and-expected-results).
 
@@ -129,7 +129,16 @@ independent source verification.
 The interactive walkthrough uses `source-session.ts` for exactly the same socket
 actions and receipt checks as `producer.ts`. `checkpoints.ts` supplies independent
 snapshot expectations; the shared prepared-checkpoint adapter feeds the existing
-playback controller. Its 17 checkpoints cover partial publication, lookup mapping,
+playback controller. Its 18 checkpoints cover partial publication, lookup mapping,
 courier priority, delayed/retried/omitted deliveries, receipt-age staleness,
 reconnection, progress watermarks and the unmapped diagnostic key. Reset discards
 the old database instead of replaying identities into it.
+
+`run.ts` retains the SQLite path, source cursor and highest committed order
+envelope across service generations. The final checkpoint closes the old JVM
+and sockets, reopens the same store, and holds sources until `recovery.ts` checks
+one real viewer's disconnect and fresh first baselines. It then requires an exact
+duplicate receipt and successful next identity. `order-recovery.test.ts` checks
+cancellation, isolated service failure and store cleanup; the interactive browser
+test checks the full recovery path. The protected case reuses the HTTPS authority
+fixture with Order-specific grants and the actual Order renderer.

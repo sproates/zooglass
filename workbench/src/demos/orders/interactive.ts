@@ -3,11 +3,11 @@ import { startBrowserHttpServer } from "../../browser/browser-http-server.js";
 import { createBrowserDataRoute } from "../../browser/browser-data-route.js";
 import { createCheckpointController } from "../../control/prepared-checkpoints.js";
 import type { DemoState } from "../../control/demo-controller.js";
-import { startZooGlassSession } from "../../service/zooglass-session.js";
+import type { ZooGlassSession } from "../../service/zooglass-session.js";
+import { openOrderRun } from "./run.js";
+import { recoveryWitness } from "./recovery.js";
 import { orderApplication } from "./application.js";
-import { orderConfiguration } from "./configuration.js";
-import { openOrderSources } from "./source-session.js";
-import { orderStep, type OrderStep } from "./timeline.js";
+import { type OrderStep } from "./timeline.js";
 import { describeOrderStep } from "./notices.js";
 import { orderCheckpoints } from "./checkpoints.js";
 
@@ -16,6 +16,7 @@ interface InteractiveOptions {
   signal?: AbortSignal;
   /** Accelerate playback spacing in verification; freshness still uses the real timer. */
   delayBefore?: number;
+  onService?: (service: ZooGlassSession) => void;
   onStep?: (step: OrderStep, signal: AbortSignal) => void | Promise<void>;
 }
 
@@ -28,7 +29,8 @@ export async function startInteractiveOrders(options: InteractiveOptions = {}) {
     { ...application, assets },
     options.bindAddress,
   );
-  const control = new WebSocketServer({ noServer: true, maxPayload: 1024 });
+  const control = new WebSocketServer({ noServer: true, maxPayload: 65536 });
+  const witness = recoveryWitness(control.clients);
   let route: ReturnType<typeof createBrowserDataRoute> | undefined;
   let baseUrl: string | undefined;
   let generation = 0;
@@ -75,56 +77,25 @@ export async function startInteractiveOrders(options: InteractiveOptions = {}) {
   const controller = createCheckpointController(
     orderCheckpoints,
     async (signal) => {
-      const service = await startZooGlassSession({
-        configuration: orderConfiguration(),
+      notices.length = 0;
+      activity();
+      return openOrderRun({
         signal,
+        witness,
+        route: (next) => {
+          route = next;
+        },
+        notice: (step) => {
+          notices.push({ tick: step.tick, text: describeOrderStep(step) });
+          if (notices.length > 20) notices.shift();
+          activity();
+        },
+        onStep: options.onStep,
+        onService: (service) => {
+          baseUrl = service.baseUrl;
+          options.onService?.(service);
+        },
       });
-      baseUrl = service.baseUrl;
-      let sources: Awaited<ReturnType<typeof openOrderSources>> | undefined;
-      const data = createBrowserDataRoute(service.baseUrl, service.signal);
-      let closed: Promise<void> | undefined;
-      const close = () =>
-        (closed ??= (async () => {
-          if (route === data) route = undefined;
-          try {
-            await data.close();
-          } finally {
-            try {
-              await sources?.close();
-            } finally {
-              await service.close();
-            }
-          }
-        })());
-      try {
-        sources = await openOrderSources(service.baseUrl, service.signal);
-        signal.throwIfAborted();
-        route = data;
-        notices.length = 0;
-        activity();
-        let tick = 0;
-        const epoch = Date.now();
-        return {
-          signal: service.signal,
-          baseUrl: service.baseUrl,
-          close,
-          async advance(through: number) {
-            while (tick <= through) {
-              service.signal.throwIfAborted();
-              const step = orderStep(tick, epoch, 3000);
-              await sources!.execute(step);
-              notices.push({ tick, text: describeOrderStep(step) });
-              if (notices.length > 20) notices.shift();
-              activity();
-              await options.onStep?.(step, service.signal);
-              tick++;
-            }
-          },
-        };
-      } catch (error) {
-        await close();
-        throw error;
-      }
     },
     publish,
     options.delayBefore,
@@ -143,6 +114,14 @@ export async function startInteractiveOrders(options: InteractiveOptions = {}) {
       pending++;
       void (async () => {
         const request = binary ? undefined : JSON.parse(raw.toString());
+        if (request?.kind === "recovery") {
+          witness.receive(socket, request);
+          return;
+        }
+        if (raw.toString().length > 1024) {
+          socket.close(1009, "Control command too large");
+          return;
+        }
         if (
           !request ||
           request.generation !== generation ||

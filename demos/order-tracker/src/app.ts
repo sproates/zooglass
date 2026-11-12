@@ -1,9 +1,12 @@
 import { connectControls } from "./controls.js";
-import { OrderModel } from "./model.js";
+import { OrderModel, type ViewSnapshot } from "./model.js";
 import { connectOrders } from "./connection.js";
 import { renderOrders, selectOrder, selectView } from "./view.js";
 
 const model = new OrderModel();
+const firstSnapshots = new Map<string, ViewSnapshot>();
+let controls: ReturnType<typeof connectControls> | undefined;
+let recovery: { id: string; lost: boolean } | undefined;
 let frame = 0;
 function redraw() {
   if (!frame)
@@ -17,10 +20,29 @@ const openConnection = () =>
   connectOrders(
     (snapshot) => {
       model.accept(snapshot);
+      const key = `${snapshot.viewId}/${snapshot.entityId}`;
+      if (!firstSnapshots.has(key)) firstSnapshots.set(key, snapshot);
       redraw();
     },
     (state) => {
-      if (state === "connecting") model.beginConnection();
+      if (state === "connecting") {
+        model.beginConnection();
+        firstSnapshots.clear();
+      }
+      if (state === "disconnected" && recovery && !recovery.lost) {
+        recovery.lost = true;
+        controls?.recovery(recovery.id, "lost");
+      }
+      if (
+        state === "connected" &&
+        recovery?.lost &&
+        firstSnapshots.size === 12
+      ) {
+        controls?.recovery(recovery.id, "baseline", [
+          ...firstSnapshots.values(),
+        ]);
+        recovery = undefined;
+      }
       model.connected = state === "connected";
       model.connection =
         state === "connected"
@@ -41,21 +63,31 @@ let connection = openConnection();
 let generation: number | undefined;
 let waitingForRun = false;
 if (document.body.dataset.interactive === "true")
-  connectControls((next, available) => {
-    if (generation !== next) {
-      generation = next;
-      connection.close();
-      model.snapshots.clear();
-      model.beginConnection();
-      model.connection = "Resetting · awaiting fresh snapshots";
-      waitingForRun = true;
-      redraw();
-    }
-    if (available && waitingForRun) {
-      waitingForRun = false;
-      connection = openConnection();
-    }
-  });
+  controls = connectControls(
+    (next, available) => {
+      if (generation !== next) {
+        generation = next;
+        recovery = undefined;
+        connection.close();
+        model.snapshots.clear();
+        model.beginConnection();
+        model.connection = "Resetting · awaiting fresh snapshots";
+        waitingForRun = true;
+        redraw();
+      }
+      if (available && waitingForRun) {
+        waitingForRun = false;
+        connection = openConnection();
+      }
+    },
+    (id) => {
+      recovery = undefined;
+      if (id && model.connected && !document.hidden) {
+        recovery = { id, lost: false };
+        controls?.recovery(id, "armed");
+      }
+    },
+  );
 for (const root of ["orders", "tracking"])
   document.getElementById(root)!.addEventListener("click", (event) => {
     const row = (event.target as HTMLElement).closest<HTMLElement>(

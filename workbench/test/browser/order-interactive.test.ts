@@ -56,7 +56,7 @@ test(
       await page.waitForFunction(() =>
         document
           .getElementById("checkpoint-label")
-          ?.textContent?.startsWith("1/17"),
+          ?.textContent?.startsWith("1/18"),
       );
       await page.locator('[data-view="tracking"]').click();
       assert.match(
@@ -75,7 +75,7 @@ test(
       await late.waitForFunction(() =>
         document
           .getElementById("checkpoint-label")
-          ?.textContent?.startsWith("8/17"),
+          ?.textContent?.startsWith("8/18"),
       );
       await page.locator("#play").click();
       await until(
@@ -105,7 +105,7 @@ test(
       );
       await page.locator("#play").click();
       await until(() => demo.state.phase === "complete");
-      assert.equal(demo.state.completed, 17);
+      assert.equal(demo.state.completed, 18);
       await page.waitForFunction(() =>
         document
           .getElementById("control-detail")
@@ -297,14 +297,14 @@ for (const engine of [firefox, webkit]) {
         await page.waitForFunction(() =>
           document
             .getElementById("checkpoint-label")
-            ?.textContent?.startsWith("1/17"),
+            ?.textContent?.startsWith("1/18"),
         );
         await page.locator("#reset").click();
         await page.waitForFunction(
           () =>
             document
               .getElementById("checkpoint-label")
-              ?.textContent?.startsWith("0/17") &&
+              ?.textContent?.startsWith("0/18") &&
             !(document.getElementById("step") as HTMLButtonElement).disabled,
         );
         assert.ok(
@@ -383,7 +383,7 @@ test(
         () =>
           document
             .getElementById("checkpoint-label")
-            ?.textContent?.startsWith("0/17") &&
+            ?.textContent?.startsWith("0/18") &&
           !(document.getElementById("step") as HTMLButtonElement).disabled,
       );
       await page.locator("#step").click();

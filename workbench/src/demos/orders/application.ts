@@ -11,11 +11,13 @@ export async function orderApplication(
     ["/", "pages/index.html", "text/html"],
     ["/styles.css", "pages/styles.css", "text/css"],
     ["/startup.js", "pages/startup.js", "text/javascript"],
-    ...["app", "model", "view", "connection", "controls"].map((name) => [
-      `/order-tracker/src/${name}.js`,
-      `dist/order-tracker/src/${name}.js`,
-      "text/javascript",
-    ]),
+    ...["app", "model", "view", "connection", "controls", "protected"].map(
+      (name) => [
+        `/order-tracker/src/${name}.js`,
+        `dist/order-tracker/src/${name}.js`,
+        "text/javascript",
+      ],
+    ),
     [
       "/vehicle-tracker/src/subscription-client.js",
       "dist/vehicle-tracker/src/subscription-client.js",

@@ -30,8 +30,9 @@ npm run demo -- order-tracker --continuous
 npm run demo -- order-tracker --interactive
 ```
 
-Both commands are available. The interactive walkthrough covers the source
-scenes; durable service restart and protected access remain later slices.
+Both commands are available. The interactive walkthrough covers source scenes
+and durable service restart; a separate finite HTTPS/WSS acceptance case covers
+scoped Order access and revocation. See the [run guide](../../demos/order-tracker/README.md).
 Exactly one mode is required. `cli/demo.ts` dispatches commands while preserving
 vehicle behaviour. Launch the prepared JAR; do not compile Java during scenario execution.
 
@@ -74,8 +75,8 @@ knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 ## Early UI prototype and acceptance
 
 The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
-12 November 2026. Both browser modes now integrate real snapshots;
-service-recovery/protected scenes remain subsequent slices.
+12 November 2026. Both browser modes now integrate real snapshots, including the interactive
+service-recovery checkpoint and separate protected-access acceptance.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice

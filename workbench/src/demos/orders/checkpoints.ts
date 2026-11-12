@@ -6,6 +6,7 @@ export interface OrderCheckpointRun {
   signal: AbortSignal;
   baseUrl: string;
   advance(through: number): Promise<void>;
+  restart(): Promise<void>;
   close(): Promise<void>;
 }
 interface Snapshot {
@@ -188,6 +189,12 @@ export const orderCheckpoints: PreparedCheckpoint<OrderCheckpointRun>[] = [
     35,
     "Unmapped payment is rejected for the view; orders remain unchanged",
   ),
+  {
+    id: "service-recovery",
+    label:
+      "Restart the service; verify the viewer baseline, duplicate retry and new publication",
+    execute: (run) => run.restart(),
+  },
 ];
 async function primary(run: OrderCheckpointRun, signal: AbortSignal) {
   const snapshot = await read(run, signal);

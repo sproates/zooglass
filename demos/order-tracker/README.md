@@ -3,8 +3,8 @@
 The continuous and interactive demos display six synthetic orders through real ZooGlass views.
 The operations board and tracking presentation use the accepted visual design;
 source selection, progress, readiness and freshness come from the service.
-The [detailed design](../../docs/plans/order-tracker.md) also specifies the later
-service-recovery and protected-access slices, which remain future work.
+The final interactive scene checks durable service recovery. A separate protected
+acceptance case exercises scoped access and revocation over HTTPS/WSS.
 
 ## Run the live demo
 
@@ -44,7 +44,7 @@ hidden by an authorisation boundary.
 
 ## Interactive walkthrough
 
-Interactive mode starts with empty views and 17 checked checkpoints. Controls sit
+Interactive mode starts with empty views and 18 checked checkpoints. Controls sit
 below the board, as in the accepted prototype. Step sends the next scene and waits
 for independent checks against the real service. Play advances automatically;
 Pause stops future checkpoints while the current action finishes. The freshness
@@ -62,8 +62,38 @@ Use the page buttons or terminal `step`, `play`, `pause`, `reset`, `help` and `q
 (`q` also quits). All viewers share the same walkthrough controls. This is a
 trusted local/private-LAN demo, not an authenticated control service. Continuous
 mode exposes no control channel or playback buttons. Both modes execute the same
-source deliveries and use the same snapshot rendering. Service restart against a
-retained database and protected access are separate future scenes.
+source deliveries and use the same snapshot rendering.
+
+The final checkpoint pauses sources and restarts ZooGlass against the same SQLite
+store. Keep at least one connected page visible: within 30 seconds, that viewer
+must observe disconnection and supply its first twelve fresh baselines. Values,
+provenance and progress must match the pre-stop snapshots; versions and age status
+may advance. The source then retries its retained committed publication (duplicate)
+and sends the next identity with changed content (order completed). The page URL
+and control connection stay open. Reset still discards the store. Only this
+checkpoint owns a planned service restart; an unexpected exit fails the run.
+Restarting the producer process against an old store is unsupported.
+
+## Protected access acceptance
+
+Run this finite acceptance case from `workbench/` with a prepared JAR and installed
+Playwright Chromium:
+
+```sh
+npm run build:browser
+npx tsx --test test/browser/order-protected-access.test.ts
+```
+
+It uses generated local test certificates, a controlled HTTPS authority and real
+WSS subscriptions with the Order renderer. Certificate trust bypass is confined
+to the browser fixture; this is not a production deployment or login flow.
+A tracking credential can read only `order-tracking/order-1`: order-2 and the
+summary are denied. An operations credential continues receiving summaries while
+tracking access is revoked. Tracking closes with code 1008 and clears retained
+and displayed data; delayed callbacks cannot restore it. Re-admission after the
+grant is restored supplies a fresh baseline without waiting for another publish.
+The ordinary demo remains unprotected; omitting payment from tracking is not an
+authorisation boundary.
 
 ## Browser baseline and verification
 
@@ -83,7 +113,7 @@ is not physical-device qualification or proof on every historical minimum versio
 ```sh
 # From workbench; use the prepared JAR:
 npm run build:browser
-npx tsx --test test/browser/order-browser.test.ts test/browser/order-interactive.test.ts
+npx tsx --test test/browser/order-browser.test.ts test/browser/order-interactive.test.ts test/browser/order-recovery.test.ts
 ```
 
 See the [browser source map](docs/source-map.md), [source schedule](../../workbench/docs/order-sources.md)

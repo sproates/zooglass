@@ -24,6 +24,10 @@ Only continuous mode is available. It has no playback controls and repeats the
 same bounded source schedule at roughly three minutes per synthetic cycle.
 Interactive delivery follows separately.
 
+If a simulation checkpoint fails, the terminal logs the error and the browser
+keeps the failed run and its snapshots available for inspection. Press Ctrl+C
+to close the viewer and its ZooGlass service before restarting the demo.
+
 ## Read the views
 
 - **Match board:** corrected home/away goal lists and supplied scores from

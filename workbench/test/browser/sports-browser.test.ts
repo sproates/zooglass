@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { chromium, firefox, webkit, type Browser, type Page } from "playwright";
 import { startSportsBrowser } from "../../src/demos/sports/browser.js";
+import { runSportsDemo } from "../../src/demos/sports/demo.js";
 import { controlExchange } from "../../src/execution/control-request.js";
 import type { FactRetirement } from "../../src/execution/fact-retirement.js";
 import type { SportsStep } from "../../src/demos/sports/timeline.js";
@@ -452,26 +453,40 @@ for (const [name, engine] of [
 }
 
 test(
-  "Sports reports partial retirement failure and exposes only passive viewer routes",
+  "Sports command keeps partial retirement failure visible until interrupted",
   { timeout: 30000 },
-  async () => {
-    const demo = await startSportsBrowser({
-      cycles: 2,
-      tickMs: 10,
-      exchange(path, control) {
-        const retire = control as FactRetirement;
-        return exchange(
-          path,
-          path === "/facts/retire" && retire.viewId === "scoreboard"
-            ? { ...retire, fields: ["missing"] }
-            : control,
-        );
-      },
+  async (t) => {
+    const messages: string[] = [];
+    t.mock.method(console, "error", (...args: unknown[]) => {
+      messages.push(args.map(String).join(" "));
     });
-    const exchange: ReturnType<typeof controlExchange> = controlExchange(
-      demo.baseUrl,
-      AbortSignal.timeout(25000),
-    );
+    const initialSignals = process.listenerCount("SIGINT");
+    const ready =
+      Promise.withResolvers<Awaited<ReturnType<typeof startSportsBrowser>>>();
+    let finished = false;
+    const command = runSportsDemo(["--continuous"], async (options) => {
+      const demo = await startSportsBrowser({
+        ...options,
+        cycles: 2,
+        tickMs: 10,
+        exchange(path, control) {
+          const retire = control as FactRetirement;
+          return exchange(
+            path,
+            path === "/facts/retire" && retire.viewId === "scoreboard"
+              ? { ...retire, fields: ["missing"] }
+              : control,
+          );
+        },
+      });
+      const exchange = controlExchange(demo.baseUrl, options.signal!);
+      ready.resolve(demo);
+      return demo;
+    }).finally(() => {
+      finished = true;
+    });
+    void command.catch((error) => ready.reject(error));
+    const demo = await ready.promise;
     let browser: Browser | undefined;
     try {
       await assert.rejects(demo.done, /Fact retirement failed/);
@@ -489,7 +504,7 @@ test(
         "/prototype/fixtures.js",
       ])
         assert.equal((await fetch(`${demo.origin}${path}`)).status, 404);
-      browser = await chromium.launch();
+      browser = await chromium.launch({ handleSIGINT: false });
       const page = await browser.newPage();
       await page.goto(demo.origin);
       await connected(page);
@@ -513,7 +528,20 @@ test(
         /transitioning independently/,
       );
       assert.equal(await page.locator("#playback").count(), 0);
+      assert.equal(
+        finished,
+        false,
+        "failed command stays available until interrupted",
+      );
+      assert.match(messages.join("\n"), /Fact retirement failed/);
+      process.emit("SIGINT");
+      await command;
+      assert.equal(process.listenerCount("SIGINT"), initialSignals);
+      await assert.rejects(fetch(demo.origin));
+      await assert.rejects(fetch(`${demo.baseUrl}/health`));
     } finally {
+      if (!finished) process.emit("SIGINT");
+      await command.catch(() => {});
       await browser?.close();
       await demo.close();
     }

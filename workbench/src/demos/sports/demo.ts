@@ -1,6 +1,9 @@
 import { startSportsBrowser } from "./browser.js";
 
-export async function runSportsDemo(args: string[]) {
+export async function runSportsDemo(
+  args: string[],
+  startBrowser: typeof startSportsBrowser = startSportsBrowser,
+) {
   const usage =
     "Usage: npm run demo -- live-sports --continuous [--bind=<private IPv4>]";
   if (args.length === 1 && args[0] === "--help") {
@@ -19,7 +22,7 @@ export async function runSportsDemo(args: string[]) {
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   try {
-    const demo = await startSportsBrowser({
+    const demo = await startBrowser({
       signal: controller.signal,
       bindAddress: args[1]?.slice(7),
     });
@@ -27,7 +30,21 @@ export async function runSportsDemo(args: string[]) {
       console.log(
         `Three synthetic matches. Open ${demo.origin} in any browser. Ctrl+C stops the demo.`,
       );
-      await demo.done;
+      try {
+        await demo.done;
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Simulation stopped:", error);
+          console.error(
+            "The failed run remains available in the browser. Ctrl+C exits.",
+          );
+          await new Promise<void>((resolve) => {
+            controller.signal.addEventListener("abort", () => resolve(), {
+              once: true,
+            });
+          });
+        }
+      }
     } finally {
       await demo.close();
     }

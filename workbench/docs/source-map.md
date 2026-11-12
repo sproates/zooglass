@@ -545,7 +545,7 @@ schedule and shared service/host/data-route modules; viewers do not own the run.
 ```mermaid
 flowchart TB
   dispatch["cli/demo.ts"] -->|selects continuous command| demo["demos/sports/demo.ts"]
-  demo -->|owns run until signal or failure| browser["demos/sports/browser.ts"]
+  demo -->|owns run until shutdown| browser["demos/sports/browser.ts"]
   browser -->|starts prepared JAR and fresh store| service["service/zooglass-session.ts"]
   browser -->|installs three views| config["demos/sports/configuration.ts"]
   browser -->|starts and closes sources| producer["demos/sports/producer.ts"]
@@ -560,7 +560,8 @@ flowchart TB
 
 The host exposes viewer assets, a bounded activity JSON document and the live
 subscription socket. It does not expose source/control or direct service HTTP
-routes. `browser.ts` publishes run failures and owns cleanup of sources, data
+routes. `demo.ts` logs checkpoint failures and keeps the failed run available until
+Ctrl+C or SIGTERM. `browser.ts` publishes run failures and owns cleanup of sources, data
 route, HTTP host and service. Tests can block the data route or await source
 checkpoints without adding controls to the passive page. The browser consumer has
 its own [source map](../../demos/live-sports/docs/source-map.md).

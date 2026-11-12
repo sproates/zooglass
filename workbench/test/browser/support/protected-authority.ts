@@ -8,8 +8,21 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import type { TestContext } from "node:test";
 
+export interface AuthorityOptions {
+  assets?: ReadonlyMap<string, readonly [string, Buffer]>;
+  permit?: (request: {
+    tenant: string;
+    operation: string;
+    credential: { value: string };
+    resource?: { viewId: string; entityId: string };
+  }) => boolean;
+}
+
 /** Controlled HTTPS authority and static demo host, using generated test certificates. */
-export async function protectedAuthority(t: TestContext) {
+export async function protectedAuthority(
+  t: TestContext,
+  options: AuthorityOptions = {},
+) {
   const directory = await mkdtemp(join(tmpdir(), "workbench-protected-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const store = join(directory, "test.p12");
@@ -89,6 +102,7 @@ export async function protectedAuthority(t: TestContext) {
     credential: string;
     operation: string;
     viewId?: string;
+    entityId?: string;
   }[] = [];
   const serviceToken = "fixture-policy-service-token";
   const sockets = new Set<Socket>();
@@ -109,6 +123,7 @@ export async function protectedAuthority(t: TestContext) {
             credential,
             operation: request.operation,
             viewId: request.resource?.viewId,
+            entityId: request.resource?.entityId,
           });
           const failure = failures.get(credential);
           if (failure) {
@@ -121,7 +136,10 @@ export async function protectedAuthority(t: TestContext) {
           }
           const permit =
             request.tenant === "acceptance" &&
-            (request.operation === "authenticate" || allowed.has(credential));
+            (options.permit
+              ? options.permit(request)
+              : request.operation === "authenticate" ||
+                allowed.has(credential));
           res.writeHead(200, { "Content-Type": "application/json" }).end(
             JSON.stringify(
               permit
@@ -133,6 +151,20 @@ export async function protectedAuthority(t: TestContext) {
                 : { decision: "deny" },
             ),
           );
+          return;
+        }
+        if (options.assets) {
+          const asset = options.assets.get(req.url ?? "");
+          if (req.method !== "GET" || !asset) {
+            res.writeHead(404).end();
+            return;
+          }
+          res
+            .writeHead(200, {
+              "Content-Type": asset[0],
+              "Cache-Control": "no-store",
+            })
+            .end(asset[1]);
           return;
         }
         const paths: Record<string, string> = {

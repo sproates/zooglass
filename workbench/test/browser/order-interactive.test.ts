@@ -25,10 +25,12 @@ function deliveries(step: OrderStep) {
 
 test(
   "interactive controls check scenes, pause in-flight freshness, finish, and reset the stable page",
-  { timeout: 65000 },
-  async () => {
+  // Four JVM starts plus real freshness expiry are included in this budget.
+  { timeout: 90000 },
+  async (t) => {
     const delivered: unknown[] = [];
     const demo = await startInteractiveOrders({
+      signal: t.signal,
       delayBefore: 10,
       onStep: (step) => {
         delivered.push(deliveries(step));
@@ -56,7 +58,7 @@ test(
       await page.waitForFunction(() =>
         document
           .getElementById("checkpoint-label")
-          ?.textContent?.startsWith("1/17"),
+          ?.textContent?.startsWith("1/18"),
       );
       await page.locator('[data-view="tracking"]').click();
       assert.match(
@@ -75,7 +77,7 @@ test(
       await late.waitForFunction(() =>
         document
           .getElementById("checkpoint-label")
-          ?.textContent?.startsWith("8/17"),
+          ?.textContent?.startsWith("8/18"),
       );
       await page.locator("#play").click();
       await until(
@@ -105,7 +107,7 @@ test(
       );
       await page.locator("#play").click();
       await until(() => demo.state.phase === "complete");
-      assert.equal(demo.state.completed, 17);
+      assert.equal(demo.state.completed, 18);
       await page.waitForFunction(() =>
         document
           .getElementById("control-detail")
@@ -185,10 +187,11 @@ test(
 
 test(
   "Reset cancels a freshness checkpoint, clears failures and retires old callbacks",
-  { timeout: 30000 },
-  async () => {
+  { timeout: 45000 },
+  async (t) => {
     let fail = true;
     const demo = await startInteractiveOrders({
+      signal: t.signal,
       delayBefore: 0,
       onStep: (step) => {
         if (fail && step.tick === 2)
@@ -283,9 +286,9 @@ for (const action of ["pause", "reset"] as const) {
 for (const engine of [firefox, webkit]) {
   test(
     `${engine.name()}: interactive controls on a phone retain the page across Reset`,
-    { timeout: 25000 },
-    async () => {
-      const demo = await startInteractiveOrders();
+    { timeout: 40000 },
+    async (t) => {
+      const demo = await startInteractiveOrders({ signal: t.signal });
       let browser: Browser | undefined;
       try {
         browser = await engine.launch();
@@ -297,14 +300,14 @@ for (const engine of [firefox, webkit]) {
         await page.waitForFunction(() =>
           document
             .getElementById("checkpoint-label")
-            ?.textContent?.startsWith("1/17"),
+            ?.textContent?.startsWith("1/18"),
         );
         await page.locator("#reset").click();
         await page.waitForFunction(
           () =>
             document
               .getElementById("checkpoint-label")
-              ?.textContent?.startsWith("0/17") &&
+              ?.textContent?.startsWith("0/18") &&
             !(document.getElementById("step") as HTMLButtonElement).disabled,
         );
         assert.ok(
@@ -350,8 +353,8 @@ for (const engine of [firefox, webkit]) {
 test(
   "Reset startup failure stays visible and can be retried from the browser",
   { timeout: 40000 },
-  async () => {
-    const demo = await startInteractiveOrders();
+  async (t) => {
+    const demo = await startInteractiveOrders({ signal: t.signal });
     let browser: Browser | undefined;
     const javaHome = process.env.JAVA_HOME;
     try {
@@ -383,7 +386,7 @@ test(
         () =>
           document
             .getElementById("checkpoint-label")
-            ?.textContent?.startsWith("0/17") &&
+            ?.textContent?.startsWith("0/18") &&
           !(document.getElementById("step") as HTMLButtonElement).disabled,
       );
       await page.locator("#step").click();

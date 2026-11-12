@@ -13,6 +13,7 @@ interface PlaybackState {
 /** Controls operate the shared walkthrough; they never supply order view values. */
 export function connectControls(
   onRun: (generation: number, available: boolean) => void,
+  onRecovery: (id: string | undefined) => void = () => {},
 ) {
   const panel = document.getElementById("playback")!;
   panel.hidden = false;
@@ -39,6 +40,10 @@ export function connectControls(
     current.onmessage = (event) => {
       if (socket !== current) return;
       const message = JSON.parse(event.data);
+      if (message.kind === "recovery") {
+        onRecovery(message.id);
+        return;
+      }
       if (message.kind === "error") {
         document.getElementById("control-detail")!.textContent = message.detail;
         return;
@@ -64,6 +69,7 @@ export function connectControls(
     current.onclose = () => {
       if (socket !== current) return;
       disable();
+      onRecovery(undefined);
       document.getElementById("control-detail")!.textContent =
         "Controls disconnected; reconnecting. View data uses a separate connection.";
       if (active && !document.hidden) retry = setTimeout(connect, 1500);
@@ -83,6 +89,7 @@ export function connectControls(
     socket = undefined;
     old?.close();
     disable();
+    onRecovery(undefined);
   };
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) retire();
@@ -99,4 +106,10 @@ export function connectControls(
     }
   });
   connect();
+  return {
+    recovery(id: string, stage: string, snapshots?: unknown[]) {
+      if (socket?.readyState === WebSocket.OPEN)
+        socket.send(JSON.stringify({ kind: "recovery", id, stage, snapshots }));
+    },
+  };
 }

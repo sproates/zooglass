@@ -456,18 +456,23 @@ flowchart TB
   interactive -->|prepared executions| prepared["control/prepared-checkpoints.ts"]
   prepared -->|reuses cursor and run lifecycle| controller["control/demo-controller.ts"]
   controller -->|startup and run state through stable publisher| interactive
-  interactive -->|same first-cycle actions| timeline["demos/orders/timeline.ts"]
-  interactive -->|shared source delivery| sources["demos/orders/source-session.ts"]
-  interactive -->|fresh service and store per Reset| service["service/zooglass-session.ts"]
+  interactive -->|owns durable run per Reset| run["demos/orders/run.ts"]
+  interactive -->|correlates viewer observations| recovery["demos/orders/recovery.ts"]
+  run -->|checks loss and first baseline before resuming| recovery
+  run -->|same first-cycle actions| timeline["demos/orders/timeline.ts"]
+  run -->|reopens source sockets per generation| sources["demos/orders/source-session.ts"]
+  run -->|restarts with run-owned SQLite path| service["service/zooglass-session.ts"]
   interactive -->|stable exact asset host| http["browser/browser-http-server.ts"]
-  interactive -->|retired and replaced per run| route["browser/browser-data-route.ts"]
+  run -->|retired and replaced per service generation| route["browser/browser-data-route.ts"]
 ```
 
 ## Protected service acceptance
 
 The existing service owner also accepts explicit protected deployment settings.
 The browser acceptance fixture supplies the authority and exercises the basic
-vehicle demo; it does not replace ZooGlass's decision or delivery code.
+vehicle demo or Order-specific configured grants; it does not replace ZooGlass's
+decision or delivery code. The finite Order case runs the actual protected renderer
+through scoped subscription denial, revocation and fresh admission.
 
 ```mermaid
 flowchart TB
@@ -476,9 +481,8 @@ flowchart TB
   authority["test/browser/support/protected-authority.ts"]
   session["service/zooglass-session.ts"]
   settings["service/protected-session.ts"]
-  client["demos/vehicle-tracker/src/vehicle-client.ts"]
-  acceptance -->|drives revocation, interruption and publication| fixture
-  acceptance -->|loads actual demo in Chromium| client
+  orders["test/browser/order-protected-access.test.ts"] -->|Order grants| fixture
+  acceptance -->|runs vehicle cases| fixture
   fixture -->|gets controlled HTTPS policy and generated certificates| authority
   fixture -->|owns a real packaged service| session
   session -->|maps TLS and operator settings| settings

@@ -25,7 +25,9 @@ Add `--bind=<private IPv4>` for LAN access. The printed URL shows the accepted b
 and tracking layouts backed by five real simulated sources and ZooGlass snapshots.
 See the [Order guide](../demos/order-tracker/README.md) for status labels, recovery,
 browser requirements and limits. Use `npm run demo -- order-tracker --interactive`
-for 17 checked checkpoints with Step/Play/Pause/Reset in the page and terminal.
+for 18 checked checkpoints with Step/Play/Pause/Reset in the page and terminal.
+The final checkpoint restarts the service against the retained store and checks a
+real viewer baseline, duplicate retry and next identity. Keep a page visible.
 Reset keeps the URL but replaces the service/store; Quit cleans up the session.
 
 ## Watch six cars driving around Gibraltar
@@ -60,8 +62,9 @@ composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
 The [order source foundation](docs/order-sources.md) provides independent service
 verification of mapped order, payment, inventory and courier contributions,
 with publication gates, source priority, progress and freshness policies. Its
-continuous and interactive browser commands are available; protected/recovery
-experiences remain subsequent work.
+continuous and interactive browser commands are available, including durable
+service recovery. The [protected Order acceptance](../demos/order-tracker/README.md#protected-access-acceptance)
+checks scoped subscriptions, revocation and clearing separately.
 
 ## Run a scenario
 

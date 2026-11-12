@@ -71,7 +71,7 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
     } else if (
-      /^workbench\/src\/demos\/orders\/(?:application|browser|main|interactive|checkpoints|source-session)\.ts$/.test(
+      /^workbench\/src\/demos\/orders\/(?:application|browser|main|interactive|checkpoints|source-session|run|recovery)\.ts$/.test(
         path,
       ) ||
       path === "workbench/src/cli/demo.ts"

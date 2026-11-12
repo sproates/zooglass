@@ -12,7 +12,11 @@ flowchart TB
   app["demos/order-tracker/src/app.ts"]
   connection["demos/order-tracker/src/connection.ts"]
   controls["demos/order-tracker/src/controls.ts"]
-  app -->|interactive commands and run replacement| controls
+  app -->|interactive commands, recovery witness and run replacement| controls
+  protected["demos/order-tracker/src/protected.ts"]
+  protected -->|scoped protected subscription| protocol
+  protected -->|clears retained snapshots on loss| model
+  protected -->|renders protected values and clearing| view
   model["demos/order-tracker/src/model.ts"]
   view["demos/order-tracker/src/view.ts"]
   protocol["demos/vehicle-tracker/src/subscription-client.ts"]
@@ -38,7 +42,8 @@ transport failures every 1.5 seconds, bounds baseline acquisition to ten seconds
 ignores superseded callbacks and suspends connections while the page is hidden.
 Invalid snapshots stop visibly rather than retrying indefinitely. The unprotected
 viewer retains clearly labelled saved snapshots during disconnection. Protected
-access and service restart are separate delivery work.
+access uses a separate `protected.ts` acceptance binding: it clears the model and
+rendered page on loss and requires explicit fresh admission, without automatic retry.
 
 The existing subscription module remains at its vehicle path for compatibility.
 Its `onSnapshot` callback and observations carry data, status, provenance,
@@ -52,7 +57,9 @@ scheduled deliveries, not runtime conclusions, and never feed the snapshot model
 mode. It sends Step/Play/Pause/Reset commands and displays checked progress.
 A changed run generation clears the snapshot model and closes its old data client;
 new subscriptions start when the replacement run is ready. Controls never provide
-view values. No playback controls are present in continuous mode.
+view values. During recovery, `app.ts` sends observed loss and the first snapshot
+for each pair back to the bounded witness; these observations never supply values
+to the renderer. No playback controls are present in continuous mode.
 
 The [Workbench source map](../../../workbench/docs/source-map.md#order-service-and-browser-composition)
 shows service/process ownership and the read-only data proxy. The accepted static

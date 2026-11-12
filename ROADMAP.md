@@ -25,9 +25,11 @@ recovery/protected evidence is also delivered. The
 [final Order acceptance record](docs/verification/2026-11-12-order-acceptance.md)
 and [developer-value comparison](docs/order-developer-value.md) are delivered on
 the shared delivery branch. The Sports source foundation is delivered on the shared branch. Its continuous
-browser is proposed for review: three matches, corrected and first-reported views,
+browser is delivered: three matches, corrected and first-reported views,
 independent markets, cycle-window labels and returning-viewer snapshots.
-See the [Sports guide](demos/live-sports/README.md). Interactive delivery follows.
+The finite checked interactive walkthrough is proposed for review, with fresh-store
+Reset and retained completion/failure states. See the [Sports guide](demos/live-sports/README.md).
+Final Sports acceptance and cross-domain evidence remain pending.
 See the [Order guide](demos/order-tracker/README.md) for its available commands.
 
 See the [demo design](docs/plans/order-and-sports-demos.md) and

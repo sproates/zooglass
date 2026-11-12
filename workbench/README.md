@@ -24,8 +24,11 @@ Run `npm run demo -- live-sports --continuous` after explicit service preparatio
 Open the printed URL to watch three matches, supplied scores, independent markets
 and corrected/first-reported policies. The [Sports guide](../demos/live-sports/README.md)
 covers labels, reconnect and browser support. Its [source guide](docs/sports-sources.md)
-also provides source-only commands and state-bound evidence. Interactive delivery
-follows separately.
+also provides source-only commands and state-bound evidence. Use
+`npm run demo -- live-sports --interactive` for 21 checked scenes, shared
+Step/Play/Pause/Reset controls and a fresh-store Reset at the same URL. Results
+remain visible at completion; a failed scene can be reset. Terminal `help` lists
+commands and `quit` closes the run.
 
 ## Watch orders or step through a walkthrough
 

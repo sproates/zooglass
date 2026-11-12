@@ -74,7 +74,7 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       /^workbench\/src\/demos\/orders\/(?:application|browser|main|interactive|checkpoints|source-session|run|recovery)\.ts$/.test(
         path,
       ) ||
-      /^workbench\/src\/demos\/sports\/(?:application|browser|demo)\.ts$/.test(
+      /^workbench\/src\/demos\/sports\/(?:application|browser|demo|interactive|run|checkpoints)\.ts$/.test(
         path,
       ) ||
       path === "workbench/src/cli/demo.ts"

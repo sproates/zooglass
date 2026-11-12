@@ -13,6 +13,7 @@ flowchart TB
   connection["demos/order-tracker/src/connection.ts"]
   controls["demos/order-tracker/src/controls.ts"]
   app -->|interactive commands, recovery witness and run replacement| controls
+  controls -->|re-exports shared control client| sharedControls["demos/vehicle-tracker/src/playback-controls.ts"]
   protected["demos/order-tracker/src/protected.ts"]
   protected -->|scoped protected subscription| protocol
   protected -->|clears retained snapshots on loss| model
@@ -48,12 +49,13 @@ rendered page on loss and requires explicit fresh admission, without automatic r
 The existing subscription module remains at its vehicle path for compatibility.
 Its `onSnapshot` callback and observations carry data, status, provenance,
 publication sequences and version. Existing vehicle `onView` callbacks still
-receive data only. The Order TypeScript build includes that one imported module
+receive data only. The Order TypeScript build includes the imported shared modules
 and preserves relative module paths under `dist/`; the host serves exact routes.
 
 `app.ts` separately polls the bounded simulator notice feed. Notices describe
 scheduled deliveries, not runtime conclusions, and never feed the snapshot model.
-`controls.ts` maintains a separate, bounded control connection only in interactive
+`controls.ts` re-exports the shared `playback-controls.ts` client used by Sports
+and Order. It maintains a separate, bounded control connection only in interactive
 mode. It sends Step/Play/Pause/Reset commands and displays checked progress.
 A changed run generation clears the snapshot model and closes its old data client;
 new subscriptions start when the replacement run is ready. Controls never provide

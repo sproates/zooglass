@@ -194,3 +194,9 @@ The [protected client acceptance](../../../workbench/docs/protected-client-accep
 uses the same basic client and renderer against a real TLS service. The recovery
 wrapper forwards the clearing callback only for its current attempt and also
 clears on terminal failure and disposal.
+
+The domain-independent `src/playback-controls.ts` client is shared by the Order
+and Sports walkthroughs. It sends generation-bound Step/Play/Pause/Reset commands,
+reports progress, and manages control-socket visibility/reconnect separately from
+data subscriptions. Order also uses its optional recovery observation callback.
+This extracted client does not change the vehicle demo's own controls.

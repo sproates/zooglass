@@ -1,3 +1,4 @@
+import { connectControls } from "../../vehicle-tracker/src/playback-controls.js";
 import { connectSports } from "./connection.js";
 import { SportsModel, matchIds, type Layout } from "./model.js";
 import { renderSports } from "./view.js";
@@ -12,29 +13,52 @@ function redraw() {
     });
 }
 renderSports(model);
-connectSports(
-  (snapshot) => {
-    model.accept(snapshot);
-    redraw();
-  },
-  (state) => {
-    if (state === "connecting") model.beginConnection();
-    model.connected = state === "connected";
-    model.connection =
-      state === "connected"
-        ? "Receiving live snapshots"
-        : state === "connecting"
-          ? "Connecting · awaiting fresh snapshots"
-          : state === "disconnected"
-            ? "Disconnected · saved snapshots · retrying"
-            : state;
-    redraw();
-  },
-  (event) =>
-    document.dispatchEvent(
-      new CustomEvent("sports-observation", { detail: event }),
-    ),
-);
+const openConnection = () =>
+  connectSports(
+    (snapshot) => {
+      model.accept(snapshot);
+      redraw();
+    },
+    (state) => {
+      if (state === "connecting") model.beginConnection();
+      model.connected = state === "connected";
+      model.connection =
+        state === "connected"
+          ? "Receiving live snapshots"
+          : state === "connecting"
+            ? "Connecting · awaiting fresh snapshots"
+            : state === "disconnected"
+              ? "Disconnected · saved snapshots · retrying"
+              : state;
+      redraw();
+    },
+    (event) =>
+      document.dispatchEvent(
+        new CustomEvent("sports-observation", { detail: event }),
+      ),
+  );
+
+let connection = openConnection();
+let generation: number | undefined;
+let waitingForRun = false;
+const interactive = document.body.dataset.interactive === "true";
+if (interactive)
+  connectControls((next, available) => {
+    if (generation !== next) {
+      generation = next;
+      connection.close();
+      model.snapshots.clear();
+      model.beginConnection();
+      model.connected = false;
+      model.connection = "Resetting · awaiting fresh snapshots";
+      waitingForRun = true;
+      redraw();
+    }
+    if (available && waitingForRun) {
+      waitingForRun = false;
+      connection = openConnection();
+    }
+  });
 
 document.getElementById("matches")!.addEventListener("click", (event) => {
   const card = (event.target as HTMLElement).closest<HTMLElement>(
@@ -92,7 +116,9 @@ async function activity() {
     runStatus.hidden = report.state !== "failed";
     runStatus.textContent =
       report.state === "failed"
-        ? "Simulation stopped. The next checkpoint could not complete. Restart the demo to try again; terminal output contains the details."
+        ? interactive
+          ? "Walkthrough stopped. Use Reset to start a fresh run; the controls explain the failed checkpoint."
+          : "Simulation stopped. The next checkpoint could not complete. Restart the demo to try again; terminal output contains the details."
         : "";
     notice.textContent =
       report.notices.at(-1)?.text ?? "Waiting for simulated delivery events.";

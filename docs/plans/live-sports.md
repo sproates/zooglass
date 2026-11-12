@@ -3,7 +3,8 @@
 Status: accepted design, 10 November 2026 (PR #155). Sports follows delivery of both Order modes.
 Source foundation is delivered on the shared branch (PR #164); see the
 [source guide](../../workbench/docs/sports-sources.md) for commands and verification.
-Continuous browser integration is proposed for review; interactive delivery remains pending.
+Continuous browser integration is delivered on the shared branch. The 21-checkpoint
+interactive walkthrough is proposed for review; final Sports acceptance remains pending.
 This replaces the Sports scope in the [original outline](order-and-sports-demos.md).
 The existing sports JSON scenario and Java match acceptance tests are useful
 fixtures, not a delivered sports application.

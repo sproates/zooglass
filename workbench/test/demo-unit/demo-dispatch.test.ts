@@ -17,10 +17,10 @@ test("Order dispatch requires exactly one supported mode and rejects ambiguous a
   await runDemo(["vehicle-tracker", "--help"]);
 });
 
-test("Sports advertises only usable continuous mode and rejects ambiguous arguments", async () => {
+test("Sports requires exactly one usable mode and rejects ambiguous arguments", async () => {
   for (const args of [
     [],
-    ["--interactive"],
+    ["--interactive", "--continuous"],
     ["--unknown"],
     ["--continuous", "--interactive"],
     ["--continuous", "--continuous"],

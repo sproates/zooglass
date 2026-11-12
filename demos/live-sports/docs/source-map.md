@@ -13,6 +13,7 @@ flowchart TB
   app -->|owns presentation state| model["src/model.ts"]
   app -->|coalesces DOM rendering| view["src/view.ts"]
   view -->|presentation rules| model
+  app -->|interactive commands and run generations| controls["../vehicle-tracker/src/playback-controls.ts"]
   app -->|passive subscriptions| connection["src/connection.ts"]
   connection -->|known identities| model
   connection -->|guarded full-snapshot protocol| protocol["../vehicle-tracker/src/subscription-client.ts"]
@@ -36,3 +37,8 @@ state. Failure details stay in terminal output; the page reports the stopped run
 See the [Workbench host map](../../../workbench/docs/source-map.md#sports-continuous-browser)
 for service/source ownership. No browser source publishes events or owns producer
 state. Closing a viewer does not stop the synthetic matches.
+
+In interactive mode, the shared `playback-controls.ts` module keeps command state
+separate from data subscriptions. A Reset generation closes the old data client,
+clears retained snapshots, and subscribes afresh when the replacement run is ready.
+Controls never supply match values. Continuous pages omit the controls panel.

@@ -29,8 +29,8 @@ until Reset. Pause and wait for an idle run before using manual controls.
 An armed recovery has a 30-second deadline, even while paused; Reset after expiry.
 Reset remains available here if the browser page closes.`;
 
-async function main() {
-  let args = process.argv.slice(2);
+export async function runVehicleDemo(arguments_: string[]) {
+  let args = arguments_;
 
   if (
     (args.length === 1 && args[0] === "--help") ||
@@ -234,9 +234,12 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(
-    `Demo could not run: ${error instanceof Error ? error.message : String(error)}`,
-  );
-  process.exitCode = 1;
-});
+// Preserve direct legacy entry points as well as the shared demo dispatcher.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  runVehicleDemo(process.argv.slice(2)).catch((error: unknown) => {
+    console.error(
+      `Demo could not run: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  });
+}

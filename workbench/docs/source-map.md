@@ -13,7 +13,8 @@ A file repeated in two diagrams is the same module.
 Diagram paths are relative to `src/` unless shown otherwise. Modules are grouped
 by responsibility, with concrete demos under `src/demos/`.
 
-The `demos/vehicle/` folder contains its CLI (`demo.ts`), automatic playback, interactive
+The `cli/demo.ts` entry point selects Order or vehicle demos.
+The `demos/vehicle/` folder contains its domain CLI (`demo.ts`), automatic playback, interactive
 composition, resource ownership, asset binding and rendered-page observer.
 Shared scenario execution, browser transport and playback controls have their
 own folders. These modules use ordinary imports; there is no plugin loading mechanism.
@@ -40,6 +41,10 @@ New demos can compose shared modules through ordinary imports beside `vehicle/`.
 No plugin loader or registration framework is involved.
 
 ## Start with the command
+
+`cli/demo.ts` dispatches demo commands. Vehicle-specific argument handling remains
+in `demos/vehicle/demo.ts`, including its directly executable compatibility entry.
+The Order renderer has its own [source map](../../demos/order-tracker/docs/source-map.md).
 
 | Command                           | Entry module                                                | Purpose                                                                                                  |
 | --------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -384,14 +389,31 @@ flowchart TD
 [Behaviour and limits](continuous-driving.md). The browser source map describes
 its passive subscriber and map, separately from the scripted bridge.
 
-## Order service foundation
+## Order service and browser composition
 
 The [order source guide](order-sources.md) explains the schedule and verification.
-No order browser or CLI binding is advertised yet. Shared Workbench modules do
-not depend on this concrete demo.
+`npm run demo -- order-tracker --continuous` dispatches through `cli/demo.ts` to
+`demos/orders/main.ts`. The browser composition owns a prepared service, producer,
+exact static asset host and data proxy. Sources continue independently of viewers.
+Shared Workbench infrastructure does not import this concrete demo.
 
 ```mermaid
 flowchart TB
+  dispatch["cli/demo.ts"]
+  main["demos/orders/main.ts"]
+  browser["demos/orders/browser.ts"]
+  application["demos/orders/application.ts"]
+  http["browser/browser-http-server.ts"]
+  route["browser/browser-data-route.ts"]
+  dispatch -->|selects Order command| main
+  main -->|owns shutdown| browser
+  browser -->|loads exact asset routes| application
+  browser -->|describes deliveries without deriving values| notices["demos/orders/notices.ts"]
+  browser -->|hosts page and bounded notices| http
+  browser -->|proxies live views| route
+  browser -->|starts configured prepared service| service
+  browser -->|owns continuous sources| producer
+  browser -->|selects runtime policies| configuration
   simulation["demos/orders/simulation.ts"]
   contracts["demos/orders/contracts.ts"]
   producer["demos/orders/producer.ts"]

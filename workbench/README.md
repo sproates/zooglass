@@ -18,6 +18,14 @@ vehicle browser demo with interactive controls and real data-route interruption.
 [what ZooGlass is trying to build](../docs/what-is-zooglass.md) for the wider
 product explanation.
 
+## Watch continuous orders
+
+Run `npm run demo -- order-tracker --continuous` after explicit service preparation.
+Add `--bind=<private IPv4>` for LAN access. The printed URL shows the accepted board
+and tracking layouts backed by five real simulated sources and ZooGlass snapshots.
+See the [Order guide](../demos/order-tracker/README.md) for status labels, recovery,
+browser requirements and limits. The interactive Order command remains future work.
+
 ## Watch six cars driving around Gibraltar
 
 Run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` after the one-time service
@@ -47,10 +55,11 @@ browser demo composition, including which parts are shared and which belong to
 the vehicle demo. Start there when reading `src/`. The source folders group CLI entry points, scenario definitions, execution,
 browser infrastructure, playback controls and service lifecycle. Concrete demo
 composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
-The [order source foundation](docs/order-sources.md) provides service-only
+The [order source foundation](docs/order-sources.md) provides independent service
 verification of mapped order, payment, inventory and courier contributions,
 with publication gates, source priority, progress and freshness policies. Its
-browser experiences and demo commands are subsequent work.
+continuous browser command is available; interactive and protected/recovery
+experiences remain subsequent work.
 
 ## Run a scenario
 

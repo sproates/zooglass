@@ -30,9 +30,9 @@ npm run demo -- order-tracker --continuous
 npm run demo -- order-tracker --interactive
 ```
 
-These commands are planned, not available yet. Require exactly one mode. Preserve
-vehicle commands while moving command dispatch out of the vehicle-specific entry
-point. Launch the prepared JAR; do not compile Java during scenario execution.
+The continuous command is available; the interactive command remains planned.
+Exactly one mode is required. `cli/demo.ts` dispatches commands while preserving
+vehicle behaviour. Launch the prepared JAR; do not compile Java during scenario execution.
 
 **Continuous:** six fixed slots, staggered activity, approximately two minutes per
 cycle. No playback controls, pairing or viewer-dependent simulation lifetime.
@@ -73,7 +73,8 @@ knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 ## Early UI prototype and acceptance
 
 The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
-12 November 2026. Live integration has not started.
+12 November 2026. The continuous browser now integrates real snapshots; interactive
+controls and service-recovery/protected scenes remain subsequent slices.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice

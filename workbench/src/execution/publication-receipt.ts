@@ -11,6 +11,14 @@ export interface PublicationReceipt {
         entityId: string | null;
         status: string;
         reason: string | null;
+        fields?:
+          | {
+              field: string;
+              status: string;
+              reason: string | null;
+              changed: boolean;
+            }[]
+          | null;
       }[]
     | null;
 }
@@ -22,6 +30,11 @@ export interface SourcePublication {
   publicationSequence: number;
   type: string;
   payload: object;
+  fact?: {
+    birthSequence: number;
+    revision: number;
+    operation: "create" | "revise" | "retract";
+  };
   expectedRejection?: string;
 }
 
@@ -49,6 +62,7 @@ export async function publishAndCheckReceipt(
         publicationSequence: event.publicationSequence,
         type: event.type,
         payload: event.payload,
+        ...(event.fact ? { fact: event.fact } : {}),
       }),
     );
     const [message] = await receipt;

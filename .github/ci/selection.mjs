@@ -79,6 +79,12 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       add(["static", "core", "demo", "browser", "native", "engines"], path);
     } else if (/^workbench\/src\/demos\/orders\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
+    } else if (
+      /^workbench\/src\/demos\/sports\/(?:configuration|timeline|receipts|source-session|producer|simulation|main)\.ts$/.test(
+        path,
+      )
+    ) {
+      add(["static", "core"], path);
     } else if (/^workbench\/src\/service\//.test(path)) {
       add(["static", "core", "demo", "browser", "native"], path);
     } else if (

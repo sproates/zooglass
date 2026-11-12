@@ -1,6 +1,9 @@
 # Live sports: detailed demo design
 
 Status: accepted design, 10 November 2026 (PR #155). Sports follows delivery of both Order modes.
+Source foundation implementation is proposed for review; see the
+[source guide](../../workbench/docs/sports-sources.md) for commands and verification.
+Live browser integration remains pending.
 This replaces the Sports scope in the [original outline](order-and-sports-demos.md).
 The existing sports JSON scenario and Java match acceptance tests are useful
 fixtures, not a delivered sports application.
@@ -25,7 +28,7 @@ sports-data demonstration, with no wagering, money or real data integration.
 | Demo | Distinct configuration choices | What the viewer can observe |
 | --- | --- | --- |
 | Fleet, delivered | `latestBySequence` for continuous positions; interactive fleet also uses `historyBySequence` | A delayed position does not move the latest marker backwards; received history and current position are different views of updates. |
-| Order, planned | `lookupEntity`, multi-source `sourcePriority`, `requireContributions`, contiguous progress and `receiptAge` | Different service identifiers combine into one order; authority, missing contributions and stale information are explicit. |
+| Order, delivered on the shared delivery branch | `lookupEntity`, multi-source `sourcePriority`, `requireContributions`, contiguous progress and `receiptAge` | Different service identifiers combine into one order; authority, missing contributions and stale information are explicit. |
 | Sports, planned here | `activeFacts`, `sumActiveFacts`, `latestFactRevision` versus `firstFact`, explicit fact retirement | Correcting or withdrawing a fact changes both the goal list and score; another view can retain the first report from the same input. |
 
 Each demo also exercises common snapshot delivery and reconnect behaviour. That

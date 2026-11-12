@@ -220,3 +220,21 @@ test("Order interactive checks and shared source delivery retain browser consume
     ]);
   }
 });
+
+test("Sports source foundation checks real service contracts; new UI modules remain conservative", () => {
+  for (const module of [
+    "configuration",
+    "timeline",
+    "receipts",
+    "source-session",
+    "producer",
+    "simulation",
+    "main",
+  ]) {
+    assert.deepEqual(selected([`workbench/src/demos/sports/${module}.ts`]), [
+      "static",
+      "core",
+    ]);
+  }
+  assert.deepEqual(selected(["workbench/src/demos/sports/browser.ts"]), suites);
+});

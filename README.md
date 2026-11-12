@@ -51,6 +51,10 @@ together repeated operation, recovery, protected access and fresh setup evidence
 the [Order developer comparison](docs/order-developer-value.md) explains the
 application work delegated and retained.
 
+The [Sports source foundation](workbench/docs/sports-sources.md) runs three
+matches through corrected and first-reported views, independent bookmaker updates
+and bounded fact retirement. Live Sports browser integration follows separately.
+
 The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 
 The main components live at the repository root:

@@ -1,3 +1,4 @@
+import { connectControls } from "./controls.js";
 import { OrderModel } from "./model.js";
 import { connectOrders } from "./connection.js";
 import { renderOrders, selectOrder, selectView } from "./view.js";
@@ -12,29 +13,49 @@ function redraw() {
     });
 }
 renderOrders(model);
-connectOrders(
-  (snapshot) => {
-    model.accept(snapshot);
-    redraw();
-  },
-  (state) => {
-    if (state === "connecting") model.beginConnection();
-    model.connected = state === "connected";
-    model.connection =
-      state === "connected"
-        ? "Receiving live snapshots"
-        : state === "connecting"
-          ? "Connecting · awaiting fresh snapshots"
-          : state === "disconnected"
-            ? "Disconnected · saved snapshots · retrying"
-            : state;
-    redraw();
-  },
-  (event) =>
-    document.dispatchEvent(
-      new CustomEvent("order-observation", { detail: event }),
-    ),
-);
+const openConnection = () =>
+  connectOrders(
+    (snapshot) => {
+      model.accept(snapshot);
+      redraw();
+    },
+    (state) => {
+      if (state === "connecting") model.beginConnection();
+      model.connected = state === "connected";
+      model.connection =
+        state === "connected"
+          ? "Receiving live snapshots"
+          : state === "connecting"
+            ? "Connecting · awaiting fresh snapshots"
+            : state === "disconnected"
+              ? "Disconnected · saved snapshots · retrying"
+              : state;
+      redraw();
+    },
+    (event) =>
+      document.dispatchEvent(
+        new CustomEvent("order-observation", { detail: event }),
+      ),
+  );
+let connection = openConnection();
+let generation: number | undefined;
+let waitingForRun = false;
+if (document.body.dataset.interactive === "true")
+  connectControls((next, available) => {
+    if (generation !== next) {
+      generation = next;
+      connection.close();
+      model.snapshots.clear();
+      model.beginConnection();
+      model.connection = "Resetting · awaiting fresh snapshots";
+      waitingForRun = true;
+      redraw();
+    }
+    if (available && waitingForRun) {
+      waitingForRun = false;
+      connection = openConnection();
+    }
+  });
 for (const root of ["orders", "tracking"])
   document.getElementById(root)!.addEventListener("click", (event) => {
     const row = (event.target as HTMLElement).closest<HTMLElement>(

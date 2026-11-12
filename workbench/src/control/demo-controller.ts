@@ -25,9 +25,9 @@ export type DemoState = {
 
 export class DemoCleanupError extends Error {}
 
-export interface DemoRun {
+export interface DemoRun<Entry = TraceEntry> {
   signal: AbortSignal;
-  execute(entry: TraceEntry): Promise<void>;
+  execute(entry: Entry): Promise<void>;
   close(): Promise<void>;
   publish(state: DemoState): void;
 }
@@ -37,7 +37,23 @@ export function createDemoController(
   scenario: Scenario,
   openRun: (signal: AbortSignal) => Promise<DemoRun>,
 ) {
-  const { setup, steps } = planDemoSteps(playScenario(scenario));
+  return createPlaybackController(
+    planDemoSteps(playScenario(scenario)),
+    openRun,
+    (entry) => entry.kind === "client-view-check",
+  );
+}
+
+/** Shared cursor and lifecycle for trace entries or prepared checkpoints. */
+export function createPlaybackController<Entry>(
+  {
+    setup,
+    steps,
+  }: { setup: Entry[]; steps: { entries: Entry[]; delayBefore: number }[] },
+  openRun: (signal: AbortSignal) => Promise<DemoRun<Entry>>,
+  skipExploratory: (entry: Entry) => boolean = () => false,
+) {
+  if (!steps.length) throw new Error("The demo needs at least one checkpoint.");
   const total = steps.length;
   let state: DemoState = {
     phase: "starting",
@@ -50,7 +66,7 @@ export function createDemoController(
     total,
     detail: "Starting a fresh session…",
   };
-  let run: DemoRun | undefined;
+  let run: DemoRun<Entry> | undefined;
   let controller = new AbortController();
   let cursor = 0;
   let interventionTask: Promise<void> | undefined;
@@ -197,7 +213,7 @@ export function createDemoController(
       for (const entry of steps[cursor].entries) {
         current.signal.throwIfAborted();
 
-        if (state.exploratory && entry.kind === "client-view-check") {
+        if (state.exploratory && skipExploratory(entry)) {
           state = { ...state, skippedChecks: state.skippedChecks + 1 };
           continue;
         }
@@ -248,7 +264,7 @@ export function createDemoController(
     },
     reset,
     step: () => step(),
-    intervene(label: string, entries: TraceEntry[]): Promise<void> {
+    intervene(label: string, entries: Entry[]): Promise<void> {
       if (
         closing ||
         resetTask ||

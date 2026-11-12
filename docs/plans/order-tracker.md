@@ -30,7 +30,8 @@ npm run demo -- order-tracker --continuous
 npm run demo -- order-tracker --interactive
 ```
 
-The continuous command is available; the interactive command remains planned.
+Both commands are available. The interactive walkthrough covers the source
+scenes; durable service restart and protected access remain later slices.
 Exactly one mode is required. `cli/demo.ts` dispatches commands while preserving
 vehicle behaviour. Launch the prepared JAR; do not compile Java during scenario execution.
 
@@ -73,8 +74,8 @@ knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 ## Early UI prototype and acceptance
 
 The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
-12 November 2026. The continuous browser now integrates real snapshots; interactive
-controls and service-recovery/protected scenes remain subsequent slices.
+12 November 2026. Both browser modes now integrate real snapshots;
+service-recovery/protected scenes remain subsequent slices.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice
@@ -306,8 +307,8 @@ expectations deliberately. Keep the old simple fixtures as compatibility coverag
 
 ### Browser snapshot contract
 
-The current vehicle subscription callback and observation path carry only `data`.
-Introduce a typed full-snapshot callback carrying view/entity identity, `data`,
+The shared subscription module now preserves the vehicle data callback and
+provides a typed full-snapshot callback carrying view/entity identity, `data`,
 `status`, `provenance`, `publicationSequences` and `version`. Order bindings and test observations consume
 that complete snapshot. Preserve the existing vehicle data callback through a
 compatibility adapter rather than changing vehicle rendering semantics.

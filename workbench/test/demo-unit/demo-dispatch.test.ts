@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { runDemo } from "../../src/cli/demo.js";
 
-test("Order dispatch requires the available continuous mode and rejects ambiguous arguments", async () => {
+test("Order dispatch requires exactly one supported mode and rejects ambiguous arguments", async () => {
   for (const args of [
     [],
-    ["--interactive"],
+    ["--unknown"],
+    ["--interactive", "--continuous"],
     ["--continuous", "--interactive"],
     ["--continuous", "--continuous"],
     ["--continuous", "--bind=127.0.0.1", "extra"],

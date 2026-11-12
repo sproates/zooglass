@@ -201,3 +201,16 @@ test("Order UI and launcher retain consumer and lifecycle checks", () => {
     "engines",
   ]);
 });
+
+test("Order interactive checks and shared source delivery retain browser consumers", () => {
+  for (const file of ["interactive", "checkpoints", "source-session"]) {
+    assert.deepEqual(selected([`workbench/src/demos/orders/${file}.ts`]), [
+      "static",
+      "core",
+      "demo",
+      "browser",
+      "native",
+      "engines",
+    ]);
+  }
+});

@@ -1,9 +1,8 @@
 # Order tracker: detailed demo design
 
-Status: proposed refresh, 10 November 2026. The source-only order simulator exists;
+Status: accepted design, 10 November 2026 (PR #154). The source-only order simulator exists;
 this document specifies the remaining work. It supersedes the Order details in
-[the original two-demo plan](order-and-sports-demos.md). Sports retains its outline
-pending its own detailed refresh.
+[the original two-demo plan](order-and-sports-demos.md). The [Sports design](live-sports.md) is accepted separately.
 
 ## What this demonstrates
 
@@ -72,6 +71,9 @@ values, provenance, gaps and freshness come from ZooGlass. Do not present simula
 knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 
 ## Early UI prototype and acceptance
+
+The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
+12 November 2026. Live integration has not started.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice

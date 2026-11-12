@@ -2,7 +2,7 @@
 
 A clickable presentation prototype for the [Sports design](../../docs/plans/live-sports.md).
 It uses explicit local fixture snapshots: no running ZooGlass instance, real feed,
-pricing engine or wagering. Visual acceptance is pending.
+pricing engine or wagering. The visual design was accepted on 12 November 2026; live integration remains pending.
 
 ## Preview
 
@@ -38,8 +38,8 @@ saved snapshot. The UI does not equate stale bookmaker data with a failed match.
 
 Review the prominence of scores, match selection, market separation, different
 revision-policy outcomes, intermediate cycle states and both control layouts.
-Explicit owner acceptance is required before live UI integration. These captures
-are review references, not an accepted design or runtime evidence:
+The visual design is accepted for live integration. These captures preserve the
+accepted reference; they are not runtime evidence:
 
 - [Desktop](docs/images/prototype-desktop.png)
 - [Phone width](docs/images/prototype-phone.png)

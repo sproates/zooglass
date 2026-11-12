@@ -34,8 +34,8 @@ showcase. Do not claim fleet already exposes the newer progress/freshness metada
 
 ## Experience and early acceptance
 
-A [clickable fixture prototype](../../demos/live-sports/README.md) is available for
-visual review. Owner acceptance is pending; live integration has not started.
+A [clickable fixture prototype](../../demos/live-sports/README.md) was visually accepted on
+12 November 2026. Live integration has not started.
 
 The primary screen is a compact live match board. All three scorelines are visible
 on desktop; the first match is immediately visible on a phone. Selecting a match

@@ -19,9 +19,9 @@ export interface SportsStep {
   actions: SportsAction[];
 }
 const teams = [
-  ["Harbour Athletic", "Vale United"],
-  ["Northbridge", "Riverside"],
-  ["Westhaven", "Kingsford"],
+  ["Harbour Athletic", "Hilltown"],
+  ["Riverside", "Northbridge"],
+  ["Westfield", "Kingsford"],
 ];
 
 /** One allocator per source/entity, shared by all event types; omissions reserve real identities. */

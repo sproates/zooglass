@@ -131,3 +131,29 @@ test("lazy schedule preserves exact retries and allocates identities across even
   assert.deepEqual(early, event("corrected-scorer"));
   assert.deepEqual(event("withdrawal"), event("duplicate"));
 });
+
+test("match identities preserve accepted home and away pairings across cycles", () => {
+  const metadata = [...sportsTimeline(2)].filter(
+    (step) => step.name === "metadata",
+  );
+  for (const cycle of [1, 2]) {
+    assert.deepEqual(
+      metadata
+        .filter((step) => step.cycle === cycle)
+        .map((step) => {
+          const action = step.actions[0];
+          assert.equal(action.kind, "publish");
+          const payload = action.event.payload as {
+            home: string;
+            away: string;
+          };
+          return [step.entityId, payload.home, payload.away];
+        }),
+      [
+        ["match-1", "Harbour Athletic", "Hilltown"],
+        ["match-2", "Riverside", "Northbridge"],
+        ["match-3", "Westfield", "Kingsford"],
+      ],
+    );
+  }
+});

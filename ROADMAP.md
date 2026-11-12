@@ -21,8 +21,10 @@ Each will have an interactive scenario and a continuously running mode. Together
 they should show what ZooGlass makes easier and which domain rules still belong
 in the application. The Order source foundation and accepted static prototypes
 and both Order browser modes are delivered on the shared delivery branch. Order
-recovery/protected evidence is prepared for review; final Order acceptance and
-live Sports integration remain.
+recovery/protected evidence is also delivered. The
+[final Order acceptance record](docs/verification/2026-11-12-order-acceptance.md)
+and [developer-value comparison](docs/order-developer-value.md) are prepared for
+review. Live Sports integration follows accepted Order delivery.
 See the [Order guide](demos/order-tracker/README.md) for its available commands.
 
 See the [demo design](docs/plans/order-and-sports-demos.md) and

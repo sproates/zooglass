@@ -1,6 +1,8 @@
 # Capability delivery record
 
-Reviewed against `7eff641` on 9 November 2026.
+Service evidence reviewed against `7eff641` on 9 November 2026. Order demo
+coverage updated against `2837dc5` on 12 November; final acceptance is proposed
+in the [Order record](2026-11-12-order-acceptance.md).
 
 ZooGlass now applies configurable reconciliation, recovery and access policies to
 shared live views. This record links those behaviours to their contracts and
@@ -52,14 +54,18 @@ remains vehicles, orders and sports. Here is what is available at this baseline:
 | --- | --- | --- |
 | [Continuous vehicles](../../workbench/docs/continuous-driving.md) | Six cars, automatic activity, delayed/duplicate/lost reports, source interruptions and returning viewers. | Grey markers use the demo's observation-age rule. The demo does not yet expose ZooGlass receipt-age or confirmed-gap metadata. |
 | [Interactive vehicles](../../demos/vehicle-tracker/README.md) | Three-car fleet and single-car fixtures; latest/history views, independent status fields, controlled faults and recovery. | Does not present durable restart or retained-fact corrections. |
-| [Protected basic client](../../workbench/docs/protected-client-acceptance.md) | Real policy enforcement clears protected data on access loss and obtains a fresh authorised baseline. | An automated acceptance fixture; normal vehicle commands remain open demos. The planned order access-loss scene is still outstanding. |
-| [Order sources](../../workbench/docs/order-sources.md) | Six orders, three independent sources, two views, delayed input and recurring faults. Finite and continuous producer modes share a schedule. | No order browser experience yet. Mapping, priority, durable restart and access-loss scenes still need to be incorporated. |
+| [Protected basic client](../../workbench/docs/protected-client-acceptance.md) | Real policy enforcement clears protected data on access loss and obtains a fresh authorised baseline. | An automated acceptance fixture; normal vehicle commands remain open demos. Order access-loss acceptance is now available separately. |
+| [Order desk](../../demos/order-tracker/README.md) | Six orders, five independent sources and two views in continuous and interactive browsers: mappings, priority, required inputs, receipt-age freshness, progress gaps, same-store restart and protected access acceptance. | Final [acceptance and value evidence](2026-11-12-order-acceptance.md) is proposed for review. Synthetic slots, fixed mappings and separate protected fixture; no production adapters or producer-process recovery. |
 | Match service fixtures | Corrections, withdrawals, derived scores, progress gaps and recovery through real service interfaces. | No sports browser experience yet, nor a complete interactive/continuous sports scenario. |
 
 The vehicle demonstrations remain useful consumers of the shared service. They
-have not been expanded to display every newly delivered strategy. Orders and
-sports are the next planned presentation work; their coverage is not counted as
-delivered simply because a service test exercises the underlying capability.
+have not been expanded to display every newly delivered strategy. Both Order
+browser modes now make the listed policies visible; live Sports integration
+remains planned. A service test alone is not counted as a browser experience.
+
+The [Order acceptance record](2026-11-12-order-acceptance.md) links its separate
+Chromium/Firefox/WebKit layout checks and fresh desktop/phone captures for both
+commands. The following historical presentation review concerns vehicles.
 
 ## Presentation review
 

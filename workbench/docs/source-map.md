@@ -439,6 +439,17 @@ flowchart TB
   timeline -->|builds domain events for six fixed slots| contracts
 ```
 
+The final acceptance keeps its oracles outside the producer.
+[`order-simulation.test.ts`](../test/scenarios/order-simulation.test.ts) checks
+service snapshots over three cycles and inspects the stopped 50-cycle SQLite
+image for retained row/receipt/range bounds.
+[`order-browser.test.ts`](../test/browser/order-browser.test.ts) checks all twelve
+first baselines for reconnecting and late viewers after three completed cycles.
+[`order-extension.test.ts`](../test/scenarios/order-extension.test.ts) supplies an
+extra entity, source and view through the real launcher's startup configuration,
+without invoking the production event builder or adding projection code.
+See the [acceptance record](../../docs/verification/2026-11-12-order-acceptance.md).
+
 ### Interactive Order walkthrough
 
 `--interactive` keeps one page/control host while Reset replaces its service,

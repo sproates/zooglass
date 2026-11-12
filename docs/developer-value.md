@@ -14,6 +14,10 @@ custom service, using the delivered service contracts. The
 [capability record](verification/capability-delivery.md) links the broader
 reconciliation and recovery evidence.
 
+For a durable multi-source example, see [the Order comparison](order-developer-value.md):
+entity mappings, source authority, required contributions, progress, freshness and
+scoped access, with a runnable extra-entity/source/view fixture.
+
 ## The work a team would otherwise own
 
 For this comparison, the custom service only needs to match the demonstrated

@@ -115,8 +115,10 @@ expired evidence. It is behavioural retention evidence, not a memory benchmark.
 
 ## Remaining delivery
 
-The final developer-value comparison remains. Recovery and protected access are
-covered by the [Order acceptance commands](../../demos/order-tracker/README.md). This foundation
+The [final acceptance record](../../docs/verification/2026-11-12-order-acceptance.md)
+and [developer-value comparison](../../docs/order-developer-value.md) are prepared
+for review. Recovery and protected access are covered by the
+[Order acceptance commands](../../demos/order-tracker/README.md). This foundation
 covers the source-side scenes from Partial order through Unknown relationship
 in the [design's scene table](../../docs/plans/order-tracker.md#scenes-and-expected-results).
 

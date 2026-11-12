@@ -17,7 +17,8 @@ Open `http://<your-LAN-IP>:8048/` on the same network. No build or dependencies.
 
 - **Match board:** three fictional scorelines, selected match facts and a separately
   reported bookmaker market. Selecting a card changes the detail; on narrow
-  screens it scrolls to the selected detail.
+  screens it focuses and scrolls to the selected detail, with **Back to matches**
+  returning focus to the selected card.
 - **Scoreboard:** a score-only presentation with no market or goal detail.
 - **Policy comparison:** corrected and first-reported scores and goal lists side
   by side. Scorer corrections and withdrawals visibly produce different results.
@@ -50,6 +51,27 @@ Checked all three views for horizontal overflow at 360, 390, 768, 1024 and 1440
 pixels. No page errors observed. This is prototype verification, not production
 browser support certification or physical-device sign-off.
 
+## Focused prototype checks
+
+The market stacks below the detail at widths up to 900px, including the former
+651–700px overflow range. Suspended markets use amber; open markets use green.
+Goal lines use domain descriptions; birth/revision identifiers are available in
+**Configuration behind this view**. Selection preserves keyboard focus, and phone
+detail/comparison views provide a return control.
+
+With the Workbench dependencies and Playwright Chromium/WebKit browsers installed,
+run from the repository root:
+
+```sh
+node --test demos/live-sports/prototype.test.mjs
+```
+
+These checks serve static files on loopback and launch the browsers. They do not
+start or build ZooGlass. They cover the interaction regressions and changed display
+states. The corrected prototype was also checked across all fixture/view combinations
+at 11 widths from 360 to 1440px, including breakpoint-adjacent widths, and through
+interactive completion and Reset.
+
 ## Source layout
 
 | File | Purpose |
@@ -57,6 +79,7 @@ browser support certification or physical-device sign-off.
 | `prototype/index.html` | Landmarks, view navigation and review controls |
 | `prototype/styles.css` | Match-board presentation and responsive layouts |
 | `prototype/fixtures.js` | Supplied scores, goal lists and explanatory states |
+| `prototype.test.mjs` | Browser regression checks against a temporary static server |
 | `prototype/app.js` | Renders fixture views and handles prototype interactions |
 
 `index.html` loads CSS and the app module; `app.js` imports fixtures. There is no

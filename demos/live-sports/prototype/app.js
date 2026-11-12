@@ -46,18 +46,19 @@ function renderMatches() {
 function renderDetail() {
   const data = fixtures[selected.fixture];
   byId("match-detail").innerHTML =
-    `<div class="section-label"><span>Selected match / ${selected.id}</span><span>${disconnected ? "Saved snapshot" : "Corrected view"}</span></div><div class="featured-score"><div>${badge(selected.homeCode)}<h2>${selected.home}</h2></div><div class="score"><strong>${data.score}</strong><span>${data.clock} · ${data.phase}</span></div><div>${badge(selected.awayCode, true)}<h2>${selected.away}</h2></div></div><div class="event-callout ${data.tone}"><span class="callout-marker" aria-hidden="true">↳</span><div><h3>${data.headline}</h3><p>${data.explanation}</p></div></div><div class="goals-heading"><h3>Active home goals</h3><span>Corrected facts · baselines excluded</span></div><ul class="goals">${goalsMarkup(data.goals)}</ul>${data.gap ? `<p class="gap-note">${data.gap} A later report does not prove complete delivery.</p>` : ""}<details class="rules"><summary>Configuration behind this view</summary><dl><dt>Goal list</dt><dd>activeFacts · latestFactRevision</dd><dt>Score</dt><dd>sumActiveFacts · points</dd><dt>Initial score</dt><dd>Both baselines in the matching retained window</dd><dt>View</dt><dd>match-market / match-${Number(selected.id)}</dd></dl><p>Illustrative snapshots only. The UI displays supplied totals; it does not recalculate them.</p></details>`;
+    `<button class="back-to-matches" data-back-to-matches>← Back to matches</button><div class="section-label"><span>Selected match / ${selected.id}</span><span>${disconnected ? "Saved snapshot" : "Corrected view"}</span></div><div class="featured-score"><div>${badge(selected.homeCode)}<h2>${selected.home}</h2></div><div class="score"><strong>${data.score}</strong><span>${data.clock} · ${data.phase}</span></div><div>${badge(selected.awayCode, true)}<h2>${selected.away}</h2></div></div><div class="event-callout ${data.tone}"><span class="callout-marker" aria-hidden="true">↳</span><div><h3>${data.headline}</h3><p>${data.explanation}</p></div></div><div class="goals-heading"><h3>Active home goals</h3><span>Corrected facts · baselines excluded</span></div><ul class="goals">${goalsMarkup(data.goals)}</ul>${data.gap ? `<p class="gap-note">${data.gap} A later report does not prove complete delivery.</p>` : ""}<details class="rules"><summary>Configuration behind this view</summary><dl><dt>Goal list</dt><dd>activeFacts · latestFactRevision</dd><dt>Score</dt><dd>sumActiveFacts · points</dd><dt>Initial score</dt><dd>Both baselines in the matching retained window</dd><dt>View</dt><dd>match-market / match-${Number(selected.id)}</dd></dl>${data.goals.length ? `<h3>Goal publication details</h3><ul>${data.goals.map((goal) => `<li>${goal.scorer}: birth ${goal.birth} · revision ${goal.revision}</li>`).join("")}</ul>` : ""}<p>Illustrative snapshots only. The UI displays supplied totals; it does not recalculate them.</p></details>`;
   byId("market").innerHTML =
-    `<div class="section-label"><span>Independent source</span><span>Bookmaker</span></div><div class="market-title"><h2>Match result</h2><span class="market-state ${data.stale || disconnected ? "stale" : ""}">${disconnected ? "Saved" : data.stale ? "Stale" : data.market}</span></div><p class="market-basis">${data.basis}</p><div class="odds">${["Home", "Draw", "Away"].map((name, index) => `<div><span>${name}</span><strong>${data.odds[index]}</strong></div>`).join("")}</div><p class="market-description">${data.stale ? "Last reported status: open, 42 seconds ago. Silence does not confirm current prices." : data.market === "Awaiting new cycle" ? "Prior-cycle values are withheld from this new-cycle market presentation." : "Last reported decimal odds. The bookmaker owns pricing and suspension decisions."}</p><div class="market-separation"><span class="mini-line"></span><h3>Score and market arrive separately.</h3><p>A shared view does not make these feeds a single transaction. Matching sequence boundaries alone do not prove that a price is correct.</p></div><p class="fictional">Fictional prices · no bets or transactions</p>`;
+    `<div class="section-label"><span>Independent source</span><span>Bookmaker</span></div><div class="market-title"><h2>Match result</h2><span class="market-state ${data.stale || disconnected ? "stale" : data.market === "Suspended" ? "suspended" : data.market === "Open" ? "" : "waiting"}">${disconnected ? "Saved" : data.stale ? "Stale" : data.market}</span></div><p class="market-basis">${data.basis}</p><div class="odds">${["Home", "Draw", "Away"].map((name, index) => `<div><span>${name}</span><strong>${data.odds[index]}</strong></div>`).join("")}</div><p class="market-description">${data.stale ? "Last reported status: open, 42 seconds ago. Silence does not confirm current prices." : data.market === "Awaiting new cycle" ? "Prior-cycle values are withheld from this new-cycle market presentation." : "Last reported decimal odds. The bookmaker owns pricing and suspension decisions."}</p><div class="market-separation"><span class="mini-line"></span><h3>Score and market arrive separately.</h3><p>A shared view does not make these feeds a single transaction. Matching sequence boundaries alone do not prove that a price is correct.</p></div><p class="fictional">Fictional prices · no bets or transactions</p>`;
 }
 
 function renderComparison() {
   const data = fixtures[selected.fixture];
   byId("comparison").innerHTML =
-    `<div class="comparison-heading"><p class="eyebrow">Same publications. Different configured policies.</p><h2>${selected.home} <span>vs</span> ${selected.away}</h2><p>These are separate views of match-${Number(selected.id)}. The first-reported view is a policy comparison, not the current corrected score.</p></div><div class="policy-grid"><article class="policy corrected"><span class="policy-label">Corrected view</span><strong class="policy-score">${data.score}</strong><code>latestFactRevision</code><p>Applies accepted revisions and withdrawals.</p><ul>${data.goals.length ? data.goals.map((goal) => `<li>${goal.scorer} · ${goal.minute}</li>`).join("") : "<li>No active goals in this window</li>"}</ul></article><article class="policy original"><span class="policy-label">First-reported view</span><strong class="policy-score">${data.original}</strong><code>firstFact</code><p>Retains the first accepted create for each fact.</p><ul>${data.originalGoals.length ? data.originalGoals.map((goal) => `<li>${goal}</li>`).join("") : "<li>No active goals in this window</li>"}</ul></article></div><p class="comparison-foot">${data.explanation}</p>${selected.fixture === "transition" ? '<p class="gap-note">Retained windows differ during this failed transition. Current scorelines are withheld; listed facts belong to each view’s own window.</p>' : ""}`;
+    `<button class="back-to-matches" data-back-to-matches>← Back to matches</button><div class="comparison-heading"><p class="eyebrow">Same publications. Different configured policies.</p><h2>${selected.home} <span>vs</span> ${selected.away}</h2><p>These are separate views of match-${Number(selected.id)}. The first-reported view is a policy comparison, not the current corrected score.</p></div><div class="policy-grid"><article class="policy corrected"><span class="policy-label">Corrected view</span><strong class="policy-score">${data.score}</strong><code>latestFactRevision</code><p>Applies accepted revisions and withdrawals.</p><ul>${data.goals.length ? data.goals.map((goal) => `<li>${goal.scorer} · ${goal.minute}</li>`).join("") : "<li>No active goals in this window</li>"}</ul></article><article class="policy original"><span class="policy-label">First-reported view</span><strong class="policy-score">${data.original}</strong><code>firstFact</code><p>Retains the first accepted create for each fact.</p><ul>${data.originalGoals.length ? data.originalGoals.map((goal) => `<li>${goal}</li>`).join("") : "<li>No active goals in this window</li>"}</ul></article></div><p class="comparison-foot">${data.explanation}</p>${selected.fixture === "transition" ? '<p class="gap-note">Retained windows differ during this failed transition. Current scorelines are withheld; listed facts belong to each view’s own window.</p>' : ""}`;
 }
 
 function render() {
+  const focusedMatch = document.activeElement?.dataset.match;
   renderMatches();
   renderDetail();
   renderComparison();
@@ -65,6 +66,18 @@ function render() {
   byId("scoreboard-note").hidden = view !== "scoreboard";
   byId("comparison").hidden = view !== "comparison";
   byId("connection").hidden = !disconnected;
+  for (const id of ["match-detail", "comparison"]) {
+    byId(id).tabIndex = -1;
+    byId(id).setAttribute(
+      "aria-label",
+      `${selected.home} versus ${selected.away} ${id === "comparison" ? "policy comparison" : "details"}`,
+    );
+  }
+  if (focusedMatch) {
+    byId("matches")
+      .querySelector(`[data-match="${focusedMatch}"]`)
+      ?.focus({ preventScroll: true });
+  }
   byId("fixture").value = disconnected ? "disconnected" : selected.fixture;
   document
     .querySelectorAll("[data-view]")
@@ -110,10 +123,16 @@ byId("matches").addEventListener("click", (event) => {
   selected = matches.find((match) => match.id === card.dataset.match);
   render();
   if (matchMedia("(max-width: 650px)").matches && view !== "scoreboard") {
-    byId(
-      view === "comparison" ? "comparison" : "match-detail",
-    ).scrollIntoView();
+    const detail = byId(view === "comparison" ? "comparison" : "match-detail");
+    detail.focus({ preventScroll: true });
+    detail.scrollIntoView();
   }
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-back-to-matches]")) return;
+  const card = byId("matches").querySelector(`[data-match="${selected.id}"]`);
+  card.focus({ preventScroll: true });
+  card.scrollIntoView({ block: "center" });
 });
 document.querySelectorAll("[data-view]").forEach((button) =>
   button.addEventListener("click", () => {

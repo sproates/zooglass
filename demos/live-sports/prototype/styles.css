@@ -412,7 +412,7 @@ h1 {
 }
 .odds {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 25px 0 15px;
 }
@@ -854,5 +854,28 @@ footer {
   }
   .scoreboard-note {
     padding: 18px;
+  }
+}
+
+.market-state.suspended {
+  color: var(--amber);
+  background: #453d2d;
+}
+.market-state.waiting {
+  color: var(--muted);
+  background: #22343c;
+}
+.back-to-matches {
+  display: none;
+}
+@media (max-width: 900px) {
+  #board-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .back-to-matches {
+    display: inline-block;
+    margin-bottom: 18px;
   }
 }

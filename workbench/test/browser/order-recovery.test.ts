@@ -6,6 +6,8 @@ import { recoveryWitness } from "../../src/demos/orders/recovery.js";
 import { createCheckpointController } from "../../src/control/prepared-checkpoints.js";
 import type { ZooGlassSession } from "../../src/service/zooglass-session.js";
 
+// Include JVM startup in the test budget; each reset case starts up to three
+// generations. Lifecycle probes need only one retained publication, not a cycle.
 for (const [stage, action] of [
   ["armed", "reset"],
   ["baseline", "reset"],
@@ -13,8 +15,8 @@ for (const [stage, action] of [
 ] as const) {
   test(
     `${action} cancels recovery waiting for ${stage} and cleans the store`,
-    { timeout: 25000 },
-    async () => {
+    { timeout: 45000 },
+    async (t) => {
       let reached!: () => void;
       const waiting = new Promise<void>((resolve) => {
         reached = resolve;
@@ -27,7 +29,7 @@ for (const [stage, action] of [
             id: "recovery",
             label: "Recovery",
             async execute(run: Awaited<ReturnType<typeof openOrderRun>>) {
-              await run.advance(35);
+              await run.advance(0);
               await run.restart();
             },
           },
@@ -67,6 +69,13 @@ for (const [stage, action] of [
         () => {},
         0,
       );
+      t.signal.addEventListener(
+        "abort",
+        () => {
+          void controller.close().catch(() => {});
+        },
+        { once: true },
+      );
       try {
         await controller.reset();
         const oldBase = original!.baseUrl;
@@ -91,11 +100,11 @@ for (const [stage, action] of [
 
 test(
   "unexpected service loss fails only its run; Quit removes both stores",
-  { timeout: 20000 },
-  async () => {
+  { timeout: 40000 },
+  async (t) => {
     let service: ZooGlassSession | undefined;
     const options = {
-      signal: new AbortController().signal,
+      signal: t.signal,
       route() {},
       notice() {},
       witness: recoveryWitness(new Set()),
@@ -130,11 +139,11 @@ test(
 
 test(
   "failed replacement startup can be closed without retaining its store",
-  { timeout: 20000 },
-  async () => {
+  { timeout: 40000 },
+  async (t) => {
     let generations = 0;
     const run = await openOrderRun({
-      signal: new AbortController().signal,
+      signal: t.signal,
       route() {},
       notice() {},
       witness: {
@@ -149,7 +158,7 @@ test(
       },
     });
     try {
-      await run.advance(35);
+      await run.advance(0);
       await assert.rejects(run.restart(), /Replacement initialization failed/);
     } finally {
       await run.close();

@@ -25,10 +25,12 @@ function deliveries(step: OrderStep) {
 
 test(
   "interactive controls check scenes, pause in-flight freshness, finish, and reset the stable page",
-  { timeout: 65000 },
-  async () => {
+  // Four JVM starts plus real freshness expiry are included in this budget.
+  { timeout: 90000 },
+  async (t) => {
     const delivered: unknown[] = [];
     const demo = await startInteractiveOrders({
+      signal: t.signal,
       delayBefore: 10,
       onStep: (step) => {
         delivered.push(deliveries(step));
@@ -185,10 +187,11 @@ test(
 
 test(
   "Reset cancels a freshness checkpoint, clears failures and retires old callbacks",
-  { timeout: 30000 },
-  async () => {
+  { timeout: 45000 },
+  async (t) => {
     let fail = true;
     const demo = await startInteractiveOrders({
+      signal: t.signal,
       delayBefore: 0,
       onStep: (step) => {
         if (fail && step.tick === 2)
@@ -283,9 +286,9 @@ for (const action of ["pause", "reset"] as const) {
 for (const engine of [firefox, webkit]) {
   test(
     `${engine.name()}: interactive controls on a phone retain the page across Reset`,
-    { timeout: 25000 },
-    async () => {
-      const demo = await startInteractiveOrders();
+    { timeout: 40000 },
+    async (t) => {
+      const demo = await startInteractiveOrders({ signal: t.signal });
       let browser: Browser | undefined;
       try {
         browser = await engine.launch();
@@ -350,8 +353,8 @@ for (const engine of [firefox, webkit]) {
 test(
   "Reset startup failure stays visible and can be retried from the browser",
   { timeout: 40000 },
-  async () => {
-    const demo = await startInteractiveOrders();
+  async (t) => {
+    const demo = await startInteractiveOrders({ signal: t.signal });
     let browser: Browser | undefined;
     const javaHome = process.env.JAVA_HOME;
     try {

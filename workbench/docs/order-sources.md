@@ -120,7 +120,6 @@ the final developer-value comparison are subsequent slices. This foundation
 covers the source-side scenes from Partial order through Unknown relationship
 in the [design's scene table](../../docs/plans/order-tracker.md#scenes-and-expected-results).
 
-
 The [continuous Order browser](../../demos/order-tracker/README.md) consumes these
 views directly. Its separate notice feed reports producer steps; snapshot state
 is never derived from those notices. Six product names are presentation data in

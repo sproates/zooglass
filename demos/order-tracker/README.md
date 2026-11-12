@@ -144,13 +144,13 @@ interactive completion and Reset.
 
 ## Source layout
 
-| File | Responsibility |
-| --- | --- |
-| `prototype/index.html` | Page landmarks, view navigation and review controls |
-| `prototype/styles.css` | Desktop and responsive presentation |
-| `prototype/fixtures.js` | Six synthetic orders and representative display states |
-| `prototype.test.mjs` | Browser regression checks against a temporary static server |
-| `prototype/app.js` | Imports fixtures, renders the views and handles prototype interactions |
+| File                    | Responsibility                                                         |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `prototype/index.html`  | Page landmarks, view navigation and review controls                    |
+| `prototype/styles.css`  | Desktop and responsive presentation                                    |
+| `prototype/fixtures.js` | Six synthetic orders and representative display states                 |
+| `prototype.test.mjs`    | Browser regression checks against a temporary static server            |
+| `prototype/app.js`      | Imports fixtures, renders the views and handles prototype interactions |
 
 `index.html` loads the stylesheet and app module; `app.js` imports `fixtures.js`.
 There is no event reducer, network client, persistence or production playback

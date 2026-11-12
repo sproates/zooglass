@@ -101,6 +101,8 @@ jobs:
       - run: npm ci
       - name: Build ZooGlass once before service tests
         run: npm run prepare:service
+      - name: Align container home ownership for Firefox
+        run: chown "$(id -u):$(id -g)" "$HOME"
       - run: npm run test:browser:coverage
       - run: npm run test:resources
       - uses: actions/upload-artifact@v6

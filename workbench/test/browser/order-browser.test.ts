@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chromium, firefox, webkit, type Page } from "playwright";
+import { chromium, firefox, webkit, type Browser, type Page } from "playwright";
 import { startOrderBrowser } from "../../src/demos/orders/browser.js";
 
 async function observe(page: Page) {
@@ -46,8 +46,9 @@ test(
         });
       },
     });
-    const browser = await chromium.launch();
+    let browser: Browser | undefined;
     try {
+      browser = await chromium.launch();
       const page = await browser.newPage({
         viewport: { width: 1440, height: 1000 },
       });
@@ -184,8 +185,11 @@ test(
     } finally {
       controller.abort();
       release();
-      await browser.close();
-      await demo.close();
+      try {
+        await browser?.close();
+      } finally {
+        await demo.close();
+      }
     }
     await assert.rejects(fetch(demo.origin));
     await assert.rejects(fetch(`${demo.baseUrl}/actuator/health`));
@@ -198,8 +202,9 @@ for (const engine of [chromium, firefox, webkit]) {
     { timeout: 40_000 },
     async () => {
       const demo = await startOrderBrowser({ tickMs: 15, cycles: 1 });
-      const browser = await engine.launch();
+      let browser: Browser | undefined;
       try {
+        browser = await engine.launch();
         await demo.done;
         const page = await browser.newPage({
           viewport: { width: 390, height: 844 },
@@ -263,8 +268,11 @@ for (const engine of [chromium, firefox, webkit]) {
         );
         await failed.close();
       } finally {
-        await browser.close();
-        await demo.close();
+        try {
+          await browser?.close();
+        } finally {
+          await demo.close();
+        }
       }
     },
   );

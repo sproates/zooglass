@@ -55,6 +55,8 @@ Reset keeps the URL and page open, clears the old snapshots and starts a new
 service, SQLite store and source identities. The backup-first courier and missing
 payment scenes therefore repeat faithfully. Reset and Quit cancel pending waits
 and await cleanup; a failed check is shown and does not advance the cursor.
+If a replacement service cannot start, the page shows the failure and keeps Reset
+available to try again after the startup problem is resolved.
 
 Use the page buttons or terminal `step`, `play`, `pause`, `reset`, `help` and `quit`
 (`q` also quits). All viewers share the same walkthrough controls. This is a

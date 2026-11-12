@@ -225,57 +225,60 @@ test(
   },
 );
 
-test(
-  "Pause finishes a source-reconnect checkpoint; Reset and Quit abort its wait",
-  { timeout: 50000 },
-  async () => {
-    let reached = false;
-    let release = () => {};
-    const demo = await startInteractiveOrders({
-      delayBefore: 0,
-      onStep: async (step, signal) => {
-        if (step.tick !== 31) return;
-        reached = true;
-        await new Promise<void>((resolve, reject) => {
-          const abort = () => reject(signal.reason);
-          signal.addEventListener("abort", abort, { once: true });
-          release = () => {
-            signal.removeEventListener("abort", abort);
-            resolve();
-          };
-        });
-      },
-    });
-    try {
-      await demo.command("play");
-      await until(() => reached);
-      const pause = demo.command("pause");
-      assert.equal(demo.state.phase, "stepping");
-      assert.equal(demo.state.playing, false);
-      release();
-      await pause;
-      assert.equal(demo.state.completed, 13);
-      // A fresh run reaches the same real reconnect, then Reset cancels it.
-      reached = false;
-      await demo.command("reset");
-      await demo.command("play");
-      await until(() => reached);
-      await demo.command("reset");
-      assert.equal(demo.state.completed, 0);
-      assert.equal(demo.state.phase, "ready");
-      // Quit during a freshness wait also retires its pending checkpoint.
-      for (let i = 0; i < 10; i++) await demo.command("step");
-      const step = demo.command("step");
-      const rejected = assert.rejects(step);
-      await demo.close();
-      await rejected;
-      assert.equal(demo.state.phase, "closed");
-    } finally {
-      release();
-      await demo.close();
-    }
-  },
-);
+// Each case includes a real 15-second freshness wait before reconnect. Keep
+// separate budgets without repeating the same service startups or timer waits.
+for (const action of ["pause", "reset"] as const) {
+  test(
+    `${action} during source reconnect${action === "reset" ? "; Quit during freshness" : " finishes the checkpoint"}`,
+    { timeout: 50000 },
+    async (t) => {
+      let reached = false;
+      let release = () => {};
+      const demo = await startInteractiveOrders({
+        signal: t.signal,
+        delayBefore: 0,
+        onStep: async (step, signal) => {
+          if (step.tick !== 31) return;
+          reached = true;
+          await new Promise<void>((resolve, reject) => {
+            const abort = () => reject(signal.reason);
+            signal.addEventListener("abort", abort, { once: true });
+            release = () => {
+              signal.removeEventListener("abort", abort);
+              resolve();
+            };
+          });
+        },
+      });
+      try {
+        await demo.command("play");
+        await until(() => reached);
+        if (action === "pause") {
+          const pause = demo.command("pause");
+          assert.equal(demo.state.phase, "stepping");
+          assert.equal(demo.state.playing, false);
+          release();
+          await pause;
+          assert.equal(demo.state.completed, 13);
+        } else {
+          await demo.command("reset");
+          assert.equal(demo.state.completed, 0);
+          assert.equal(demo.state.phase, "ready");
+          // Quit during a freshness wait also retires its pending checkpoint.
+          for (let i = 0; i < 10; i++) await demo.command("step");
+          const step = demo.command("step");
+          const rejected = assert.rejects(step);
+          await demo.close();
+          await rejected;
+          assert.equal(demo.state.phase, "closed");
+        }
+      } finally {
+        release();
+        await demo.close();
+      }
+    },
+  );
+}
 
 for (const engine of [firefox, webkit]) {
   test(
@@ -343,3 +346,57 @@ for (const engine of [firefox, webkit]) {
     },
   );
 }
+
+test(
+  "Reset startup failure stays visible and can be retried from the browser",
+  { timeout: 40000 },
+  async () => {
+    const demo = await startInteractiveOrders();
+    let browser: Browser | undefined;
+    const javaHome = process.env.JAVA_HOME;
+    try {
+      browser = await chromium.launch();
+      const page = await browser.newPage();
+      await page.goto(demo.origin);
+      await page.locator("#step").click();
+      await until(() => demo.state.completed === 1);
+      try {
+        // A file cannot contain bin/java: fail only the replacement JVM startup.
+        process.env.JAVA_HOME = process.execPath;
+        await assert.rejects(demo.command("reset"), /spawn/);
+      } finally {
+        if (javaHome === undefined) delete process.env.JAVA_HOME;
+        else process.env.JAVA_HOME = javaHome;
+      }
+      assert.equal(demo.state.phase, "failed");
+      await page.waitForFunction(
+        () =>
+          document
+            .getElementById("control-detail")
+            ?.textContent?.includes("Reset failed"),
+        undefined,
+        { timeout: 2000 },
+      );
+      assert.equal(await page.locator("#reset").isEnabled(), true);
+      await page.locator("#reset").click();
+      await page.waitForFunction(
+        () =>
+          document
+            .getElementById("checkpoint-label")
+            ?.textContent?.startsWith("0/17") &&
+          !(document.getElementById("step") as HTMLButtonElement).disabled,
+      );
+      await page.locator("#step").click();
+      await until(() => demo.state.completed === 1);
+      assert.equal(page.url(), `${demo.origin}/`);
+    } finally {
+      if (javaHome === undefined) delete process.env.JAVA_HOME;
+      else process.env.JAVA_HOME = javaHome;
+      try {
+        await browser?.close();
+      } finally {
+        await demo.close();
+      }
+    }
+  },
+);

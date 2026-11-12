@@ -108,7 +108,6 @@ export async function startInteractiveOrders(options: InteractiveOptions = {}) {
           signal: service.signal,
           baseUrl: service.baseUrl,
           close,
-          publish,
           async advance(through: number) {
             while (tick <= through) {
               service.signal.throwIfAborted();
@@ -127,6 +126,7 @@ export async function startInteractiveOrders(options: InteractiveOptions = {}) {
         throw error;
       }
     },
+    publish,
     options.delayBefore,
   );
   const actions = ["step", "play", "pause", "reset"] as const;

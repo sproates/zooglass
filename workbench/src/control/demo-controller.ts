@@ -49,7 +49,13 @@ export function createPlaybackController<Entry>(
   {
     setup,
     steps,
-  }: { setup: Entry[]; steps: { entries: Entry[]; delayBefore: number }[] },
+    publish,
+  }: {
+    setup: Entry[];
+    steps: { entries: Entry[]; delayBefore: number }[];
+    /** A stable host can observe startup/failure while no run is available. */
+    publish?: (state: DemoState) => void;
+  },
   openRun: (signal: AbortSignal) => Promise<DemoRun<Entry>>,
   skipExploratory: (entry: Entry) => boolean = () => false,
 ) {
@@ -89,7 +95,8 @@ export function createPlaybackController<Entry>(
       phase,
       detail: state.exploratory ? `Exploratory run · ${detail}` : detail,
     };
-    run?.publish(state);
+    if (publish) publish(state);
+    else run?.publish(state);
   };
 
   const reason = (error: unknown) =>

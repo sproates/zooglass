@@ -445,7 +445,9 @@ flowchart TB
 store, source sockets and view route. Same-origin controls are shared by up to 16
 viewers; stale run-generation commands are rejected. Closing the terminal owner
 retires all resources. `checkpoints.ts` owns domain expectations; shared playback
-owns the cursor and cancellation, with its vehicle trace adapter preserved.
+owns the cursor and cancellation, with its vehicle trace adapter preserved. The
+prepared adapter publishes state through the stable host even between runs, so a
+failed replacement startup remains visible and Reset can be retried.
 
 ```mermaid
 flowchart TB
@@ -453,6 +455,7 @@ flowchart TB
   interactive -->|domain assertions| checkpoints["demos/orders/checkpoints.ts"]
   interactive -->|prepared executions| prepared["control/prepared-checkpoints.ts"]
   prepared -->|reuses cursor and run lifecycle| controller["control/demo-controller.ts"]
+  controller -->|startup and run state through stable publisher| interactive
   interactive -->|same first-cycle actions| timeline["demos/orders/timeline.ts"]
   interactive -->|shared source delivery| sources["demos/orders/source-session.ts"]
   interactive -->|fresh service and store per Reset| service["service/zooglass-session.ts"]

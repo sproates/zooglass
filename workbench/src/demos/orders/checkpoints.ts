@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
-import type { DemoState } from "../../control/demo-controller.js";
 import type { PreparedCheckpoint } from "../../control/prepared-checkpoints.js";
 
 export interface OrderCheckpointRun {
@@ -8,7 +7,6 @@ export interface OrderCheckpointRun {
   baseUrl: string;
   advance(through: number): Promise<void>;
   close(): Promise<void>;
-  publish(state: DemoState): void;
 }
 interface Snapshot {
   data: Record<string, { status: string; cycle: number }>;

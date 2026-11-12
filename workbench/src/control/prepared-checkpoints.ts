@@ -1,4 +1,8 @@
-import { createPlaybackController, type DemoRun } from "./demo-controller.js";
+import {
+  createPlaybackController,
+  type DemoRun,
+  type DemoState,
+} from "./demo-controller.js";
 
 export interface PreparedCheckpoint<Run> {
   id: string;
@@ -8,15 +12,17 @@ export interface PreparedCheckpoint<Run> {
 
 /** Domain checks plug into the existing Step/Play/Pause/Reset lifecycle. */
 export function createCheckpointController<
-  Run extends Omit<DemoRun, "execute">,
+  Run extends Omit<DemoRun, "execute" | "publish">,
 >(
   checkpoints: PreparedCheckpoint<Run>[],
   openRun: (signal: AbortSignal) => Promise<Run>,
+  publish: (state: DemoState) => void,
   delayBefore = 1000,
 ) {
   return createPlaybackController(
     {
       setup: [],
+      publish,
       steps: checkpoints.map((checkpoint) => ({
         entries: [checkpoint],
         delayBefore,
@@ -27,7 +33,7 @@ export function createCheckpointController<
       return {
         signal: run.signal,
         close: () => run.close(),
-        publish: (state) => run.publish(state),
+        publish,
         execute: (checkpoint) => checkpoint.execute(run, signal),
       };
     },

@@ -84,8 +84,8 @@ none needs to expose every setting or show every failure at once.
 | Capability | Primary demo and observable scene | Existing starting point |
 | --- | --- | --- |
 | Ordering, duplicates, shared source with different strategies | Vehicles: current map and received journey react differently to delayed 41. | Latest/history fixtures already exist; ensure the presentation makes the contrast explicit. |
-| Partial inputs and distinct source rates | Orders: accepted and paid while inventory is unknown; later inventory fills its own field. | Merged order source slice. |
-| Identity mapping and source conflict | Orders: distinct payment/reservation IDs map to an order; preferred courier status wins despite a later backup report. | Extend the producer fixture once the service contract exists. |
+| Partial inputs and distinct source rates | Orders: accepted and paid while inventory is unknown; later inventory fills its own field. | Configured source slice; continuous Order browser shows partial and retained fields. |
+| Identity mapping and source conflict | Orders: distinct payment/reservation IDs map to an order; preferred courier status wins despite a later backup report. | Configured five-source producer and continuous Order browser; the details show selected provenance. |
 | Freshness and gap policy | Vehicles: reporting silence versus late/missing position with a declared source-progress promise. | Existing continuous faults supply useful scenes; add genuine service progress metadata. |
 | Corrections and derived views | Sports: disallowed goal revises the score and retained event history; old revision redelivery has no effect. | Existing replacement fixtures; add retained-fact scenario for the new contract. |
 | Service restart and duplicate recovery | Orders: kill and restart ZooGlass, resend unacknowledged publication, observe restored state and one effect. | Workbench drives restart; the browser displays recovered snapshots. |

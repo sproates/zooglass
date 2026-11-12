@@ -72,7 +72,19 @@ export function orderEvent(
       observedAt,
       status,
       ...(sourceId === "orders"
-        ? { reference: `DEMO-${cycle + 1}-${index + 1}`, items: ["Desk lamp"] }
+        ? {
+            reference: `DEMO-${cycle + 1}-${index + 1}`,
+            items: [
+              [
+                "Arc desk lamp",
+                "Studio headphones",
+                "Pour-over set",
+                "Everyday backpack",
+                "Reading light",
+                "Desk organiser",
+              ][index],
+            ],
+          }
         : {}),
     },
   };

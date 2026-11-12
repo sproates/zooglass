@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 9 November 2026.
+Last reviewed: 12 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -19,8 +19,10 @@ applications:
 
 Each will have an interactive scenario and a continuously running mode. Together
 they should show what ZooGlass makes easier and which domain rules still belong
-in the application. The order-source foundation is already available; the browser
-experiences follow the service capabilities they demonstrate.
+in the application. The Order source foundation and accepted static prototypes
+are delivered on the shared delivery branch. The continuous Order browser slice
+is prepared for review; interactive Order and live Sports integration remain.
+See the [Order guide](demos/order-tracker/README.md) for its available command.
 
 See the [demo design](docs/plans/order-and-sports-demos.md) and
 [capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage).

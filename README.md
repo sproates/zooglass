@@ -43,6 +43,10 @@ playback controls. It was delivered in [PR #93](https://github.com/sproates/zoog
 implemented service responsibilities with an equally scoped custom service, and
 explains what developers still need to build.
 
+The [continuous Order desk](demos/order-tracker/README.md) shows real multi-source
+views, waiting/stale/gap labels and reconnect baselines using the accepted design.
+Its interactive walkthrough remains planned.
+
 The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 
 The main components live at the repository root:

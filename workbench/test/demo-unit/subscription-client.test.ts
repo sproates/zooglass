@@ -395,3 +395,48 @@ for (const action of ["close", "disconnect", "fail"] as const) {
     }
   });
 }
+
+test("full snapshot binding and observations retain status-only metadata alongside legacy data", async () => {
+  const snapshots: unknown[] = [];
+  const f = await fixture({ onSnapshot: (value) => snapshots.push(value) });
+  const socket = await f.connect();
+  await f.subscribe(socket);
+  const full = {
+    ...snapshot,
+    version: 8,
+    provenance: {
+      quantity: {
+        sourceId: "inventory",
+        epoch: "run",
+        sourceEntityId: "stock-2",
+      },
+    },
+    publicationSequences: { quantity: [3] },
+    status: {
+      publication: "ready",
+      fields: { quantity: { freshness: "fresh", receivedAtMillis: 100 } },
+      inputs: {},
+    },
+  };
+  socket.emit("message", full);
+  socket.emit("message", {
+    ...full,
+    version: 9,
+    status: {
+      ...full.status,
+      fields: { quantity: { freshness: "stale", receivedAtMillis: 100 } },
+    },
+  });
+  assert.equal(snapshots.length, 2);
+  const last = JSON.parse(JSON.stringify(snapshots.at(-1)));
+  assert.deepEqual(last.data, { quantity: 12 });
+  assert.deepEqual(last.provenance, full.provenance);
+  assert.deepEqual(last.publicationSequences, full.publicationSequences);
+  assert.equal(last.status.fields.quantity.freshness, "stale");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(f.observations.at(-1)!.status)),
+    last.status,
+  );
+  assert.equal(f.calls.filter((call) => call[0] === "view").length, 2);
+  f.client.close();
+});

@@ -161,11 +161,14 @@ export function createRecoveringClient(
             binding.onSubscription(viewId, entityId, state);
           }
         },
+        onSnapshot(snapshot) {
+          if (identity === instance) binding.onSnapshot?.(snapshot);
+        },
         onView(viewId, entityId, data) {
           if (identity !== instance) {
             return;
           }
-          binding.onView(viewId, entityId, data);
+          binding.onView?.(viewId, entityId, data);
           awaiting.delete(key(viewId, entityId));
           if (recovering && awaiting.size === 0) {
             snapshotsReceived();

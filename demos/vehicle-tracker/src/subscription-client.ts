@@ -1,3 +1,39 @@
+/** Full runtime snapshot. Consumers replace state, including status-only updates. */
+export interface ViewSnapshot {
+  viewId: string;
+  entityId: string;
+  version: number;
+  data: Record<string, unknown>;
+  provenance: Record<
+    string,
+    { sourceId: string; epoch: string; sourceEntityId: string }
+  >;
+  publicationSequences: Record<string, number[]>;
+  status: {
+    publication: string;
+    missingFields: string[];
+    missingRequiredFields: string[];
+    fields: Record<
+      string,
+      { freshness: string; receivedAtMillis: number | null; inputs: string[] }
+    >;
+    inputs: Record<
+      string,
+      {
+        state: string;
+        mode: string;
+        epoch: string;
+        sourceEntityId: string | null;
+        observedThrough: number | null;
+        watermarkThrough: number | null;
+        completeThrough: number | null;
+        completeness: string;
+        missingRanges: { from: number; through: number; status: string }[];
+      }
+    >;
+  };
+}
+
 interface PendingAcknowledgement {
   action: string;
   viewId: string;
@@ -31,7 +67,9 @@ export interface ClientBinding {
     entityId: string,
     state: "pending" | "subscribed" | "unsubscribed",
   ): void;
-  onView(viewId: string, entityId: string, data: unknown): void;
+  /** Compatibility callback for existing value-only vehicle bindings. */
+  onView?(viewId: string, entityId: string, data: unknown): void;
+  onSnapshot?(snapshot: ViewSnapshot): void;
 }
 
 /** Owns one socket, its generations, subscriptions and pending acknowledgement. */
@@ -164,11 +202,19 @@ export function createSubscriptionClient(
             message.type === "view-update" &&
             subscriptions.has(pair)
           ) {
-            binding.onView(message.viewId, message.entityId, message.data);
-            observe("view-update", {
+            const snapshot: ViewSnapshot = {
               viewId: message.viewId,
               entityId: message.entityId,
+              version: message.version,
               data: message.data,
+              status: message.status,
+              provenance: message.provenance,
+              publicationSequences: message.publicationSequences,
+            };
+            binding.onSnapshot?.(snapshot);
+            binding.onView?.(message.viewId, message.entityId, message.data);
+            observe("view-update", {
+              ...snapshot,
             });
           } else {
             throw new Error("Unexpected ZooGlass message.");

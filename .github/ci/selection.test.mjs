@@ -175,3 +175,29 @@ test("fact strategies and delivery queues select their service consumers", () =>
     "browser",
   ]);
 });
+
+test("Order UI and launcher retain consumer and lifecycle checks", () => {
+  assert.deepEqual(selected(["demos/order-tracker/src/view.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "engines",
+  ]);
+  assert.deepEqual(selected(["workbench/src/demos/orders/browser.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "native",
+    "engines",
+  ]);
+  assert.deepEqual(selected(["workbench/src/cli/demo.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "native",
+    "engines",
+  ]);
+});

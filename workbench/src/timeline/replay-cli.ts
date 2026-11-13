@@ -8,5 +8,5 @@ if (!input || !output)
 if (resolve(input) === resolve(output))
   throw new Error("Replay output must not overwrite its input");
 const report = await replayDocument(resolve(input), { jar: resolve(jar) });
-await writeFile(output, JSON.stringify(report) + "\n");
+await writeFile(output, JSON.stringify(report) + "\n", { flag: "wx" });
 if (report.status !== "verified") process.exitCode = 1;

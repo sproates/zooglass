@@ -60,8 +60,8 @@ new run with the current executor instead of relabelling an old artifact.
 Replay exits zero only for `verified`, even when the faithfully reproduced scenario
 failed; read `recordedOutcome` before treating it as behavioural acceptance. Other
 statuses and admission errors exit nonzero. The output includes the fresh run;
-diagnostic error wording is not part of semantic equality. Preserve the source run
-when choosing the report path.
+diagnostic error wording is not part of semantic equality. The report path must be a new file: exclusive creation refuses existing files,
+including symlink or hardlink aliases of the saved evidence.
 
 Focused evidence includes fresh delayed/paused JVM execution after original files
 are removed, exact large payload numbers, reproduced assertion/budget failures,

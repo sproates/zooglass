@@ -207,3 +207,36 @@ test("replay CLI writes a verified report and preserves the saved run", async ()
     await saved.close();
   }
 });
+
+test("replay CLI refuses symlink and hardlink outputs that alias saved evidence", async () => {
+  const saved = await baseline();
+  try {
+    const { execFileSync } = await import("node:child_process");
+    const { symlink, link } = await import("node:fs/promises");
+    const original = await readFile(saved.path, "utf8");
+    for (const [name, create] of [
+      ["symlink", symlink],
+      ["hardlink", link],
+    ] as const) {
+      const output = saved.path + name;
+      await create(saved.path, output);
+      assert.throws(() =>
+        execFileSync(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "src/timeline/replay-cli.ts",
+            saved.path,
+            output,
+            jar,
+          ],
+          { stdio: "pipe" },
+        ),
+      );
+      assert.equal(await readFile(saved.path, "utf8"), original);
+    }
+  } finally {
+    await saved.close();
+  }
+});

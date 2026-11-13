@@ -57,7 +57,11 @@ public final class TimelineHost {
                         "storage",
                         List.of("memory"),
                         "protectedAccess",
-                        false));
+                        false,
+                        "configurationAdmission",
+                        1,
+                        "documentFormats",
+                        List.of()));
         var input = new DataInputStream(System.in);
         var host = new TimelineHost();
         while (true) {
@@ -98,6 +102,21 @@ public final class TimelineHost {
             throw new IllegalArgumentException("Initial elapsed time must be zero");
         String op = text(command, "op");
         validateFields(command, op);
+        if (op.equals("inspect-configuration")) {
+            if (runtime != null || at != 0)
+                throw new IllegalArgumentException(
+                        "Configuration admission requires an unstarted host");
+            var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+            return Map.of(
+                    "turnId", id,
+                    "runtimeGeneration", 1,
+                    "timeMs", at,
+                    "effects", List.of(),
+                    "pendingTasks", 0,
+                    "heldFrames", 0,
+                    "configuration",
+                    Map.of("contractVersion", config.contractVersion(), "storage", config.storage()));
+        }
         if ((runtime == null) != op.equals("initialize"))
             throw new IllegalArgumentException("Invalid lifecycle");
         turns.begin(at);
@@ -224,6 +243,7 @@ public final class TimelineHost {
         fields.addAll(
                 switch (op) {
                     case "initialize" -> Set.of("policy");
+                    case "inspect-configuration" -> Set.of("wire");
                     case "connect", "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");
                     case "release" -> Set.of("session", "fail");

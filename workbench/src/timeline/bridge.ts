@@ -20,6 +20,7 @@ export type Response = {
   effects: Effect[];
   pendingTasks: number;
   heldFrames: number;
+  configuration?: { contractVersion: number; storage: string };
 };
 const cap = 16 * 1024 * 1024;
 
@@ -33,6 +34,8 @@ export class Bridge {
   private commandActive = false;
   private failure?: Error;
   private turn = 0;
+  configurationAdmission = 0;
+  documentFormats: readonly string[] = [];
   private diagnostics = "";
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly exited: Promise<void>;
@@ -109,6 +112,19 @@ export class Bridge {
         handshake.frameCap !== cap
       ) {
         throw new Error("Unsupported or mismatched simulation artifact");
+      }
+      if (handshake.configurationAdmission !== undefined) {
+        if (
+          handshake.configurationAdmission !== 1 ||
+          !Array.isArray(handshake.documentFormats) ||
+          !handshake.documentFormats.every((value) => typeof value === "string")
+        ) {
+          throw new Error("Unsupported configuration admission protocol");
+        }
+        bridge.configurationAdmission = 1;
+        bridge.documentFormats = Object.freeze([
+          ...handshake.documentFormats,
+        ]) as readonly string[];
       }
       return { bridge, artifact };
     } catch (error) {

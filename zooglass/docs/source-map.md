@@ -486,6 +486,8 @@ Replay and authorisation remain outside the implemented contracts.
 flowchart LR
   host["simulation/TimelineHost.java"] -->|owns one command turn| turn["simulation/TurnContext.java"]
   host -->|fixed memory composition| runtime["runtime/TimelineRuntime.java"]
+  host -->|inspect configuration without starting runtime| runtime
+  runtime -->|shared production decoder and validation| configuration["runtime/RuntimeConfiguration.java"]
   runtime -->|clock and alarm injection| coordinator["runtime/ViewCoordinator.java"]
   host -->|real source handler| ingress["runtime/EventIngress.java"]
   host -->|real subscription handler| subscriptions["delivery/SnapshotSubscriptions.java"]

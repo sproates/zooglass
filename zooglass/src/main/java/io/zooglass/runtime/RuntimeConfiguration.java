@@ -345,6 +345,13 @@ public record RuntimeConfiguration(
         return mapper.treeToValue(document, RuntimeConfiguration.class);
     }
 
+    static RuntimeConfiguration parseConfiguration(String json) {
+        var mapper = configurationMapper();
+        var config = decode(mapper, mapper.readTree(json));
+        config.validate();
+        return config;
+    }
+
     static View parseView(String json) {
         var mapper = configurationMapper();
         var document = mapper.readTree(json);

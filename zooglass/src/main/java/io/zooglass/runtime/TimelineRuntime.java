@@ -9,6 +9,11 @@ import java.util.Set;
 public final class TimelineRuntime {
     private TimelineRuntime() {}
 
+    /** Validate through the production configuration decoder without starting a runtime. */
+    public static RuntimeConfiguration inspectConfiguration(String json) {
+        return RuntimeConfiguration.parseConfiguration(json);
+    }
+
     public static ViewCoordinator create(RuntimeConfiguration config, TurnContext turns) {
         turns.check();
         if (!config.storage().equals("memory"))

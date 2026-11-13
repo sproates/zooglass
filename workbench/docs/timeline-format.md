@@ -61,7 +61,7 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
   an explicit disconnect is required before reconnect or further inputs. This
   conservative rule does not assume asynchronous write failure has already closed
   the transport. Actual runtime-induced closes, publication acceptance and held
-  frames still require checks by a future executor; admission does not predict them.
+  frames are checked during execution; admission does not predict them.
 - `assertions` have unique IDs shared with actions, times and actor references.
   `client-frames` and `source-receipts` compare the **entire ordered cumulative
   list** observed by that actor through the settled timestamp against `expected`.
@@ -73,8 +73,8 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
 - `limits` bounds turns, rounds, queued events, pending messages and trace bytes.
   Parser ceilings are 100,000 turns, 1,000 rounds, 10,000 queued events/messages,
   and 16 MiB trace data. Documents allow at most 100 actors/links and 1,000 each
-  of publications/actions/assertions. These are admission bounds; this slice does
-  not enforce runtime budgets because it does not run documents.
+  of publications/actions/assertions. These are syntax admission bounds; the
+  [executor](timeline-execution.md) enforces narrower runtime budgets.
 - `end` permits or forbids future tasks and requires zero messages and held frames.
   All work due at or before the horizon must have settled before final success.
 
@@ -107,21 +107,29 @@ private proof host's current Java encoding is not claimed as this new trace form
 
 A semantic JSONL artifact starts with `format: timeline-trace/v1`,
 `scenarioSha256` (hash of the canonical scenario UTF-8 bytes) and `untilMs`.
+The executor also emits `execution` containing `profile: memory-arrival-v1`,
+`artifactSha256`, `configurationSha256` and `workbenchSha256`. Older inspected
+contract examples may omit this header field; it is not a full environment manifest.
 Each following event has `kind`, unique `eventId`, nullable `parentId`, a four-part
 `key`, `actor`, positive `runtimeGeneration`, nullable positive
-`connectionGeneration` and object `data`. Parents must precede children; agenda
+`connectionGeneration` and object `data`. Optional `causes` lists additional earlier
+event IDs, preserving scheduling or handoff ownership alongside the executing parent.
+Parents and causes must precede children; agenda
 keys cannot decrease. Multiple effects may share a turn key. Event kinds are
-`action`, `scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`,
-`frame` and `assertion`. Their `data` wrappers are closed schemas:
+`action`, `runtime-command`, `task-dispatched`, `connection-closed`, `handoff`,
+`scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`, `frame` and `assertion`. Their `data` wrappers are closed schemas:
 
-| Kind                        | Required data                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `action`                    | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                          |
-| `scheduled`                 | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon. |
-| `cancelled`                 | `taskId`.                                                                                                           |
-| `delivered`, `dropped`      | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.          |
-| `receipt`, `state`, `frame` | Full `envelope`, checked against the corresponding runtime message shape.                                           |
-| `assertion`                 | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                       |
+| Kind                           | Required data                                                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `action`                       | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                                    |
+| `scheduled`                    | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon.           |
+| `cancelled`, `task-dispatched` | `taskId`.                                                                                                                     |
+| `delivered`, `dropped`         | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.                    |
+| `receipt`, `state`, `frame`    | Full `envelope`, checked against the corresponding runtime message shape; optional `messageId` (emitted for receipts/frames). |
+| `runtime-command`              | `op` (`initialize-document`, `observe`, `shutdown`); initialization also requires `configurationSha256` and `epochMillis`.    |
+| `connection-closed`            | `code` (1000–4999).                                                                                                           |
+| `handoff`                      | `messageId` and complete client `envelope`.                                                                                   |
+| `assertion`                    | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                                 |
 
 Receipt envelopes retain status, reason, stream identity, sequence, version,
 changed views and complete target/field outcomes. Snapshot and client-view envelopes
@@ -140,13 +148,17 @@ The final `result` contains `outcome`, `eventCount`, `pendingFutureTasks`,
 results, count mismatches, forward parents, duplicate IDs, decreasing keys and
 passing results with held frames/messages or failed assertions are rejected. Structural validation
 alone cannot confirm horizon settlement, end-policy compliance, causal truth,
-observation authenticity or runtime capability support. Full manifests, executor
-emission, verification replay and diagnostic artifact handling remain later work.
+observation authenticity or runtime capability support. The executor emits these
+records during execution and preserves assertion/limit failure prefixes. An
+infrastructure failure returns an incomplete prefix without a result, deliberately
+rejected by complete-trace inspection. See [failure handling](timeline-execution.md).
+Full manifests and document verification replay remain later work.
 
 ## Honest legacy compatibility assessment
 
 Audit at POC base `a48a13c`: **19 JSON scenarios, 369 timeline entries, zero
-unchanged files executable through the controlled host.** These legacy files are
+unchanged files executable through the controlled host.** The table below records
+that dated audit, before the bounded executor. These legacy files are
 identical on the final demo main delivery. Generated demo schedules and browser
 UI scripts are outside this JSON-format census.
 
@@ -172,7 +184,7 @@ by a deliberately constructed test.
 
 Most domain data and publication/subscription intent can therefore be reused.
 That is **not** a supported percentage of scenarios. Every fixture still needs a
-configuration-capable host, explicit execution/observation semantics and new
+qualification against the bounded host, explicit execution/observation semantics and new
 independent expected results before deterministic compatibility can be claimed.
 Retain real-interface tests for browser recovery and production timing. An explicit
 legacy converter and representative demo parity remain later work; do not rename
@@ -191,14 +203,14 @@ matching domain outcomes does not imply their transport timing is identical.
 
 The intended support matrix keeps those distinctions explicit:
 
-| Format    | Mode          | Current support                                                            | Intended boundary                                                                    |
-| --------- | ------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Legacy    | Preview       | Existing `simulate` prints planned actions.                                | No service execution or behavioural pass.                                            |
-| Legacy    | Integration   | Existing `integrate` uses real service interfaces.                         | Retain real scheduling, sockets and browser-specific companions.                     |
-| Legacy    | Deterministic | Rejected; no implicit conversion.                                          | An explicit, reviewed conversion must resolve changed semantics first.               |
-| Versioned | Preview       | Syntax inspection only; no scheduled-plan renderer yet.                    | A future preview adapter can show the admitted plan without executing it.            |
-| Versioned | Integration   | Unsupported.                                                               | A qualified real-interface adapter can later provide domain-outcome parity evidence. |
-| Versioned | Deterministic | General documents are unsupported; only the separate fixed proofs execute. | Admit only the capabilities implemented and verified by the controlled executor.     |
+| Format    | Mode          | Current support                                                      | Intended boundary                                                                    |
+| --------- | ------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Legacy    | Preview       | Existing `simulate` prints planned actions.                          | No service execution or behavioural pass.                                            |
+| Legacy    | Integration   | Existing `integrate` uses real service interfaces.                   | Retain real scheduling, sockets and browser-specific companions.                     |
+| Legacy    | Deterministic | Rejected; no implicit conversion.                                    | An explicit, reviewed conversion must resolve changed semantics first.               |
+| Versioned | Preview       | Syntax inspection only; no scheduled-plan renderer yet.              | A future preview adapter can show the admitted plan without executing it.            |
+| Versioned | Integration   | Unsupported.                                                         | A qualified real-interface adapter can later provide domain-outcome parity evidence. |
+| Versioned | Deterministic | `timeline:execute` supports the bounded `memory-arrival-v1` profile. | Admit only the capabilities implemented and verified by the controlled executor.     |
 
 A common entry point should require a mode rather than infer execution semantics
 from the format. The existing commands can remain explicit aliases. Proposed

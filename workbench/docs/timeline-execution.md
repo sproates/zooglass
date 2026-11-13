@@ -96,3 +96,7 @@ part of planned persistence/restart work.
 Production `ViewCoordinator.apply()` calls `expire()` before applying a publication.
 That supports expiry-before-same-time-input in this model; retry-timeout-before-
 receipt remains a separate simulator convention.
+
+The [restart implementation design](../../docs/design/timeline-restart-boundary.md)
+sets out generation clocks and recovery gates. Current execution remains the
+single-generation memory profile.

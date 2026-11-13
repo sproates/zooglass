@@ -409,7 +409,10 @@ An in-memory restart loses state; SQLite retains committed state.
 For a literal acceptance case, use empty initial storage, one receipt-age field,
 zero-latency links and one publication with a 30 ms freshness threshold. Allow
 at least three source attempts: a 10 ms receipt timeout triggers an immediate retry;
-an unavailable attempt retries 30 ms later.
+an unavailable attempt retries 30 ms later. The v2 policy refinement makes these
+separate intervals explicit: `receiptTimeoutMs: 10`, `retryIntervalMs: 0`,
+`unavailableRetryIntervalMs: 30`, `maxAttempts: 3`. Existing v1 retry semantics
+remain unchanged; see the [restart implementation design](timeline-restart-boundary.md).
 
 | Time | Action and required observation |
 | --- | --- |
@@ -761,3 +764,7 @@ seam and the lossless trace encoding together. Those choices affect the claims
 we can make and the compatibility surface we will have to maintain. Accepting
 the design authorises a scoped implementation plan, not a claim that determinism
 has already been achieved.
+
+The [boundary and restart implementation design](timeline-restart-boundary.md)
+refines the next POC increments, packaging, clock continuity and recovery evidence.
+It describes planned work, not delivered restart support.

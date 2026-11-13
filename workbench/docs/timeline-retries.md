@@ -1,5 +1,8 @@
 # Bounded automatic source retries
 
+This guide describes v1 retries. V2 retains sent-attempt timing and adds an
+explicit [downtime retry policy](timeline-lifecycle.md#retry-policy).
+
 The document executor can own one source publication's receipt deadline and retries.
 It uses virtual time, sends the retained bytes to the real runtime, and reconnects
 through a fresh generation when a retry executes. It never constructs a successful

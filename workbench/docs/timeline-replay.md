@@ -18,7 +18,9 @@ files need not exist, and the saved configuration path is never opened.
 
 ## Matching boundary
 
-New execution outputs have `format: timeline-run/v1`. Replay requires a complete
+V1 execution outputs have `format: timeline-run/v1`;
+[v2 lifecycle](timeline-lifecycle.md) outputs use `timeline-run/v2` and matching
+scenario/trace/bundle versions. Replay requires a complete
 canonical trace ending in `passed`, `assertion-failed` or `limit-exceeded`. It checks
 the scenario hash, exact configuration hash, header/result consistency, prepared
 JAR hash and actual Workbench module hash. It also requires the recorded dependency
@@ -74,7 +76,7 @@ including symlink or hardlink aliases of the saved evidence.
 Focused evidence includes fresh delayed/paused JVM execution after original files
 are removed, exact large payload numbers, reproduced assertion/budget failures,
 changed-effect first divergence, corrupt/incomplete evidence and identity/environment
-rejection. General faults, SQLite/restart, artifact migration and cross-environment
+rejection. General faults, SQLite recovery, artifact migration and cross-environment
 qualification are outside this slice.
 
 [Run bundles](timeline-artifacts.md) add a complete file inventory and manifest

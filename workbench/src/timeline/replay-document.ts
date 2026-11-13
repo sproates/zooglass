@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { boundedFile, decode } from "./admission.js";
 import { parseTimelineDocument } from "./contract.js";
+import {
+  documentEvidenceVersions,
+  evidenceV1,
+  evidenceV2,
+} from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
@@ -35,7 +40,10 @@ export function parseReplay(raw: string) {
     ...(Object.hasOwn(saved, "diagnostics") ? ["diagnostics"] : []),
   ]);
   if (saved.diagnostics !== undefined) object(saved.diagnostics, "diagnostics");
-  choice(saved.format, "format", ["timeline-run/v1"]);
+  const format = choice(saved.format, "format", [
+    evidenceV1.run,
+    evidenceV2.run,
+  ]);
   const outcome = choice(saved.outcome, "outcome", [
     "passed",
     "assertion-failed",
@@ -43,6 +51,9 @@ export function parseReplay(raw: string) {
   ]);
   if (saved.message !== undefined) string(saved.message, "message");
   const scenario = parseTimelineDocument(string(saved.scenario, "scenario"));
+  const versions = documentEvidenceVersions(scenario.document.format);
+  if (format !== versions.run)
+    throw new Error("invalid-replay: run/scenario version mismatch");
   if (scenario.canonical !== saved.scenario)
     throw new Error("invalid-replay: noncanonical scenario");
   const wire = string(saved.configuration, "configuration");
@@ -50,11 +61,19 @@ export function parseReplay(raw: string) {
   if (object(scenario.document.runtime, "runtime").sha256 !== configurationHash)
     throw new Error("invalid-replay: configuration hash mismatch");
   const trace = parseTrace(string(saved.trace, "trace"));
+  if (trace.header.format !== versions.trace)
+    throw new Error("invalid-replay: run/trace version mismatch");
   if (trace.canonical !== saved.trace)
     throw new Error("invalid-replay: noncanonical trace");
   if (
     trace.header.scenarioSha256 !== sha(scenario.canonical) ||
     trace.header.untilMs !== integer(scenario.document.untilMs, "untilMs") ||
+    (trace.epochMillis !== undefined &&
+      trace.epochMillis !==
+        integer(
+          object(scenario.document.clock, "clock").epochMillis,
+          "epochMillis",
+        )) ||
     trace.outcome !== outcome
   )
     throw new Error("invalid-replay: scenario/result identity mismatch");
@@ -72,6 +91,7 @@ export function parseReplay(raw: string) {
     wire,
     configurationHash,
     execution,
+    versions,
     lines: trace.lines,
     outcome,
   };

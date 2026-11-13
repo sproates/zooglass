@@ -1,0 +1,299 @@
+import { type Json } from "./json.js";
+import { integer, invalid, text } from "./validation.js";
+
+type Event = {
+  kind: string;
+  id: string;
+  parent: string | null;
+  causes: string[];
+  actor: string;
+  timeMs: number;
+  runtimeGeneration: number | null;
+  connectionGeneration: number | null;
+  data: { [key: string]: Json };
+};
+
+const sessionKinds = new Set([
+  "frame",
+  "receipt",
+  "handoff",
+  "delivered",
+  "dropped",
+  "link-send",
+  "connection-closed",
+  "fault-decision",
+  "retry-lifecycle",
+]);
+
+/** Checks v2 runtime, connection and task identities in trace order. */
+export class TraceGenerations {
+  private generation = 0;
+  private active: number | null = null;
+  private epoch?: number;
+  private starting?: Event;
+  private stop?: Event;
+  private readonly tasks = new Map<string, Event>();
+  private readonly stopClosures = new Set<string>();
+  private readonly attemptParents = new Map<string, Event>();
+  private readonly connections = new Map<string, number[]>();
+
+  accept(event: Event, path: string) {
+    const {
+      kind,
+      id,
+      parent,
+      causes,
+      actor,
+      runtimeGeneration,
+      connectionGeneration,
+      data,
+    } = event;
+    if (kind === "runtime-initialized") {
+      if (
+        actor !== "@runtime" ||
+        connectionGeneration !== null ||
+        this.active !== null ||
+        runtimeGeneration !== this.generation + 1
+      )
+        invalid(path, "initialization must open the next runtime generation");
+      if (this.generation === 0 && event.timeMs !== 0)
+        invalid(path, "initial runtime generation must start at time zero");
+      if (
+        !this.starting ||
+        parent !== this.starting.id ||
+        event.timeMs !== this.starting.timeMs
+      )
+        invalid(
+          path,
+          "initialization must identify its start at the same time",
+        );
+      if (
+        this.epoch === undefined ||
+        integer(data.wallMillis, `${path}.data.wallMillis`) !==
+          this.epoch + event.timeMs
+      )
+        invalid(
+          path,
+          "initialization wall clock must equal epoch plus global time",
+        );
+      if (
+        [...this.tasks.values()].some((task) => isRuntimeTask(task.data.taskId))
+      )
+        invalid(
+          path,
+          "initialization cannot retain an old generation's runtime tasks",
+        );
+      this.generation = runtimeGeneration;
+      this.active = runtimeGeneration;
+      this.starting = undefined;
+      this.stop = undefined;
+      return;
+    }
+
+    const stoppingEffect =
+      this.stop !== undefined &&
+      event.timeMs === this.stop.timeMs &&
+      ((parent === this.stop.id &&
+        ["cancelled", "dropped", "connection-closed"].includes(kind)) ||
+        (kind === "dropped" &&
+          parent !== null &&
+          this.stopClosures.has(parent)));
+    const task =
+      kind === "scheduled" ||
+      kind === "task-dispatched" ||
+      kind === "cancelled";
+    const external =
+      kind === "retry-status" ||
+      (task && typeof data.taskId === "string" && data.taskId.startsWith("-"));
+    const expectedGeneration = external
+      ? null
+      : stoppingEffect
+        ? this.stop!.runtimeGeneration
+        : this.active;
+    if (runtimeGeneration !== expectedGeneration)
+      invalid(path, "runtime generation does not match availability");
+    if (external && connectionGeneration !== null)
+      invalid(
+        path,
+        "external retry records cannot identify a runtime connection",
+      );
+    this.connection(event, path);
+    if (stoppingEffect && kind === "connection-closed") {
+      if (this.stop!.data.mode === "abrupt")
+        invalid(path, "abrupt stops cannot emit a host close callback");
+      this.stopClosures.add(id);
+    }
+
+    if (kind === "runtime-command" && data.op === "initialize-document") {
+      if (
+        this.generation !== 0 ||
+        this.starting ||
+        actor !== "@runtime" ||
+        connectionGeneration !== null ||
+        event.timeMs !== 0
+      )
+        invalid(
+          path,
+          "initial command must belong to the unstarted runtime at time zero",
+        );
+      this.epoch = integer(data.epochMillis, `${path}.data.epochMillis`);
+      this.starting = event;
+    }
+
+    if (kind === "action") {
+      if (
+        data.actionKind === "connect" ||
+        data.actionKind === "source-send" ||
+        data.actionKind === "source-retry"
+      )
+        this.attemptParents.set(id, event);
+      if (
+        data.actionKind === "service-stop" ||
+        data.actionKind === "service-start"
+      ) {
+        if (actor !== "@runtime" || connectionGeneration !== null)
+          invalid(path, "service lifecycle actions belong to the runtime");
+        if (data.actionKind === "service-stop") {
+          if (this.active === null)
+            invalid(path, "cannot stop an unavailable runtime");
+          this.active = null;
+          this.stop = event;
+          this.stopClosures.clear();
+        } else {
+          if (this.active !== null || !this.stop || this.starting)
+            invalid(path, "service start requires a stopped runtime");
+          this.starting = event;
+        }
+      }
+    } else if (kind === "retry-attempt") {
+      this.attemptParents.set(id, event);
+    } else if (kind === "connection-outcome" || kind === "attempt-outcome") {
+      if (
+        runtimeGeneration !== null ||
+        connectionGeneration !== null ||
+        parent === null ||
+        !this.stop ||
+        !causes.includes(this.stop.id)
+      )
+        invalid(
+          path,
+          "unavailable outcomes require a parent and the current stop cause",
+        );
+      const attempt = this.attemptParents.get(parent);
+      if (
+        !attempt ||
+        attempt.actor !== actor ||
+        attempt.timeMs !== event.timeMs ||
+        (kind === "connection-outcome"
+          ? attempt.data.actionKind !== "connect"
+          : attempt.data.publication !== data.publication)
+      )
+        invalid(
+          path,
+          "unavailable outcome must identify its actor's attempted action or retry",
+        );
+    } else if (task) {
+      this.task(event, path);
+    } else if (
+      kind === "assertion" &&
+      runtimeGeneration === null &&
+      connectionGeneration !== null
+    ) {
+      invalid(path, "downtime assertions cannot identify a live connection");
+    } else if (kind === "state" && runtimeGeneration === null) {
+      invalid(path, "runtime state effects require an active generation");
+    }
+  }
+
+  private connection(event: Event, path: string) {
+    const { kind, actor, runtimeGeneration, connectionGeneration, data } =
+      event;
+    const declaredConnect = kind === "action" && data.actionKind === "connect";
+    const retryConnect =
+      kind === "retry-lifecycle" && data.operation === "connect";
+    const requiresConnection =
+      sessionKinds.has(kind) ||
+      (kind === "retry-attempt" && runtimeGeneration !== null);
+    if (
+      requiresConnection &&
+      (runtimeGeneration === null || connectionGeneration === null)
+    )
+      invalid(path, "session-bound event requires a connection identity");
+    const history = this.connections.get(actor);
+    if ((declaredConnect && runtimeGeneration !== null) || retryConnect) {
+      if (
+        actor === "@runtime" ||
+        runtimeGeneration === null ||
+        connectionGeneration !== (history?.length ?? 0) + 1
+      )
+        invalid(
+          path,
+          "connect must introduce the actor's next connection generation",
+        );
+      if (history) history.push(runtimeGeneration);
+      else this.connections.set(actor, [runtimeGeneration]);
+    } else if (
+      connectionGeneration !== null &&
+      history?.[connectionGeneration - 1] !== runtimeGeneration
+    ) {
+      invalid(
+        path,
+        "connection identity does not belong to this runtime generation",
+      );
+    }
+  }
+
+  finish(outcome: string) {
+    if (outcome !== "passed") return this.epoch;
+    if (this.generation === 0 || this.starting)
+      invalid(
+        "trace result",
+        "passing trace requires completed runtime initialization",
+      );
+    if (
+      this.active === null &&
+      [...this.tasks.values()].some((task) => isRuntimeTask(task.data.taskId))
+    )
+      invalid(
+        "trace result",
+        "a stopped runtime cannot retain generation tasks",
+      );
+    return this.epoch;
+  }
+
+  private task(event: Event, path: string) {
+    const taskId = text(event.data.taskId, `${path}.data.taskId`);
+    if (
+      !/^-?[1-9][0-9]*$/.test(taskId) ||
+      !Number.isSafeInteger(Number(taskId))
+    )
+      invalid(path, "expected nonzero safe integer task identity");
+    if (isRuntimeTask(taskId) && event.runtimeGeneration === null)
+      invalid(path, "runtime tasks require a generation");
+    const key = isRuntimeTask(taskId)
+      ? `${event.runtimeGeneration}:${taskId}`
+      : taskId;
+    const scheduled = this.tasks.get(key);
+    if (event.kind === "scheduled") {
+      if (scheduled) invalid(path, "task is already scheduled");
+      this.tasks.set(key, event);
+      return;
+    }
+    if (!scheduled)
+      invalid(path, "task has no pending schedule in its generation");
+    if (event.kind === "task-dispatched") {
+      if (
+        event.parent !== scheduled.id ||
+        event.timeMs !== integer(scheduled.data.atMs, path)
+      )
+        invalid(path, "dispatch must name its schedule at the due time");
+    } else if (!event.causes.includes(scheduled.id)) {
+      invalid(path, "cancellation must cite its schedule");
+    }
+    this.tasks.delete(key);
+  }
+}
+
+function isRuntimeTask(taskId: Json | undefined) {
+  return typeof taskId === "string" && !taskId.startsWith("-");
+}

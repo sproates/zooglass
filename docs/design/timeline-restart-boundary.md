@@ -3,8 +3,8 @@
 This refines the [accepted simulator design](deterministic-timeline.md) for the
 next POC increments. **Host isolation and executor ownership separation are now
 implemented, along with the private memory generation/process foundation.**
-Document execution continues to use the single-generation memory profile;
-stop/start documents and SQLite recovery remain unimplemented. The separate host is
+V2 memory documents now integrate stop/start, downtime retry and versioned replay
+evidence. SQLite recovery and broader lifecycle qualification remain unimplemented. The separate host is
 described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
@@ -20,7 +20,7 @@ directly against prepared hosts before integration into document execution.
 | Production clock/alarm/delivery interfaces | Retain the small existing interfaces and production defaults.                                                                                                          |
 | Simulation classes in `src/main`           | Move to a separate host build; the service must not ship pause switches or simulation adapters.                                                                        |
 | Java host                                  | Separate framed protocol/validation from generation composition and sessions.                                                                                          |
-| TypeScript executor                        | Separate turn/task and transport ownership. Private process-generation owner implemented; document integration is next.                       |
+| TypeScript executor                        | Separate turn/task and transport ownership. Memory document integration implemented; memory qualification precedes SQLite recovery.                       |
 | Nested Java clock/alarm implementations    | Give the controlled clock and alarm driver named host-side classes.                                                                                                    |
 | Sorted agenda and internal assertions      | Keep the current bounded implementation. Profile a demonstrated bottleneck before changing algorithms; user-input validation must continue to produce explicit errors. |
 
@@ -39,11 +39,13 @@ These remain the current v1 document boundaries. `RuntimeGenerations` separately
 owns fresh host processes, global command IDs/budget and active generation handles.
 The host's `HostTurns` validates identity and binds `RuntimeGeneration` clocks
 before runtime construction. This foundation admits private protocol 2 with `memoryLifecycle:1`,
-but advertises no public document formats. It is not yet wired into document
-execution, agenda cancellation, retry orchestration or versioned trace evidence.
+but advertises no public document formats. Workbench now integrates it with v2
+document execution, agenda cancellation, retries and versioned trace evidence.
 See the [foundation contract](../../workbench/docs/timeline-generations.md).
-Global agenda time, execution budgets and source retry timers must survive the
-subsequent document lifecycle integration.
+Global agenda time, execution budgets and source retry timers survive replacement.
+The [lifecycle guide](../../workbench/docs/timeline-lifecycle.md) describes the
+implemented memory subset; observation targets and recovery snapshots below are
+still part of the SQLite increment.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact
@@ -328,5 +330,6 @@ mid-commit termination and physical durability are not simulated here.
    campaigns and retain their raw artifacts.
 
 Each increment needs focused validation and independent review before the next.
-These gates refine the existing POC scope; they do not promote it to main or claim
-any restart capability has already been delivered.
+These gates refine the existing POC scope. Memory lifecycle is implemented on the
+POC; SQLite recovery and broader restart qualification remain pending. No main
+promotion is implied.

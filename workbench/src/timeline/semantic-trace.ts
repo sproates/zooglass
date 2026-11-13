@@ -40,10 +40,11 @@ export class SemanticTrace {
     kind: string,
     key: Key,
     actor: string,
-    generation: number | null,
+    connectionGeneration: number | null,
     parent: string | null,
     data: Json,
     causes: string[] = [],
+    runtimeGeneration: number | null = 1,
   ) {
     const id = `event-${this.events}`;
     if (this.events >= 99998) throw new Error("limit-exceeded: trace records");
@@ -54,8 +55,8 @@ export class SemanticTrace {
         parentId: parent,
         key,
         actor,
-        runtimeGeneration: 1,
-        connectionGeneration: generation,
+        runtimeGeneration,
+        connectionGeneration,
         ...(causes.length ? { causes } : {}),
       }) as { [key: string]: Json }),
       data,

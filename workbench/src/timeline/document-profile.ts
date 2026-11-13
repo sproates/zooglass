@@ -1,9 +1,10 @@
-import { retryPolicies } from "./retry-policy.js";
-import type { TimelineDocument } from "./contract.js";
+import { lifecycleFormat, type TimelineDocument } from "./contract.js";
+import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
 import { encodeJson } from "./json.js";
 import { integer, list, object, text } from "./validation.js";
 
-export const documentProfile = "memory-arrival-v1";
+export const documentProfile = evidenceV1.profile;
+export const lifecycleDocumentProfile = evidenceV2.profile;
 export function executionSettings(
   scenario: TimelineDocument,
   configuration: string,
@@ -38,12 +39,12 @@ export function executionSettings(
         "unsupported-execution: actor IDs starting with @ are reserved",
       );
   });
-  const actions = list(doc.actions, "$.actions");
+  const preparedConnection = scenario.format === lifecycleFormat ? 0 : 1;
   if (
-    actions.filter((entry) => object(entry, "action").kind === "connect")
+    scenario.admittedActions.filter((entry) => entry.kind === "connect")
       .length +
-      retryPolicies(doc).reduce(
-        (total, policy) => total + policy.maxAttempts - 1,
+      scenario.retryPolicies.reduce(
+        (total, policy) => total + policy.maxAttempts - preparedConnection,
         0,
       ) >
     10

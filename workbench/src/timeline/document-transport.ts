@@ -13,6 +13,7 @@ export type Connection = {
   actor: string;
   session: string;
   generation: number;
+  runtimeGeneration?: number;
   open: boolean;
   attached: boolean;
   closedBy?: string;
@@ -36,6 +37,11 @@ type Ports = {
 
 /** Owns session-bound messages from ingress through handoff, delay, loss and arrival. */
 export class DocumentTransport {
+  private readonly queued = new Map<
+    number,
+    { connection: Connection; cancel: (cause: string) => void }
+  >();
+  private readonly faultTasks = new Map<string, number>();
   private messages = 0;
   private messageSequence = 0;
   private readonly links: DelayedLinks;
@@ -71,6 +77,7 @@ export class DocumentTransport {
           parent,
           data,
           causes,
+          connection.runtimeGeneration ?? 1,
         ),
       turn: () => this.ports.consumeExecutionTurn(),
       checkBound: () => this.messageBound(),
@@ -107,6 +114,7 @@ export class DocumentTransport {
       parent,
       data,
       causes,
+      connection?.runtimeGeneration ?? 1,
     );
   }
   effect(
@@ -128,25 +136,7 @@ export class DocumentTransport {
         connection,
       );
       connection.closedBy = closed;
-      this.links.close(connection, closed);
-      const held = this.handoffs.get(connection.session);
-      if (held) {
-        this.event(
-          "dropped",
-          {
-            ...(j({
-              messageId: held.messageId,
-              channel: "client-frame",
-              reason: "connection-closed",
-            }) as { [key: string]: Json }),
-            envelope: held.envelope,
-          },
-          closed,
-          connection,
-          [held.id],
-        );
-        this.handoffs.delete(connection.session);
-      }
+      this.discard(connection, closed);
       return;
     }
     const envelope = parseJson(effect.wire);
@@ -221,42 +211,112 @@ export class DocumentTransport {
     }
     this.messages++;
     this.messageBound();
-    this.agenda.add(this.agenda.current[0], 2, async () => {
-      this.ports.consumeExecutionTurn();
-      this.messages--;
-      const delivered = connection.open && !lossCause;
-      const arrival = this.event(
-        delivered ? "delivered" : "dropped",
+    const task =
+      this.scenario.document.format === "timeline-simulation/v2"
+        ? this.agenda.allocateModelTask()
+        : undefined;
+    if (task !== undefined)
+      this.queued.set(task, {
+        connection,
+        cancel: (cause) => {
+          this.messages--;
+          this.event(
+            "dropped",
+            {
+              ...(j({
+                messageId,
+                channel:
+                  effect.kind === "receipt" ? "source-receipt" : "client-frame",
+                reason: "connection-closed",
+              }) as { [key: string]: Json }),
+              envelope,
+            },
+            cause,
+            connection,
+            [sent, ...(lossCause ? [lossCause] : [])],
+          );
+        },
+      });
+    this.agenda.add(
+      this.agenda.current[0],
+      2,
+      async () => {
+        if (task !== undefined) this.queued.delete(task);
+        this.ports.consumeExecutionTurn();
+        this.messages--;
+        const delivered = connection.open && !lossCause;
+        const arrival = this.event(
+          delivered ? "delivered" : "dropped",
+          {
+            ...(j({
+              messageId,
+              channel:
+                effect.kind === "receipt" ? "source-receipt" : "client-frame",
+              ...(delivered
+                ? {}
+                : { reason: lossCause ? "receipt-loss" : "connection-closed" }),
+            }) as { [key: string]: Json }),
+            envelope,
+          },
+          sent,
+          connection,
+          lossCause
+            ? [lossCause]
+            : !delivered && connection.closedBy
+              ? [connection.closedBy]
+              : [],
+        );
+        if (delivered) {
+          this.observations.get(connection.actor)!.push(envelope);
+          if (effect.kind === "receipt" && publication)
+            this.ports.receipt(
+              publication.action,
+              publication.attempt,
+              connection.generation,
+              arrival,
+            );
+        }
+      },
+      task,
+    );
+  }
+  private discard(connection: Connection, cause: string) {
+    this.links.close(connection, cause);
+    const held = this.handoffs.get(connection.session);
+    if (held) {
+      this.event(
+        "dropped",
         {
           ...(j({
-            messageId,
-            channel:
-              effect.kind === "receipt" ? "source-receipt" : "client-frame",
-            ...(delivered
-              ? {}
-              : { reason: lossCause ? "receipt-loss" : "connection-closed" }),
+            messageId: held.messageId,
+            channel: "client-frame",
+            reason: "connection-closed",
           }) as { [key: string]: Json }),
-          envelope,
+          envelope: held.envelope,
         },
-        sent,
+        cause,
         connection,
-        lossCause
-          ? [lossCause]
-          : !delivered && connection.closedBy
-            ? [connection.closedBy]
-            : [],
+        [held.id],
       );
-      if (delivered) {
-        this.observations.get(connection.actor)!.push(envelope);
-        if (effect.kind === "receipt" && publication)
-          this.ports.receipt(
-            publication.action,
-            publication.attempt,
-            connection.generation,
-            arrival,
-          );
-      }
-    });
+      this.handoffs.delete(connection.session);
+    }
+  }
+  stop(cause: string) {
+    for (const connection of this.sessions.values()) {
+      connection.open = false;
+      connection.attached = false;
+      connection.closedBy = cause;
+      this.discard(connection, cause);
+    }
+    for (const [id, pending] of this.queued) {
+      this.agenda.cancel(id);
+      pending.cancel(cause);
+    }
+    this.queued.clear();
+    this.sessions.clear();
+    for (const id of this.faultTasks.values()) this.agenda.cancel(id);
+    this.faultTasks.clear();
+    this.pendingFaultCloses.clear();
   }
   private receiptLoss(
     connection: Connection,
@@ -314,22 +374,33 @@ export class DocumentTransport {
   ) {
     if (this.pendingFaultCloses.has(connection.session)) return;
     this.pendingFaultCloses.add(connection.session);
-    this.agenda.add(this.agenda.current[0], 0, async () => {
-      this.pendingFaultCloses.delete(connection.session);
-      if (!connection.attached) return;
-      const cause = this.event(
-        "runtime-command",
-        j({ op: "disconnect", reason: "receipt-loss", messageId }),
-        decision,
-        connection,
-      );
-      await this.ports.command(
-        { op: "disconnect", session: connection.session },
-        cause,
-      );
-      connection.open = false;
-      connection.attached = false;
-    });
+    const task =
+      this.scenario.document.format === "timeline-simulation/v2"
+        ? this.agenda.allocateModelTask()
+        : undefined;
+    if (task !== undefined) this.faultTasks.set(connection.session, task);
+    this.agenda.add(
+      this.agenda.current[0],
+      0,
+      async () => {
+        this.pendingFaultCloses.delete(connection.session);
+        this.faultTasks.delete(connection.session);
+        if (!connection.attached) return;
+        const cause = this.event(
+          "runtime-command",
+          j({ op: "disconnect", reason: "receipt-loss", messageId }),
+          decision,
+          connection,
+        );
+        await this.ports.command(
+          { op: "disconnect", session: connection.session },
+          cause,
+        );
+        connection.open = false;
+        connection.attached = false;
+      },
+      task,
+    );
   }
   async sendToRuntime(
     connection: Connection,

@@ -39,9 +39,9 @@ delivery date:
   accepted. The separate POC has a [bounded document executor](workbench/docs/timeline-execution.md)
   with controlled Java runtime turns, causal traces and bounded verification replay.
   Bounded receipt faults and portable run bundles are implemented. The private
-  [memory generation foundation](workbench/docs/timeline-generations.md) verifies
-  fresh JVM clocks and process completion; document lifecycle integration and
-  SQLite recovery remain future work. The POC has not been promoted to main.
+  [memory lifecycle executor](workbench/docs/timeline-lifecycle.md) supports
+  stop/start, downtime retries and v2 replay evidence. Broader lifecycle
+  qualification and SQLite recovery remain future work. The POC has not been promoted to main.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

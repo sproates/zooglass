@@ -1,4 +1,6 @@
-import { eventData } from "./event-schema.js";
+import { eventData, lifecycleEventKinds } from "./event-schema.js";
+import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
+import { TraceGenerations } from "./trace-generations.js";
 import { encodeJson, jsonLimits, parseJson } from "./json.js";
 import {
   choice,
@@ -9,6 +11,27 @@ import {
   text,
   unique,
 } from "./validation.js";
+
+const eventKinds = [
+  "action",
+  "fault-decision",
+  "link-send",
+  "retry-status",
+  "retry-lifecycle",
+  "retry-attempt",
+  "runtime-command",
+  "task-dispatched",
+  "connection-closed",
+  "handoff",
+  "scheduled",
+  "cancelled",
+  "delivered",
+  "dropped",
+  "receipt",
+  "state",
+  "frame",
+  "assertion",
+];
 
 /** Parse complete semantic JSONL artifacts and retain the canonical lines used for replay. */
 export function parseTrace(raw: string) {
@@ -37,6 +60,10 @@ export function parseTrace(raw: string) {
   };
   const header = traceHeader(readRecord(0));
   const until = header.untilMs;
+  const version = header.format === evidenceV2.trace ? 2 : 1;
+  const kinds =
+    version === 2 ? [...eventKinds, ...lifecycleEventKinds] : eventKinds;
+  const generations = version === 2 ? new TraceGenerations() : undefined;
   for (let index = 1; index < lines.length - 1; index++) {
     const record = readRecord(index);
     const path = `trace[${index}]`;
@@ -51,37 +78,24 @@ export function parseTrace(raw: string) {
       "data",
       ...(Object.hasOwn(record, "causes") ? ["causes"] : []),
     ]);
-    if (record.causes !== undefined) {
-      for (const cause of list(record.causes, `${path}.causes`, 1000))
-        if (!ids.has(text(cause, `${path}.causes`)))
-          invalid(path, "cause must identify an earlier event");
-    }
-    const kind = choice(record.kind, `${path}.kind`, [
-      "action",
-      "fault-decision",
-      "link-send",
-      "retry-status",
-      "retry-lifecycle",
-      "retry-attempt",
-      "runtime-command",
-      "task-dispatched",
-      "connection-closed",
-      "handoff",
-      "scheduled",
-      "cancelled",
-      "delivered",
-      "dropped",
-      "receipt",
-      "state",
-      "frame",
-      "assertion",
-    ]);
-    if (
-      record.parentId !== null &&
-      !ids.has(text(record.parentId, `${path}.parentId`))
-    )
+    const causes =
+      record.causes === undefined
+        ? []
+        : list(record.causes, `${path}.causes`, 1000).map((cause) => {
+            const id = text(cause, `${path}.causes`);
+            if (!ids.has(id))
+              invalid(path, "cause must identify an earlier event");
+            return id;
+          });
+    const kind = choice(record.kind, `${path}.kind`, kinds);
+    const parent =
+      record.parentId === null
+        ? null
+        : text(record.parentId, `${path}.parentId`);
+    if (parent !== null && !ids.has(parent))
       invalid(path, "parent must identify an earlier event");
-    unique(text(record.eventId, `${path}.eventId`), ids, `${path}.eventId`);
+    const id = text(record.eventId, `${path}.eventId`);
+    unique(id, ids, `${path}.eventId`);
     const coordinates = list(record.key, `${path}.key`, 4);
     if (coordinates.length !== 4)
       invalid(path, "agenda key must have four coordinates");
@@ -95,21 +109,40 @@ export function parseTrace(raw: string) {
     if (key.reduce((order, item, i) => order || item - previous[i], 0) < 0)
       invalid(path, "agenda keys must not decrease");
     previous = key;
-    text(record.actor, `${path}.actor`);
-    integer(
-      record.runtimeGeneration,
-      `${path}.runtimeGeneration`,
-      Number.MAX_SAFE_INTEGER,
-      1,
+    const actor = text(record.actor, `${path}.actor`);
+    const runtimeGeneration =
+      version === 2 && record.runtimeGeneration === null
+        ? null
+        : integer(
+            record.runtimeGeneration,
+            `${path}.runtimeGeneration`,
+            version === 1 ? Number.MAX_SAFE_INTEGER : 16,
+            1,
+          );
+    const connectionGeneration =
+      record.connectionGeneration === null
+        ? null
+        : integer(
+            record.connectionGeneration,
+            `${path}.connectionGeneration`,
+            Number.MAX_SAFE_INTEGER,
+            1,
+          );
+    eventData(kind, record.data, `${path}.data`, key[0], until, version);
+    generations?.accept(
+      {
+        kind,
+        id,
+        parent,
+        causes,
+        actor,
+        timeMs: key[0],
+        runtimeGeneration,
+        connectionGeneration,
+        data: object(record.data, `${path}.data`),
+      },
+      path,
     );
-    if (record.connectionGeneration !== null)
-      integer(
-        record.connectionGeneration,
-        `${path}.connectionGeneration`,
-        Number.MAX_SAFE_INTEGER,
-        1,
-      );
-    eventData(kind, record.data, `${path}.data`, key[0], until);
     if (
       kind === "assertion" &&
       object(record.data, `${path}.data`).passed === false
@@ -123,7 +156,14 @@ export function parseTrace(raw: string) {
     ids.size,
     failedAssertion,
   );
-  return { canonical: canonical.join(""), lines: canonical, header, outcome };
+  const epochMillis = generations?.finish(outcome);
+  return {
+    canonical: canonical.join(""),
+    lines: canonical,
+    header,
+    outcome,
+    epochMillis,
+  };
 }
 
 function traceHeader(value: ReturnType<typeof object>) {
@@ -134,7 +174,14 @@ function traceHeader(value: ReturnType<typeof object>) {
     "untilMs",
     ...(Object.hasOwn(value, "execution") ? ["execution"] : []),
   ]);
+  const format = choice(record.format, `${path}.format`, [
+    evidenceV1.trace,
+    evidenceV2.trace,
+  ]);
+  const versions = format === evidenceV2.trace ? evidenceV2 : evidenceV1;
   let execution;
+  if (versions === evidenceV2 && record.execution === undefined)
+    invalid(`${path}.execution`, "required for lifecycle evidence");
   if (record.execution !== undefined) {
     execution = object(record.execution, `${path}.execution`, [
       "profile",
@@ -142,9 +189,7 @@ function traceHeader(value: ReturnType<typeof object>) {
       "configurationSha256",
       "workbenchSha256",
     ]);
-    choice(execution.profile, `${path}.execution.profile`, [
-      "memory-arrival-v1",
-    ]);
+    choice(execution.profile, `${path}.execution.profile`, [versions.profile]);
     for (const name of [
       "artifactSha256",
       "configurationSha256",
@@ -157,11 +202,11 @@ function traceHeader(value: ReturnType<typeof object>) {
       )
         invalid(path, "expected execution SHA-256");
   }
-  choice(record.format, `${path}.format`, ["timeline-trace/v1"]);
   const scenarioSha256 = text(record.scenarioSha256, `${path}.scenarioSha256`);
   if (!/^[a-f0-9]{64}$/.test(scenarioSha256))
     invalid(path, "expected scenario SHA-256");
   return {
+    format: versions.trace,
     scenarioSha256,
     untilMs: integer(record.untilMs, `${path}.untilMs`, 3600000),
     execution,

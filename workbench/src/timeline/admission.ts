@@ -2,8 +2,12 @@ import { createHash } from "node:crypto";
 import { open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { Bridge } from "./bridge.js";
-import { format, parseTimelineDocument } from "./contract.js";
-import { documentProfile, executionSettings } from "./document-profile.js";
+import { format, lifecycleFormat, parseTimelineDocument } from "./contract.js";
+import {
+  documentProfile,
+  executionSettings,
+  lifecycleDocumentProfile,
+} from "./document-profile.js";
 import { jsonLimits } from "./json.js";
 import { object, text } from "./validation.js";
 
@@ -52,12 +56,31 @@ export async function loadDocument(scenarioPath: string) {
   return { scenario, wire, configurationHash };
 }
 
+/** Verify that the same artifact can negotiate memory lifecycle without starting a runtime. */
+export async function probeMemoryLifecycle(jar: string, artifact: string) {
+  const opened = await Bridge.open(jar, 0, 0, {
+    runtimeGeneration: 1,
+    startTimeMs: 0,
+    firstTurnId: 0,
+  });
+  try {
+    if (opened.artifact !== artifact || opened.bridge.memoryLifecycle !== 1)
+      throw new Error(
+        "unsupported-execution: prepared artifact does not support memory lifecycle",
+      );
+  } finally {
+    await opened.bridge.close();
+  }
+}
+
 /** Read once and preserve the exact configuration bytes validated by the runtime. */
 export async function inspectAdmission(scenarioPath: string, jar: string) {
   const { scenario, wire, configurationHash } =
     await loadDocument(scenarioPath);
   const runtime = object(scenario.document.runtime, "$.runtime");
-  const { bridge, artifact } = await Bridge.open(resolve(jar));
+  const jarPath = resolve(jar);
+  const lifecycle = scenario.format === lifecycleFormat;
+  const { bridge, artifact } = await Bridge.open(jarPath);
   try {
     if (bridge.configurationAdmission !== 1)
       throw new Error(
@@ -95,13 +118,25 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
     } catch (error) {
       reason = String(error);
     }
+    let artifactMemoryLifecycle: 0 | 1 = 0;
+    if (lifecycle && !reason) {
+      try {
+        await probeMemoryLifecycle(jarPath, artifact);
+        artifactMemoryLifecycle = 1;
+      } catch (error) {
+        reason = `Prepared artifact cannot negotiate memory lifecycle. ${String(error)}`;
+      }
+    }
     return {
       artifact,
       configurationHash,
       configuration: "valid" as const,
-      documentProfile: response.configuration.documentProfile,
-      format,
+      documentProfile: artifactMemoryLifecycle
+        ? lifecycleDocumentProfile
+        : response.configuration.documentProfile,
+      format: scenario.format,
       artifactDocumentFormats: bridge.documentFormats,
+      ...(lifecycle ? { artifactMemoryLifecycle } : {}),
       requiredCapabilities: scenario.requiredCapabilities,
       execution: reason ? "unsupported" : "eligible",
       reason:

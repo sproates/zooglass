@@ -3,6 +3,8 @@
 The POC executes `timeline-simulation/v1` documents against the real configured
 ZooGlass runtime. The qualified profile is `memory-arrival-v1`; this is not yet
 a general simulator, automatic legacy conversion or a replacement for socket tests.
+V2 additionally supports [memory stop/start and downtime retries](timeline-lifecycle.md)
+under `receipt-age-restart-v1`. The v1 campaign claims below do not qualify v2.
 
 From `workbench/`, explicitly prepare the JAR once, then run:
 

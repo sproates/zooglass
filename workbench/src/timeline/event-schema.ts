@@ -5,9 +5,9 @@ import {
   receiptEnvelope,
   snapshotEnvelope,
 } from "./envelopes.js";
-import { choice, integer, invalid, object, text } from "./validation.js";
+import { choice, integer, invalid, list, object, text } from "./validation.js";
 
-export const actionFields: Record<string, string[]> = {
+export const actionFields = {
   "source-send": ["publication"],
   "source-retry": ["publication"],
   "client-subscribe": ["viewId", "entityId"],
@@ -17,6 +17,22 @@ export const actionFields: Record<string, string[]> = {
   "writer-stall": [],
   "writer-release": ["fail"],
 };
+export type ActorActionKind = keyof typeof actionFields;
+export const serviceActionFields = {
+  "service-stop": ["mode"],
+  "service-start": [],
+};
+export type ServiceActionKind = keyof typeof serviceActionFields;
+export const stopModes = ["orderly", "abrupt"] as const;
+export const lifecycleEventKinds = [
+  "runtime-initialized",
+  "connection-outcome",
+  "attempt-outcome",
+] as const;
+
+export function isServiceAction(kind: string): kind is ServiceActionKind {
+  return Object.hasOwn(serviceActionFields, kind);
+}
 
 /** Closed event wrappers; arbitrary domain values live only inside full envelopes. */
 export function eventData(
@@ -25,9 +41,42 @@ export function eventData(
   path: string,
   time: number,
   until: number,
+  version: 1 | 2 = 1,
 ) {
   const data = object(value, path);
-  if (kind.startsWith("retry-")) {
+  if (kind === "runtime-initialized" && version === 2) {
+    object(data, path, [
+      "startTimeMs",
+      "wallMillis",
+      "monotonicMs",
+      "snapshots",
+    ]);
+    if (integer(data.startTimeMs, `${path}.startTimeMs`, until) !== time)
+      invalid(path, "runtime start time differs from agenda key");
+    integer(
+      data.wallMillis,
+      `${path}.wallMillis`,
+      Number.MAX_SAFE_INTEGER,
+      time,
+    );
+    integer(data.monotonicMs, `${path}.monotonicMs`, 0);
+    list(data.snapshots, `${path}.snapshots`, 0);
+  } else if (
+    (kind === "connection-outcome" || kind === "attempt-outcome") &&
+    version === 2
+  ) {
+    const attempt = kind === "attempt-outcome";
+    object(
+      data,
+      path,
+      attempt ? ["publication", "attempt", "outcome"] : ["outcome"],
+    );
+    choice(data.outcome, `${path}.outcome`, ["connection-unavailable"]);
+    if (attempt) {
+      text(data.publication, `${path}.publication`);
+      integer(data.attempt, `${path}.attempt`, 1000, 1);
+    }
+  } else if (kind.startsWith("retry-")) {
     object(data, path, [
       "actionId",
       "attempt",
@@ -121,14 +170,21 @@ export function eventData(
     const actionKind = choice(
       data.actionKind,
       `${path}.actionKind`,
-      Object.keys(actionFields),
-    );
-    object(data, path, ["actionId", "actionKind", ...actionFields[actionKind]]);
+      version === 2
+        ? [...Object.keys(actionFields), ...Object.keys(serviceActionFields)]
+        : Object.keys(actionFields),
+    ) as ActorActionKind | ServiceActionKind;
+    const fields = isServiceAction(actionKind)
+      ? serviceActionFields[actionKind]
+      : actionFields[actionKind];
+    object(data, path, ["actionId", "actionKind", ...fields]);
     text(data.actionId, `${path}.actionId`);
-    for (const field of actionFields[actionKind]) {
+    for (const field of fields) {
       if (field === "fail") {
         if (typeof data.fail !== "boolean")
           invalid(`${path}.fail`, "expected boolean");
+      } else if (field === "mode") {
+        choice(data.mode, `${path}.mode`, stopModes);
       } else text(data[field], `${path}.${field}`);
     }
   } else if (kind === "scheduled") {

@@ -1,15 +1,31 @@
+import {
+  isServiceAction,
+  type ActorActionKind,
+  type ServiceActionKind,
+} from "./event-schema.js";
 import type { Json } from "./json.js";
+import type { RetryPolicy } from "./retry-policy.js";
 import { integer, invalid, list, object, text } from "./validation.js";
 
 export type AdmittedAction = {
   id: string;
-  actor: string;
   atMs: number;
   phase: 0 | 2;
   declaration: number;
-  runtimeGeneration: 1;
-  connectionGeneration: number;
-};
+} & (
+  | {
+      kind: ActorActionKind;
+      actor: string;
+      runtimeGeneration?: 1;
+      connectionGeneration?: number;
+    }
+  | {
+      kind: ServiceActionKind;
+      actor?: never;
+      runtimeGeneration?: never;
+      connectionGeneration?: never;
+    }
+);
 type ActorState = {
   connection: "disconnected" | "connected" | "closing";
   generation: number;
@@ -18,8 +34,18 @@ type ActorState = {
   sent: Set<string>;
 };
 
+function disconnect(state: ActorState) {
+  state.connection = "disconnected";
+  state.stalled = false;
+  state.subscriptions.clear();
+}
+
 /** Admit declared controls, not runtime-derived closes or successful publications. */
-export function admitLifecycle(doc: { [key: string]: Json }): AdmittedAction[] {
+export function admitLifecycle(
+  doc: { [key: string]: Json },
+  lifecycle: boolean,
+  policies: readonly RetryPolicy[],
+): AdmittedAction[] {
   const states = new Map<string, ActorState>();
   for (const actor of list(doc.actors, "$.actors")) {
     states.set(text(object(actor, "actor").id, "actor.id"), {
@@ -34,15 +60,14 @@ export function admitLifecycle(doc: { [key: string]: Json }): AdmittedAction[] {
     .map((value, declaration) => {
       const path = `$.actions[${declaration}]`;
       const action = object(value, path);
-      const kind = text(action.kind, `${path}.kind`);
-      const phase: 0 | 2 = [
-        "connect",
-        "disconnect",
-        "writer-stall",
-        "writer-release",
-      ].includes(kind)
-        ? 0
-        : 2;
+      const kind = text(action.kind, `${path}.kind`) as
+        ActorActionKind | ServiceActionKind;
+      const phase: 0 | 2 =
+        ["connect", "disconnect", "writer-stall", "writer-release"].includes(
+          kind,
+        ) || isServiceAction(kind)
+          ? 0
+          : 2;
       return {
         action,
         path,
@@ -56,25 +81,50 @@ export function admitLifecycle(doc: { [key: string]: Json }): AdmittedAction[] {
       (a, b) =>
         a.atMs - b.atMs || a.phase - b.phase || a.declaration - b.declaration,
     );
+  const managedSends = new Set(policies.map((policy) => policy.action));
+  let running = true;
+  let generations = 1;
   return actions.map(({ action, path, kind, phase, declaration, atMs }) => {
+    const admitted = {
+      id: text(action.id, `${path}.id`),
+      atMs,
+      phase,
+      declaration,
+    };
+    if (isServiceAction(kind)) {
+      if (kind === "service-stop") {
+        if (!running) invalid(path, "service-stop requires a running service");
+        running = false;
+        for (const state of states.values()) disconnect(state);
+      } else {
+        if (running) invalid(path, "service-start requires a stopped service");
+        if (++generations > 16) invalid(path, "at most 16 runtime generations");
+        running = true;
+      }
+      return { ...admitted, kind };
+    }
+
     const actor = text(action.actor, `${path}.actor`);
     const state = states.get(actor)!;
     const fail = (reason: string): never => invalid(path, reason);
     if (kind === "connect") {
       if (state.connection !== "disconnected")
         fail("connect requires a disconnected actor");
-      state.connection = "connected";
-      state.generation++;
+      if (running) {
+        state.connection = "connected";
+        if (!lifecycle) state.generation++;
+      }
     } else if (kind === "disconnect") {
       if (state.connection === "disconnected")
         fail("disconnect requires a connected or closing actor");
-      state.connection = "disconnected";
-      state.stalled = false;
-      state.subscriptions.clear();
+      disconnect(state);
     } else {
-      if (state.connection !== "connected")
+      const sourceAction = kind === "source-send" || kind === "source-retry";
+      const unavailable = !running && sourceAction;
+      const managedSend = lifecycle && managedSends.has(admitted.id);
+      if (state.connection !== "connected" && !unavailable && !managedSend)
         fail(`${kind} requires a connected actor`);
-      if (kind.startsWith("source-")) {
+      if (sourceAction) {
         const publication = text(action.publication, `${path}.publication`);
         if (kind === "source-retry") {
           if (!state.sent.has(publication))
@@ -108,13 +158,15 @@ export function admitLifecycle(doc: { [key: string]: Json }): AdmittedAction[] {
       }
     }
     return {
-      id: text(action.id, `${path}.id`),
+      ...admitted,
+      kind,
       actor,
-      atMs,
-      phase,
-      declaration,
-      runtimeGeneration: 1,
-      connectionGeneration: state.generation,
+      ...(!lifecycle
+        ? {
+            runtimeGeneration: 1 as const,
+            connectionGeneration: state.generation,
+          }
+        : {}),
     };
   });
 }

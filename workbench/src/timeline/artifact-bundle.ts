@@ -5,6 +5,7 @@ import { lstat, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { boundedFile, decode, loadDocument } from "./admission.js";
+import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { parseReplay, replaySaved } from "./replay-document.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
@@ -16,13 +17,15 @@ const files = [
   "trace.jsonl",
   "run.json",
 ] as const;
-const versions = {
-  scenario: "timeline-simulation/v1",
-  trace: "timeline-trace/v1",
-  scheduler: "time-round-phase-ordinal/v1",
-  randomness: "sha256-length-prefixed/v1",
-  protocol: 1,
-};
+function bundleVersions(versions: typeof evidenceV1 | typeof evidenceV2) {
+  return {
+    scenario: versions.scenario,
+    trace: versions.trace,
+    scheduler: "time-round-phase-ordinal/v1",
+    randomness: "sha256-length-prefixed/v1",
+    protocol: versions.protocol,
+  };
+}
 const hash = (bytes: Buffer | string) =>
   createHash("sha256").update(bytes).digest("hex");
 const same = (a: Json, b: Json, label: string) => {
@@ -104,7 +107,7 @@ export async function recordBundle(
       await writeFailure(directory, result.message ?? "Infrastructure failure");
       return result;
     }
-    parseReplay(raw);
+    const { versions } = parseReplay(raw);
     const inventory: Record<string, { bytes: number; sha256: string }> = {};
     for (const name of files) {
       const bytes = await boundedFile(join(directory, name));
@@ -116,8 +119,8 @@ export async function recordBundle(
       join(directory, "manifest.json"),
       JSON.stringify(
         {
-          format: "timeline-bundle/v1",
-          versions,
+          format: versions.bundle,
+          versions: bundleVersions(versions),
           source: provenance(),
           initialState: { storage: "memory", state: "empty" },
           outcome: result.outcome,
@@ -171,9 +174,18 @@ export async function readBundle(directory: string) {
       "files",
     ],
   );
-  if (manifest.format !== "timeline-bundle/v1")
+  if (
+    manifest.format !== evidenceV1.bundle &&
+    manifest.format !== evidenceV2.bundle
+  )
     throw new Error("invalid-bundle: unsupported format");
-  same(manifest.versions, parseJson(JSON.stringify(versions)), "versions");
+  const versions =
+    manifest.format === evidenceV2.bundle ? evidenceV2 : evidenceV1;
+  same(
+    manifest.versions,
+    parseJson(JSON.stringify(bundleVersions(versions))),
+    "versions",
+  );
   same(
     manifest.initialState,
     { storage: "memory", state: "empty" },
@@ -200,6 +212,8 @@ export async function readBundle(directory: string) {
       throw new Error(`invalid-bundle: ${name} hash/size mismatch`);
   }
   const run = parseReplay(decode(bytes["run.json"]));
+  if (run.versions.bundle !== manifest.format)
+    throw new Error("invalid-bundle: manifest/run version mismatch");
   same(manifest.outcome, run.outcome, "outcome");
   // Lossless parsed metadata is compared directly, without converting Decimal objects.
   if (

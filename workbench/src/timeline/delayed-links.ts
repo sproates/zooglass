@@ -6,6 +6,7 @@ export type LinkConnection = {
   actor: string;
   session: string;
   generation: number;
+  runtimeGeneration?: number;
   open: boolean;
 };
 export type LinkChannel =

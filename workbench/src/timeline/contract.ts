@@ -1,7 +1,18 @@
-import { retryPolicies } from "./retry-policy.js";
+import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules } from "./receipt-faults.js";
-import { actionFields } from "./event-schema.js";
+import {
+  actionFields,
+  isServiceAction,
+  serviceActionFields,
+  stopModes,
+  type ActorActionKind,
+} from "./event-schema.js";
 import { observationList } from "./envelopes.js";
+import {
+  documentEvidenceVersions,
+  evidenceV1,
+  evidenceV2,
+} from "./evidence-versions.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import {
@@ -15,7 +26,8 @@ import {
   unique,
 } from "./validation.js";
 
-export const format = "timeline-simulation/v1";
+export const format = evidenceV1.scenario;
+export const lifecycleFormat = evidenceV2.scenario;
 export const capabilities = [
   "memory",
   "source-publication",
@@ -27,11 +39,17 @@ export const capabilities = [
   "automatic-retry",
   "link-latency",
 ] as const;
+export const lifecycleCapabilities = [
+  ...capabilities,
+  "memory-lifecycle",
+] as const;
 export type TimelineDocument = {
+  format: typeof format | typeof lifecycleFormat;
   canonical: string;
   document: { [key: string]: Json };
   requiredCapabilities: string[];
   admittedActions: AdmittedAction[];
+  retryPolicies: RetryPolicy[];
 };
 
 /** Syntax, references and declared lifecycle admission. Does not certify runtime configuration or execution. */
@@ -54,7 +72,8 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
     ...(Object.hasOwn(rawDocument, "retries") ? ["retries"] : []),
   ]);
-  choice(doc.format, "$.format", [format]);
+  const versions = documentEvidenceVersions(doc.format);
+  const lifecycle = versions.protocol === 2;
   text(doc.id, "$.id");
   const clock = object(doc.clock, "$.clock", ["epochMillis"]);
   const epoch = integer(clock.epochMillis, "$.clock.epochMillis");
@@ -104,6 +123,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   integer(end.heldFrames, "$.end.heldFrames", 0);
 
   const required = new Set<string>(["memory"]);
+  if (lifecycle) required.add("memory-lifecycle");
   const actors = new Set<string>();
   const sources = new Set<string>();
   const clients = new Set<string>();
@@ -136,14 +156,25 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     object(publication.body, `${path}.body`);
   });
   const eventIds = new Set<string>();
-  const fields = actionFields;
+  const kinds = [
+    ...Object.keys(actionFields),
+    ...(lifecycle ? Object.keys(serviceActionFields) : []),
+  ];
   list(doc.actions, "$.actions").forEach((value, i) => {
     const path = `$.actions[${i}]`;
     const entry = object(value, path);
-    const kind = choice(entry.kind, `${path}.kind`, Object.keys(fields));
-    object(entry, path, ["id", "atMs", "kind", "actor", ...fields[kind]]);
+    const kind = choice(entry.kind, `${path}.kind`, kinds);
+    const fields = isServiceAction(kind)
+      ? serviceActionFields[kind]
+      : ["actor", ...actionFields[kind as ActorActionKind]];
+    object(entry, path, ["id", "atMs", "kind", ...fields]);
     unique(text(entry.id, `${path}.id`), eventIds, `${path}.id`);
     integer(entry.atMs, `${path}.atMs`, until);
+    if (isServiceAction(kind)) {
+      if (kind === "service-stop")
+        choice(entry.mode, `${path}.mode`, stopModes);
+      return;
+    }
     reference(
       entry.actor,
       kind.startsWith("source-")
@@ -189,13 +220,16 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     observationList(assertion.expected, `${path}.expected`, kind);
     required.add("observations");
   });
-  if (retryPolicies(doc).length) required.add("automatic-retry");
+  const policies = retryPolicies(doc);
+  if (policies.length) required.add("automatic-retry");
   if (receiptRules(doc).length) required.add("receipt-loss");
   return {
+    format: versions.scenario,
     canonical: encodeJson(doc),
     document: doc,
     requiredCapabilities: [...required].sort(),
-    admittedActions: admitLifecycle(doc),
+    admittedActions: admitLifecycle(doc, lifecycle, policies),
+    retryPolicies: policies,
   };
 }
 
@@ -203,7 +237,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
 export const qualifiedDocumentCapabilities: readonly string[] = [];
 export function requireExecutionCapabilities(
   document: TimelineDocument,
-  supported = qualifiedDocumentCapabilities,
+  supported: readonly string[] = qualifiedDocumentCapabilities,
 ): void {
   const missing = document.requiredCapabilities.filter(
     (item) => !supported.includes(item),

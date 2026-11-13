@@ -1,10 +1,9 @@
 # Memory generation foundation
 
-The private host protocol now supports fresh memory runtime generations. This is
-an implementation foundation, exercised directly by prepared-host tests. The
-document CLI still accepts only `timeline-simulation/v1`; stop/start documents,
-downtime retries, generation-aware agenda cancellation and v2 replay evidence
-are not implemented yet. SQLite recovery and wall adjustments remain planned.
+The private host protocol supports fresh memory runtime generations. The
+[document lifecycle executor](timeline-lifecycle.md) now uses this foundation for
+v2 stop/start actions, downtime retries and recorded/replayed evidence. SQLite
+recovery, runtime snapshot observations and wall adjustments remain planned.
 
 ## Clock and process ownership
 
@@ -35,7 +34,8 @@ Protocol 1 is unchanged. Selecting protocol 2 requires the host handshake capabi
 explicit generation, global turn ID and all three clock coordinates. Subsequent
 command IDs are consecutive. Every response echoes the generation and clocks.
 Protocol 2 does not offer configuration inspection; existing v1 preflight remains
-separate. No public v2 document support can be inferred from the private protocol.
+separate. Workbench admits public v2 documents through its lifecycle executor and
+explicit host capability probe, rather than the host documentFormats list.
 
 ## Verification
 
@@ -50,6 +50,6 @@ receipt wall timestamps, freshness deadlines, same-time restart, global command
 budgets and long host pauses. Pipe tests check invalid acknowledgments and process
 completion failures. Tests consume the prepared JAR and never build Java.
 
-These tests do not establish document-level restart determinism. The next step
-integrates generation-qualified tasks and connections with the global agenda and
-external retry timers, then qualifies recorded/replayed lifecycle scenarios.
+The document lifecycle suite separately covers generation-qualified tasks and
+connections, external retry continuity and v2 evidence. Broader repeated lifecycle
+qualification remains separate from these direct process-boundary tests.

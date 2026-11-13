@@ -1,5 +1,9 @@
 # Prepared-artifact configuration inspection
 
+V2 [memory lifecycle](timeline-lifecycle.md) admission additionally probes the
+prepared host’s protocol-2 capability without constructing a runtime. Its public
+document profile is owned by Workbench, not the host’s empty document format list.
+
 From `workbench/`, after explicitly preparing the POC artifact:
 
 ```sh

@@ -1,8 +1,14 @@
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import { loadDocument } from "./admission.js";
-import { capabilities, requireExecutionCapabilities } from "./contract.js";
+import { loadDocument, probeMemoryLifecycle } from "./admission.js";
+import {
+  capabilities,
+  lifecycleCapabilities,
+  requireExecutionCapabilities,
+} from "./contract.js";
 import { Bridge } from "./bridge.js";
+import { RuntimeGenerations } from "./runtime-generations.js";
+import { documentEvidenceVersions } from "./evidence-versions.js";
 import { documentProfile, executionSettings } from "./document-profile.js";
 import { DocumentExecution } from "./document-execution.js";
 import { SemanticTrace, type Outcome } from "./semantic-trace.js";
@@ -35,6 +41,8 @@ export async function executeDocument(
   options: DocumentOptions,
 ) {
   const settings = executionSettings(scenario, wire);
+  const evidence = documentEvidenceVersions(scenario.document.format);
+  let generations: RuntimeGenerations | undefined;
   const { bridge, artifact } = await Bridge.open(
     options.jar,
     options.hostDelay,
@@ -58,19 +66,26 @@ export async function executeDocument(
       throw new Error(
         "unsupported-execution: configuration is outside memory-arrival-v1",
       );
-    requireExecutionCapabilities(scenario, capabilities);
+    requireExecutionCapabilities(
+      scenario,
+      evidence.protocol === 2 ? lifecycleCapabilities : capabilities,
+    );
+    if (evidence.protocol === 2)
+      await probeMemoryLifecycle(options.jar, artifact);
     const identity = {
-      profile: documentProfile,
+      profile: evidence.profile,
       artifactSha256: artifact,
       configurationSha256: configurationHash,
       workbenchSha256: await workbenchIdentity(),
     };
     const environment = await captureEnvironment(bridge);
+    if (evidence.protocol === 2)
+      environment.executor = "receipt-age-restart-v1/1";
     options.admitReplay?.(identity, environment);
     const until = integer(scenario.document.untilMs, "untilMs");
     const trace = new SemanticTrace(
       {
-        format: "timeline-trace/v1",
+        format: evidence.trace,
         scenarioSha256: createHash("sha256")
           .update(scenario.canonical)
           .digest("hex"),
@@ -80,7 +95,28 @@ export async function executeDocument(
       settings.traceBytes,
       options.observeRecord,
     );
-    const run = new DocumentExecution(bridge, scenario, trace, settings);
+    if (evidence.protocol === 2) {
+      generations = new RuntimeGenerations({
+        jar: options.jar,
+        configuration: wire,
+        epochMillis: integer(
+          object(scenario.document.clock, "clock").epochMillis,
+          "epochMillis",
+        ),
+        commandLimit: settings.turns,
+        hostDelay: options.hostDelay,
+        jvmPauseMs: options.jvmPauseMs,
+        expectedArtifact: artifact,
+        expectedEnvironment: bridge.environment,
+      });
+      await bridge.close();
+    }
+    const run = new DocumentExecution(
+      generations ?? bridge,
+      scenario,
+      trace,
+      settings,
+    );
     let outcome: Outcome = "passed";
     let message: string | undefined;
     let counts;
@@ -127,6 +163,15 @@ export async function executeDocument(
           : "infrastructure-failed";
       counts = run.counts();
     }
+    if (generations) {
+      try {
+        await generations.close();
+      } catch (error) {
+        const cleanup = error instanceof Error ? error.message : String(error);
+        message = `${message ? message + "; " : ""}runtime cleanup failed: ${cleanup}`;
+        outcome = "infrastructure-failed";
+      }
+    }
     // Final validation must not discard evidence after the runtime has started.
     const prefix = trace.prefix();
     let result = prefix;
@@ -140,7 +185,7 @@ export async function executeDocument(
       }
     }
     return {
-      format: "timeline-run/v1" as const,
+      format: evidence.run,
       environment,
       diagnostics: {
         hostDelayMs: options.hostDelay ?? 0,
@@ -148,6 +193,7 @@ export async function executeDocument(
         idlePauseMs: options.idlePauseMs ?? 0,
         jvm: bridge.timing ?? null,
         node: bridge.hostPauses,
+        ...(generations ? { generations: generations.diagnostics } : {}),
       },
       outcome,
       ...(message ? { message } : {}),
@@ -157,6 +203,7 @@ export async function executeDocument(
       trace: result,
     };
   } finally {
+    await generations?.close().catch(() => {});
     await bridge.close();
   }
 }

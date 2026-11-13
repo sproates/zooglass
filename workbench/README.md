@@ -854,6 +854,7 @@ trace, results and a completeness manifest for later replay.
 with hashes and provenance in Git; see the
 [Linux qualification procedure](docs/timeline-linux.md) for the separate environment.
 
-The private [memory generation foundation](docs/timeline-generations.md) now
-verifies fresh JVM replacement, generation clocks and process completion directly.
-Document stop/start, downtime retries and SQLite recovery remain unimplemented.
+The [memory lifecycle executor](docs/timeline-lifecycle.md) now supports v2
+stop/start, downtime retries and matching replay/bundle evidence through fresh JVMs.
+SQLite recovery, wall adjustments and broader restart qualification remain future
+work. Existing v1 campaigns do not qualify the v2 profile.

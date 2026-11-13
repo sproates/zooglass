@@ -6,18 +6,19 @@ import type { RetryPolicy } from "./retry-policy.js";
 type State = {
   policy: RetryPolicy;
   attempt: number;
-  generation: number;
+  generation: number | null;
   done: boolean;
   timer?: number;
 };
 type Ports = {
   agenda: Agenda;
+  turn?: () => void;
   event: (
     kind: string,
     data: Json,
     parent: string,
     actor: string,
-    generation: number,
+    generation: number | null,
     causes?: string[],
   ) => string;
   retry: (
@@ -67,6 +68,11 @@ export class RetryController {
     parent: string,
     run: (dispatch: string) => Promise<void>,
   ) {
+    if (
+      state.policy.unavailableRetryIntervalMs !== undefined &&
+      (!Number.isSafeInteger(at) || at > 3_600_000)
+    )
+      throw new Error("limit-exceeded: retry deadline");
     const id = this.ports.agenda.allocateModelTask();
     const event = this.event(
       state,
@@ -80,6 +86,7 @@ export class RetryController {
       at,
       phase,
       async () => {
+        this.ports.turn?.();
         this.timers.delete(id);
         state.timer = undefined;
         const dispatch = this.event(
@@ -123,6 +130,26 @@ export class RetryController {
           },
         );
       },
+    );
+  }
+  unavailable(action: string, attempt: number, parent: string) {
+    const state = this.states.get(action);
+    if (!state) return;
+    state.attempt = attempt;
+    state.generation = null;
+    if (attempt === state.policy.maxAttempts) {
+      this.status(state, "exhausted", parent);
+      throw new Error(
+        `assertion-failed: retry attempts exhausted for ${action}`,
+      );
+    }
+    this.timer(
+      state,
+      this.ports.agenda.current[0] + state.policy.unavailableRetryIntervalMs!,
+      0,
+      "source-retry",
+      parent,
+      async (retry) => this.ports.retry(state.policy, attempt + 1, retry),
     );
   }
   private status(state: State, status: string, parent: string) {

@@ -5,7 +5,8 @@ freshness and delivery under a virtual-time agenda. It supports the fixed proofs
 and the bounded `memory-arrival-v1` document profile. It does not start Spring or
 open a socket listener. A private protocol 2 additionally supports the
 [memory generation foundation](../../workbench/docs/timeline-generations.md).
-Document stop/start actions, SQLite restart and protected access remain planned.
+Workbench now uses it for [v2 memory stop/start documents](../../workbench/docs/timeline-lifecycle.md).
+SQLite restart and protected access remain planned.
 
 ## Prepare and run
 

@@ -1,4 +1,5 @@
 import type { Json } from "./json.js";
+import { evidenceV2 } from "./evidence-versions.js";
 import {
   integer,
   invalid,
@@ -16,9 +17,11 @@ export type RetryPolicy = {
   maxAttempts: number;
   receiptTimeoutMs: number;
   retryIntervalMs: number;
+  unavailableRetryIntervalMs?: number;
 };
 /** A managed source owns one retained publication and its lifecycle for this bounded profile. */
 export function retryPolicies(doc: { [key: string]: Json }): RetryPolicy[] {
+  const lifecycle = doc.format === evidenceV2.scenario;
   const actions = list(doc.actions, "actions").map((a) => object(a, "action"));
   const sends = new Set(
     actions
@@ -34,6 +37,7 @@ export function retryPolicies(doc: { [key: string]: Json }): RetryPolicy[] {
         "maxAttempts",
         "receiptTimeoutMs",
         "retryIntervalMs",
+        ...(lifecycle ? ["unavailableRetryIntervalMs"] : []),
       ]);
       const action = reference(policy.action, sends, `${path}.action`);
       const send = actions.find((a) => a.id === action)!;
@@ -48,6 +52,14 @@ export function retryPolicies(doc: { [key: string]: Json }): RetryPolicy[] {
           path,
           "managed source permits only one initial connect and its source-send",
         );
+      if (lifecycle) {
+        const connect = owned.find((a) => a.kind === "connect")!;
+        if (
+          integer(connect.atMs, "connect.atMs") >
+          integer(send.atMs, "send.atMs")
+        )
+          invalid(path, "managed source connect must precede its initial send");
+      }
       return {
         action,
         actor,
@@ -63,6 +75,15 @@ export function retryPolicies(doc: { [key: string]: Json }): RetryPolicy[] {
           `${path}.retryIntervalMs`,
           3600000,
         ),
+        ...(lifecycle
+          ? {
+              unavailableRetryIntervalMs: integer(
+                policy.unavailableRetryIntervalMs,
+                `${path}.unavailableRetryIntervalMs`,
+                3600000,
+              ),
+            }
+          : {}),
       };
     },
   );

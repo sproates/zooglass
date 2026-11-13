@@ -519,32 +519,41 @@ flowchart TB
   run --> admission["timeline/admission.ts"]
   run --> profile["timeline/document-profile.ts"]
   run --> execution["timeline/document-execution.ts"]
-  execution -->|actions and retry orchestration| agenda["timeline/agenda.ts"]
+  execution -->|declared actions and assertions| agenda["timeline/agenda.ts"]
+  execution -->|connections and publication attempts| actors["timeline/document-actors.ts"]
+  actors -->|external deadlines| retries["timeline/retry-controller.ts"]
+  retries -->|source-owned timers| agenda
+  actors -->|runtime operations| turns
+  actors -->|input delivery| transport
   execution -->|commands and shared execution budget| turns["timeline/runtime-turns.ts"]
   execution -->|sessions and cumulative observations| transport["timeline/document-transport.ts"]
-  turns -->|session effects| transport
   turns -->|positive runtime task ownership| agenda
-  turns -->|framed commands| bridge["timeline/bridge.ts"]
+  turns -->|v1 framed commands| bridge["timeline/bridge.ts"]
+  turns -->|v2 runtime replacement| generations["timeline/runtime-generations.ts"]
+  generations -->|fresh processes| bridge
   transport -->|delayed messages and closure| links["timeline/delayed-links.ts"]
   execution --> trace["timeline/semantic-trace.ts"]
   turns --> trace
   transport --> trace
   run --> validation["timeline/trace-contract.ts"]
+  run -->|matching evidence versions| versions["timeline/evidence-versions.ts"]
+  validation -->|v2 generation and connection ownership| traceGenerations["timeline/trace-generations.ts"]
   bridge -->|validate entry point before launch| artifact["timeline/host-artifact.ts"]
   bridge -->|typed frame metadata; opaque wire payloads| protocol["timeline/host-protocol.ts"]
   bridge --> host["simulation-host: HostProtocol.java / TimelineHost.java"]
 ```
 
-`DocumentExecution` preloads declared actions and owns current actor connections,
-managed retry orchestration and scenario assertions. `RuntimeTurns` owns bridge
+`DocumentExecution` preloads declared actions, handles runtime stop/start and
+checks scenario assertions. `DocumentActors` owns connections, publication attempts
+and external retry orchestration. `RuntimeTurns` owns bridge
 responses, positive runtime task IDs and the shared execution-turn budget; transport
 callbacks and assertions consume that same budget. `DocumentTransport` owns
 session-bound effects, writer handoffs, receipt-loss decisions, delayed traffic and
 cumulative delivered observations. The modules exchange explicit commands and
 effect callbacks; they do not reconstruct runtime output from expected assertions.
 
-The private memory generation foundation is not yet connected to document
-execution. Its owner retains command identity and budget while replacing the JVM:
+The v2 memory generation owner retains command identity and budget while
+replacing the JVM:
 
 ```mermaid
 flowchart LR

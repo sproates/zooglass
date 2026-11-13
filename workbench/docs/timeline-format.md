@@ -3,7 +3,8 @@
 This POC adds a strict **document admission contract**, an encoding contract and a legacy
 compatibility inspector. The [bounded executor](timeline-execution.md) runs admitted
 documents for the explicit `memory-arrival-v1` configuration profile.
-`timeline-simulation/v1` and `timeline-trace/v1` are experimental contracts on the
+V2 adds [memory lifecycle](timeline-lifecycle.md), with matching v2 trace, run and
+bundle contracts. Both versions are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
 retain their private format and existing commands.
 
@@ -28,7 +29,7 @@ is introduced here. Admission reports `execution: eligible` only when the prepar
 profile and document bounds qualify. Eligibility does not mean the document ran. Trace inspection likewise checks
 structure, not whether the recorded execution or assertions actually happened.
 
-## Scenario contract
+## V1 scenario contract
 
 All fields except `faults` and `retries` are required; unknown fields and unsupported operations are errors.
 The [example](../scenarios/simulation/receipt-contract.json) shows the whole shape.
@@ -94,6 +95,14 @@ occurs between same-time publications. Beyond fixed link latency and admitted re
 restart, wall-clock changes, dynamic views, HTTP snapshot reads and other assertion
 kinds remain rejected by this grammar increment, not silently ignored. Their
 syntax and runtime evidence belong to subsequent increments.
+
+## V2 memory lifecycle
+
+V2 retains the exact JSON and ordinary action/observation contracts, adds actorless
+`service-stop`/`service-start` and requires the downtime interval on retry policies.
+It dynamically allocates successful connection generations and permits declared
+downtime attempts. See the [lifecycle guide](timeline-lifecycle.md) for ordering,
+bounds, null external identities, cancellation and the runnable example.
 
 ## Exact JSON and trace structure
 

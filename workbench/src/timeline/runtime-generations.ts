@@ -1,4 +1,4 @@
-import { Bridge, type Response } from "./bridge.js";
+import { Bridge, type Response, type TimingDiagnostics } from "./bridge.js";
 
 export type RuntimeGeneration = Readonly<{
   number: number;
@@ -12,7 +12,17 @@ export type GenerationOptions = Readonly<{
   commandLimit: number;
   hostDelay?: number;
   jvmPauseMs?: number;
+  expectedArtifact?: string;
+  expectedEnvironment?: Record<string, string>;
 }>;
+
+function environmentKey(environment: Record<string, string>) {
+  return JSON.stringify(
+    Object.entries(environment).sort(([a], [b]) =>
+      a < b ? -1 : a > b ? 1 : 0,
+    ),
+  );
+}
 
 /** Owns fresh host processes; agenda, connection and retry ownership remain external. */
 export class RuntimeGenerations {
@@ -28,6 +38,33 @@ export class RuntimeGenerations {
   private failure?: Error;
   private artifact?: string;
   private environment?: string;
+  private readonly completedDiagnostics: {
+    runtimeGeneration: number;
+    jvm: TimingDiagnostics | null;
+    node: Bridge["hostPauses"];
+  }[] = [];
+  get diagnostics() {
+    return [
+      ...this.completedDiagnostics,
+      ...(this.bridge && this.identity
+        ? [
+            {
+              runtimeGeneration: this.identity.number,
+              jvm: this.bridge.timing ?? null,
+              node: [...this.bridge.hostPauses],
+            },
+          ]
+        : []),
+    ];
+  }
+  private retainDiagnostics() {
+    if (this.bridge && this.identity)
+      this.completedDiagnostics.push({
+        runtimeGeneration: this.identity.number,
+        jvm: this.bridge.timing ?? null,
+        node: [...this.bridge.hostPauses],
+      });
+  }
 
   constructor(options: GenerationOptions) {
     if (
@@ -39,6 +76,10 @@ export class RuntimeGenerations {
     )
       throw new Error("Invalid runtime generation limits or epoch");
     this.options = Object.freeze({ ...options });
+    this.artifact = options.expectedArtifact;
+    this.environment =
+      options.expectedEnvironment &&
+      environmentKey(options.expectedEnvironment);
   }
 
   get current(): RuntimeGeneration | undefined {
@@ -73,6 +114,7 @@ export class RuntimeGenerations {
       return await work();
     } catch (error) {
       this.failure = error instanceof Error ? error : new Error(String(error));
+      this.retainDiagnostics();
       const bridge = this.bridge;
       this.bridge = undefined;
       this.identity = undefined;
@@ -128,11 +170,7 @@ export class RuntimeGenerations {
         !Object.keys(opened.bridge.environment).length
       )
         throw new Error("Runtime environment identity is missing");
-      const environment = JSON.stringify(
-        Object.entries(opened.bridge.environment).sort(([a], [b]) =>
-          a < b ? -1 : a > b ? 1 : 0,
-        ),
-      );
+      const environment = environmentKey(opened.bridge.environment);
       if (
         this.artifact !== undefined &&
         (this.artifact !== opened.artifact || this.environment !== environment)
@@ -190,6 +228,7 @@ export class RuntimeGenerations {
       } else {
         await bridge.finishAbruptly();
       }
+      this.retainDiagnostics();
       this.bridge = undefined;
       this.identity = undefined;
       return response;
@@ -200,6 +239,7 @@ export class RuntimeGenerations {
   async close() {
     if (this.busy) throw new Error("Overlapping runtime lifecycle operations");
     this.closed = true;
+    this.retainDiagnostics();
     const bridge = this.bridge;
     this.bridge = undefined;
     this.identity = undefined;

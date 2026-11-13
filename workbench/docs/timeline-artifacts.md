@@ -12,6 +12,10 @@ any existing destination. Replay reports must be new files outside the evidence
 directory. Existing single-file `timeline:execute` and `timeline:replay` remain
 available.
 
+V1 documents retain v1 bundle/run/trace formats. [Memory lifecycle](timeline-lifecycle.md)
+documents use matching v2 formats and bridge protocol 2; mixed versions reject
+before replay starts Java. Both profiles start with empty memory.
+
 ## Contents and completion
 
 | File                 | Purpose                                                                                  |

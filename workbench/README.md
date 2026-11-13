@@ -182,8 +182,9 @@ on the replacement socket. These do not change the generic check contract.
 
 The accepted [deterministic timeline design](../docs/design/deterministic-timeline.md)
 defines a separate execution mode with virtual time, controlled production-runtime
-turns and replayable faults. It is not implemented yet. Current commands retain
-the behaviour described below.
+turns and replayable faults. The general execution mode is not delivered; the
+separate [fixed-fixture proof](docs/timeline-proof.md) exercises its initial
+boundary. Current commands retain the behaviour described below.
 
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are

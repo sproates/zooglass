@@ -40,23 +40,33 @@ Diagnostics go to stderr. Host watchdogs report infrastructure failures.
 - **Exact data:** a large integer, a precise decimal, negative zero and shuffled
   object keys pass through the actual publication parser. Wire strings cross Node
   losslessly; the transcript includes canonical exact-decimal JSON, not rounded
-  JavaScript payload numbers.
+  JavaScript payload numbers. Independent fixture expectations check every state
+  transition, complete receipt (including targets), baseline and delivered frame.
+  Client payloads, provenance, publication identities and freshness are checked
+  directly; client expectations are not generated from runtime state snapshots.
 - **Replay:** each repetition starts a new Node/JVM pair. Both fixtures execute
   100 times with bridge delays of 0–2 ms and fast/paced presentation. Actual effects
   must match. Manifests identify the Java JAR and proof modules. Altering a saved
-  expected turn produces a first-divergence error.
+  expected effect stops a fresh verification run at the first divergent turn,
+  before later actions execute. Completed runs can also be compared offline.
 
 The agenda orders `(time, round, phase, ordinal)`. Same-time derived work enters the
-next round. Lifecycle effects use phase zero, deadlines phase one, inputs and
-handoffs phase two. Explicit bounds cover time, rounds, turns, tasks, trace bytes,
+next round. Lifecycle/link changes use phase zero; deadlines and writer tasks use
+phase one; inputs and transport completions/arrivals use phase two. A timeout
+defers reconnection to the next round, and releasing a stalled link defers its
+handoff completion. Explicit bounds cover time, rounds, turns, tasks, trace bytes,
 frames and fixture connections. The fixtures end with no outstanding work or held
-frames. Shutdown is explicit and its effects are recorded.
+frames. Shutdown is an explicit later phase-zero turn and its effects are recorded.
+The bridge rejects overlapping commands before sending or allocating a turn ID.
+Unknown command fields are rejected, including unsupported storage/access requests.
 
 ## Negative controls and limits
 
 `no-alarms` can be passed as the last CLI argument to disable dispatch in the proof
 adapter. The receipt fixture must fail `deadline expiry must originate from alarm`;
 input-side expiry cannot rescue it. The focused tests require this failure.
+Only alarm-tagged tasks are suppressed; writer tasks still run. Other negative
+checks corrupt delivered data and receipt targets to verify the literal oracle.
 
 A separate prepared mutation artifact changes expiry to retain a fresh age. The
 same fixture must execute against that artifact's own valid manifest and fail

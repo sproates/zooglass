@@ -40,12 +40,19 @@ public final class TurnContext {
     }
 
     public long schedule(long at, int phase, Runnable action) {
+        return schedule(at, phase, "runtime", action);
+    }
+
+    public long schedule(long at, int phase, String taskKind, Runnable action) {
         check();
-        if (at < now || pending.size() >= 1000)
+        if (at < now || phase < 0 || phase > 2 || pending.size() >= 1000)
             throw new IllegalStateException("Invalid task or task limit");
         long id = ++next;
         pending.put(id, new Pending(at, action));
-        effect(Map.of("kind", "schedule", "task", id, "at", at, "phase", phase));
+        effect(
+                Map.of(
+                        "kind", "schedule", "task", id, "at", at, "phase", phase,
+                        "taskKind", taskKind));
         return id;
     }
 

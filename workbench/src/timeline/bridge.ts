@@ -8,6 +8,7 @@ export type Effect = {
   task?: number;
   at?: number;
   phase?: number;
+  taskKind?: string;
   session?: string;
   wire?: string;
   code?: number;
@@ -29,7 +30,7 @@ export class Bridge {
     resolve: (value: unknown) => void;
     reject: (error: Error) => void;
   };
-  private frames: unknown[] = [];
+  private commandActive = false;
   private failure?: Error;
   private turn = 0;
   private diagnostics = "";
@@ -78,10 +79,7 @@ export class Bridge {
             this.waiting = undefined;
             waiter.resolve(value);
           } else {
-            if (this.frames.length) {
-              throw new Error("Unsolicited bridge frames");
-            }
-            this.frames.push(value);
+            throw new Error("Unsolicited bridge frame");
           }
         }
       } catch (error) {
@@ -127,9 +125,6 @@ export class Bridge {
     if (this.failure) {
       return Promise.reject(this.failure);
     }
-    if (this.frames.length) {
-      return Promise.resolve(this.frames.shift());
-    }
     if (this.waiting) {
       return Promise.reject(new Error("Overlapping bridge commands"));
     }
@@ -154,37 +149,49 @@ export class Bridge {
     timeMs: number,
     operation: Record<string, unknown>,
   ): Promise<Response> {
-    if (this.hostDelay) {
-      await delay(this.hostDelay);
+    if (this.commandActive) {
+      throw new Error("Overlapping bridge commands");
     }
-    const turnId = this.turn++;
-    const bytes = Buffer.from(
-      JSON.stringify({
-        ...operation,
-        turnId,
-        runtimeGeneration: 1,
-        timeMs,
-        monotonicMs: timeMs,
-        wallMillis: 1_000_000 + timeMs,
-      }),
-    );
-    if (bytes.length > cap) {
-      throw new Error("Command frame overflow");
+    this.commandActive = true;
+    try {
+      if (this.hostDelay) {
+        await delay(this.hostDelay);
+      }
+      if (this.failure) {
+        throw this.failure;
+      }
+      const turnId = this.turn;
+      const bytes = Buffer.from(
+        JSON.stringify({
+          ...operation,
+          turnId,
+          runtimeGeneration: 1,
+          timeMs,
+          monotonicMs: timeMs,
+          wallMillis: 1_000_000 + timeMs,
+        }),
+      );
+      if (bytes.length > cap) {
+        throw new Error("Command frame overflow");
+      }
+      this.turn++;
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(bytes.length);
+      const response = this.read();
+      this.child.stdin.write(Buffer.concat([header, bytes]));
+      const value = (await response) as Response;
+      if (
+        value.turnId !== turnId ||
+        value.runtimeGeneration !== 1 ||
+        value.timeMs !== timeMs ||
+        !Array.isArray(value.effects)
+      ) {
+        throw new Error("Mismatched turn response");
+      }
+      return value;
+    } finally {
+      this.commandActive = false;
     }
-    const header = Buffer.alloc(4);
-    header.writeUInt32BE(bytes.length);
-    const response = this.read();
-    this.child.stdin.write(Buffer.concat([header, bytes]));
-    const value = (await response) as Response;
-    if (
-      value.turnId !== turnId ||
-      value.runtimeGeneration !== 1 ||
-      value.timeMs !== timeMs ||
-      !Array.isArray(value.effects)
-    ) {
-      throw new Error("Mismatched turn response");
-    }
-    return value;
   }
   async close() {
     this.child.stdin.end();

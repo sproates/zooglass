@@ -61,7 +61,10 @@ public final class TimelineRuntime {
                                 var alarm = new Alarm();
                                 alarm.id =
                                         turns.schedule(
-                                                Math.addExact(turns.now(), delay), 1, alarm::run);
+                                                Math.addExact(turns.now(), delay),
+                                                1,
+                                                "alarm",
+                                                alarm::run);
                                 tasks.add(alarm.id);
                                 return alarm;
                             }

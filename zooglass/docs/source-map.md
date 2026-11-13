@@ -501,4 +501,7 @@ start Spring, bind a network listener or expose controls through normal endpoint
 Only the fixed memory/unprotected proof configuration is supported. Initial clocks
 are installed before runtime construction; effects and callbacks require the owning
 thread's active turn. Arbitrary configuration, restart and protected access remain
-outside this POC capability boundary.
+outside this POC capability boundary; unsupported command fields fail explicitly.
+The driver owns and cancels its deferred lifecycle, writer and transport callbacks.
+Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
+completion in phase 2; released handoffs complete in a later causal round.

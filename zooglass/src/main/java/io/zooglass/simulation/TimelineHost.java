@@ -96,10 +96,11 @@ public final class TimelineHost {
             throw new IllegalArgumentException("Invalid command identity or clocks");
         if (id == 0 && at != 0)
             throw new IllegalArgumentException("Initial elapsed time must be zero");
-        turns.begin(at);
-        String op = command.path("op").asString();
+        String op = text(command, "op");
+        validateFields(command, op);
         if ((runtime == null) != op.equals("initialize"))
             throw new IllegalArgumentException("Invalid lifecycle");
+        turns.begin(at);
         switch (op) {
             case "initialize" -> initialize(command.path("policy").asString());
             case "connect" -> {
@@ -134,6 +135,8 @@ public final class TimelineHost {
             }
             case "release" -> {
                 session(command, "viewer-");
+                if (!command.path("fail").isBoolean())
+                    throw new IllegalArgumentException("Expected boolean fail");
                 delivery.release(text(command, "session"), command.path("fail").asBoolean());
             }
             case "task" -> turns.dispatch(integer(command, "task"));
@@ -210,6 +213,26 @@ public final class TimelineHost {
         broadcaster = delivery.broadcaster(JSON, runtime);
         subscriptions = new SnapshotSubscriptions(JSON, broadcaster);
         ingress = new EventIngress(runtime, JSON);
+    }
+
+    private static void validateFields(JsonNode command, String op) {
+        var fields =
+                new HashSet<>(
+                        Set.of(
+                                "op", "turnId", "runtimeGeneration", "timeMs", "monotonicMs",
+                                "wallMillis"));
+        fields.addAll(
+                switch (op) {
+                    case "initialize" -> Set.of("policy");
+                    case "connect", "disconnect", "stall" -> Set.of("session");
+                    case "ingress", "subscribe" -> Set.of("session", "wire");
+                    case "release" -> Set.of("session", "fail");
+                    case "task" -> Set.of("task");
+                    case "observe", "shutdown" -> Set.of();
+                    default -> throw new IllegalArgumentException("Unsupported POC operation");
+                });
+        if (command.properties().stream().anyMatch(entry -> !fields.contains(entry.getKey())))
+            throw new IllegalArgumentException("Unsupported POC command field");
     }
 
     private TimelineSession session(JsonNode command, String prefix) {

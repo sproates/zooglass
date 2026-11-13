@@ -12,6 +12,29 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class TurnContextTests {
     @Test
+    void closingDeliveryCancelsDeferredLifecycleAndRuntimeActions() {
+        var turns = new TurnContext();
+        var delivery = new io.zooglass.delivery.TimelineDelivery(turns);
+        turns.begin(0);
+        var session = new TimelineSession("viewer-test", turns, wire -> {});
+        delivery.closeSession(session, org.springframework.web.socket.CloseStatus.NORMAL);
+        delivery.execute(
+                () -> {
+                    throw new AssertionError("Cancelled action ran");
+                });
+        assertThat(turns.pendingCount()).isEqualTo(2);
+        delivery.close();
+        delivery.close();
+        assertThat(turns.pendingCount()).isZero();
+        assertThat(session.isOpen()).isTrue();
+        assertThatThrownBy(() -> delivery.execute(() -> {}))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(turns.end())
+                .extracting(effect -> effect.get("kind"))
+                .containsExactly("schedule", "schedule", "cancel", "cancel");
+    }
+
+    @Test
     void clockAndCallbacksRequireAnOwnedTurn() throws Exception {
         var turns = new TurnContext();
         assertThatThrownBy(turns::now).isInstanceOf(IllegalStateException.class);

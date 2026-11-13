@@ -441,7 +441,8 @@ and the behaviours it verifies.
 ```mermaid
 flowchart LR
   cli["timeline/run.ts"] -->|run literal fixture| proof["timeline/proof.ts"]
-  proof -->|independent assertions| execution["timeline/execution.ts"]
+  proof -->|execute and verify replay turns| execution["timeline/execution.ts"]
+  proof -->|literal expected outputs| oracle["timeline/oracle.ts"]
   proof -->|keyed receipt-loss choice| random["timeline/random.ts"]
   proof -->|module identity| manifest["timeline/manifest.ts"]
   execution -->|ordered turns| agenda["timeline/agenda.ts"]
@@ -452,5 +453,7 @@ flowchart LR
 
 Wire payloads remain exact strings across Node. Java canonicalises object keys and
 exact decimal values; the transcript retains ordered effects before comparison.
-The fixture oracle reads safe receipt/version metadata and checks lossless payload
-vectors separately. No Java build is invoked by proof execution or tests.
+The fixture oracle compares complete client frames, receipts and state transitions
+against hand-authored expectations, with exact wire checks for lossless payload
+numbers. Replay compares each fresh turn before processing its effects and stops
+at the first difference. No Java build is invoked by proof execution or tests.

@@ -9,6 +9,7 @@ import {
   type TraceEntry,
 } from "./execution.js";
 import { loseReceipt } from "./random.js";
+import { assertProofOutputs } from "./oracle.js";
 export type Scenario = "receipt" | "delivery";
 export type ProofResult = {
   manifest: {
@@ -29,6 +30,7 @@ export type Options = {
   paced?: boolean;
   idlePause?: boolean;
   disableAlarms?: boolean;
+  replay?: ProofResult;
 };
 const firstPublication =
   '{"sourceId":"feed","epoch":"v1","sourceEntityId":"bus","publicationSequence":1,"type":"position","payload":{"z":-0.0,"n":9007199254740993,"d":1.0000000000000000001,"nested":{"b":2,"a":1}}}';
@@ -49,25 +51,41 @@ const subscription = JSON.stringify({
   entityId: "bus",
 });
 export async function runProof(options: Options): Promise<ProofResult> {
+  const decision = loseReceipt(options.seed, options.scenario);
   const workbench = await workbenchIdentity();
   const { bridge, artifact } = await Bridge.open(
     options.jar,
     options.hostDelay,
   );
-  const run = new Execution(bridge, options.disableAlarms, options.paced);
-  const decision = loseReceipt(options.seed, options.scenario);
+  const manifest = {
+    protocol: 1,
+    fixture: "timeline-proof-v1",
+    artifact,
+    workbench,
+    scenario: options.scenario,
+    seed: options.seed,
+  };
+  const run = new Execution(
+    bridge,
+    options.disableAlarms,
+    options.paced,
+    options.replay?.trace,
+  );
   try {
-    run.root(
-      0,
-      {
-        op: "initialize",
-        policy:
-          options.scenario === "receipt"
-            ? "disconnectOnOverflow"
-            : "coalesceLatestState",
-      },
-      0,
-    );
+    if (options.replay) {
+      assert.deepEqual(
+        manifest,
+        options.replay.manifest,
+        "replay manifest mismatch",
+      );
+    }
+    run.root(0, {
+      op: "initialize",
+      policy:
+        options.scenario === "receipt"
+          ? "disconnectOnOverflow"
+          : "coalesceLatestState",
+    });
     run.root(0, { op: "connect", session: "source-1" });
     for (const session of ["viewer-slow", "viewer-healthy"]) {
       run.root(0, { op: "connect", session });
@@ -105,14 +123,16 @@ export async function runProof(options: Options): Promise<ProofResult> {
         async () => {
           run.record({ op: "source-timeout", attempt: 1 });
           source = "source-2";
-          await run.command({ op: "connect", session: source });
-          run.agenda.add(30, 2, () =>
-            run.command({
-              op: "ingress",
-              session: source,
-              wire: firstPublication,
-            }),
-          );
+          run.agenda.add(30, 0, async () => {
+            await run.command({ op: "connect", session: source });
+            run.agenda.add(30, 2, () =>
+              run.command({
+                op: "ingress",
+                session: source,
+                wire: firstPublication,
+              }),
+            );
+          });
         },
         -1,
         true,
@@ -289,30 +309,27 @@ export async function runProof(options: Options): Promise<ProofResult> {
       [],
       "no pending agenda work at horizon",
     );
-    await run.command({ op: "shutdown" });
+    assertProofOutputs(run, options.scenario, decision.lost);
+    run.agenda.add(run.agenda.current[0], 0, () =>
+      run.command({ op: "shutdown" }),
+    );
+    await run.agenda.through(run.agenda.current[0]);
+    if (options.replay) {
+      assert.equal(
+        run.trace.length,
+        options.replay.trace.length,
+        `first divergence at turn ${run.trace.length}`,
+      );
+    }
     return {
-      manifest: {
-        protocol: 1,
-        fixture: "timeline-proof-v1",
-        artifact,
-        workbench,
-        scenario: options.scenario,
-        seed: options.seed,
-      },
+      manifest,
       trace: run.trace,
     };
   } catch (error) {
     if (error instanceof Error) {
       Object.assign(error, {
         proof: {
-          manifest: {
-            protocol: 1,
-            fixture: "timeline-proof-v1",
-            artifact,
-            workbench,
-            scenario: options.scenario,
-            seed: options.seed,
-          },
+          manifest,
           trace: run.trace,
         },
       });

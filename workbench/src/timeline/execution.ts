@@ -42,9 +42,18 @@ export class Execution {
     readonly bridge: Bridge,
     readonly disableAlarms = false,
     readonly paced = false,
+    readonly replay?: readonly TraceEntry[],
   ) {}
   record(operation: Record<string, unknown>, effects: Effect[] = []) {
     this.trace.push({ key: this.agenda.current, operation, effects });
+    if (this.replay) {
+      const index = this.trace.length - 1;
+      assert.deepEqual(
+        this.trace[index],
+        this.replay[index],
+        `first divergence at turn ${index}`,
+      );
+    }
     if (Buffer.byteLength(JSON.stringify(this.trace)) > 16 * 1024 * 1024) {
       throw new Error("limit-exceeded: trace");
     }
@@ -59,7 +68,7 @@ export class Execution {
     for (const effect of response.effects) {
       switch (effect.kind) {
         case "schedule":
-          if (!(this.disableAlarms && effect.phase === 1)) {
+          if (!(this.disableAlarms && effect.taskKind === "alarm")) {
             this.agenda.add(
               effect.at!,
               effect.phase!,
@@ -98,7 +107,17 @@ export class Execution {
       }
     }
   }
-  root(at: number, operation: Record<string, unknown>, phase = 2) {
+  root(at: number, operation: Record<string, unknown>) {
+    const phase = [
+      "initialize",
+      "connect",
+      "disconnect",
+      "stall",
+      "release",
+      "shutdown",
+    ].includes(String(operation.op))
+      ? 0
+      : 2;
     this.agenda.add(at, phase, () => this.command(operation), undefined, true);
   }
   async barrier(at: number) {

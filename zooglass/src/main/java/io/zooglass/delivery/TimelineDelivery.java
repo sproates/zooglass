@@ -17,6 +17,7 @@ public final class TimelineDelivery implements DeliveryDriver {
     private final Map<String, ModelWriter> writers = new LinkedHashMap<>();
     private final Map<String, Handoff> held = new LinkedHashMap<>();
     private final Set<String> stalled = new LinkedHashSet<>();
+    private final Set<Long> tasks = new LinkedHashSet<>();
     private boolean closed;
 
     private record Handoff(
@@ -40,11 +41,27 @@ public final class TimelineDelivery implements DeliveryDriver {
     }
 
     public void execute(Runnable action) {
-        turns.schedule(turns.now(), 2, action);
+        defer(1, action);
+    }
+
+    private void defer(int phase, Runnable action) {
+        turns.check();
+        if (closed) throw new IllegalStateException("Closed delivery driver");
+        long[] id = {0};
+        id[0] =
+                turns.schedule(
+                        turns.now(),
+                        phase,
+                        () -> {
+                            tasks.remove(id[0]);
+                            action.run();
+                        });
+        tasks.add(id[0]);
     }
 
     public void closeSession(WebSocketSession session, CloseStatus status) {
-        execute(
+        defer(
+                0,
                 () -> {
                     try {
                         session.close(status);
@@ -64,7 +81,7 @@ public final class TimelineDelivery implements DeliveryDriver {
         stalled.remove(session);
         var handoff = held.remove(session);
         if (handoff == null) throw new IllegalArgumentException("No held handoff");
-        handoff.writer().finish(handoff, fail);
+        handoff.writer().defer(2, () -> handoff.writer().finish(handoff, fail));
     }
 
     public int heldCount() {
@@ -74,7 +91,10 @@ public final class TimelineDelivery implements DeliveryDriver {
 
     public void close() {
         turns.check();
+        if (closed) return;
         closed = true;
+        for (long id : List.copyOf(tasks)) turns.cancel(id);
+        tasks.clear();
         writers.values().forEach(ModelWriter::stop);
         writers.clear();
         held.clear();
@@ -91,12 +111,17 @@ public final class TimelineDelivery implements DeliveryDriver {
         }
 
         public void execute(Runnable turn) {
+            defer(1, turn);
+        }
+
+        void defer(int phase, Runnable turn) {
             turns.check();
+            if (stopped) return;
             long[] id = {0};
             id[0] =
                     turns.schedule(
                             turns.now(),
-                            2,
+                            phase,
                             () -> {
                                 tasks.remove(id[0]);
                                 if (!stopped) turn.run();
@@ -117,7 +142,7 @@ public final class TimelineDelivery implements DeliveryDriver {
                             "wire",
                             frame.message().getPayload()));
             if (stalled.contains(session.getId())) held.put(session.getId(), handoff);
-            else execute(() -> finish(handoff, false));
+            else defer(2, () -> finish(handoff, false));
         }
 
         void finish(Handoff handoff, boolean fail) {

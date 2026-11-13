@@ -466,6 +466,7 @@ flowchart LR
   inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
   inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
   inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
+  contract -->|chronological connection, retry and subscription admission| lifecycle["timeline/lifecycle.ts"]
   contract -->|exact tokens and canonical bytes| json["timeline/json.ts"]
   trace -->|exact tokens and canonical bytes| json
   contract -->|strict fields, references, bounded integers| validation["timeline/validation.ts"]

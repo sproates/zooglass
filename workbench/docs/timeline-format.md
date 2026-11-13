@@ -1,6 +1,6 @@
 # Timeline document and trace contracts
 
-This POC adds a strict **syntax contract**, an encoding contract and a legacy
+This POC adds a strict **document admission contract**, an encoding contract and a legacy
 compatibility inspector. It does **not** add a general scenario executor.
 `timeline-simulation/v1` and `timeline-trace/v1` are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
@@ -15,9 +15,9 @@ npm run timeline:inspect -- trace /path/to/semantic-trace.jsonl
 ```
 
 The inspector never starts or builds Java. `syntax: valid` means the document's
-shape, references and bounded numeric values passed validation. It does not mean
+shape, references, declared lifecycle and bounded numeric values passed validation. It does not mean
 that its runtime configuration exists, matches its hash, is accepted by ZooGlass,
-or that its actor lifecycle is executable. The configuration file is resolved
+or that runtime-derived effects permit every planned action. The configuration file is resolved
 relative to the scenario by a future executor, which must verify its byte hash and
 use the full existing ZooGlass configuration parser. No second strategy language
 is introduced here. The example is a contract example, not an executed acceptance
@@ -47,7 +47,20 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
   `client-unsubscribe`, `writer-stall` and `writer-release`. Source actions refer
   to retained publication IDs; retry means identical original bytes/identity, not
   a new publication. Subscriptions name view/entity IDs; release has boolean `fail`.
-  A future executor must reject impossible lifecycle/retry sequences before running.
+  Admission orders actions by time, phase and declaration ordinal before checking
+  the declared lifecycle. Every send, subscription and writer control needs a
+  connected actor. `connect` increments that actor's connection generation;
+  `disconnect` clears subscriptions and writer stalls. Duplicate connects,
+  disconnects, subscriptions and sends are rejected: a repeated publication must
+  use `source-retry`, after a prior send of that publication by the same actor.
+  Send history survives reconnects; subscription state does not. The admitted plan
+  exposes these generations and ordered action identities, with runtime generation
+  fixed at 1 because restart is not admitted.
+  `writer-release` requires a prior stall. A failed release marks the actor closing:
+  an explicit disconnect is required before reconnect or further inputs. This
+  conservative rule does not assume asynchronous write failure has already closed
+  the transport. Actual runtime-induced closes, publication acceptance and held
+  frames still require checks by a future executor; admission does not predict them.
 - `assertions` have unique IDs shared with actions, times and actor references.
   `client-frames` and `source-receipts` compare the **entire ordered cumulative
   list** observed by that actor through the settled timestamp against `expected`.

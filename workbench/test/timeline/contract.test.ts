@@ -55,6 +55,7 @@ function fixture() {
         actor: "feed",
         publication: "report",
       },
+      { id: "connect-feed", atMs: 0, kind: "connect", actor: "feed" },
     ],
     assertions: [
       {
@@ -143,6 +144,7 @@ test("scenario validation preserves payload precision but grants no executable s
   const parsed = parseTimelineDocument(raw);
   assert.ok(parsed.canonical.includes("9007199254740993"));
   assert.deepEqual(parsed.requiredCapabilities, [
+    "client-lifecycle",
     "memory",
     "observations",
     "source-publication",
@@ -390,4 +392,149 @@ test("legacy assessment exposes interleaved same-time checks and transient clien
   assert.ok(report.issues.some((i) => i.reason.includes("check precedes")));
   assert.ok(report.issues.some((i) => i.reason.includes("burst")));
   assert.ok(report.issues.some((i) => i.reason.includes("transient")));
+});
+
+function lifecycle(actions: object[]) {
+  return parseTimelineDocument(JSON.stringify({ ...fixture(), actions }));
+}
+const connect = (actor = "feed", atMs = 0, id = "connect") => ({
+  id,
+  atMs,
+  kind: "connect",
+  actor,
+});
+const send = (
+  kind = "source-send",
+  atMs = 10,
+  actor = "feed",
+  id = "send",
+) => ({ id, atMs, kind, actor, publication: "report" });
+const control = (kind: string, id = kind, atMs = 0, actor = "viewer") => ({
+  id,
+  atMs,
+  kind,
+  actor,
+});
+const subscribe = (kind = "client-subscribe", id = kind, atMs = 0) => ({
+  ...control(kind, id, atMs),
+  viewId: "position",
+  entityId: "bus",
+});
+
+test("lifecycle admission uses time then phase then declaration, retaining generations", () => {
+  const admitted = lifecycle([
+    send("source-retry", 20, "feed", "retry"),
+    connect("feed", 20, "reconnect"),
+    { ...control("disconnect", "disconnect", 15, "feed") },
+    send(),
+    connect("feed", 10),
+  ]).admittedActions;
+  assert.deepEqual(
+    admitted.map((a) => [a.id, a.atMs, a.phase, a.connectionGeneration]),
+    [
+      ["connect", 10, 0, 1],
+      ["send", 10, 2, 1],
+      ["disconnect", 15, 0, 1],
+      ["reconnect", 20, 0, 2],
+      ["retry", 20, 2, 2],
+    ],
+  );
+  assert.ok(admitted.every((a) => a.runtimeGeneration === 1));
+  assert.throws(
+    () =>
+      lifecycle([
+        connect(),
+        send(),
+        control("disconnect", "close", 10, "feed"),
+      ]),
+    /requires a connected actor/,
+  );
+});
+
+test("lifecycle rejects impossible connections, retries, subscriptions and writer controls", () => {
+  const cases: [object[], RegExp][] = [
+    [[send()], /connected/],
+    [[connect(), connect("feed", 1, "again")], /disconnected/],
+    [[control("disconnect", "disconnect", 0, "feed")], /connected or closing/],
+    [[connect(), send("source-retry")], /prior send/],
+    [
+      [connect(), send(), send("source-send", 20, "feed", "second")],
+      /source-retry/,
+    ],
+    [
+      [connect("viewer"), subscribe("client-unsubscribe")],
+      /active subscription/,
+    ],
+    [
+      [
+        connect("viewer"),
+        subscribe(),
+        subscribe("client-subscribe", "second", 1),
+      ],
+      /already active/,
+    ],
+    [
+      [
+        connect("viewer"),
+        control("writer-stall"),
+        control("writer-stall", "twice", 1),
+      ],
+      /already stalled/,
+    ],
+    [
+      [connect("viewer"), { ...control("writer-release"), fail: false }],
+      /stalled writer/,
+    ],
+    [
+      [
+        connect("viewer"),
+        control("writer-stall"),
+        { ...control("writer-release", "release", 1), fail: true },
+        subscribe("client-subscribe", "subscribe", 2),
+      ],
+      /connected/,
+    ],
+  ];
+  for (const [actions, error] of cases)
+    assert.throws(() => lifecycle(actions), error);
+});
+
+test("disconnect clears generation-local subscriptions and writer state", () => {
+  const base = [
+    connect("viewer"),
+    subscribe(),
+    control("writer-stall", "stall", 1),
+    control("disconnect", "close", 2),
+    connect("viewer", 3, "reconnect"),
+  ];
+  assert.throws(
+    () => lifecycle([...base, subscribe("client-unsubscribe", "remove", 4)]),
+    /active subscription/,
+  );
+  assert.throws(
+    () =>
+      lifecycle([
+        ...base,
+        { ...control("writer-release", "release", 4), fail: false },
+      ]),
+    /stalled writer/,
+  );
+  assert.equal(
+    lifecycle([
+      ...base,
+      subscribe("client-subscribe", "resubscribe", 4),
+    ]).admittedActions.at(-1)?.connectionGeneration,
+    2,
+  );
+  const failed = [
+    connect("viewer"),
+    control("writer-stall"),
+    { ...control("writer-release", "release", 1), fail: true },
+    control("disconnect", "close", 2),
+    connect("viewer", 3, "reconnect"),
+  ];
+  assert.equal(
+    lifecycle(failed).admittedActions.at(-1)?.connectionGeneration,
+    2,
+  );
 });

@@ -1,3 +1,4 @@
+import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { canonicalJson, parseJson, type Json } from "./json.js";
 import {
   choice,
@@ -23,9 +24,10 @@ export type TimelineDocument = {
   canonical: string;
   document: { [key: string]: Json };
   requiredCapabilities: string[];
+  admittedActions: AdmittedAction[];
 };
 
-/** Syntax and referential validation only. Does not certify runtime configuration or execution. */
+/** Syntax, references and declared lifecycle admission. Does not certify runtime configuration or execution. */
 export function parseTimelineDocument(raw: string): TimelineDocument {
   const canonical = canonicalJson(raw);
   const doc = object(parseJson(canonical), "$", [
@@ -193,6 +195,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     canonical,
     document: doc,
     requiredCapabilities: [...required].sort(),
+    admittedActions: admitLifecycle(doc),
   };
 }
 

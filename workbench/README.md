@@ -814,3 +814,7 @@ publications and explicit duplicate retries, with every integer draw in the trac
 [Bounded automatic retries](docs/timeline-retries.md) use virtual receipt deadlines,
 fresh source generations and retained publication bytes. Their timer decisions and
 failure prefixes are verified by replay.
+
+[Fixed virtual link delays](docs/timeline-links.md) now cover source/client requests
+and return delivery, preserving FIFO and cancelling old-generation messages on
+connection interruption. Receipt deadlines include the full round trip.

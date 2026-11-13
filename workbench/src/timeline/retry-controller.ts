@@ -31,7 +31,6 @@ type Ports = {
 export class RetryController {
   private readonly states = new Map<string, State>();
   private readonly timers = new Map<number, { owner: State; event: string }>();
-  private nextTimer = -1; // Runtime task IDs are positive.
   constructor(
     policies: RetryPolicy[],
     private readonly ports: Ports,
@@ -68,7 +67,7 @@ export class RetryController {
     parent: string,
     run: (dispatch: string) => Promise<void>,
   ) {
-    const id = this.nextTimer--;
+    const id = this.ports.agenda.allocateModelTask();
     const event = this.event(
       state,
       "scheduled",

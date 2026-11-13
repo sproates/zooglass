@@ -45,7 +45,8 @@ and never receives a fresh commit merely because of a retry.
 
 ## Deadline and cancellation rules
 
-Each actual send arms a phase-one receipt timeout. A nonfinal timeout schedules a
+Each source send/enqueue arms a phase-one receipt timeout, including outbound and
+return [link transit](timeline-links.md). A nonfinal timeout schedules a
 phase-zero retry at `deadline + retryIntervalMs`. On execution, that retry cleans up
 any attached old connection, opens a fresh source generation, and schedules the
 identical publication as a phase-two input in the next causal round.
@@ -86,6 +87,6 @@ both model actor timers and real runtime tasks; runtime/agenda equality is check
 separately. An unfinished actor cannot be made successful by shutdown cancellation.
 
 This slice does not add general connection backoff, jitter, multiple in-flight
-publications per source, manual control of a managed actor, delayed links, restart,
+publications per source, manual control of a managed actor, variable-delay links, restart,
 or automatic retries of failed/rejected business outcomes. These require separate
 contracts and evidence.

@@ -555,3 +555,19 @@ flowchart LR
 The controller decides when a retry is needed; the executor owns real connection
 commands and retained publication bytes. Runtime receipts remain the sole transport
 acknowledgement. See [bounded retry actors](timeline-retries.md).
+
+## Delayed connection delivery
+
+```mermaid
+flowchart LR
+  execution["timeline/document-execution.ts"] -->|queue exact requests and return envelopes| links["timeline/delayed-links.ts"]
+  execution -->|invalidate old-generation packets on actual close| links
+  links -->|allocate IDs, schedule arrivals, cancel closed packets| agenda["timeline/agenda.ts"]
+  retries["timeline/retry-controller.ts"] -->|allocate distinct timer IDs| agenda
+  links -->|emit sends, arrivals and causal drops through execution| execution
+  schema["timeline/event-schema.ts"] -->|validate request and return envelopes| envelopes["timeline/envelopes.ts"]
+```
+
+Positive latency is transport transit after source send or completed writer handoff.
+It does not replace the runtime's bounded writer or implement backpressure. See
+[link ordering and interruption](timeline-links.md).

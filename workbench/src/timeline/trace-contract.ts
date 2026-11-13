@@ -113,6 +113,7 @@ export function validateTrace(raw: string): string {
       const kind = choice(record.kind, `${path}.kind`, [
         "action",
         "fault-decision",
+        "link-send",
         "retry-status",
         "retry-lifecycle",
         "retry-attempt",

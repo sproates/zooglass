@@ -39,8 +39,8 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
 - `runtime` identifies the external configuration and its SHA-256, plus the admitted
   boundary: empty memory storage and unprotected access. Other modes are rejected.
 - `actors` declares unique source/client IDs. Every actor needs one bidirectional
-  `links` entry; only zero latency is admitted in this grammar increment. These are
-  logical links, not real sockets. All actors initially have no connection.
+  `links` entry with fixed one-way `latencyMs` from 0 to 3,600,000 in each direction.
+  These [modelled FIFO links](timeline-links.md) are not real sockets. All actors initially have no connection.
 - `publications` retains unique publication IDs and full raw publication objects.
   Payload numbers remain exact. Publication validation belongs to the real runtime;
   malformed publication content may be intentional test input. Actor ID and runtime
@@ -90,7 +90,7 @@ The accepted design's `(time, round, phase, ordinal)` ordering applies: lifecycl
 changes phase 0, deadlines phase 1, inputs phase 2. Declaration order is preserved
 within each phase, and derived same-time work enters the next round. Assertions
 observe after all executable work at that timestamp settles. No invisible drain
-occurs between same-time publications. Beyond the admitted receipt-loss rules, delayed/dropped links,
+occurs between same-time publications. Beyond fixed link latency and admitted receipt-loss rules, variable-delay/drop rules,
 restart, wall-clock changes, dynamic views, HTTP snapshot reads and other assertion
 kinds remain rejected by this grammar increment, not silently ignored. Their
 syntax and runtime evidence belong to subsequent increments.
@@ -126,14 +126,14 @@ Parents and causes must precede children; agenda
 keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 `action`, `runtime-command`, `task-dispatched`, `connection-closed`, `handoff`,
 `scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`, `frame`,
-`fault-decision`, `retry-attempt`, `retry-lifecycle`, `retry-status` and `assertion`. Their `data` wrappers are closed schemas:
+`link-send`, `fault-decision`, `retry-attempt`, `retry-lifecycle`, `retry-status` and `assertion`. Their `data` wrappers are closed schemas:
 
 | Kind                           | Required data                                                                                                                                                                                              |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `action`                       | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                                                                                                                 |
 | `scheduled`                    | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon.                                                                                        |
 | `cancelled`, `task-dispatched` | `taskId`.                                                                                                                                                                                                  |
-| `delivered`, `dropped`         | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.                                                                                                 |
+| `delivered`, `dropped`         | `messageId`, `channel` (`source-publication`, `source-receipt`, `client-request` or `client-frame`), full `envelope`; drops also require `reason`.                                                         |
 | `receipt`, `state`, `frame`    | Full `envelope`, checked against the corresponding runtime message shape; optional `messageId` (emitted for receipts/frames).                                                                              |
 | `runtime-command`              | `op` (`initialize-document`, `observe`, `shutdown`, `disconnect`); initialization also requires `configurationSha256` and `epochMillis`; fault disconnect requires `reason: receipt-loss` and `messageId`. |
 | `connection-closed`            | `code` (1000–4999).                                                                                                                                                                                        |
@@ -142,6 +142,7 @@ keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 | `retry-attempt`                | `actionId`, `publication`, `attempt` (1–10); actor/generation identify the actual new send.                                                                                                                |
 | `retry-lifecycle`              | `actionId`, `attempt`, `operation` (`connect` or `disconnect`).                                                                                                                                            |
 | `retry-status`                 | `actionId`, `publication`, `attempt`, `status` (`timed-out`, `acknowledged`, `late-receipt`, `exhausted`).                                                                                                 |
+| `link-send`                    | `messageId`, `channel`, full `envelope`, `deliverAtMs` (at or after send time, possibly beyond horizon).                                                                                                   |
 | `assertion`                    | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                                                                                                              |
 
 Receipt envelopes retain status, reason, stream identity, sequence, version,

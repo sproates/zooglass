@@ -140,22 +140,51 @@ export function eventData(
   } else if (kind === "cancelled") {
     object(data, path, ["taskId"]);
     text(data.taskId, `${path}.taskId`);
-  } else if (kind === "delivered" || kind === "dropped") {
+  } else if (
+    kind === "link-send" ||
+    kind === "delivered" ||
+    kind === "dropped"
+  ) {
     object(data, path, [
       "messageId",
       "channel",
       "envelope",
       ...(kind === "dropped" ? ["reason"] : []),
+      ...(kind === "link-send" ? ["deliverAtMs"] : []),
     ]);
     text(data.messageId, `${path}.messageId`);
     const channel = choice(data.channel, `${path}.channel`, [
       "source-receipt",
       "client-frame",
+      "source-publication",
+      "client-request",
     ]);
-    (channel === "source-receipt" ? receiptEnvelope : clientEnvelope)(
-      data.envelope,
-      `${path}.envelope`,
-    );
+    if (channel === "source-publication")
+      object(data.envelope, `${path}.envelope`);
+    else if (channel === "client-request") {
+      const envelope = object(data.envelope, `${path}.envelope`, [
+        "action",
+        "viewId",
+        "entityId",
+      ]);
+      choice(envelope.action, `${path}.envelope.action`, [
+        "subscribe",
+        "unsubscribe",
+      ]);
+      text(envelope.viewId, `${path}.envelope.viewId`);
+      text(envelope.entityId, `${path}.envelope.entityId`);
+    } else
+      (channel === "source-receipt" ? receiptEnvelope : clientEnvelope)(
+        data.envelope,
+        `${path}.envelope`,
+      );
+    if (kind === "link-send")
+      integer(
+        data.deliverAtMs,
+        `${path}.deliverAtMs`,
+        Number.MAX_SAFE_INTEGER,
+        time,
+      );
     if (kind === "dropped") text(data.reason, `${path}.reason`);
   } else if (kind === "assertion") {
     object(data, path, [

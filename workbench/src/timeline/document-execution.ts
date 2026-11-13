@@ -1,3 +1,4 @@
+import { DelayedLinks, type LinkChannel } from "./delayed-links.js";
 import { RetryController } from "./retry-controller.js";
 import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules, receiptDraw } from "./receipt-faults.js";
@@ -29,6 +30,8 @@ export class DocumentExecution {
   private turns = 0;
   private messages = 0;
   private messageSequence = 0;
+  private readonly links: DelayedLinks;
+  private readonly latencies = new Map<string, number>();
   private readonly retries: RetryController;
   private readonly rules: ReturnType<typeof receiptRules>;
   private readonly attempts = new Map<string, number>();
@@ -47,6 +50,28 @@ export class DocumentExecution {
   ) {
     this.agenda = new Agenda(limits);
     this.rules = receiptRules(scenario.document);
+    for (const value of list(scenario.document.links, "links")) {
+      const link = object(value, "link");
+      this.latencies.set(
+        text(link.actor, "actor"),
+        integer(link.latencyMs, "latencyMs"),
+      );
+    }
+    this.links = new DelayedLinks({
+      agenda: this.agenda,
+      event: (kind, data, parent, connection, causes) =>
+        this.trace.event(
+          kind,
+          this.agenda.current,
+          connection.actor,
+          connection.generation,
+          parent,
+          data,
+          causes,
+        ),
+      turn: () => this.turn(),
+      checkBound: () => this.messageBound(),
+    });
     this.retries = new RetryController(retryPolicies(scenario.document), {
       agenda: this.agenda,
       event: (kind, data, parent, actor, generation, causes) =>
@@ -73,7 +98,10 @@ export class DocumentExecution {
       throw new Error("limit-exceeded: execution turns");
   }
   private messageBound() {
-    if (this.messages + this.handoffs.size > this.limits.pendingMessages)
+    if (
+      this.messages + this.handoffs.size + this.links.pending() >
+      this.limits.pendingMessages
+    )
       throw new Error("limit-exceeded: pending messages");
   }
   private event(
@@ -186,6 +214,7 @@ export class DocumentExecution {
         connection,
       );
       connection.closedBy = closed;
+      this.links.close(connection, closed);
       const held = this.handoffs.get(connection.session);
       if (held) {
         this.event(
@@ -294,6 +323,29 @@ export class DocumentExecution {
         }
       }
     }
+    const latency = this.latencies.get(connection.actor)!;
+    if (latency > 0) {
+      this.links.send(
+        connection,
+        effect.kind === "receipt" ? "source-receipt" : "client-frame",
+        envelope,
+        messageId,
+        latency,
+        sent,
+        async (arrival) => {
+          this.observations.get(connection.actor)!.push(envelope);
+          if (effect.kind === "receipt" && publication)
+            this.retries.receipt(
+              publication.action,
+              publication.attempt,
+              connection.generation,
+              arrival,
+            );
+        },
+        lossCause,
+      );
+      return;
+    }
     this.messages++;
     this.messageBound();
     this.agenda.add(this.agenda.current[0], 2, async () => {
@@ -357,6 +409,29 @@ export class DocumentExecution {
       connection.attached = false;
     });
   }
+  private async sendToRuntime(
+    connection: Connection,
+    operation: Record<string, unknown>,
+    cause: string,
+    publication?: { action: string; attempt: number },
+  ) {
+    const latency = this.latencies.get(connection.actor)!;
+    if (latency === 0) {
+      await this.command(operation, cause, publication);
+      return;
+    }
+    const channel: LinkChannel =
+      operation.op === "ingress" ? "source-publication" : "client-request";
+    this.links.send(
+      connection,
+      channel,
+      parseJson(String(operation.wire)),
+      `message-${this.messageSequence++}`,
+      latency,
+      cause,
+      (arrival) => this.command(operation, arrival, publication),
+    );
+  }
   private async retryPublication(
     policy: RetryPolicy,
     attempt: number,
@@ -418,7 +493,8 @@ export class DocumentExecution {
         JSON.stringify([policy.actor, policy.publication]),
         attempt,
       );
-      await this.command(
+      await this.sendToRuntime(
+        connection,
         {
           op: "ingress",
           session: connection.session,
@@ -545,7 +621,14 @@ export class DocumentExecution {
               connection.generation,
               cause,
             );
-          await this.command(operation, cause, publicationAttempt);
+          if (operation.op === "ingress" || operation.op === "subscribe")
+            await this.sendToRuntime(
+              connection,
+              operation,
+              cause,
+              publicationAttempt,
+            );
+          else await this.command(operation, cause, publicationAttempt);
           if (kind === "disconnect") {
             connection.open = false;
             connection.attached = false;
@@ -596,7 +679,8 @@ export class DocumentExecution {
     return {
       pendingFutureTasks:
         (this.last?.pendingTasks ?? 0) + this.retries.pending(),
-      pendingMessages: this.messages + this.handoffs.size,
+      pendingMessages:
+        this.messages + this.handoffs.size + this.links.pending(),
       heldFrames: this.last?.heldFrames ?? 0,
     };
   }

@@ -209,7 +209,7 @@ test("reject unknown keys, identities, unsupported capabilities and unsafe limit
     [
       "expected integer",
       (v) => {
-        v.links[0].latencyMs = 1;
+        v.links[0].latencyMs = 3600001;
       },
     ],
     [

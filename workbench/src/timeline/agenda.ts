@@ -8,6 +8,10 @@ export class Agenda {
   ) {}
   current: Key = [0, -1, 0, -1];
   private ordinal = 0;
+  private nextModelTask = -1;
+  allocateModelTask() {
+    return this.nextModelTask--;
+  }
   private turns = 0;
   private entries: Entry[] = [];
   add(

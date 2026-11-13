@@ -44,7 +44,8 @@ source instead declares a [retry policy](timeline-retries.md); its virtual deadl
 cleanup, fresh connections and generated sends are recorded in the trace.
 The [example](../scenarios/simulation/receipt-loss.json) loses the first
 receipt for its fixed seed, reconnects, and checks the duplicate receipt and full
-fresh/stale view history independently. Client-frame loss, arbitrary link delays,
+fresh/stale view history independently. Fixed [link latency and connection interruption](timeline-links.md) are also supported.
+Client-frame loss, variable link delays,
 and partitions remain future work; bounded [automatic retry actors](timeline-retries.md) are available.
 
 ## Stable integer draws

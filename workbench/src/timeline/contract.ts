@@ -25,6 +25,7 @@ export const capabilities = [
   "writer-stall",
   "receipt-loss",
   "automatic-retry",
+  "link-latency",
 ] as const;
 export type TimelineDocument = {
   canonical: string;
@@ -121,14 +122,12 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     const link = object(value, path, ["actor", "latencyMs"]);
     const actor = reference(link.actor, actors, `${path}.actor`);
     unique(actor, linked, `${path}.actor`);
-    integer(link.latencyMs, `${path}.latencyMs`, 0);
+    if (integer(link.latencyMs, `${path}.latencyMs`, 3600000) > 0)
+      required.add("link-latency");
   });
   for (const actor of actors)
     if (!linked.has(actor))
-      invalid(
-        "$.links",
-        `missing bidirectional zero-latency link for ${actor}`,
-      );
+      invalid("$.links", `missing bidirectional link for ${actor}`);
   const publications = new Set<string>();
   list(doc.publications, "$.publications").forEach((value, i) => {
     const path = `$.publications[${i}]`;

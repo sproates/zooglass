@@ -201,7 +201,7 @@ They do not wait for future deliveries or make the system progress merely
 because an expected value has not appeared. An assertion is an observation, not
 an event-selection rule.
 
-A clock/link/crash action at a deadline therefore runs before a timer in the
+A clock/link/stop/start action at a deadline therefore runs before a timer in the
 same round. A due expiry runs before a same-round publication. This defines one
 legal modelled schedule, not every production race. Explore the other boundary
 with explicit times immediately before/after it, or a separately versioned
@@ -263,11 +263,11 @@ It does not mean the transport invented a second WebSocket frame.
 | Drop before send            | The runtime receives nothing. A later source watermark may establish the gap.                                                                                                                                                   |
 | Delay link delivery         | Hold delivery and preserve that connection's FIFO ordering. No runtime change until ingress.                                                                                                                                    |
 | Lose acknowledgement        | Apply the publication normally, then prevent its receipt reaching the source by closing that bidirectional source connection. Invalidate both directions and retry through a fresh generation with identical publication bytes. |
-| Duplicate/retry publication | Preserve identity and payload; check the real duplicate result, including recorded targets and version. A conflicting payload is a separate intentional identity-conflict action.                                               |
+| Duplicate/retry publication | Preserve identity and payload; check the actual retained-identity outcome, including recorded targets and version. A memory restart can admit it anew. A conflicting payload is a separate intentional identity-conflict action. |
 | Disconnect/reconnect viewer | Invalidate the old connection generation and its pending delivery. Reconnect goes through real subscription/baseline logic. No replay buffer is invented.                                                                       |
 | Stall writer handoff        | Keep one frame in flight and let the real queue accumulate updates. Release or fail the handoff at a declared time.                                                                                                             |
 | Source silence              | Schedule no reports for a bounded interval. Receipt-age expiry comes from the runtime's timer, not an injected stale label.                                                                                                     |
-| Restart service             | End one runtime generation between completed turns; clear volatile work, reopen the configured store and rebuild runtime timers.                                                                                                |
+| Stop/start service          | Explicit phase-zero actions bound downtime. Stop invalidates runtime-owned tasks and old connections; start creates a new generation at its declared time. External actors and their timers continue.                          |
 
 Do not label arbitrary post-send frame loss as normal WebSocket behaviour. If a
 future lossy message transport is added, give it a separate named contract.
@@ -277,8 +277,8 @@ explicit composition order is supplied. Use half-open intervals
 `[fromMs, toMs)`.
 
 A source actor has an explicit maximum attempt count, retry interval and receipt
-timeout. At a receipt/timeout tie, the phase rule makes timeout run first; the
-resulting extra retry is valid and the runtime must suppress its effects. Record
+timeout. At a receipt/timeout tie, the phase rule makes timeout run first; an
+extra retry of a retained publication must not apply it twice. Record
 late receipts and ignore those from obsolete connection generations. Do not base
 retry decisions on how long the child process took to answer a command.
 
@@ -336,7 +336,7 @@ clock sample atomically before invoking runtime code.
 The pipe is a synchronisation mechanism, not the simulated network. Its speed or
 chunking cannot affect the logical result. Commands are never retried
 implicitly: if the process dies without completing a turn, that run is an
-infrastructure failure. A supported service-crash action occurs only after an
+infrastructure failure. A supported abrupt stop occurs only after an
 acknowledged turn, so the simulator knows which state transitions completed.
 
 Runtime changes needed for this protocol are proposed work. The existing
@@ -376,11 +376,49 @@ followed by lost receipt and a between-turn restart should reproduce the
 runtime's durable receipt and recovery semantics. Compare canonical logical
 state, not database bytes.
 
-An orderly restart closes the production store. An abrupt between-turn restart
-terminates the host without its normal close, but only after the previous turn
-reported completion. Both invalidate old callbacks and messages, reset process
-monotonic time and recover at the next declared simulation time. An in-memory
-restart loses state; SQLite retains committed state. Test both explicitly.
+A restart consists of explicit `service-stop` and `service-start` actions with
+their own declared times. Both run in phase zero, ordered by declaration when
+they share a timestamp. Stop may be orderly, closing the production store, or
+abrupt, terminating the host without normal close after an acknowledged turn.
+It invalidates that runtime's tasks, alarms and writer callbacks, all its old
+connection generations and their undelivered messages. External source/client
+actors, retained publications and their scheduled timeouts/retries survive.
+
+While stopped, simulation time and external actors continue normally. Connection
+and send requests return the modelled `connection-unavailable` outcome without
+IPC or automatic startup. For a source, reconnecting and sending belong to one
+publication attempt: connection failure ends it without sending, consumes
+exactly one attempt and follows the declared retry policy. A runtime snapshot
+assertion observes `runtime-unavailable`, not an empty or cached view. Stop
+followed by start at the same timestamp is allowed; a stop while already stopped
+or a start while running is a validation error.
+
+Only the declared start action creates the next generation. Its initialise turn
+installs wall time for that start timestamp and monotonic zero before reopening
+the store and running production recovery. Returned tasks follow the ordinary
+round rules: work due now enters the next round; future work starts in round
+zero at its due time. Same-time source retry timers follow the phase-zero
+lifecycle actions and observe the resulting availability. Host shutdown/startup
+duration does not advance virtual time; an unexpected host failure is
+`invalid-execution`.
+An in-memory restart loses state; SQLite retains committed state.
+
+For a literal acceptance case, use empty initial storage, one receipt-age field,
+zero-latency links and one publication with a 30 ms freshness threshold. Allow
+at least three source attempts: a 10 ms receipt timeout triggers an immediate retry;
+an unavailable attempt retries 30 ms later.
+
+| Time | Action and required observation |
+| --- | --- |
+| 10 | Commit the publication as version 1 and lose its receipt. Retain the exact publication bytes in the source. |
+| 11 | Abruptly stop the service. Invalidate its alarm due at 40 and all old connections; retain the source timeout due at 20. |
+| 20 | The timeout triggers a retry. Observe `connection-unavailable`, no IPC and no startup. Schedule the next attempt for 50. |
+| 50 | Start the new generation before the retry timer. SQLite recovery marks the retained value stale as version 2; the identical retry returns the original version-1 duplicate receipt without refreshing age. With memory storage, the retry is newly applied as version 1, fresh at 50 and due to expire at 80. |
+
+Assert that no runtime reconciliation or delivery occurred between completed
+stop and start, and no old-generation callback or frame was delivered after
+startup. Adding an unrelated assertion at 25 must not change recovery time,
+retained retry timing or these outcomes.
 
 Mid-commit termination, torn writes, disk-full behaviour, OS socket buffering
 and native durability under physical power loss remain real integration/crash
@@ -649,9 +687,10 @@ supported.
    fault to bounded source retries, link failures and keyed seeded decisions.
    Add the declared manifest and complete-artifact checks; prove all same-time
    boundaries.
-3. **SQLite and between-turn restart.** Real storage/recovery, lost committed
-   acknowledgement, memory-state loss, wall-clock changes and stale callback
-   rejection. Preserve existing physical crash tests.
+3. **SQLite and between-turn restart.** Explicit stop/start downtime, surviving
+   external retries, real storage/recovery, lost committed acknowledgement,
+   memory-state loss, wall-clock changes and stale callback rejection. Preserve
+   existing physical crash tests.
 4. **Representative scenarios and parity.** Fleet ordering, Order contributions,
    Sports revisions and retirement; use accepted demo configurations once their
    combined delivery is available. Independent expectations and real-interface
@@ -680,7 +719,7 @@ unrelated demo branches as a side effect of this design.
 | Real time-independent freshness | Boundary checks at threshold minus one, threshold and plus one; duplicate retries do not refresh age; no scenario sleep. A missing alarm driver fails rather than a polling read repairing the result.                                 |
 | Delivery fidelity               | Baseline before update on a new subscription, old-generation delivery rejected, stalled writer plus queue overflow/coalescing, cancellation and write failure. Use the production queue code.                                          |
 | Fault fidelity                  | Delay versus pre-send reorder distinguished; drop receipt then exact retry; rejected/malformed/conflicting inputs; gaps confirmed by watermark rather than silence.                                                                    |
-| Persistence                     | Memory loses state on restart; SQLite retains values and receipts. Identical configured wall time gives identical recovered freshness. Abrupt between-turn restart leaves old tasks inert.                                             |
+| Persistence                     | Memory loses state on restart; SQLite retains values and receipts. Verify the stop-at-11, unavailable-retry-at-20, start-at-50 trace above, including clock reset, recovery versions and inert old tasks. Extra intervening assertions cannot move startup. |
 | Independent checks              | Literal expected envelopes for ordering, required contributions, priority, corrections, withdrawals and retirement. A deliberately broken production strategy must fail an assertion, even if both repeated runs are equally wrong.    |
 | Replay honesty                  | Modified seed/config/artifact rejected for exact replay; corrupt/incomplete transcript rejected; injected runtime divergence reported at its first cause. Inspection never claims re-execution.                                        |
 | Resource bounds                 | Run-horizon termination, pending-work checks, event/trace/round limits, bounded connection queues and storage windows; no silent truncation.                                                                                           |

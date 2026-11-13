@@ -70,7 +70,23 @@ export function selectChecks(paths, { forceFull = false } = {}) {
       add(["java", "core", "browser"], path);
     } else if (/^workbench\/src\/(scenario|execution)\/.*\.ts$/.test(path)) {
       add(["static", "core"], path);
+    } else if (
+      /^workbench\/src\/demos\/orders\/(?:application|browser|main|interactive|checkpoints|source-session|run|recovery)\.ts$/.test(
+        path,
+      ) ||
+      /^workbench\/src\/demos\/sports\/(?:application|browser|demo|interactive|run|checkpoints)\.ts$/.test(
+        path,
+      ) ||
+      path === "workbench/src/cli/demo.ts"
+    ) {
+      add(["static", "core", "demo", "browser", "native", "engines"], path);
     } else if (/^workbench\/src\/demos\/orders\/.*\.ts$/.test(path)) {
+      add(["static", "core"], path);
+    } else if (
+      /^workbench\/src\/demos\/sports\/(?:configuration|timeline|receipts|source-session|producer|simulation|main|notices)\.ts$/.test(
+        path,
+      )
+    ) {
       add(["static", "core"], path);
     } else if (/^workbench\/src\/service\//.test(path)) {
       add(["static", "core", "demo", "browser", "native"], path);
@@ -79,7 +95,9 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     ) {
       add(["static", "core", "demo", "browser", "native", "engines"], path);
     } else if (
-      /^demos\/vehicle-tracker\/(src|pages)\//.test(path) ||
+      /^demos\/(?:vehicle-tracker|order-tracker|live-sports)\/(src|pages)\//.test(
+        path,
+      ) ||
       /^workbench\/scenarios\//.test(path)
     ) {
       add(["static", "core", "demo", "browser", "engines"], path);

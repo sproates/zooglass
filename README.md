@@ -28,15 +28,15 @@ These are future work, not current guarantees.
 
 ## What ZooGlass handles
 
-| Application problem | Delivered capability |
-| --- | --- |
-| Reports arrive out of order or are retried | Per-field sequence ordering, bounded history and identified publications with retained retry outcomes. |
-| Sources use different keys or disagree | Explicit entity mappings and configured source priority, with provenance for selected contributions. |
-| Inputs are missing or a source goes quiet | Required-contribution gates, partial views, sequence-gap tracking, source watermarks and receipt-age freshness. |
-| Facts are corrected or withdrawn | Retained fact revisions, active-fact collections and sums; separate views can select different revision policies. |
-| The service restarts | In-memory or SQLite storage, with durable state, publication identities and outcomes recovered in SQLite mode. |
-| Viewers reconnect or cannot keep up | Fresh subscription snapshots and bounded per-connection queues, with overflow disconnection or latest-state coalescing. |
-| Access changes while a viewer is connected | Application-supplied access decisions, tenant ownership and active grant enforcement, including revocation. |
+| Application problem                        | Delivered capability                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Reports arrive out of order or are retried | Per-field sequence ordering, bounded history and identified publications with retained retry outcomes.                  |
+| Sources use different keys or disagree     | Explicit entity mappings and configured source priority, with provenance for selected contributions.                    |
+| Inputs are missing or a source goes quiet  | Required-contribution gates, partial views, sequence-gap tracking, source watermarks and receipt-age freshness.         |
+| Facts are corrected or withdrawn           | Retained fact revisions, active-fact collections and sums; separate views can select different revision policies.       |
+| The service restarts                       | In-memory or SQLite storage, with durable state, publication identities and outcomes recovered in SQLite mode.          |
+| Viewers reconnect or cannot keep up        | Fresh subscription snapshots and bounded per-connection queues, with overflow disconnection or latest-state coalescing. |
+| Access changes while a viewer is connected | Application-supplied access decisions, tenant ownership and active grant enforcement, including revocation.             |
 
 The [capability delivery record](docs/verification/capability-delivery.md) links
 each behaviour to its configuration, contract and executable evidence. Start with
@@ -51,7 +51,7 @@ reconciliation and delivery machinery. The
 [developer-value comparison](docs/developer-value.md) explains that boundary using
 a working vehicle example.
 
-## Try a live demo
+## Try the demos
 
 With **JDK 25** and **Node.js 26** installed, run these commands from the repository
 root:
@@ -78,9 +78,22 @@ The [interactive vehicle demos](demos/vehicle-tracker/README.md) provide Step,
 Play, Pause and Reset controls for inspecting scripted scenarios. They demonstrate
 a subset of the runtime: the map's older-report labels are application observation
 age, not a demonstration of every runtime freshness or completeness policy.
-Order and Sports experiences are the next demo programme; their detailed plans
-are accepted, while combined delivery to `main` remains pending. See the
-[roadmap](ROADMAP.md) for their scope and the wider direction.
+
+Choose a demo after the shared setup above. Each supports `--continuous` for
+automatic source activity and `--interactive` for a checked walkthrough:
+
+| Demo                                     | Command (from `workbench/`)                    | What to watch                                                                                        |
+| ---------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Fleet](demos/vehicle-tracker/README.md) | `npm run demo -- vehicle-tracker --continuous` | Six cars, late and duplicate position reports, source silence and returning viewers.                 |
+| [Orders](demos/order-tracker/README.md)  | `npm run demo -- order-tracker --continuous`   | Five independent sources, entity mapping, required inputs, courier priority, gaps and freshness.     |
+| [Sports](demos/live-sports/README.md)    | `npm run demo -- live-sports --continuous`     | Goals, corrections and withdrawals; corrected versus first-reported results and independent markets. |
+
+Replace `--continuous` with `--interactive` to use Step, Play, Pause and Reset.
+The [Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) and
+[Sports acceptance record](docs/verification/2026-11-13-sports-acceptance.md) link
+repeated operation, recovery, bounded state and clean setup evidence.
+The [cross-domain comparison](docs/sports-developer-value.md) explains what changes
+between applications and which responsibilities remain with their developers.
 
 ## How the project fits together
 
@@ -91,22 +104,21 @@ generates controlled inputs and faults, then checks results through real service
 and client interfaces. In an application deployment, your sources and consumers
 replace the demo systems; Workbench is development and verification tooling.
 
-| Component | Role |
-| --- | --- |
-| [`zooglass/`](zooglass/README.md) | Java 25 / Spring Boot runtime: reconciliation, retained state, access enforcement and snapshot delivery. |
+| Component                           | Role                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [`zooglass/`](zooglass/README.md)   | Java 25 / Spring Boot runtime: reconciliation, retained state, access enforcement and snapshot delivery.         |
 | [`workbench/`](workbench/README.md) | TypeScript / Node.js 26 scenario runner: scripted inputs, delivery faults, client actions and observable checks. |
-| [`demos/`](demos/vehicle-tracker/README.md) | Browser applications consuming ZooGlass views, with domain-specific presentation. |
-| [`docs/`](docs/what-is-zooglass.md) | Product explanation, designs, contracts and verification records. |
+| [`demos/`](#try-the-demos)          | Browser applications consuming ZooGlass views, with domain-specific presentation.                                |
+| [`docs/`](docs/what-is-zooglass.md) | Product explanation, designs, contracts and verification records.                                                |
 
 Workbench's scenarios have a defined action order and can be run repeatedly. Its
 real-process execution does not make network delivery, service scheduling or
 wall-clock timing deterministic. The
 [timeline guide](workbench/README.md#timeline-order-and-real-time) explains that
 distinction. We plan to develop Workbench into a deterministic timeline simulator,
-with an explicit controlled-time execution contract. The proposed
-[deterministic timeline design](docs/design/deterministic-timeline.md) defines
-virtual time, runtime execution boundaries and reproducible replay; it is not yet
-implemented. See the
+with an explicit controlled-time execution contract. The accepted
+[deterministic timeline design](docs/design/deterministic-timeline.md) describes
+that separate work; the current demos retain real process and network timing. See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.
 

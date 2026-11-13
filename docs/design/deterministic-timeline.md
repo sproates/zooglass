@@ -1,6 +1,6 @@
 # Workbench deterministic timeline simulation
 
-Status: proposed design, 13 November 2026. No simulator implementation is
+Status: accepted design, 13 November 2026. No simulator implementation is
 delivered by this document. The current `simulate` command still prints an
 ordered trace; `integrate` still runs against real processes and sockets.
 

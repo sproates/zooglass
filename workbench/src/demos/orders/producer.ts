@@ -1,12 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import {
-  closeAll,
-  closeClient,
-  connectClient,
-} from "../../execution/sockets.js";
-import { publishAndCheckReceipt } from "../../execution/publication-receipt.js";
-import { scenarioEpoch } from "../../service/runtime-configuration.js";
-import { sourceIds, type OrderSource } from "./contracts.js";
+import { openOrderSources } from "./source-session.js";
 import { orderStep, ticksPerCycle, type OrderStep } from "./timeline.js";
 
 export interface OrderProducerOptions {
@@ -18,7 +11,7 @@ export interface OrderProducerOptions {
   onStep?: (step: OrderStep) => void | Promise<void>;
 }
 
-/** Owns exactly three source connections, with an actual inventory socket outage. */
+/** Owns five source sockets and a progress socket, with an actual inventory outage. */
 export async function startOrderProducer(
   baseUrl: string,
   options: OrderProducerOptions = {},
@@ -38,19 +31,7 @@ export async function startOrderProducer(
   const signal = options.signal
     ? AbortSignal.any([lifetime.signal, options.signal])
     : lifetime.signal;
-  const url = new URL("/events", baseUrl);
-  url.protocol = "ws:";
-  const sockets = new Map<OrderSource, WebSocket>();
-  const closeSockets = () => closeAll([...sockets.values()].map(closeClient));
-
-  try {
-    for (const source of sourceIds) {
-      sockets.set(source, await connectClient(url.href, signal, false));
-    }
-  } catch (error) {
-    await closeSockets();
-    throw error;
-  }
+  const sources = await openOrderSources(baseUrl, signal);
 
   const done = (async () => {
     const epoch = Date.now();
@@ -62,40 +43,7 @@ export async function startOrderProducer(
       ) {
         signal.throwIfAborted();
         const step = orderStep(tick, epoch, tickMs);
-        for (const action of step.actions) {
-          if (action.kind === "omit") {
-            continue;
-          }
-          if (action.kind === "disconnect") {
-            await closeClient(sockets.get(action.source));
-            sockets.delete(action.source);
-          } else if (action.kind === "reconnect") {
-            sockets.set(
-              action.source,
-              await connectClient(url.href, signal, false),
-            );
-          } else {
-            const socket = sockets.get(action.event.sourceId);
-            if (
-              !socket ||
-              socket.readyState !== WebSocket.OPEN ||
-              socket.bufferedAmount > 65536
-            ) {
-              throw new Error(
-                `Order source ${action.event.sourceId} failed or could not keep up.`,
-              );
-            }
-            await publishAndCheckReceipt(
-              socket,
-              {
-                ...action.event,
-                epoch: scenarioEpoch,
-                publicationSequence: action.event.payload.sequence,
-              },
-              signal,
-            );
-          }
-        }
+        await sources.execute(step);
         await options.onStep?.(step);
         if (
           options.cycles === undefined ||
@@ -105,7 +53,7 @@ export async function startOrderProducer(
         }
       }
     } finally {
-      await closeSockets();
+      await sources.close();
     }
   })();
   void done.catch(() => {});

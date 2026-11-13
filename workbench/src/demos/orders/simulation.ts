@@ -1,11 +1,11 @@
 import { startZooGlassSession } from "../../service/zooglass-session.js";
-import { orderViews } from "./contracts.js";
+import { orderConfiguration } from "./configuration.js";
 import { startOrderProducer, type OrderProducerOptions } from "./producer.js";
 
-/** Service-only composition. Browser and CLI bindings are a subsequent slice. */
+/** Service-only composition for independent source verification. */
 export async function startOrderSimulation(options: OrderProducerOptions = {}) {
   const service = await startZooGlassSession({
-    views: orderViews,
+    configuration: orderConfiguration(),
     signal: options.signal,
   });
   try {

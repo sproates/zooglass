@@ -18,6 +18,33 @@ vehicle browser demo with interactive controls and real data-route interruption.
 [what ZooGlass is trying to build](../docs/what-is-zooglass.md) for the wider
 product explanation.
 
+## Watch Sports matches
+
+Run `npm run demo -- live-sports --continuous` after explicit service preparation.
+Open the printed URL to watch three matches, supplied scores, independent markets
+and corrected/first-reported policies. The [Sports guide](../demos/live-sports/README.md)
+covers labels, reconnect and browser support. Its [source guide](docs/sports-sources.md)
+also provides source-only commands and state-bound evidence. Use
+`npm run demo -- live-sports --interactive` for 21 checked scenes, shared
+Step/Play/Pause/Reset controls and a fresh-store Reset at the same URL. Results
+remain visible at completion; a failed scene can be reset. Terminal `help` lists
+commands and `quit` closes the run. The [final acceptance record](../docs/verification/2026-11-13-sports-acceptance.md)
+links three-cycle viewer recovery, retained-state soak and clean-command evidence.
+
+## Watch orders or step through a walkthrough
+
+Run `npm run demo -- order-tracker --continuous` after explicit service preparation.
+Add `--bind=<private IPv4>` for LAN access. The printed URL shows the accepted board
+and tracking layouts backed by five real simulated sources and ZooGlass snapshots.
+See the [Order guide](../demos/order-tracker/README.md) for status labels, recovery,
+browser requirements and limits. Use `npm run demo -- order-tracker --interactive`
+for 18 checked checkpoints with Step/Play/Pause/Reset in the page and terminal.
+The final checkpoint restarts the service against the retained store and checks a
+real viewer baseline, duplicate retry and next identity. Keep a page visible.
+Reset keeps the URL but replaces the service/store; Quit cleans up the session.
+The [Order acceptance record](../docs/verification/2026-11-12-order-acceptance.md)
+links the final cycle/bounds checks, clean setup and configuration-extension fixture.
+
 ## Watch six cars driving around Gibraltar
 
 Run `npm run demo -- vehicle-tracker --continuous --bind=<private IPv4>` after the one-time service
@@ -47,9 +74,12 @@ browser demo composition, including which parts are shared and which belong to
 the vehicle demo. Start there when reading `src/`. The source folders group CLI entry points, scenario definitions, execution,
 browser infrastructure, playback controls and service lifecycle. Concrete demo
 composition lives under `src/demos/vehicle/` and `src/demos/orders/`.
-The [order source foundation](docs/order-sources.md) provides service-only
-verification of independent order, payment and inventory contributions. Its
-browser experiences and demo commands are subsequent work.
+The [order source foundation](docs/order-sources.md) provides independent service
+verification of mapped order, payment, inventory and courier contributions,
+with publication gates, source priority, progress and freshness policies. Its
+continuous and interactive browser commands are available, including durable
+service recovery. The [protected Order acceptance](../demos/order-tracker/README.md#protected-access-acceptance)
+checks scoped subscriptions, revocation and clearing separately.
 
 ## Run a scenario
 
@@ -180,10 +210,11 @@ on the replacement socket. These do not change the generic check contract.
 
 ### Timeline order and real time
 
-The proposed [deterministic timeline design](../docs/design/deterministic-timeline.md)
+The accepted [deterministic timeline design](../docs/design/deterministic-timeline.md)
 defines a separate execution mode with virtual time, controlled production-runtime
-turns and replayable faults. It is not implemented yet. Current commands retain
-the behaviour described below.
+turns and replayable faults. A bounded proof lives on the separate
+[POC branch](https://github.com/sproates/zooglass/tree/poc/deterministic-timeline);
+these demo commands retain the real-time behaviour described below.
 
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are

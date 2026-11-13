@@ -1,6 +1,12 @@
 # Live sports: detailed demo design
 
-Status: proposed, 10 November 2026. Sports follows delivery of both Order modes.
+Status: accepted design, 10 November 2026 (PR #155). Sports follows delivery of both Order modes.
+Source foundation is delivered on the shared branch (PR #164); see the
+[source guide](../../workbench/docs/sports-sources.md) for commands and verification.
+Continuous browser integration is delivered on the shared branch. The 21-checkpoint
+interactive walkthrough is delivered (PR #166). Final
+[acceptance and developer evidence](../verification/2026-11-13-sports-acceptance.md)
+was accepted in [PR #167](https://github.com/sproates/zooglass/pull/167).
 This replaces the Sports scope in the [original outline](order-and-sports-demos.md).
 The existing sports JSON scenario and Java match acceptance tests are useful
 fixtures, not a delivered sports application.
@@ -25,14 +31,18 @@ sports-data demonstration, with no wagering, money or real data integration.
 | Demo | Distinct configuration choices | What the viewer can observe |
 | --- | --- | --- |
 | Fleet, delivered | `latestBySequence` for continuous positions; interactive fleet also uses `historyBySequence` | A delayed position does not move the latest marker backwards; received history and current position are different views of updates. |
-| Order, planned | `lookupEntity`, multi-source `sourcePriority`, `requireContributions`, contiguous progress and `receiptAge` | Different service identifiers combine into one order; authority, missing contributions and stale information are explicit. |
-| Sports, planned here | `activeFacts`, `sumActiveFacts`, `latestFactRevision` versus `firstFact`, explicit fact retirement | Correcting or withdrawing a fact changes both the goal list and score; another view can retain the first report from the same input. |
+| Order, delivered on the shared delivery branch | `lookupEntity`, multi-source `sourcePriority`, `requireContributions`, contiguous progress and `receiptAge` | Different service identifiers combine into one order; authority, missing contributions and stale information are explicit. |
+| Sports, implemented on the shared delivery branch | `activeFacts`, `sumActiveFacts`, `latestFactRevision` versus `firstFact`, explicit fact retirement | Correcting or withdrawing a fact changes both the goal list and score; another view can retain the first report from the same input. |
 
 Each demo also exercises common snapshot delivery and reconnect behaviour. That
 overlap provides continuity; the different configured strategies provide the
 showcase. Do not claim fleet already exposes the newer progress/freshness metadata.
 
 ## Experience and early acceptance
+
+A [clickable fixture prototype](../../demos/live-sports/README.md) was visually accepted on
+12 November 2026. The continuous browser now binds that layout to live snapshots;
+see the [live guide](../../demos/live-sports/README.md).
 
 The primary screen is a compact live match board. All three scorelines are visible
 on desktop; the first match is immediately visible on a phone. Selecting a match

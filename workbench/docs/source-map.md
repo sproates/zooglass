@@ -17,7 +17,8 @@ A file repeated in two diagrams is the same module.
 Diagram paths are relative to `src/` unless shown otherwise. Modules are grouped
 by responsibility, with concrete demos under `src/demos/`.
 
-The `demos/vehicle/` folder contains its CLI (`demo.ts`), automatic playback, interactive
+The `cli/demo.ts` entry point selects Order, Sports or vehicle demos.
+The `demos/vehicle/` folder contains its domain CLI (`demo.ts`), automatic playback, interactive
 composition, resource ownership, asset binding and rendered-page observer.
 Shared scenario execution, browser transport and playback controls have their
 own folders. These modules use ordinary imports; there is no plugin loading mechanism.
@@ -34,7 +35,8 @@ src/
 ├── service/         ZooGlass process lifecycle
 └── demos/
     ├── vehicle/     Compose shared components for the vehicle demo
-    └── orders/      Order sources, delivery schedule and service composition
+    ├── orders/      Order sources, delivery schedule and service composition
+    └── sports/      Match facts, market sources and bounded cycle retirement
 ```
 
 `scenario/` describes and prepares the work; `execution/` performs it against
@@ -44,6 +46,10 @@ New demos can compose shared modules through ordinary imports beside `vehicle/`.
 No plugin loader or registration framework is involved.
 
 ## Start with the command
+
+`cli/demo.ts` dispatches demo commands. Vehicle-specific argument handling remains
+in `demos/vehicle/demo.ts`, including its directly executable compatibility entry.
+The Order renderer has its own [source map](../../demos/order-tracker/docs/source-map.md).
 
 | Command                           | Entry module                                                | Purpose                                                                                                  |
 | --------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -388,35 +394,101 @@ flowchart TD
 [Behaviour and limits](continuous-driving.md). The browser source map describes
 its passive subscriber and map, separately from the scripted bridge.
 
-## Order service foundation
+## Order service and browser composition
 
 The [order source guide](order-sources.md) explains the schedule and verification.
-No order browser or CLI binding is advertised yet. Shared Workbench modules do
-not depend on this concrete demo.
+`npm run demo -- order-tracker --continuous` dispatches through `cli/demo.ts` to
+`demos/orders/main.ts`. The browser composition owns a prepared service, producer,
+exact static asset host and data proxy. Sources continue independently of viewers.
+Shared Workbench infrastructure does not import this concrete demo.
 
 ```mermaid
 flowchart TB
+  dispatch["cli/demo.ts"]
+  main["demos/orders/main.ts"]
+  browser["demos/orders/browser.ts"]
+  application["demos/orders/application.ts"]
+  http["browser/browser-http-server.ts"]
+  route["browser/browser-data-route.ts"]
+  dispatch -->|selects Order command| main
+  main -->|owns shutdown| browser
+  browser -->|loads exact asset routes| application
+  browser -->|describes deliveries without deriving values| notices["demos/orders/notices.ts"]
+  browser -->|hosts page and bounded notices| http
+  browser -->|proxies live views| route
+  browser -->|starts configured prepared service| service
+  browser -->|owns continuous sources| producer
+  browser -->|selects runtime policies| configuration
   simulation["demos/orders/simulation.ts"]
   contracts["demos/orders/contracts.ts"]
   producer["demos/orders/producer.ts"]
   timeline["demos/orders/timeline.ts"]
   service["service/zooglass-session.ts"]
   sockets["execution/sockets.ts"]
-  simulation -->|installs both view definitions| contracts
+  configuration["demos/orders/configuration.ts"]
+  progress["demos/orders/progress.ts"]
+  contract["service/runtime-contract.ts"]
+  simulation -->|selects runtime policies| configuration
+  configuration -->|maps source keys to orders| contracts
+  configuration -->|types the startup contract| contract
+  service -->|accepts explicit runtime policies| contract
+  sources["demos/orders/source-session.ts"]
+  producer -->|executes shared source actions| sources
+  sources -->|sends and checks watermarks| progress
   simulation -->|owns the prebuilt service| service
   simulation -->|starts and closes sources| producer
   producer -->|executes one bounded step at a time| timeline
-  producer -->|opens and closes independent source sockets| sockets
-  producer -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
-  producer -->|enumerates source identities| contracts
+  sources -->|opens and closes independent source sockets| sockets
+  sources -->|checks each publication outcome| receipts["execution/publication-receipt.ts"]
+  sources -->|enumerates source identities| contracts
   timeline -->|builds domain events for six fixed slots| contracts
+```
+
+The final acceptance keeps its oracles outside the producer.
+[`order-simulation.test.ts`](../test/scenarios/order-simulation.test.ts) checks
+service snapshots over three cycles and inspects the stopped 50-cycle SQLite
+image for retained row/receipt/range bounds.
+[`order-browser.test.ts`](../test/browser/order-browser.test.ts) checks all twelve
+first baselines for reconnecting and late viewers after three completed cycles.
+[`order-extension.test.ts`](../test/scenarios/order-extension.test.ts) supplies an
+extra entity, source and view through the real launcher's startup configuration,
+without invoking the production event builder or adding projection code.
+See the [acceptance record](../../docs/verification/2026-11-12-order-acceptance.md).
+
+### Interactive Order walkthrough
+
+`--interactive` keeps one page/control host while Reset replaces its service,
+store, source sockets and view route. Same-origin controls are shared by up to 16
+viewers; stale run-generation commands are rejected. Closing the terminal owner
+retires all resources. `checkpoints.ts` owns domain expectations; shared playback
+owns the cursor and cancellation, with its vehicle trace adapter preserved. The
+prepared adapter publishes state through the stable host even between runs, so a
+failed replacement startup remains visible and Reset can be retried.
+
+```mermaid
+flowchart TB
+  main["demos/orders/main.ts"] -->|terminal commands and lifetime| interactive["demos/orders/interactive.ts"]
+  interactive -->|domain assertions| checkpoints["demos/orders/checkpoints.ts"]
+  interactive -->|prepared executions| prepared["control/prepared-checkpoints.ts"]
+  prepared -->|reuses cursor and run lifecycle| controller["control/demo-controller.ts"]
+  controller -->|startup and run state through stable publisher| interactive
+  interactive -->|owns durable run per Reset| run["demos/orders/run.ts"]
+  interactive -->|correlates viewer observations| recovery["demos/orders/recovery.ts"]
+  run -->|checks loss and first baseline before resuming| recovery
+  run -->|same first-cycle actions| timeline["demos/orders/timeline.ts"]
+  run -->|reopens source sockets per generation| sources["demos/orders/source-session.ts"]
+  run -->|restarts with run-owned SQLite path| service["service/zooglass-session.ts"]
+  interactive -->|stable exact asset host| http["browser/browser-http-server.ts"]
+  run -->|retired and replaced per service generation| route["browser/browser-data-route.ts"]
 ```
 
 ## Protected service acceptance
 
 The existing service owner also accepts explicit protected deployment settings.
 The browser acceptance fixture supplies the authority and exercises the basic
-vehicle demo; it does not replace ZooGlass's decision or delivery code.
+vehicle demo or Order-specific configured grants; it does not replace ZooGlass's
+decision or delivery code. The finite Order case runs the actual protected renderer
+through scoped subscription denial, revocation and fresh admission.
 
 ```mermaid
 flowchart TB
@@ -425,9 +497,8 @@ flowchart TB
   authority["test/browser/support/protected-authority.ts"]
   session["service/zooglass-session.ts"]
   settings["service/protected-session.ts"]
-  client["demos/vehicle-tracker/src/vehicle-client.ts"]
-  acceptance -->|drives revocation, interruption and publication| fixture
-  acceptance -->|loads actual demo in Chromium| client
+  orders["test/browser/order-protected-access.test.ts"] -->|Order grants| fixture
+  acceptance -->|runs vehicle cases| fixture
   fixture -->|gets controlled HTTPS policy and generated certificates| authority
   fixture -->|owns a real packaged service| session
   session -->|maps TLS and operator settings| settings
@@ -435,3 +506,109 @@ flowchart TB
 
 See [protected client acceptance](protected-client-acceptance.md) for the command
 and the behaviours it verifies.
+
+## Sports source foundation
+
+`demos/sports/main.ts` runs sources without a browser. The typed Sports checkpoint
+runner includes publication, watermark and fact-retirement actions; the older
+print-only JSON scenario format is unchanged. Finite and repeating operation use
+the same lazy schedule. See the [source guide](sports-sources.md) for commands,
+observable outcomes and window-transition rules.
+
+```mermaid
+flowchart TB
+  main["demos/sports/main.ts"] -->|owns source-only run| simulation["demos/sports/simulation.ts"]
+  simulation -->|starts prepared JAR and fresh store| service["service/zooglass-session.ts"]
+  simulation -->|installs three views| configuration["demos/sports/configuration.ts"]
+  configuration -.->|typed policies| contract["service/runtime-contract.ts"]
+  simulation -->|starts and closes playback| producer["demos/sports/producer.ts"]
+  producer -->|advances finite or repeating checkpoints| timeline["demos/sports/timeline.ts"]
+  producer -->|executes before next checkpoint| sources["demos/sports/source-session.ts"]
+  sources -->|checks policy-specific target outcomes| receipts["demos/sports/receipts.ts"]
+  receipts -->|names expected fact fields| configuration
+  sources -->|sends fact metadata and validates identity| publication["execution/publication-receipt.ts"]
+  sources -->|verifies every view floor| retirement["execution/fact-retirement.ts"]
+  sources -->|watermarks and retirement transport| control["execution/control-request.ts"]
+  retirement -->|classifies bounded retry| control
+  sources -->|owns two source sockets| sockets["execution/sockets.ts"]
+  control -->|owns request socket| sockets
+```
+
+No shared execution module imports a Sports module. `configuration.ts` selects
+existing ZooGlass strategies; `timeline.ts` supplies synthetic source facts and
+market decisions. It does not project scores or reconcile revisions. Retirement
+blocks the producer until every view's acknowledgement is verified. Observers
+may await checkpoints for independent HTTP and live-subscriber assertions.
+
+## Sports continuous browser
+
+`cli/demo.ts` selects `live-sports --continuous`. The source-only `sports/main.ts`
+entry remains available separately. This composition reuses the delivered source
+schedule and shared service/host/data-route modules; viewers do not own the run.
+
+```mermaid
+flowchart TB
+  dispatch["cli/demo.ts"] -->|selects continuous command| demo["demos/sports/demo.ts"]
+  demo -->|owns run until shutdown| browser["demos/sports/browser.ts"]
+  browser -->|starts prepared JAR and fresh store| service["service/zooglass-session.ts"]
+  browser -->|installs three views| config["demos/sports/configuration.ts"]
+  browser -->|starts and closes sources| producer["demos/sports/producer.ts"]
+  browser -->|formats bounded activity feed| notices["demos/sports/notices.ts"]
+  browser -->|loads passive assets| app["demos/sports/application.ts"]
+  browser -->|serves exact routes on private IPv4| host["browser/browser-http-server.ts"]
+  browser -->|proxies same-origin subscriptions| route["browser/browser-data-route.ts"]
+  app -->|reads built assets| page["../demos/live-sports/pages/index.html"]
+  producer -->|advances checkpoints| timeline["demos/sports/timeline.ts"]
+  notices -.->|checkpoint names only| timeline
+```
+
+The host exposes viewer assets, a bounded activity JSON document and the live
+subscription socket. It does not expose source/control or direct service HTTP
+routes. `demo.ts` logs checkpoint failures and keeps the failed run available until
+Ctrl+C or SIGTERM. `browser.ts` publishes run failures and owns cleanup of sources, data
+route, HTTP host and service. Tests can block the data route or await source
+checkpoints without adding controls to the passive page. The browser consumer has
+its own [source map](../../demos/live-sports/docs/source-map.md).
+
+## Sports interactive walkthrough
+
+The interactive host keeps the page and controls alive while Reset replaces the
+service, store, source sockets and data route. It uses the delivered prepared
+checkpoint controller; no browser code reconciles scores or owns source state.
+
+```mermaid
+flowchart TB
+  demo["demos/sports/demo.ts"] -->|terminal commands and lifetime| interactive["demos/sports/interactive.ts"]
+  interactive -->|hand-authored view expectations| checks["demos/sports/checkpoints.ts"]
+  interactive -->|Step Play Pause Reset| prepared["control/prepared-checkpoints.ts"]
+  prepared -->|shared cursor and cancellation| controller["control/demo-controller.ts"]
+  interactive -->|fresh run per Reset| run["demos/sports/run.ts"]
+  run -->|same source actions as continuous| timeline["demos/sports/timeline.ts"]
+  run -->|receipts and retirement checks| sources["demos/sports/source-session.ts"]
+  run -->|owned fresh service and store| service["service/zooglass-session.ts"]
+  run -->|replace subscriptions on Reset| route["browser/browser-data-route.ts"]
+  interactive -->|stable page and bounded controls| host["browser/browser-http-server.ts"]
+```
+
+`checkpoints.ts` inspects real snapshots with independent expected totals, scorers,
+gaps and floors. Its finite sequence covers the complete first cycle and the next
+cycle's baselines. `run.ts` advances the same lazy timeline used by continuous
+mode. Pause finishes pending verification; Reset cancels it and creates a fresh
+store. Failed checkpoints and failed Reset startup remain visible through the
+stable control connection. Terminal Quit/Ctrl+C retires the controller and host.
+
+## Sports acceptance evidence
+
+The runtime composition above is unchanged by final acceptance.
+`test/scenarios/sports-simulation.test.ts` checks literal outcomes over three cycles;
+`sports-bounds.test.ts` inspects the stopped 40-cycle SQLite image for retained
+facts, tombstones, stream receipts and progress ranges. `sports-retirement.test.ts`
+checks partial control failure and exact acknowledgement-loss retry.
+
+`test/scenarios/sports-extension.test.ts` supplies independent match-4 events and
+adds a score-only first-fact view through the same startup configuration. It uses
+`service/zooglass-session.ts`, `execution/sockets.ts` and
+`execution/publication-receipt.ts`, without the production timeline as its oracle.
+`test/browser/sports-acceptance.test.ts` verifies all nine first returning/late baselines
+after three completed cycles with no subsequent source publication. See the
+[acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md).

@@ -28,7 +28,11 @@ flowchart TB
 ```
 
 The dotted callback arrow is not an import: `subscription-client.ts` accepts a
-`ClientBinding`. `vehicle-client.ts` supplies that binding using functions from
+`ClientBinding`. Its optional full-snapshot callback and observations now retain
+status (including optional fact-window metadata), provenance, publication
+sequences and version for the Order and Sports consumers;
+the existing vehicle `onView` callback still receives only data.
+`vehicle-client.ts` supplies that binding using functions from
 `view.ts`, so protocol handling does not need to know about vehicle rendering.
 
 | Module                                                    | Responsibility                                                                                                                                                                                                |
@@ -190,3 +194,9 @@ The [protected client acceptance](../../../workbench/docs/protected-client-accep
 uses the same basic client and renderer against a real TLS service. The recovery
 wrapper forwards the clearing callback only for its current attempt and also
 clears on terminal failure and disposal.
+
+The domain-independent `src/playback-controls.ts` client is shared by the Order
+and Sports walkthroughs. It sends generation-bound Step/Play/Pause/Reset commands,
+reports progress, and manages control-socket visibility/reconnect separately from
+data subscriptions. Order also uses its optional recovery observation callback.
+This extracted client does not change the vehicle demo's own controls.

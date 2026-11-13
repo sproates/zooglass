@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Order desk · ZooGlass</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="ZooGlass Order desk home"
+        ><span class="brand-mark">Z<span>G</span></span
+        ><span>ZooGlass <small>Order desk</small></span></a
+      >
+      <span class="prototype-label"
+        >Continuous demo <span>· synthetic data</span></span
+      >
+    </header>
+    <section id="startup" role="status">
+      <h2>Browser requirements</h2>
+      <p>
+        Use Chrome/Edge 120+, Firefox 121+, or Safari 17+ (iOS/iPadOS 17+), with
+        JavaScript, WebSocket, modules and native dialogs enabled. Upgrade or
+        use another browser if these are unavailable.
+      </p>
+    </section>
+    <main>
+      <p id="connection" role="status">Connecting…</p>
+      <div class="heading">
+        <div>
+          <p class="eyebrow">Fulfilment overview</p>
+          <h1>Orders, as reported.</h1>
+        </div>
+        <span class="run-label"><i></i> Six synthetic orders</span>
+      </div>
+      <nav class="view-tabs" aria-label="View">
+        <button type="button" data-view="operations" aria-pressed="true">
+          Operations <span>06</span></button
+        ><button type="button" data-view="tracking" aria-pressed="false">
+          Tracking view <span>↗</span>
+        </button>
+      </nav>
+      <div class="workspace">
+        <section class="board" aria-labelledby="board-heading">
+          <div class="board-heading">
+            <h2 id="board-heading">Order board</h2>
+            <span>Order · payment · stock · delivery</span>
+          </div>
+          <div class="column-labels" aria-hidden="true">
+            <span>Order / item</span><span>Payment</span><span>Stock</span
+            ><span>Delivery</span>
+          </div>
+          <div id="orders"></div>
+          <div class="board-note">
+            <span class="note-dot"></span>Each service reports independently.
+            Missing does not mean failed.
+          </div>
+        </section>
+        <aside
+          id="desktop-detail"
+          class="detail-panel"
+          aria-label="Selected order"
+        ></aside>
+        <section
+          id="tracking"
+          class="tracking"
+          hidden
+          aria-label="Tracking view"
+        ></section>
+      </div>
+      <section
+        id="playback"
+        class="playback"
+        hidden
+        aria-label="Interactive walkthrough controls"
+      >
+        <div>
+          <span class="eyebrow">Checked walkthrough</span>
+          <p id="checkpoint-label" role="status">Connecting controls…</p>
+        </div>
+        <div class="playback-buttons">
+          <button id="reset" type="button" disabled>Reset</button>
+          <button id="play" type="button" disabled>Play</button>
+          <button id="pause" type="button" disabled>Pause</button>
+          <button id="step" class="primary" type="button" disabled>
+            Step →
+          </button>
+        </div>
+        <p id="control-detail" class="playback-note" role="status">
+          Step waits for real service checks. All viewers share these controls.
+        </p>
+      </section>
+      <section class="activity" aria-label="Simulated delivery events">
+        <span>Simulated delivery events</span>
+        <p id="notice" role="status">Waiting for simulated delivery events.</p>
+      </section>
+      <footer>
+        <span>ZooGlass / Order tracker</span
+        ><span>Live ZooGlass views · synthetic data</span>
+      </footer>
+    </main>
+    <dialog id="mobile-detail" aria-label="Order details">
+      <form method="dialog">
+        <button class="close-dialog" aria-label="Close order details">
+          Close ×
+        </button>
+      </form>
+      <div id="mobile-detail-body"></div>
+    </dialog>
+    <noscript
+      >This demo requires JavaScript. Enable it in a supported
+      browser.</noscript
+    >
+    <script src="startup.js"></script>
+  </body>
+</html>

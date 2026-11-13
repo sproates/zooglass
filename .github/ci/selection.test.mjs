@@ -175,3 +175,85 @@ test("fact strategies and delivery queues select their service consumers", () =>
     "browser",
   ]);
 });
+
+test("Order UI and launcher retain consumer and lifecycle checks", () => {
+  assert.deepEqual(selected(["demos/order-tracker/src/view.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "engines",
+  ]);
+  assert.deepEqual(selected(["workbench/src/demos/orders/browser.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "native",
+    "engines",
+  ]);
+  assert.deepEqual(selected(["workbench/src/cli/demo.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "native",
+    "engines",
+  ]);
+});
+
+test("Order interactive checks and shared source delivery retain browser consumers", () => {
+  for (const file of [
+    "interactive",
+    "checkpoints",
+    "source-session",
+    "run",
+    "recovery",
+  ]) {
+    assert.deepEqual(selected([`workbench/src/demos/orders/${file}.ts`]), [
+      "static",
+      "core",
+      "demo",
+      "browser",
+      "native",
+      "engines",
+    ]);
+  }
+});
+
+test("Sports source foundation and browser composition select their consumers", () => {
+  for (const module of [
+    "configuration",
+    "timeline",
+    "receipts",
+    "source-session",
+    "producer",
+    "simulation",
+    "main",
+  ]) {
+    assert.deepEqual(selected([`workbench/src/demos/sports/${module}.ts`]), [
+      "static",
+      "core",
+    ]);
+  }
+  for (const module of ["browser", "interactive", "run", "checkpoints"])
+    assert.deepEqual(selected([`workbench/src/demos/sports/${module}.ts`]), [
+      "static",
+      "core",
+      "demo",
+      "browser",
+      "native",
+      "engines",
+    ]);
+  assert.deepEqual(selected(["demos/live-sports/src/view.ts"]), [
+    "static",
+    "core",
+    "demo",
+    "browser",
+    "engines",
+  ]);
+  assert.deepEqual(
+    selected(["workbench/src/demos/sports/new-module.ts"]),
+    suites,
+  );
+});

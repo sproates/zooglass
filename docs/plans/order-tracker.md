@@ -1,9 +1,9 @@
 # Order tracker: detailed demo design
 
-Status: proposed refresh, 10 November 2026. The source-only order simulator exists;
-this document specifies the remaining work. It supersedes the Order details in
-[the original two-demo plan](order-and-sports-demos.md). Sports retains its outline
-pending its own detailed refresh.
+Status: accepted design, 10 November 2026 (PR #154). Both modes, recovery and protected access
+are delivered on the combined delivery branch. [Final acceptance evidence](../verification/2026-11-12-order-acceptance.md)
+is prepared for review. This document records the agreed scope and supersedes
+the Order details in [the original two-demo plan](order-and-sports-demos.md). The [Sports design](live-sports.md) is accepted separately.
 
 ## What this demonstrates
 
@@ -31,9 +31,11 @@ npm run demo -- order-tracker --continuous
 npm run demo -- order-tracker --interactive
 ```
 
-These commands are planned, not available yet. Require exactly one mode. Preserve
-vehicle commands while moving command dispatch out of the vehicle-specific entry
-point. Launch the prepared JAR; do not compile Java during scenario execution.
+Both commands are available. The interactive walkthrough covers source scenes
+and durable service restart; a separate finite HTTPS/WSS acceptance case covers
+scoped Order access and revocation. See the [run guide](../../demos/order-tracker/README.md).
+Exactly one mode is required. `cli/demo.ts` dispatches commands while preserving
+vehicle behaviour. Launch the prepared JAR; do not compile Java during scenario execution.
 
 **Continuous:** six fixed slots, staggered activity, approximately two minutes per
 cycle. No playback controls, pairing or viewer-dependent simulation lifetime.
@@ -72,6 +74,10 @@ values, provenance, gaps and freshness come from ZooGlass. Do not present simula
 knowledge as runtime diagnostics. Technical detail is an optional disclosure.
 
 ## Early UI prototype and acceptance
+
+The [clickable prototype](../../demos/order-tracker/README.md) was visually accepted on
+12 November 2026. Both browser modes now integrate real snapshots, including the interactive
+service-recovery checkpoint and separate protected-access acceptance.
 
 Before implementing the live browser experience, produce a clickable static
 prototype using representative fixture data. This is the first delivery slice
@@ -193,7 +199,7 @@ activity elsewhere; do not make every order fail identically.
 | Partial order | order-1 and payment-1 arrive before reservation-1 | Summary exposes order/payment; tracking reports waiting with empty data/provenance. Inventory releases tracking's combined values. |
 | Late order | Order sequence 3 dispatched arrives before sequence 2 packing | Dispatch stays selected. The provisional gap closes when 2 arrives; a version change for status is allowed. |
 | Duplicate | Retry the exact dispatched publication | Duplicate receipt; no additional value change. |
-| Lost payment | Skip payment sequence 2, deliver 3, then watermark through 3 | Latest payment is 3; gap 2 changes from provisional to confirmed. Newer state does not repair missing delivery. |
+| Lost payment | Skip payment sequence 2, deliver 3 and 4, then watermark through 4 | Latest payment is 4; gap 2 changes from provisional to confirmed. Newer state does not repair missing delivery. |
 | Independent failure | Close inventory's socket and withhold reports for over 15 seconds | Orders/payment continue; stock becomes stale from receipt age. Reconnection alone does not refresh it; a new accepted stock update does. |
 | Competing couriers (fresh run only) | Backup sequence 20 arrives, then primary 1, then backup 21 | Backup wins initially, then primary wins and remains selected. Provenance identifies the winner; no cross-source sequence comparison. |
 | Silence without failure inference | Withhold primary while backup reports | Primary delivery becomes stale, with its last value retained. UI says last reported, not confirmed current or automatically failed. |
@@ -206,9 +212,9 @@ ZooGlass reducers. Compare values and status separately; do not assume an ignore
 value means an unchanged snapshot version. Wait for receipts and observable status,
 not arbitrary sleeps. Freshness tests use bounded polling around the real timer.
 
-For the unknown relationship scene, extend the receipt helper to return a typed
-receipt and support separate target assertions. Its current top-level acceptance
-check is insufficient: this publication commits source identity/progress even
+For the unknown relationship scene, the receipt helper returns a typed receipt
+and the producer checks targets separately. Top-level acceptance alone is
+insufficient: this publication commits source identity/progress even
 though the matching summary target rejects it. Tracking has no payment input and
 must not acquire a target. Assert the exact target reason, unchanged snapshots and
 no new order entity. The fixed diagnostic key consumes one bounded source stream;
@@ -303,8 +309,8 @@ expectations deliberately. Keep the old simple fixtures as compatibility coverag
 
 ### Browser snapshot contract
 
-The current vehicle subscription callback and observation path carry only `data`.
-Introduce a typed full-snapshot callback carrying view/entity identity, `data`,
+The shared subscription module now preserves the vehicle data callback and
+provides a typed full-snapshot callback carrying view/entity identity, `data`,
 `status`, `provenance`, `publicationSequences` and `version`. Order bindings and test observations consume
 that complete snapshot. Preserve the existing vehicle data callback through a
 compatibility adapter rather than changing vehicle rendering semantics.

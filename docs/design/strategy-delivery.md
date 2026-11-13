@@ -47,8 +47,11 @@ that fails for that bug before the fix.
 
 The table records the original sequence, rather than current task status.
 The service capabilities, access enforcement and combined acceptance are delivered;
-see the [delivery record](../verification/capability-delivery.md). Orders and sports
-retain their planned browser work, including the order access-loss scene.
+see the [delivery record](../verification/capability-delivery.md). Orders have continuous and interactive browser modes, a durable service-restart
+checkpoint and separate protected-access acceptance. Sports also has continuous and interactive browser modes, with corrected and
+first-reported views, independent bookmaker updates and bounded fact retirement.
+Both demos are implemented on the shared delivery branch; combined main delivery
+remains pending.
 
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |
@@ -58,7 +61,7 @@ retain their planned browser work, including the order access-loss scene.
 | 4. Progress and freshness | [Proposed concrete design](progress-and-publication.md): scoped progress/gaps, late policy, required-field publication and receipt age. | Progress/late policy first, required contributions second, freshness and combined acceptance third. No event-time window engine. |
 | 5. Retained fact corrections | [Proposed fact-revision design](fact-revisions.md): stable revisions/tombstones and bounded active-fact sum. | Retained collections with retirement/recovery first; derived numeric results next; combined acceptance closes the increment. No arbitrary recomputation graph. |
 | 6. [Recovery and queue policies](client-delivery.md) | Explicit fresh snapshot/empty state/version contract, byte/message bounds and safe coalescing. | Recovery semantics, then queue selection and failure acceptance. No historical replay cursor. |
-| 7. Orders | Resume both planned modes using the delivered capabilities. Explain missing inputs, priority/relationship choices and retained progress rather than duplicating processing in the page. | Existing browser/acceptance slices, split only when justified. |
+| 7. Orders | Continuous and interactive modes use the delivered capabilities. Explain missing inputs, priority/relationship choices and retained progress rather than duplicating processing in the page. | Existing browser/acceptance slices, split only when justified. |
 | 8. Sports | Both modes, with retained goal corrections and independently progressing market data. | Sources, browser, acceptance; keep domain rules in the scenario. |
 | 9. Access and collection acceptance | Implement the separately required permission contract, then exercise revocation with recovery and review the complete collection. | Existing authorisation design/enforcement slices; final combined evidence and presentation review. |
 
@@ -84,13 +87,17 @@ none needs to expose every setting or show every failure at once.
 | Capability | Primary demo and observable scene | Existing starting point |
 | --- | --- | --- |
 | Ordering, duplicates, shared source with different strategies | Vehicles: current map and received journey react differently to delayed 41. | Latest/history fixtures already exist; ensure the presentation makes the contrast explicit. |
-| Partial inputs and distinct source rates | Orders: accepted and paid while inventory is unknown; later inventory fills its own field. | Merged order source slice. |
-| Identity mapping and source conflict | Orders: distinct payment/reservation IDs map to an order; preferred courier status wins despite a later backup report. | Extend the producer fixture once the service contract exists. |
+| Partial inputs and distinct source rates | Orders: accepted and paid while inventory is unknown; later inventory fills its own field. | Configured source slice; both Order browser modes show partial and retained fields. |
+| Identity mapping and source conflict | Orders: distinct payment/reservation IDs map to an order; preferred courier status wins despite a later backup report. | Configured five-source producer and both Order browser modes; the details show selected provenance. |
 | Freshness and gap policy | Vehicles: reporting silence versus late/missing position with a declared source-progress promise. | Existing continuous faults supply useful scenes; add genuine service progress metadata. |
 | Corrections and derived views | Sports: disallowed goal revises the score and retained event history; old revision redelivery has no effect. | Existing replacement fixtures; add retained-fact scenario for the new contract. |
-| Service restart and duplicate recovery | Orders: kill and restart ZooGlass, resend unacknowledged publication, observe restored state and one effect. | Workbench drives restart; the browser displays recovered snapshots. |
-| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Existing client fixtures; add durable recovery and queue-policy evidence. |
-| Access loss | Orders: revoke one viewer while another remains authorised; denied reconnect. | Extend the order experience after permission enforcement is delivered. |
+| Service restart and duplicate recovery | Orders: restart ZooGlass against the same store, retry a committed publication, then publish the next identity. | Interactive checkpoint checks real viewer loss, first baseline, duplicate receipt and new publication. |
+| Snapshot/stream continuity and slow viewers | Vehicles or orders: one viewer reconnects/stalls while another keeps updating. | Order first-baseline and restart acceptance; shared slow-receiver and queue-policy evidence. |
+| Access loss | Orders: revoke one viewer while another remains authorised; denied reconnect. | Finite HTTPS/WSS Order acceptance checks scoped grants, revocation, clearing, stale callbacks and fresh admission. |
+
+The [Order acceptance record](../verification/2026-11-12-order-acceptance.md)
+collects the delivered Order scenes, bounds and remaining limits, with a
+[developer-value comparison](../order-developer-value.md).
 
 Every scene should state its selected policy, what the viewer should notice,
 what ZooGlass contributes and which source events are simulated. Keep detail in

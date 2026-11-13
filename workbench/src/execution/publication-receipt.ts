@@ -1,4 +1,28 @@
 import { once } from "node:events";
+export interface PublicationReceipt {
+  status: "applied" | "committed" | "duplicate" | "rejected" | "failed";
+  reason: string;
+  stream: { sourceId: string; epoch: string; sourceEntityId: string };
+  publicationSequence: number;
+  version: number | null;
+  targets?:
+    | {
+        viewId: string;
+        entityId: string | null;
+        status: string;
+        reason: string | null;
+        fields?:
+          | {
+              field: string;
+              status: string;
+              reason: string | null;
+              changed: boolean;
+            }[]
+          | null;
+      }[]
+    | null;
+}
+
 export interface SourcePublication {
   sourceId: string;
   epoch: string;
@@ -6,6 +30,11 @@ export interface SourcePublication {
   publicationSequence: number;
   type: string;
   payload: object;
+  fact?: {
+    birthSequence: number;
+    revision: number;
+    operation: "create" | "revise" | "retract";
+  };
   expectedRejection?: string;
 }
 
@@ -33,10 +62,11 @@ export async function publishAndCheckReceipt(
         publicationSequence: event.publicationSequence,
         type: event.type,
         payload: event.payload,
+        ...(event.fact ? { fact: event.fact } : {}),
       }),
     );
     const [message] = await receipt;
-    const result = JSON.parse(message.data);
+    const result = JSON.parse(message.data) as PublicationReceipt;
     if (
       result.stream?.sourceId !== event.sourceId ||
       result.stream?.epoch !== event.epoch ||
@@ -58,6 +88,7 @@ export async function publishAndCheckReceipt(
         `Publication ${event.sourceId}/${event.entityId} #${event.publicationSequence}: expected ${event.expectedRejection ?? "acceptance"}, received ${result.status} (${result.reason}).`,
       );
     }
+    return result;
   } finally {
     controller.abort();
     socket.removeEventListener("close", close);

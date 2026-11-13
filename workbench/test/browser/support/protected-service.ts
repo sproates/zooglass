@@ -4,10 +4,17 @@ import { createServer, connect, type Socket } from "node:net";
 import type { TestContext } from "node:test";
 import { WebSocket } from "ws";
 import { startZooGlassSession } from "../../../src/service/zooglass-session.js";
-import { protectedAuthority } from "./protected-authority.js";
+import type { RuntimeConfiguration } from "../../../src/service/runtime-contract.js";
+import {
+  protectedAuthority,
+  type AuthorityOptions,
+} from "./protected-authority.js";
 
 /** Real protected ZooGlass, operator publication and an end-to-end TLS fault gate. */
-export async function protectedService(t: TestContext) {
+export async function protectedService(
+  t: TestContext,
+  options: AuthorityOptions & { configuration?: RuntimeConfiguration } = {},
+) {
   const {
     store,
     password,
@@ -17,7 +24,7 @@ export async function protectedService(t: TestContext) {
     allowed,
     failures,
     decisions,
-  } = await protectedAuthority(t);
+  } = await protectedAuthority(t, options);
   const reservation = createServer();
   await new Promise<void>((resolve) =>
     reservation.listen(0, "127.0.0.1", resolve),
@@ -27,22 +34,26 @@ export async function protectedService(t: TestContext) {
   await new Promise<void>((resolve) => reservation.close(() => resolve()));
   const operatorToken = "fixture-operator-token-at-least-32-characters";
   const service = await startZooGlassSession({
-    views: [
-      {
-        id: "live-map",
-        fields: { position: [{ sourceId: "gps", type: "position" }] },
-      },
-      {
-        id: "trip-history",
-        fields: { positions: [{ sourceId: "gps", type: "position" }] },
-        ordering: {
-          positions: {
-            mode: "historyBySequence",
-            sequenceField: "publicationSequence",
-          },
-        },
-      },
-    ],
+    ...(options.configuration
+      ? { configuration: options.configuration }
+      : {
+          views: [
+            {
+              id: "live-map",
+              fields: { position: [{ sourceId: "gps", type: "position" }] },
+            },
+            {
+              id: "trip-history",
+              fields: { positions: [{ sourceId: "gps", type: "position" }] },
+              ordering: {
+                positions: {
+                  mode: "historyBySequence",
+                  sequenceField: "publicationSequence",
+                },
+              },
+            },
+          ],
+        }),
     protectedAccess: {
       keyStore: store,
       keyStorePassword: password,
@@ -96,6 +107,30 @@ export async function protectedService(t: TestContext) {
   });
   t.after(() => source.terminate());
   await once(source, "open");
+  async function publishEvent(event: {
+    sourceId: string;
+    entityId: string;
+    type: string;
+    publicationSequence: number;
+    payload: unknown;
+  }) {
+    const receipt = once(source, "message", {
+      signal: AbortSignal.timeout(5000),
+    });
+    source.send(
+      JSON.stringify({
+        sourceId: event.sourceId,
+        type: event.type,
+        epoch: "run",
+        sourceEntityId: event.entityId,
+        publicationSequence: event.publicationSequence,
+        payload: event.payload,
+      }),
+    );
+    const result = JSON.parse((await receipt)[0].toString());
+    assert.ok(["applied", "committed"].includes(result.status));
+    return result;
+  }
   let sequence = 0;
   async function publish(value: number) {
     const position = { sequence: value, latitude: 51.2, longitude: -0.1 };
@@ -120,6 +155,7 @@ export async function protectedService(t: TestContext) {
     failures,
     decisions,
     publish,
+    publishEvent,
     viewerUrl: `wss://localhost:${gateAddress.port}/views/live`,
     restore() {
       interrupted = false;

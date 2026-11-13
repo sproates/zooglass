@@ -617,3 +617,17 @@ flowchart LR
 The bundle loader checks completeness before the shared replay executor starts
 Java. It passes the verified in-memory envelope, avoiding a second path read after
 file-hash validation.
+
+## Environment qualification and evidence retention
+
+```mermaid
+flowchart LR
+  image["scripts/linux-timeline.Dockerfile"] -->|separate checkout; explicit JAR preparation| linux["Linux Node/JVM environment"]
+  linux -->|execute unchanged campaign| campaign["scripts/document-repeat.ts"]
+  campaign -->|full runs, identities and hashes| raw["raw qualification directory"]
+  raw -->|exact bytes and bounded inventory| archive["scripts/evidence-archive.py"]
+  archive -->|pack or verify without extracting| retained["evidence/*.tar.gz"]
+```
+
+The archive command operates on saved evidence only. It neither executes scenarios
+nor rebuilds artifacts. Linux qualification has its own baselines and manifest.

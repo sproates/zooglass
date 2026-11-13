@@ -40,8 +40,9 @@ Java locale en-GI. All runs used the same recorded environment and executable id
 
 The complete local evidence directory `timeline-document-campaign-20261113`
 retains copied inputs/configuration, all 900 run files and the summary with per-run
-hashes, host settings and observed pauses. The large raw evidence set is not
-committed to this repository; this report records its identity and results.
+hashes, host settings and observed pauses. The complete raw set is now retained in the
+[macOS evidence archive](../evidence/README.md), alongside the identities/results
+recorded here.
 
 Validation also passed all 77 timeline tests, TypeScript checks, lint and formatting.
 The tests include negative controls for missing pause observations and changed

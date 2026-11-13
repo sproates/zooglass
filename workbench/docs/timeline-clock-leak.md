@@ -68,7 +68,8 @@ All 18 runs met the table above: nine normal passes, three unpaused mutant passe
 and six paused mutant failures at `fresh`, with stale state observed at virtual
 time 20. The campaign validator rejected each mutant failure for that assertion.
 All completed runs and their inputs, diagnostics and identities are retained locally
-in `clock-leak-check-final-20261113`; the raw set is not committed here.
+in `clock-leak-check-final-20261113` and are now retained in the
+[macOS evidence archive](../evidence/README.md).
 
 - Summary SHA-256: `5eb1508b20269ed44d61a5ed9f6068cb17ee5538b7650346538b2aafb723d93d`.
 - Normal JAR: `a2d365e9777cff6a9ccd4cbedf4bf2e31e772e6ac649922ce34f310262ebd63f`.

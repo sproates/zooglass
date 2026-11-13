@@ -70,3 +70,7 @@ runtime host-time leakage can fail a behavioural assertion under these pauses.
 The nine matrix cells above represent approximately four behavioural cases:
 seeds do not affect warehouse retry or delayed links, which have no loss rules;
 automatic retry has two selected loss patterns.
+
+Raw evidence is retained in [versioned archives](../evidence/README.md).
+[Linux qualification](timeline-linux.md) uses a separate environment and its own
+baselines; it does not widen replay admission to mismatched environments.

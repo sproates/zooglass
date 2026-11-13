@@ -829,3 +829,6 @@ separately prepared mutant and long command-boundary pause evidence.
 
 Use [portable run bundles](docs/timeline-artifacts.md) to retain inputs, a live
 trace, results and a completeness manifest for later replay.
+
+[Raw qualification evidence](evidence/README.md) is retained in Git; see the
+[Linux qualification procedure](docs/timeline-linux.md) for the separate environment.

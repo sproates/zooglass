@@ -61,3 +61,6 @@ fresh JVM instances. It is stronger empirical evidence, not a mathematical proof
 a cross-platform guarantee, or qualification of unimplemented configurations,
 SQLite/restart or wall-clock rollback. The old two-fixture campaign remains separate;
 its results must not be presented as document-executor campaign results.
+
+The [recorded 900-run results](timeline-campaign-results.md) include the tested
+revision, matrix, hashes, environment and limits.

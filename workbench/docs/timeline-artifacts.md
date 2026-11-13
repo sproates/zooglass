@@ -3,8 +3,8 @@
 Record a versioned document into a new evidence directory, using a prepared JAR:
 
 ```sh
-npm run timeline:bundle -- record scenarios/simulation/warehouse-retry.json ../../artifacts/warehouse-run ../zooglass/target/zooglass.jar
-npm run timeline:bundle -- replay ../../artifacts/warehouse-run ../../artifacts/warehouse-replay.json ../zooglass/target/zooglass.jar --require-passed
+npm run timeline:bundle -- record scenarios/simulation/warehouse-retry.json ../../artifacts/warehouse-run ../zooglass/simulation-host/target/zooglass-simulation.jar
+npm run timeline:bundle -- replay ../../artifacts/warehouse-run ../../artifacts/warehouse-replay.json ../zooglass/simulation-host/target/zooglass-simulation.jar --require-passed
 ```
 
 No command builds Java. The destination parent must exist, and recording refuses

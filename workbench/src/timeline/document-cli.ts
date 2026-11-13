@@ -1,8 +1,11 @@
 import { resolve } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { runDocument } from "./run-document.js";
-const [scenario, output, jar = "../zooglass/target/zooglass.jar"] =
-  process.argv.slice(2);
+const [
+  scenario,
+  output,
+  jar = "../zooglass/simulation-host/target/zooglass-simulation.jar",
+] = process.argv.slice(2);
 if (!scenario || !output)
   throw new Error(
     "Usage: timeline:execute SCENARIO OUTPUT.json [PREPARED_JAR]",

@@ -107,7 +107,9 @@ with an explicit controlled-time execution contract. The accepted
 [deterministic timeline design](docs/design/deterministic-timeline.md) defines
 virtual time, runtime execution boundaries and reproducible replay. The separate
 POC now provides a [bounded document executor](workbench/docs/timeline-execution.md)
-for real memory-runtime turns and [verification replay](workbench/docs/timeline-replay.md);
+for real memory-runtime turns and [verification replay](workbench/docs/timeline-replay.md).
+Its [separate simulation host](zooglass/simulation-host/README.md) shares the runtime
+implementation without adding simulation controls to the production service;
 broader faults and restart remain unimplemented. See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.

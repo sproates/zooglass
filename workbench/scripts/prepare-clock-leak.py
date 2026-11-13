@@ -46,7 +46,12 @@ rule.write_text(text)
     "mutatedSha256": hashlib.sha256(text.encode()).hexdigest(),
     "replacements": replacements,
 }, indent=2) + "\n")
-subprocess.run([str(destination / "mvnw"), "-q", "-DskipTests", "package"],
+subprocess.run([str(destination / "mvnw"), "-q", "-DskipTests", "install",
+                "-Dmaven.repo.local=" + str(root / "maven-repository")],
                cwd=destination, check=True)
-jar = destination / "target/zooglass.jar"
+subprocess.run([str(destination / "mvnw"), "-q", "-f", "simulation-host/pom.xml",
+                "-DskipTests", "package",
+                "-Dmaven.repo.local=" + str(root / "maven-repository")],
+               cwd=destination, check=True)
+jar = destination / "simulation-host/target/zooglass-simulation.jar"
 print(json.dumps({"jar": str(jar), "sha256": hashlib.sha256(jar.read_bytes()).hexdigest()}))

@@ -13,12 +13,19 @@ npm run test:timeline
 ```
 
 Execution and tests never build Java. An optional third execution argument selects
-a prepared JAR. The output contains the canonical scenario, exact configuration
+a prepared simulation host JAR; the default is
+`../zooglass/simulation-host/target/zooglass-simulation.jar`. Preparation installs
+the ordinary runtime dependency and packages this separate executable. The
+production service remains `../zooglass/target/zooglass.jar` and excludes all
+simulation controls. The output contains the canonical scenario, exact configuration
 text, artifact/configuration/Workbench hashes, semantic JSONL trace and outcome.
 A failed run exits nonzero. Admission errors reject before initialization; they do
 not produce a run artifact. New versioned artifacts support [verification replay](timeline-replay.md)
-within the declared matching environment and artifact size bounds. Full artifact
-directories and a cross-environment qualification matrix remain future work.
+within the declared matching environment and artifact size bounds.
+[Portable bundles](timeline-artifacts.md) retain complete run inputs and traces;
+[macOS](timeline-campaign-results.md) and [Linux](timeline-linux.md) campaigns
+qualify repeatability within their respective recorded environments. They do not
+claim cross-environment trace equality.
 
 ## What is supported
 

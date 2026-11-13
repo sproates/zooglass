@@ -17,9 +17,11 @@ npm run timeline:proof -- delivery /tmp/delivery-proof.json
 npm run timeline:repeat -- ../../artifacts/timeline-proof
 ```
 
-Execution and tests require an existing `zooglass/target/zooglass.jar`; they never
-build Java. The executable uses Spring Boot's properties launcher with the explicit
-`io.zooglass.simulation.TimelineHost` main class. No server or socket listener starts.
+Execution and tests require an existing `zooglass/simulation-host/target/zooglass-simulation.jar`; they never
+build Java. Explicit preparation installs the ordinary runtime classifier and
+packages the separate host executable, whose manifest selects
+`io.zooglass.simulation.TimelineHost`. Workbench uses `java -jar`; no server or socket
+listener starts. The production service JAR contains no simulation host classes.
 The private pipe protocol uses bounded length-prefixed JSON and turn identities.
 Diagnostics go to stderr. Host watchdogs report infrastructure failures.
 
@@ -78,7 +80,7 @@ separate explicit build, never part of execution or test startup:
 
 ```sh
 python3 scripts/prepare-timeline-mutation.py /tmp/zooglass-timeline-mutant
-node --import tsx scripts/timeline-mutation-check.ts /tmp/zooglass-timeline-mutant/zooglass/target/zooglass.jar
+node --import tsx scripts/timeline-mutation-check.ts /tmp/zooglass-timeline-mutant/zooglass/simulation-host/target/zooglass-simulation.jar
 ```
 
 The mutation check runs against its own artifact identity twice, requires the named

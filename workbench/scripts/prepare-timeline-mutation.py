@@ -17,5 +17,10 @@ original = "winner.withAge(winner.age().stale())"
 if text.count(original) != 1:
     raise SystemExit("Expiry mutation target changed; inspect before preparing")
 rule.write_text(text.replace(original, "winner.withAge(winner.age())"))
-subprocess.run([str(destination / "mvnw"), "-q", "-DskipTests", "package"], cwd=destination, check=True)
-print(destination / "target/zooglass.jar")
+repository = destination.parent / "maven-repository"
+subprocess.run([str(destination / "mvnw"), "-q", "-DskipTests", "install",
+                "-Dmaven.repo.local=" + str(repository)], cwd=destination, check=True)
+subprocess.run([str(destination / "mvnw"), "-q", "-f", "simulation-host/pom.xml",
+                "-DskipTests", "package", "-Dmaven.repo.local=" + str(repository)],
+               cwd=destination, check=True)
+print(destination / "simulation-host/target/zooglass-simulation.jar")

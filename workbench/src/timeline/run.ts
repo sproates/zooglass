@@ -5,7 +5,7 @@ import { runProof, type ProofResult } from "./proof.js";
 const [
   scenario = "receipt",
   output,
-  jar = "../zooglass/target/zooglass.jar",
+  jar = "../zooglass/simulation-host/target/zooglass-simulation.jar",
   seed = "0".repeat(64),
   hostDelay = "0",
   mode = "fast",

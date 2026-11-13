@@ -436,6 +436,27 @@ flowchart TB
 See [protected client acceptance](protected-client-acceptance.md) for the command
 and the behaviours it verifies.
 
+## Timeline artifact preparation
+
+```mermaid
+flowchart LR
+  prepare["scripts/prepare-timeline.js"] -->|explicit install| core["Production service and runtime classifier"]
+  prepare -->|explicit package| host["Separate simulation host JAR"]
+  prepare -->|verify outputs| check["scripts/check-timeline-artifacts.js"]
+  check -->|exclude simulation classes| core
+  check -->|check entry point and embedded runtime hash| host
+  bridge["timeline/bridge.ts"] -->|validate before Java launch| guard["timeline/host-artifact.ts"]
+  guard -->|bounded manifest decoding| zip["yauzl dependency"]
+```
+
+Preparation is the only path here that invokes Maven. The artifact checker verifies
+production isolation and that the host embeds the freshly prepared runtime
+classifier. At execution time, `host-artifact.ts` validates the bounded ZIP directory,
+inflates only the manifest and requires the fixed host entry point before the
+bridge launches Java.
+It does not certify arbitrary JAR contents; executable hashes and replay admission
+remain separate identity checks. Tests and scenario execution never prepare a JAR.
+
 ## Fixed-fixture timeline proof
 
 ```mermaid
@@ -447,7 +468,7 @@ flowchart LR
   proof -->|module identity| manifest["timeline/manifest.ts"]
   execution -->|ordered turns| agenda["timeline/agenda.ts"]
   execution -->|framed commands| bridge["timeline/bridge.ts"]
-  bridge -->|prepared JAR only| host["Java simulation/TimelineHost.java"]
+  bridge -->|prepared JAR only| host["simulation-host: TimelineHost.java"]
   repeat["scripts/timeline-repeat.ts"] -->|fresh Node and JVM pairs| cli
 ```
 
@@ -491,19 +512,33 @@ flowchart LR
   run --> admission["timeline/admission.ts"]
   run --> profile["timeline/document-profile.ts"]
   run --> execution["timeline/document-execution.ts"]
-  execution --> agenda["timeline/agenda.ts"]
-  execution --> bridge["timeline/bridge.ts"]
+  execution -->|actions and retry orchestration| agenda["timeline/agenda.ts"]
+  execution -->|commands and shared execution budget| turns["timeline/runtime-turns.ts"]
+  execution -->|sessions and cumulative observations| transport["timeline/document-transport.ts"]
+  turns -->|session effects| transport
+  turns -->|positive runtime task ownership| agenda
+  turns -->|framed commands| bridge["timeline/bridge.ts"]
+  transport -->|delayed messages and closure| links["timeline/delayed-links.ts"]
   execution --> trace["timeline/semantic-trace.ts"]
+  turns --> trace
+  transport --> trace
   run --> validation["timeline/trace-contract.ts"]
-  bridge --> host["Java simulation/TimelineHost.java"]
-  host --> qualification["Java runtime/TimelineProfile.java"]
+  bridge -->|validate entry point before launch| artifact["timeline/host-artifact.ts"]
+  bridge --> host["simulation-host: HostProtocol.java / TimelineHost.java"]
 ```
 
-The executor preloads declared actions, then settles real scheduled work before
-checking cumulative observations. Trace records are appended as effects occur;
-scheduling and handoff causes retain their own event identities. This path does
-not reuse the fixed-proof oracle or reconstruct effects from expected assertions.
-See [execution and limits](timeline-execution.md).
+`DocumentExecution` preloads declared actions and owns current actor connections,
+managed retry orchestration and scenario assertions. `RuntimeTurns` owns bridge
+responses, positive runtime task IDs and the shared execution-turn budget; transport
+callbacks and assertions consume that same budget. `DocumentTransport` owns
+session-bound effects, writer handoffs, receipt-loss decisions, delayed traffic and
+cumulative delivered observations. The modules exchange explicit commands and
+effect callbacks; they do not reconstruct runtime output from expected assertions.
+
+Trace records are appended as effects occur. Scheduling and handoff causes retain
+their own event identities, and assertions wait for real scheduled work to settle.
+The prepared host JAR is separate from the production service. See
+[execution and limits](timeline-execution.md).
 
 ## Document verification replay
 
@@ -526,13 +561,13 @@ runtime initialization; trace comparison stops at the first mismatch. See
 ```mermaid
 flowchart LR
   contract["timeline/contract.ts"] -->|validate rule targets and probabilities| faults["timeline/receipt-faults.ts"]
-  execution["timeline/document-execution.ts"] -->|derive keyed receipt-loss draws| faults
-  execution -->|append decisions, closes and dropped receipts| trace["timeline/semantic-trace.ts"]
+  transport["timeline/document-transport.ts"] -->|derive keyed receipt-loss draws| faults
+  transport -->|append decisions, closes and dropped receipts| trace["timeline/semantic-trace.ts"]
   validation["timeline/trace-contract.ts"] -->|validate draw and disconnect records| schema["timeline/event-schema.ts"]
 ```
 
 `timeline/receipt-faults.ts` validates explicit rules and derives versioned integer
-draws. `contract.ts` admits references; `document-execution.ts` invokes draws only
+draws. `contract.ts` admits references; `document-transport.ts` invokes draws only
 for actual runtime receipts, records decisions and schedules a real host disconnect
 in the next causal round. Connection generations invalidate queued receipts and
 later sends; declared reconnect actions establish fresh sessions.
@@ -545,11 +580,12 @@ The Java runtime does not implement these link faults. See [receipt loss](timeli
 flowchart LR
   contract["timeline/contract.ts"] -->|admit actor ownership and policy bounds| policy["timeline/retry-policy.ts"]
   profile["timeline/document-profile.ts"] -->|reserve worst-case connection generations| policy
-  execution["timeline/document-execution.ts"] -->|arm deadlines and report actual delivered receipts| retries["timeline/retry-controller.ts"]
+  execution["timeline/document-execution.ts"] -->|arm deadlines| retries["timeline/retry-controller.ts"]
+  transport["timeline/document-transport.ts"] -->|actual delivered receipt via callback| retries
   retries -->|schedule and cancel virtual timers| agenda["timeline/agenda.ts"]
   retries -->|request fresh connection and identical ingress| execution
   execution -->|emit lifecycle and attempt records| trace["timeline/semantic-trace.ts"]
-  retries -->|emit causal timer/status records through execution| execution
+  retries -->|emit timer and status records via callback| trace
 ```
 
 The controller decides when a retry is needed; the executor owns real connection
@@ -560,11 +596,11 @@ acknowledgement. See [bounded retry actors](timeline-retries.md).
 
 ```mermaid
 flowchart LR
-  execution["timeline/document-execution.ts"] -->|queue exact requests and return envelopes| links["timeline/delayed-links.ts"]
-  execution -->|invalidate old-generation packets on actual close| links
+  transport["timeline/document-transport.ts"] -->|queue exact requests and return envelopes| links["timeline/delayed-links.ts"]
+  transport -->|invalidate old-generation packets on actual close| links
   links -->|allocate IDs, schedule arrivals, cancel closed packets| agenda["timeline/agenda.ts"]
   retries["timeline/retry-controller.ts"] -->|allocate distinct timer IDs| agenda
-  links -->|emit sends, arrivals and causal drops through execution| execution
+  links -->|emit sends, arrivals and causal drops through transport| transport
   schema["timeline/event-schema.ts"] -->|validate request and return envelopes| envelopes["timeline/envelopes.ts"]
 ```
 

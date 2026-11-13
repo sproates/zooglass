@@ -342,10 +342,11 @@ implicitly: if the process dies without completing a turn, that run is an
 infrastructure failure. A supported abrupt stop occurs only after an
 acknowledged turn, so the simulator knows which state transitions completed.
 
-Runtime changes needed for this protocol are proposed work. The existing
-prepared server JAR does not currently provide it. Add an explicit preparation
-command for the simulation artifact; execution and tests must never invoke a
-Java build.
+The bounded memory POC implements the current private protocol in a separate
+[simulation host](../../zooglass/simulation-host/README.md), prepared explicitly
+with `npm run prepare:timeline` from Workbench. The production service JAR excludes
+that host. The generation/recovery extensions described above remain planned;
+execution and tests must never invoke a Java build.
 
 ### Run results do not blur failures
 

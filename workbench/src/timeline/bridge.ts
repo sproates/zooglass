@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
+import { requireHostArtifact } from "./host-artifact.js";
 
 export type Effect = {
   kind: string;
@@ -75,10 +76,8 @@ export class Bridge {
         "-Xmx128m",
         `-Dzooglass.simulation.pauseMillis=${jvmPauseMs}`,
         `-Dzooglass.simulation.artifact=${jar}`,
-        "-Dloader.main=io.zooglass.simulation.TimelineHost",
-        "-cp",
+        "-jar",
         jar,
-        "org.springframework.boot.loader.launch.PropertiesLauncher",
       ],
       { stdio: "pipe" },
     );
@@ -130,9 +129,9 @@ export class Bridge {
       throw new Error("Invalid Node host pause");
     if (!Number.isSafeInteger(jvmPauseMs) || jvmPauseMs < 0 || jvmPauseMs > 250)
       throw new Error("Invalid JVM host pause");
-    const artifact = createHash("sha256")
-      .update(await readFile(jar))
-      .digest("hex");
+    const bytes = await readFile(jar);
+    await requireHostArtifact(bytes);
+    const artifact = createHash("sha256").update(bytes).digest("hex");
     const bridge = new Bridge(jar, hostDelay, jvmPauseMs);
     try {
       const handshake = (await bridge.read()) as Record<string, unknown>;

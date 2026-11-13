@@ -33,12 +33,20 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: zooglass/pom.xml
+          cache-dependency-path: |
+            zooglass/pom.xml
+            zooglass/simulation-host/pom.xml
 
       - run: npm ci
       - name: Build ZooGlass once before service tests
         if: fromJSON(inputs.plan).core || (fromJSON(inputs.plan).reconnect && !fromJSON(inputs.plan).browser)
-        run: npm run prepare:service
+        run: ${{ fromJSON(inputs.plan).core && 'npm run prepare:timeline' || 'npm run prepare:service' }}
+      - name: Check prepared simulation artifact and timeline behaviour
+        if: fromJSON(inputs.plan).core
+        run: |
+          npm run test:timeline-packaging
+          ../zooglass/mvnw -f ../zooglass/simulation-host/pom.xml --batch-mode surefire:test
+          npm run test:timeline
       - run: npm run lint
         if: fromJSON(inputs.plan).static
       - run: npm run format:check

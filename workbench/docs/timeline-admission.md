@@ -3,7 +3,7 @@
 From `workbench/`, after explicitly preparing the POC artifact:
 
 ```sh
-npm run timeline:inspect -- admission scenarios/simulation/receipt-contract.json ../zooglass/target/zooglass.jar
+npm run timeline:inspect -- admission scenarios/simulation/receipt-contract.json ../zooglass/simulation-host/target/zooglass-simulation.jar
 ```
 
 This inspects admission prerequisites, not scenario execution. It reads the strict

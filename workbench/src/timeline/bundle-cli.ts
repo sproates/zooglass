@@ -12,8 +12,12 @@ import { recordBundle, replayBundle } from "./artifact-bundle.js";
 const args = process.argv.slice(2);
 const requirePassed = args.includes("--require-passed");
 const positional = args.filter((a) => a !== "--require-passed");
-const [command, input, output, jar = "../zooglass/target/zooglass.jar"] =
-  positional;
+const [
+  command,
+  input,
+  output,
+  jar = "../zooglass/simulation-host/target/zooglass-simulation.jar",
+] = positional;
 if (
   !["record", "replay"].includes(command) ||
   !input ||

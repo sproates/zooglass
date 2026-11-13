@@ -175,3 +175,13 @@ test("fact strategies and delivery queues select their service consumers", () =>
     "browser",
   ]);
 });
+
+test("simulation host and timeline changes select shared static/core checks without browsers", () => {
+  for (const path of [
+    "zooglass/simulation-host/pom.xml",
+    "zooglass/simulation-host/src/main/java/io/zooglass/simulation/TimelineHost.java",
+    "workbench/src/timeline/runtime-turns.ts",
+    "workbench/test/timeline/replay.test.ts",
+    "workbench/test/packaging/timeline-artifacts.test.ts",
+  ]) assert.deepEqual(selected([path]), ["static", "core"], path);
+});

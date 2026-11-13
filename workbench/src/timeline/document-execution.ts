@@ -1,12 +1,12 @@
-import { DelayedLinks, type LinkChannel } from "./delayed-links.js";
-import { RetryController } from "./retry-controller.js";
-import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
-import { receiptRules, receiptDraw } from "./receipt-faults.js";
 import assert from "node:assert/strict";
 import { Agenda } from "./agenda.js";
-import { Bridge, type Effect, type Response } from "./bridge.js";
+import type { Bridge } from "./bridge.js";
 import type { TimelineDocument } from "./contract.js";
-import { encodeJson, parseJson, type Json } from "./json.js";
+import { DocumentTransport, type Connection } from "./document-transport.js";
+import { RuntimeTurns, type PublicationAttempt } from "./runtime-turns.js";
+import { RetryController } from "./retry-controller.js";
+import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
+import { encodeJson, type Json } from "./json.js";
 import { integer, list, object, text } from "./validation.js";
 import {
   SemanticTrace,
@@ -15,32 +15,14 @@ import {
 } from "./semantic-trace.js";
 import type { executionSettings } from "./document-profile.js";
 
-type Connection = {
-  actor: string;
-  session: string;
-  generation: number;
-  open: boolean;
-  attached: boolean;
-  closedBy?: string;
-};
-type Handoff = { id: string; messageId: string; envelope: Json };
+/** Coordinates declared actor actions, managed retries and scenario assertions. */
 export class DocumentExecution {
   readonly agenda: Agenda;
-  last?: Response;
-  private turns = 0;
-  private messages = 0;
-  private messageSequence = 0;
-  private readonly links: DelayedLinks;
-  private readonly latencies = new Map<string, number>();
+  private readonly runtime: RuntimeTurns;
+  private readonly transport: DocumentTransport;
   private readonly retries: RetryController;
-  private readonly rules: ReturnType<typeof receiptRules>;
   private readonly attempts = new Map<string, number>();
-  private readonly pendingFaultCloses = new Set<string>();
   private readonly connections = new Map<string, Connection>();
-  private readonly sessions = new Map<string, Connection>();
-  private readonly handoffs = new Map<string, Handoff>();
-  private readonly tasks = new Map<number, string>();
-  private readonly observations = new Map<string, Json[]>();
   private readonly actors: { id: string; role: string }[];
   constructor(
     readonly bridge: Bridge,
@@ -49,29 +31,27 @@ export class DocumentExecution {
     readonly limits: ReturnType<typeof executionSettings>,
   ) {
     this.agenda = new Agenda(limits);
-    this.rules = receiptRules(scenario.document);
-    for (const value of list(scenario.document.links, "links")) {
-      const link = object(value, "link");
-      this.latencies.set(
-        text(link.actor, "actor"),
-        integer(link.latencyMs, "latencyMs"),
-      );
-    }
-    this.links = new DelayedLinks({
-      agenda: this.agenda,
-      event: (kind, data, parent, connection, causes) =>
-        this.trace.event(
-          kind,
-          this.agenda.current,
-          connection.actor,
-          connection.generation,
-          parent,
-          data,
-          causes,
-        ),
-      turn: () => this.turn(),
-      checkBound: () => this.messageBound(),
-    });
+    this.runtime = new RuntimeTurns(
+      bridge,
+      this.agenda,
+      trace,
+      limits.turns,
+      (effect, parent, publication) =>
+        this.transport.effect(effect, parent, publication),
+    );
+    this.transport = new DocumentTransport(
+      this.agenda,
+      scenario,
+      trace,
+      limits.pendingMessages,
+      {
+        consumeExecutionTurn: () => this.runtime.consumeExecutionTurn(),
+        command: (operation, parent, publication) =>
+          this.runtime.command(operation, parent, publication),
+        receipt: (action, attempt, generation, parent) =>
+          this.retries.receipt(action, attempt, generation, parent),
+      },
+    );
     this.retries = new RetryController(retryPolicies(scenario.document), {
       agenda: this.agenda,
       event: (kind, data, parent, actor, generation, causes) =>
@@ -91,18 +71,6 @@ export class DocumentExecution {
       const actor = object(item, "actor");
       return { id: text(actor.id, "id"), role: text(actor.role, "role") };
     });
-    for (const actor of this.actors) this.observations.set(actor.id, []);
-  }
-  private turn() {
-    if (++this.turns > this.limits.turns)
-      throw new Error("limit-exceeded: execution turns");
-  }
-  private messageBound() {
-    if (
-      this.messages + this.handoffs.size + this.links.pending() >
-      this.limits.pendingMessages
-    )
-      throw new Error("limit-exceeded: pending messages");
   }
   private event(
     kind: string,
@@ -121,317 +89,6 @@ export class DocumentExecution {
       causes,
     );
   }
-  private async command(
-    operation: Record<string, unknown>,
-    parent: string,
-    publication?: { action: string; attempt: number },
-  ) {
-    this.turn();
-    const response = await this.bridge.command(
-      this.agenda.current[0],
-      operation,
-    );
-    this.last = response;
-    for (const effect of response.effects)
-      this.effect(effect, parent, publication);
-  }
-  private effect(
-    effect: Effect,
-    parent: string,
-    publication?: { action: string; attempt: number },
-  ) {
-    if (effect.kind === "schedule") {
-      assert.ok(
-        Number.isSafeInteger(effect.task) &&
-          effect.task! > 0 &&
-          !this.tasks.has(effect.task!),
-      );
-      assert.ok(
-        Number.isSafeInteger(effect.at) && effect.at! >= this.agenda.current[0],
-      );
-      assert.ok([0, 1, 2].includes(effect.phase!));
-      const id = this.event(
-        "scheduled",
-        j({
-          taskId: String(effect.task),
-          atMs: effect.at,
-          phase: effect.phase,
-          taskKind: effect.taskKind,
-        }),
-        parent,
-      );
-      this.tasks.set(effect.task!, id);
-      this.agenda.add(
-        effect.at!,
-        effect.phase!,
-        async () => {
-          assert.equal(
-            this.tasks.get(effect.task!),
-            id,
-            "task retains its scheduling owner",
-          );
-          this.tasks.delete(effect.task!);
-          const dispatch = this.event(
-            "task-dispatched",
-            j({ taskId: String(effect.task) }),
-            id,
-          );
-          await this.command({ op: "task", task: effect.task }, dispatch);
-        },
-        effect.task,
-      );
-      return;
-    }
-    if (effect.kind === "cancel") {
-      const owner = this.tasks.get(effect.task!);
-      assert.ok(owner, "cancellation identifies a pending scheduled task");
-      this.event(
-        "cancelled",
-        j({ taskId: String(effect.task) }),
-        parent,
-        undefined,
-        [owner],
-      );
-      this.tasks.delete(effect.task!);
-      this.agenda.cancel(effect.task!);
-      return;
-    }
-    if (effect.kind === "state") {
-      this.event("state", { envelope: parseJson(effect.wire!) }, parent);
-      return;
-    }
-    const connection = this.sessions.get(effect.session!);
-    assert.ok(
-      connection,
-      `effect names a known connection generation: ${effect.session}`,
-    );
-    if (effect.kind === "close") {
-      connection.open = false;
-      const closed = this.event(
-        "connection-closed",
-        j({ code: effect.code }),
-        parent,
-        connection,
-      );
-      connection.closedBy = closed;
-      this.links.close(connection, closed);
-      const held = this.handoffs.get(connection.session);
-      if (held) {
-        this.event(
-          "dropped",
-          {
-            ...(j({
-              messageId: held.messageId,
-              channel: "client-frame",
-              reason: "connection-closed",
-            }) as { [key: string]: Json }),
-            envelope: held.envelope,
-          },
-          closed,
-          connection,
-          [held.id],
-        );
-        this.handoffs.delete(connection.session);
-      }
-      return;
-    }
-    const envelope = parseJson(effect.wire!);
-    if (effect.kind === "handoff") {
-      assert.ok(
-        !this.handoffs.has(connection.session),
-        "one in-flight handoff per connection",
-      );
-      // Message identity is stable and allocated at the actual handoff, before completion.
-      const messageId = `message-${this.messageSequence++}`;
-      const id = this.event(
-        "handoff",
-        { ...(j({ messageId }) as { [key: string]: Json }), envelope },
-        parent,
-        connection,
-      );
-      this.handoffs.set(connection.session, { id, messageId, envelope });
-      this.messageBound();
-      return;
-    }
-    assert.ok(
-      effect.kind === "frame" || effect.kind === "receipt",
-      `known effect kind ${effect.kind}`,
-    );
-    let causes: string[] = [];
-    let messageId: string;
-    if (effect.kind === "frame") {
-      const handoff = this.handoffs.get(connection.session);
-      assert.ok(handoff, "frame completes an actual handoff");
-      assert.equal(
-        encodeJson(envelope),
-        encodeJson(handoff.envelope),
-        "completion retains handoff bytes",
-      );
-      messageId = handoff.messageId;
-      causes = [handoff.id];
-      this.handoffs.delete(connection.session);
-    } else messageId = `message-${this.messageSequence++}`;
-    const sent = this.event(
-      effect.kind,
-      { envelope, messageId },
-      parent,
-      connection,
-      causes,
-    );
-    let lossCause: string | undefined;
-    if (effect.kind === "receipt" && publication) {
-      const rule = this.rules.find(
-        (rule) => rule.action === publication.action,
-      );
-      if (rule) {
-        for (let drawIndex = 0; ; drawIndex++) {
-          if (drawIndex === 16)
-            throw new Error("limit-exceeded: receipt-loss draws");
-          const draw = receiptDraw(
-            {
-              seed: text(this.scenario.document.seed, "seed"),
-              scenario: text(this.scenario.document.id, "id"),
-              rule: rule.id,
-              actor: connection.actor,
-              action: publication.action,
-              generation: connection.generation,
-              attempt: publication.attempt,
-            },
-            rule.numerator,
-            rule.denominator,
-            drawIndex,
-          );
-          const decision = this.event(
-            "fault-decision",
-            j({
-              ...draw,
-              ruleId: rule.id,
-              actionId: publication.action,
-              messageId,
-              attempt: publication.attempt,
-            }),
-            sent,
-            connection,
-          );
-          if (!draw.rejected) {
-            if (draw.lost) {
-              lossCause = decision;
-              this.closeForReceiptLoss(connection, messageId, decision);
-            }
-            break;
-          }
-        }
-      }
-    }
-    const latency = this.latencies.get(connection.actor)!;
-    if (latency > 0) {
-      this.links.send(
-        connection,
-        effect.kind === "receipt" ? "source-receipt" : "client-frame",
-        envelope,
-        messageId,
-        latency,
-        sent,
-        async (arrival) => {
-          this.observations.get(connection.actor)!.push(envelope);
-          if (effect.kind === "receipt" && publication)
-            this.retries.receipt(
-              publication.action,
-              publication.attempt,
-              connection.generation,
-              arrival,
-            );
-        },
-        lossCause,
-      );
-      return;
-    }
-    this.messages++;
-    this.messageBound();
-    this.agenda.add(this.agenda.current[0], 2, async () => {
-      this.turn();
-      this.messages--;
-      const delivered = connection.open && !lossCause;
-      const arrival = this.event(
-        delivered ? "delivered" : "dropped",
-        {
-          ...(j({
-            messageId,
-            channel:
-              effect.kind === "receipt" ? "source-receipt" : "client-frame",
-            ...(delivered
-              ? {}
-              : { reason: lossCause ? "receipt-loss" : "connection-closed" }),
-          }) as { [key: string]: Json }),
-          envelope,
-        },
-        sent,
-        connection,
-        lossCause
-          ? [lossCause]
-          : !delivered && connection.closedBy
-            ? [connection.closedBy]
-            : [],
-      );
-      if (delivered) {
-        this.observations.get(connection.actor)!.push(envelope);
-        if (effect.kind === "receipt" && publication)
-          this.retries.receipt(
-            publication.action,
-            publication.attempt,
-            connection.generation,
-            arrival,
-          );
-      }
-    });
-  }
-  private closeForReceiptLoss(
-    connection: Connection,
-    messageId: string,
-    decision: string,
-  ) {
-    if (this.pendingFaultCloses.has(connection.session)) return;
-    this.pendingFaultCloses.add(connection.session);
-    this.agenda.add(this.agenda.current[0], 0, async () => {
-      this.pendingFaultCloses.delete(connection.session);
-      if (!connection.attached) return;
-      const cause = this.event(
-        "runtime-command",
-        j({ op: "disconnect", reason: "receipt-loss", messageId }),
-        decision,
-        connection,
-      );
-      await this.command(
-        { op: "disconnect", session: connection.session },
-        cause,
-      );
-      connection.open = false;
-      connection.attached = false;
-    });
-  }
-  private async sendToRuntime(
-    connection: Connection,
-    operation: Record<string, unknown>,
-    cause: string,
-    publication?: { action: string; attempt: number },
-  ) {
-    const latency = this.latencies.get(connection.actor)!;
-    if (latency === 0) {
-      await this.command(operation, cause, publication);
-      return;
-    }
-    const channel: LinkChannel =
-      operation.op === "ingress" ? "source-publication" : "client-request";
-    this.links.send(
-      connection,
-      channel,
-      parseJson(String(operation.wire)),
-      `message-${this.messageSequence++}`,
-      latency,
-      cause,
-      (arrival) => this.command(operation, arrival, publication),
-    );
-  }
   private async retryPublication(
     policy: RetryPolicy,
     attempt: number,
@@ -445,7 +102,7 @@ export class DocumentExecution {
         parent,
         previous,
       );
-      await this.command(
+      await this.runtime.command(
         { op: "disconnect", session: previous.session },
         close,
       );
@@ -460,14 +117,14 @@ export class DocumentExecution {
       attached: true,
     };
     this.connections.set(policy.actor, connection);
-    this.sessions.set(connection.session, connection);
+    this.transport.register(connection);
     const connect = this.event(
       "retry-lifecycle",
       j({ actionId: policy.action, operation: "connect", attempt }),
       parent,
       connection,
     );
-    await this.command(
+    await this.runtime.command(
       { op: "connect", role: "source", session: connection.session },
       connect,
     );
@@ -493,7 +150,7 @@ export class DocumentExecution {
         JSON.stringify([policy.actor, policy.publication]),
         attempt,
       );
-      await this.sendToRuntime(
+      await this.transport.sendToRuntime(
         connection,
         {
           op: "ingress",
@@ -515,7 +172,10 @@ export class DocumentExecution {
       j({ op: "initialize-document", configurationSha256, epochMillis }),
       null,
     );
-    await this.command({ op: "initialize-document", wire, epochMillis }, cause);
+    await this.runtime.command(
+      { op: "initialize-document", wire, epochMillis },
+      cause,
+    );
   }
   preload() {
     const actions = list(this.scenario.document.actions, "actions");
@@ -543,7 +203,7 @@ export class DocumentExecution {
               attached: true,
             };
             this.connections.set(actor.id, connection);
-            this.sessions.set(connection.session, connection);
+            this.transport.register(connection);
           }
           assert.ok(connection, "action has a declared connection generation");
           assert.equal(connection.generation, admitted.connectionGeneration);
@@ -563,8 +223,7 @@ export class DocumentExecution {
           delete (data as Record<string, unknown>).actor;
           const cause = this.event("action", data, null, connection);
           let operation: Record<string, unknown>;
-          let publicationAttempt:
-            { action: string; attempt: number } | undefined;
+          let publicationAttempt: PublicationAttempt | undefined;
           if (kind === "connect")
             operation = {
               op: "connect",
@@ -622,13 +281,13 @@ export class DocumentExecution {
               cause,
             );
           if (operation.op === "ingress" || operation.op === "subscribe")
-            await this.sendToRuntime(
+            await this.transport.sendToRuntime(
               connection,
               operation,
               cause,
               publicationAttempt,
             );
-          else await this.command(operation, cause, publicationAttempt);
+          else await this.runtime.command(operation, cause, publicationAttempt);
           if (kind === "disconnect") {
             connection.open = false;
             connection.attached = false;
@@ -642,17 +301,17 @@ export class DocumentExecution {
   async settle(at: number) {
     await this.agenda.through(at);
     const cause = this.event("runtime-command", j({ op: "observe" }), null);
-    await this.command({ op: "observe" }, cause);
+    await this.runtime.command({ op: "observe" }, cause);
     assert.deepEqual(
-      this.last!.effects,
+      this.runtime.last!.effects,
       [],
       "settled observation cannot repair overdue work",
     );
   }
   assertObservation(assertion: { [key: string]: Json }) {
-    this.turn();
+    this.runtime.consumeExecutionTurn();
     const actor = text(assertion.actor, "actor");
-    const actual = this.observations.get(actor)!;
+    const actual = this.transport.observed(actor);
     const passed = encodeJson(assertion.expected) === encodeJson(actual);
     const connection = this.connections.get(actor);
     this.trace.event(
@@ -678,20 +337,15 @@ export class DocumentExecution {
   counts(): Counts {
     return {
       pendingFutureTasks:
-        (this.last?.pendingTasks ?? 0) + this.retries.pending(),
-      pendingMessages:
-        this.messages + this.handoffs.size + this.links.pending(),
-      heldFrames: this.last?.heldFrames ?? 0,
+        (this.runtime.last?.pendingTasks ?? 0) + this.retries.pending(),
+      pendingMessages: this.transport.pending(),
+      heldFrames: this.runtime.last?.heldFrames ?? 0,
     };
   }
   checkEnd() {
     const end = object(this.scenario.document.end, "end");
     const counts = this.counts();
-    assert.equal(
-      this.tasks.size,
-      this.last?.pendingTasks ?? 0,
-      "runtime/agenda pending-task accounting",
-    );
+    this.runtime.checkPending();
     if (this.retries.unfinished())
       throw new Error("assertion-failed: unfinished retry actor at horizon");
     if (
@@ -705,7 +359,7 @@ export class DocumentExecution {
   async shutdown() {
     this.agenda.add(this.agenda.current[0], 0, async () => {
       const cause = this.event("runtime-command", j({ op: "shutdown" }), null);
-      await this.command({ op: "shutdown" }, cause);
+      await this.runtime.command({ op: "shutdown" }, cause);
     });
     await this.agenda.through(this.agenda.current[0]);
     assert.equal(

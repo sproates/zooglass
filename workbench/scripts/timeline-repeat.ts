@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 import { compareReplay, type ProofResult } from "../src/timeline/proof.js";
 const [
   folder = "../../artifacts/timeline-proof",
-  jar = "../zooglass/target/zooglass.jar",
+  jar = "../zooglass/simulation-host/target/zooglass-simulation.jar",
 ] = process.argv.slice(2);
 const directory = resolve(folder);
 await mkdir(directory, { recursive: true });

@@ -482,32 +482,52 @@ Replay and authorisation remain outside the implemented contracts.
 
 ## Controlled timeline proof host
 
+The host-side files below live under
+`simulation-host/src/main/java/io/zooglass/`; production files remain under
+`src/main/java/io/zooglass/`. The projects share Java packages and one application
+classloader, while the production artifacts exclude every simulation adapter.
+
 ```mermaid
-flowchart LR
-  host["simulation/TimelineHost.java"] -->|owns one command turn| turn["simulation/TurnContext.java"]
-  host -->|fixed proof or admitted document composition| runtime["runtime/TimelineRuntime.java"]
-  host -->|inspect configuration without starting runtime| runtime
-  runtime -->|shared production decoder and validation| configuration["runtime/RuntimeConfiguration.java"]
-  runtime -->|clock and alarm injection| coordinator["runtime/ViewCoordinator.java"]
-  host -->|real source handler| ingress["runtime/EventIngress.java"]
-  host -->|real subscription handler| subscriptions["delivery/SnapshotSubscriptions.java"]
-  host -->|decoded configuration qualification| profile["runtime/TimelineProfile.java"]
+flowchart TB
+  protocol["simulation/HostProtocol.java"] -->|framing and validated commands| host["simulation/TimelineHost.java"]
+  host -->|runtime composition| runtime["runtime/TimelineRuntime.java"]
+  host -->|configuration qualification| profile["runtime/TimelineProfile.java"]
   host -->|modelled connections| session["simulation/TimelineSession.java"]
-  host -->|controlled driver| driver["delivery/TimelineDelivery.java"]
-  driver -->|same writer and queue| broadcaster["delivery/SnapshotBroadcaster.java"]
-  driver -->|register callbacks and probe writer handoff, no threads| turn
-  turn -->|owned-turn pauses and separate diagnostics| probe["simulation/HostTimingProbe.java"]
-  runtime -->|clock reads and alarms| turn
+  host -->|controlled delivery driver| driver["delivery/TimelineDelivery.java"]
+  host -->|real source handler| ingress["core: runtime/EventIngress.java"]
+  host -->|real subscription handler| subscriptions["core: delivery/SnapshotSubscriptions.java"]
+  runtime -->|shared decoder and validation| configuration["core: runtime/RuntimeConfiguration.java"]
+  runtime -->|clock and alarm injection| coordinator["core: runtime/ViewCoordinator.java"]
+  driver -->|same writer and queue| broadcaster["core: delivery/SnapshotBroadcaster.java"]
 ```
 
-This explicit main class uses framed stdin/stdout and a prepared JAR. It does not
-start Spring, bind a network listener or expose controls through normal endpoints.
+Boxes prefixed `core:` belong to the production runtime dependency; the others
+belong to the host project. Controlled timing and delivery share one turn owner:
+
+```mermaid
+flowchart LR
+  runtime["runtime/TimelineRuntime.java"] -->|wall and elapsed time| clock["runtime/ControlledReceiptClock.java"]
+  runtime -->|deferred wakeups| alarm["runtime/ControlledAlarmScheduler.java"]
+  clock -->|reads current virtual turn| turn["simulation/TurnContext.java"]
+  alarm -->|schedules owned alarm tasks| turn
+  driver["delivery/TimelineDelivery.java"] -->|callbacks and writer handoff probe| turn
+  host["simulation/TimelineHost.java"] -->|opens and closes command turn| turn
+  turn -->|host-only pause diagnostics| probe["simulation/HostTimingProbe.java"]
+```
+
+The prepared `simulation-host/target/zooglass-simulation.jar` uses framed
+stdin/stdout. It does not start Spring, bind a network listener or expose controls
+through normal endpoints. Production `target/zooglass.jar` and the ordinary
+`target/zooglass-runtime.jar` contain no host, pause probe or simulation adapters.
+The [host guide](../simulation-host/README.md) explains explicit preparation and
+artifact checks.
+
 The fixed memory/unprotected proofs and the explicitly qualified `memory-arrival-v1`
-document profile are supported. Initial clocks
-are installed before runtime construction; effects and callbacks require the owning
-thread's active turn. Arbitrary configuration, restart and protected access remain
-outside this POC capability boundary; unsupported command fields fail explicitly.
-The handshake also identifies the actual JVM environment for bounded replay admission.
+document profile are supported. Initial clocks are installed before runtime
+construction; effects and callbacks require the owning thread's active turn.
+Arbitrary configuration, restart and protected access remain outside this POC
+capability boundary; unsupported command fields fail explicitly. The handshake
+identifies the actual JVM environment for bounded replay admission.
 The driver owns and cancels its deferred lifecycle, writer and transport callbacks.
 Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
 completion in phase 2; released handoffs complete in a later causal round.

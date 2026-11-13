@@ -1,14 +1,18 @@
 # Simulation boundary and restart implementation design
 
 This refines the [accepted simulator design](deterministic-timeline.md) for the
-next POC increments. **It is a design, not delivered SQLite/restart support.**
-The current executable remains the qualified, single-generation memory profile.
+next POC increments. **Host isolation and executor ownership separation are now
+implemented; SQLite/restart support remains a design.** The current executable
+continues to use the single-generation memory profile. The separate host is
+described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
 
-The current host is 324 lines and `document-execution.ts` is 717 lines. Size alone
-does not justify a rewrite. Their mixed lifecycle responsibilities do justify
-separating generation ownership before adding restart.
+The assessment started from a 324-line host and 717-line `document-execution.ts`.
+Size alone did not justify a rewrite. Their mixed responsibilities justified
+separating protocol, runtime turns and transport ownership before adding restart.
+The refactor preserves v1 execution; generation lifecycle implementation is still
+part of the subsequent restart work.
 
 | Area                                       | Decision                                                                                                                                                               |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -19,11 +23,18 @@ separating generation ownership before adding restart.
 | Nested Java clock/alarm implementations    | Give the controlled clock and alarm driver named host-side classes.                                                                                                    |
 | Sorted agenda and internal assertions      | Keep the current bounded implementation. Profile a demonstrated bottleneck before changing algorithms; user-input validation must continue to produce explicit errors. |
 
-Create a separate Maven project at `zooglass/simulation-host/`, with independent
-output directories. Move `simulation/*`, `runtime/TimelineRuntime`,
-`runtime/TimelineProfile` and `delivery/TimelineDelivery` there, together with
-`TurnContextTests`. Retain their Java packages so adapters can use package-private
+The separate Maven project at `zooglass/simulation-host/` has independent output
+directories. It now owns `simulation/*`, `runtime/TimelineRuntime`,
+`runtime/TimelineProfile` and `delivery/TimelineDelivery`, together with
+`TurnContextTests`. Their Java packages are retained so adapters use package-private
 runtime seams without introducing a public extension API.
+
+`HostProtocol` separates framing and command validation from `TimelineHost`.
+Named controlled clock/alarm classes replace the nested implementations.
+Workbench's `DocumentExecution` owns actions, connections and retry orchestration;
+`RuntimeTurns` owns the execution budget, bridge commands and runtime tasks;
+`DocumentTransport` owns session-bound messages, faults, handoffs and observations.
+These are current v1 boundaries, not restart implementation.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact
@@ -296,8 +307,9 @@ mid-commit termination and physical durability are not simulated here.
 
 ## Delivery order and gates
 
-1. Isolate the host artifact and named controlled drivers. Check service/classifier
-   contents and independent preparation; run existing proof/document/replay tests.
+1. **Implemented boundary:** isolate the host artifact and named controlled drivers.
+   Check service/classifier contents and independent preparation; run existing
+   proof/document/replay tests whenever this boundary changes.
 2. Extract generation ownership and add protocol/lifecycle handling with memory
    first. Prove downtime, attempt accounting, cancellation and clock reset before
    opening SQLite through this path.

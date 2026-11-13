@@ -51,6 +51,26 @@ The [order source foundation](docs/order-sources.md) provides service-only
 verification of independent order, payment and inventory contributions. Its
 browser experiences and demo commands are subsequent work.
 
+## Controlled timeline execution
+
+The separate [bounded document executor](docs/timeline-execution.md) runs real
+ZooGlass memory-runtime turns under virtual time, with receipt loss, retries and
+fixed link latency. It uses the [simulation host](../zooglass/simulation-host/README.md)
+rather than the network service used by connected scenarios and demos.
+
+From this directory, explicitly prepare the host and then execute a document:
+
+```sh
+npm run prepare:timeline
+npm run timeline:execute -- scenarios/simulation/warehouse-retry.json /tmp/warehouse-run.json
+npm run test:timeline
+```
+
+Preparation installs the production runtime classifier, packages
+`../zooglass/simulation-host/target/zooglass-simulation.jar` and verifies its
+embedded dependency. Execution and tests consume prepared artifacts only.
+Restart, SQLite and protected serving are not admitted by this timeline profile.
+
 ## Run a scenario
 
 Use Node 26 and install dependencies with `npm ci`. Connected runs and the full

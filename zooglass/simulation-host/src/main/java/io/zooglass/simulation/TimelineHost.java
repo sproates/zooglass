@@ -1,29 +1,25 @@
 package io.zooglass.simulation;
 
+import static io.zooglass.simulation.HostProtocol.JSON;
+import static io.zooglass.simulation.HostProtocol.integer;
+import static io.zooglass.simulation.HostProtocol.text;
+import static io.zooglass.simulation.HostProtocol.validateFields;
+
 import io.zooglass.delivery.*;
 import io.zooglass.runtime.*;
 
 import org.springframework.web.socket.TextMessage;
 
-import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.*;
-import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.security.MessageDigest;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
-/** Private, fixed-fixture POC executable. Not a server endpoint or a general scenario API. */
+/** Owns one controlled runtime and its sessions; framing belongs to HostProtocol. */
 public final class TimelineHost {
-    private static final int CAP = 16 * 1024 * 1024;
-    private static final JsonMapper JSON =
-            JsonMapper.builder()
-                    .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-                    .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-                    .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-                    .build();
     private final TurnContext turns = new TurnContext();
     private final Map<String, TimelineSession> sessions = new LinkedHashMap<>();
     private ViewCoordinator runtime;
@@ -38,64 +34,7 @@ public final class TimelineHost {
     private final Map<String, String> roles = new LinkedHashMap<>();
 
     public static void main(String[] args) throws Exception {
-        var output = new DataOutputStream(System.out);
-        System.setOut(System.err); // Libraries may log; stdout belongs exclusively to framing.
-        var artifact = Path.of(System.getProperty("zooglass.simulation.artifact"));
-        String digest =
-                HexFormat.of()
-                        .formatHex(
-                                MessageDigest.getInstance("SHA-256")
-                                        .digest(Files.readAllBytes(artifact)));
-        write(
-                output,
-                Map.of(
-                        "protocol",
-                        1,
-                        "fixture",
-                        "timeline-proof-v1",
-                        "artifact",
-                        digest,
-                        "frameCap",
-                        CAP,
-                        "storage",
-                        List.of("memory"),
-                        "protectedAccess",
-                        false,
-                        "configurationAdmission",
-                        1,
-                        "documentFormats",
-                        List.of("timeline-simulation/v1"),
-                        "environment",
-                        Map.of("javaRuntime", System.getProperty("java.runtime.version"),
-                                "javaVendor", System.getProperty("java.vendor"),
-                                "os", System.getProperty("os.name"),
-                                "arch", System.getProperty("os.arch"),
-                                "locale", java.util.Locale.getDefault().toLanguageTag(),
-                                "timezone", java.util.TimeZone.getDefault().getID())));
-        var input = new DataInputStream(System.in);
-        var host = new TimelineHost();
-        while (true) {
-            int first = input.read();
-            if (first < 0) return;
-            int length =
-                    (first << 24)
-                            | (input.readUnsignedByte() << 16)
-                            | (input.readUnsignedByte() << 8)
-                            | input.readUnsignedByte();
-            if (length < 1 || length > CAP) throw new IOException("Invalid frame size");
-            byte[] bytes = input.readNBytes(length);
-            if (bytes.length != length) throw new EOFException("Truncated frame");
-            var command = JSON.readTree(new String(bytes, StandardCharsets.UTF_8));
-            write(output, host.command(command));
-        }
-    }
-
-    private static void write(DataOutputStream out, Object value) throws IOException {
-        byte[] bytes = JSON.writeValueAsBytes(value);
-        if (bytes.length > CAP) throw new IOException("Frame overflow");
-        out.writeInt(bytes.length);
-        out.write(bytes);
-        out.flush();
+        HostProtocol.serve(new TimelineHost()::command);
     }
 
     private Object command(JsonNode command) throws Exception {
@@ -271,51 +210,12 @@ public final class TimelineHost {
         ingress = new EventIngress(runtime, JSON);
     }
 
-    private static void validateFields(JsonNode command, String op) {
-        var fields =
-                new HashSet<>(
-                        Set.of(
-                                "op", "turnId", "runtimeGeneration", "timeMs", "monotonicMs",
-                                "wallMillis"));
-        fields.addAll(
-                switch (op) {
-                    case "initialize" -> Set.of("policy");
-                    case "inspect-configuration" -> Set.of("wire");
-                    case "initialize-document" -> Set.of("wire", "epochMillis");
-                    case "connect" -> Set.of("session", "role");
-                    case "disconnect", "stall" -> Set.of("session");
-                    case "ingress", "subscribe" -> Set.of("session", "wire");
-                    case "release" -> Set.of("session", "fail");
-                    case "task" -> Set.of("task");
-                    case "observe", "shutdown" -> Set.of();
-                    default -> throw new IllegalArgumentException("Unsupported POC operation");
-                });
-        if (command.properties().stream().anyMatch(entry -> !fields.contains(entry.getKey())))
-            throw new IllegalArgumentException("Unsupported POC command field");
-    }
-
     private TimelineSession session(JsonNode command, String role) {
         String id = text(command, "session");
         var session = sessions.get(id);
         if (!role.equals(roles.get(id)) || session == null || !session.isOpen())
             throw new IllegalArgumentException("Unavailable session");
         return session;
-    }
-
-    private static String text(JsonNode node, String key) {
-        if (!node.path(key).isTextual() || node.path(key).asString().isBlank())
-            throw new IllegalArgumentException("Expected text " + key);
-        return node.path(key).asString();
-    }
-
-    private static long integer(JsonNode node, String key) {
-        var value = node.path(key);
-        if (!value.isIntegralNumber()
-                || !value.canConvertToLong()
-                || value.longValue() < 0
-                || value.longValue() > PublicationJson.MAX_SEQUENCE)
-            throw new IllegalArgumentException("Expected bounded integer " + key);
-        return value.longValue();
     }
 
     private static String canonical(String wire) {

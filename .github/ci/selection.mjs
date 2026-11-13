@@ -51,7 +51,12 @@ export function selectChecks(paths, { forceFull = false } = {}) {
   };
   for (const path of paths) {
     if (isDocumentation(path)) continue;
-    if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
+    if (
+      /^zooglass\/simulation-host\//.test(path) ||
+      /^workbench\/(src\/timeline|test\/(timeline|packaging))\//.test(path)
+    ) {
+      add(["static", "core"], path);
+    } else if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {
       add(["java"], path);
     } else if (
       /^zooglass\/src\/main\/java\/io\/zooglass\/strategy\/(?:contribution|fact|freshness|identity|late|progress|publication|update)\/[^/]+\.java$/.test(

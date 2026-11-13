@@ -5,7 +5,8 @@ import { files } from "./document-fixture.js";
 import { runDocument } from "../../src/timeline/run-document.js";
 import { checkCampaignRun } from "../../src/timeline/campaign-checks.js";
 const jar = resolve(
-  process.env.ZOOGLASS_SIMULATION_JAR ?? "../zooglass/target/zooglass.jar",
+  process.env.ZOOGLASS_SIMULATION_JAR ??
+    "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 
 test("in-turn JVM pauses exceed freshness threshold without changing semantic trace, and campaign rejects absent evidence or divergence", async () => {

@@ -16,7 +16,8 @@ import {
 import { runDocument } from "../../src/timeline/run-document.js";
 import { replayDocument } from "../../src/timeline/replay-document.js";
 const jar = resolve(
-  process.env.ZOOGLASS_SIMULATION_JAR ?? "../zooglass/target/zooglass.jar",
+  process.env.ZOOGLASS_SIMULATION_JAR ??
+    "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 const records = (trace: string) =>
   trace

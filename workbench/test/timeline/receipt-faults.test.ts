@@ -10,7 +10,8 @@ import { replayDocument } from "../../src/timeline/replay-document.js";
 import { canonicalJson } from "../../src/timeline/json.js";
 import { validateTrace } from "../../src/timeline/trace-contract.js";
 const jar = resolve(
-  process.env.ZOOGLASS_SIMULATION_JAR ?? "../zooglass/target/zooglass.jar",
+  process.env.ZOOGLASS_SIMULATION_JAR ??
+    "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 const key = {
   seed: "0".repeat(64),

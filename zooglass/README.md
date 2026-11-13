@@ -114,6 +114,20 @@ has no backfill, including retries of publications accepted before registration.
 With SQLite, the expanded configuration is committed atomically; use that expanded
 configuration on restart. Removing or redefining a registered view is unsupported.
 
+## Controlled simulation host
+
+The [simulation host](simulation-host/README.md) is a separate Maven project and
+executable. `target/zooglass.jar` remains the production service; it contains no
+simulation controls, adapters or host-pause probes. The ordinary
+`target/zooglass-runtime.jar` classifier supplies the same runtime implementation
+to `simulation-host/target/zooglass-simulation.jar`.
+
+From `../workbench/`, run `npm run prepare:timeline` explicitly before timeline
+execution or tests. It installs the runtime dependency, packages the host and
+checks both artifact boundaries. The controlled host currently supports bounded
+memory scenarios; SQLite restart remains planned. Production SQLite recovery is
+covered separately by the runtime tests.
+
 ## Tests and ownership
 
 Run `./mvnw --batch-mode clean verify` for Java tests and JaCoCo coverage.

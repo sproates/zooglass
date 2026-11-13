@@ -8,7 +8,7 @@ Prepare explicitly, then test the two prepared artifacts from `workbench/`:
 
 ```sh
 python3 scripts/prepare-clock-leak.py ../../artifacts/clock-leak-build
-npm run timeline:clock-leak -- ../zooglass/target/zooglass.jar ../../artifacts/clock-leak-build/zooglass/target/zooglass.jar ../../artifacts/clock-leak-evidence
+npm run timeline:clock-leak -- ../zooglass/simulation-host/target/zooglass-simulation.jar ../../artifacts/clock-leak-build/zooglass/simulation-host/target/zooglass-simulation.jar ../../artifacts/clock-leak-evidence
 ```
 
 Both destination directories must be new. Preparation builds Java; the check never

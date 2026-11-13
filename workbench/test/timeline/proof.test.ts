@@ -16,9 +16,26 @@ import {
 } from "../../src/timeline/proof.js";
 import { loseReceipt } from "../../src/timeline/random.js";
 const jar = resolve(
-  process.env.ZOOGLASS_SIMULATION_JAR ?? "../zooglass/target/zooglass.jar",
+  process.env.ZOOGLASS_SIMULATION_JAR ??
+    "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 const seed = "0".repeat(64);
+
+test("the packaged host ignores ambient Spring Boot loader overrides", async () => {
+  const before = process.env.LOADER_CLASSLOADER;
+  process.env.LOADER_CLASSLOADER = "example.NotAClassLoader";
+  try {
+    const { bridge } = await Bridge.open(jar);
+    try {
+      assert.deepEqual(bridge.documentFormats, ["timeline-simulation/v1"]);
+    } finally {
+      await bridge.close();
+    }
+  } finally {
+    if (before === undefined) delete process.env.LOADER_CLASSLOADER;
+    else process.env.LOADER_CLASSLOADER = before;
+  }
+});
 
 test("rounds preserve same-time bursts, phases and cancellation", async () => {
   const agenda = new Agenda();

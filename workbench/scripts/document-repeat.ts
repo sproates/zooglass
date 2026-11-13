@@ -11,7 +11,7 @@ import {
 } from "../src/timeline/campaign-checks.js";
 const [
   folder,
-  jarPath = "../zooglass/target/zooglass.jar",
+  jarPath = "../zooglass/simulation-host/target/zooglass-simulation.jar",
   repeatText = "100",
 ] = process.argv.slice(2);
 if (!folder || !/^(2|100)$/.test(repeatText))

@@ -10,7 +10,11 @@ if (
   args.filter((arg) => arg === "--require-passed").length > 1
 )
   throw new Error("Invalid replay arguments");
-const [input, output, jar = "../zooglass/target/zooglass.jar"] = positional;
+const [
+  input,
+  output,
+  jar = "../zooglass/simulation-host/target/zooglass-simulation.jar",
+] = positional;
 if (!input || !output)
   throw new Error(
     "Usage: timeline:replay RUN.json REPORT.json [PREPARED_JAR] [--require-passed]",

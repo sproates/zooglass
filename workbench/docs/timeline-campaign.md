@@ -5,7 +5,7 @@ seeds, 100 times per combination, in fresh Node and JVM processes: 900 runs tota
 It uses a prepared JAR and a clean committed checkout. It never builds Java.
 
 ```sh
-npm run timeline:document-repeat -- ../../artifacts/document-campaign ../zooglass/target/zooglass.jar
+npm run timeline:document-repeat -- ../../artifacts/document-campaign ../zooglass/simulation-host/target/zooglass-simulation.jar
 ```
 
 The output directory must not exist. A final argument `2` runs an 18-run smoke check;

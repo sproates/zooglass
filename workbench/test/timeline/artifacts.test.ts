@@ -23,7 +23,8 @@ import {
   replayBundle,
 } from "../../src/timeline/artifact-bundle.js";
 const jar = resolve(
-  process.env.ZOOGLASS_SIMULATION_JAR ?? "../zooglass/target/zooglass.jar",
+  process.env.ZOOGLASS_SIMULATION_JAR ??
+    "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 const cli = (...args: string[]) =>
   spawnSync(

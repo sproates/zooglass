@@ -76,3 +76,6 @@ are removed, exact large payload numbers, reproduced assertion/budget failures,
 changed-effect first divergence, corrupt/incomplete evidence and identity/environment
 rejection. General faults, SQLite/restart, artifact migration and cross-environment
 qualification are outside this slice.
+
+[Run bundles](timeline-artifacts.md) add a complete file inventory and manifest
+check before this same re-executing replay path.

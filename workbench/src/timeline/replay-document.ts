@@ -114,7 +114,11 @@ export class ReplayComparison {
 }
 
 export async function replayDocument(path: string, options: DocumentOptions) {
-  const input = parseReplay(decode(await boundedFile(path)));
+  return replaySaved(decode(await boundedFile(path)), options);
+}
+
+export async function replaySaved(raw: string, options: DocumentOptions) {
+  const input = parseReplay(raw);
   if (
     text(input.execution.artifactSha256, "artifactSha256") !==
     sha(await readFile(options.jar))

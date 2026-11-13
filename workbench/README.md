@@ -826,3 +826,6 @@ reproduction and successful scenario assertions.
 
 See the [clock-leak detection control](docs/timeline-clock-leak.md) for the
 separately prepared mutant and long command-boundary pause evidence.
+
+Use [portable run bundles](docs/timeline-artifacts.md) to retain inputs, a live
+trace, results and a completeness manifest for later replay.

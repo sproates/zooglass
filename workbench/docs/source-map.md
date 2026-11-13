@@ -600,3 +600,20 @@ flowchart LR
 The preparation command is separate from the check. The mutant remains outside
 the normal source tree and JAR; it deliberately lets host elapsed time affect
 freshness expiry.
+
+## Portable run bundles
+
+```mermaid
+flowchart LR
+  cli["timeline/bundle-cli.ts"] -->|record or replay command| bundle["timeline/artifact-bundle.ts"]
+  bundle -->|read exact admitted inputs| admission["timeline/admission.ts"]
+  bundle -->|execute and append live records| execute["timeline/run-document.ts"]
+  bundle -->|write result then completeness manifest| files["new evidence directory"]
+  files -->|bounded files, hashes and consistency checks| bundle
+  bundle -->|validated retained envelope| replay["timeline/replay-document.ts"]
+  replay -->|fresh execution and record comparison| execute
+```
+
+The bundle loader checks completeness before the shared replay executor starts
+Java. It passes the verified in-memory envelope, avoiding a second path read after
+file-hash validation.

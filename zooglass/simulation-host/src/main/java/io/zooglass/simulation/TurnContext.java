@@ -8,6 +8,7 @@ import java.util.Objects;
 
 /** POC-only turn ownership, clocks and opaque deferred callbacks. Never starts a worker. */
 public final class TurnContext {
+    static final long MAX_TIME_MS = 3_600_000;
     private final Thread owner = Thread.currentThread();
     private final Map<Long, Pending> pending = new LinkedHashMap<>();
     private final List<Map<String, Object>> effects = new ArrayList<>();
@@ -20,7 +21,7 @@ public final class TurnContext {
 
     public void begin(long at) {
         checkOwner();
-        if (active || at < now || at > 3_600_000)
+        if (active || at < now || at > MAX_TIME_MS)
             throw new IllegalStateException("Invalid turn time");
         now = at;
         active = true;

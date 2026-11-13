@@ -508,7 +508,10 @@ belong to the host project. Controlled timing and delivery share one turn owner:
 flowchart LR
   runtime["runtime/TimelineRuntime.java"] -->|wall and elapsed time| clock["runtime/ControlledReceiptClock.java"]
   runtime -->|deferred wakeups| alarm["runtime/ControlledAlarmScheduler.java"]
-  clock -->|reads current virtual turn| turn["simulation/TurnContext.java"]
+  clock -->|global turn coordinate| turn["simulation/TurnContext.java"]
+  clock -->|generation-local monotonic and continuous wall time| generation["simulation/RuntimeGeneration.java"]
+  host -->|admits consecutive turn identities| admission["simulation/HostTurns.java"]
+  admission -->|owns immutable clock origin| generation
   alarm -->|schedules owned alarm tasks| turn
   driver["delivery/TimelineDelivery.java"] -->|callbacks and writer handoff probe| turn
   host["simulation/TimelineHost.java"] -->|opens and closes command turn| turn

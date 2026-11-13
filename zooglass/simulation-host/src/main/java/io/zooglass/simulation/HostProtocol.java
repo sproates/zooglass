@@ -26,8 +26,23 @@ import java.util.Set;
 import java.util.TimeZone;
 
 /** Owns the framed process boundary and capability handshake, never runtime state. */
-final class HostProtocol {
-    private HostProtocol() {}
+enum HostProtocol {
+    V1(1),
+    V2(2);
+
+    private final int version;
+
+    HostProtocol(int version) {
+        this.version = version;
+    }
+
+    static HostProtocol selected() {
+        return switch (System.getProperty("zooglass.simulation.protocol", "1")) {
+            case "1" -> V1;
+            case "2" -> V2;
+            default -> throw new IllegalArgumentException("Unsupported simulation host protocol");
+        };
+    }
 
     @FunctionalInterface
     interface CommandHandler {
@@ -42,7 +57,7 @@ final class HostProtocol {
                     .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                     .build();
 
-    static void serve(CommandHandler handler) throws Exception {
+    void serve(CommandHandler handler) throws Exception {
         var output = new DataOutputStream(System.out);
         System.setOut(System.err); // Libraries may log; stdout belongs exclusively to framing.
         String artifactPath = System.getProperty("zooglass.simulation.artifact");
@@ -55,32 +70,7 @@ final class HostProtocol {
                         .formatHex(
                                 MessageDigest.getInstance("SHA-256")
                                         .digest(Files.readAllBytes(artifact)));
-        write(
-                output,
-                Map.of(
-                        "protocol",
-                        1,
-                        "fixture",
-                        "timeline-proof-v1",
-                        "artifact",
-                        digest,
-                        "frameCap",
-                        CAP,
-                        "storage",
-                        List.of("memory"),
-                        "protectedAccess",
-                        false,
-                        "configurationAdmission",
-                        1,
-                        "documentFormats",
-                        List.of("timeline-simulation/v1"),
-                        "environment",
-                        Map.of("javaRuntime", System.getProperty("java.runtime.version"),
-                                "javaVendor", System.getProperty("java.vendor"),
-                                "os", System.getProperty("os.name"),
-                                "arch", System.getProperty("os.arch"),
-                                "locale", Locale.getDefault().toLanguageTag(),
-                                "timezone", TimeZone.getDefault().getID())));
+        write(output, handshake(digest));
         var input = new DataInputStream(System.in);
         while (true) {
             int first = input.read();
@@ -95,6 +85,26 @@ final class HostProtocol {
             if (bytes.length != length) throw new EOFException("Truncated frame");
             write(output, handler.execute(decodeCommand(bytes)));
         }
+    }
+
+    Map<String, Object> handshake(String digest) {
+        var environment = Map.of(
+                "javaRuntime", System.getProperty("java.runtime.version"),
+                "javaVendor", System.getProperty("java.vendor"),
+                "os", System.getProperty("os.name"),
+                "arch", System.getProperty("os.arch"),
+                "locale", Locale.getDefault().toLanguageTag(),
+                "timezone", TimeZone.getDefault().getID());
+        return Map.of(
+                "protocol", version,
+                "fixture", "timeline-proof-v1",
+                "artifact", digest,
+                "frameCap", CAP,
+                "storage", List.of("memory"),
+                "protectedAccess", false,
+                this == V1 ? "configurationAdmission" : "memoryLifecycle", 1,
+                "documentFormats", this == V1 ? List.of("timeline-simulation/v1") : List.of(),
+                "environment", environment);
     }
 
     static JsonNode decodeCommand(byte[] bytes) throws IOException {
@@ -118,7 +128,7 @@ final class HostProtocol {
         out.flush();
     }
 
-    static void validateFields(JsonNode command, String op) {
+    void validateFields(JsonNode command, String op) {
         var fields =
                 new HashSet<>(
                         Set.of(
@@ -128,7 +138,9 @@ final class HostProtocol {
                 switch (op) {
                     case "initialize" -> Set.of("policy");
                     case "inspect-configuration" -> Set.of("wire");
-                    case "initialize-document" -> Set.of("wire", "epochMillis");
+                    case "initialize-document" -> this == V1
+                            ? Set.of("wire", "epochMillis")
+                            : Set.of("wire", "epochMillis", "startTimeMs");
                     case "connect" -> Set.of("session", "role");
                     case "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");

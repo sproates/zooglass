@@ -29,6 +29,8 @@ export type Response = {
   turnId: number;
   runtimeGeneration: number;
   timeMs: number;
+  monotonicMs?: number;
+  wallMillis?: number;
   effects: Effect[];
   pendingTasks: number;
   heldFrames: number;
@@ -39,7 +41,6 @@ export type Response = {
   };
 };
 export type Handshake = {
-  protocol: number;
   fixture: string;
   artifact: string;
   frameCap: number;
@@ -47,8 +48,22 @@ export type Handshake = {
   protectedAccess: boolean;
   environment?: Record<string, string>;
 } & (
-  | { configurationAdmission: number; documentFormats: string[] }
-  | { configurationAdmission?: undefined; documentFormats?: undefined }
+  | {
+      protocol: 1;
+      configurationAdmission: number;
+      documentFormats: string[];
+    }
+  | {
+      protocol: 1;
+      configurationAdmission?: undefined;
+      documentFormats?: undefined;
+    }
+  | {
+      protocol: 2;
+      memoryLifecycle: 1;
+      documentFormats: [];
+      environment: Record<string, string>;
+    }
 );
 
 function invalid(path: string): never {
@@ -83,14 +98,22 @@ function strings(value: unknown, path: string) {
 
 export function decodeHandshake(value: unknown): Handshake {
   const data = record(value, "handshake");
-  integer(data.protocol, "handshake.protocol", 1);
+  integer(data.protocol, "handshake.protocol", 1, 2);
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);
   strings(data.storage, "handshake.storage");
   if (typeof data.protectedAccess !== "boolean")
     invalid("handshake.protectedAccess");
-  if (data.configurationAdmission !== undefined) {
+  if (data.protocol === 2) {
+    if (data.memoryLifecycle !== 1) invalid("handshake.memoryLifecycle");
+    if (data.configurationAdmission !== undefined)
+      invalid("handshake.configurationAdmission is v1 only");
+    if (!Array.isArray(data.documentFormats) || data.documentFormats.length)
+      invalid("handshake.documentFormats must be empty for memory lifecycle");
+    if (!Object.keys(record(data.environment, "handshake.environment")).length)
+      invalid("handshake.environment must be present for memory lifecycle");
+  } else if (data.configurationAdmission !== undefined) {
     integer(data.configurationAdmission, "handshake.configurationAdmission", 1);
     strings(data.documentFormats, "handshake.documentFormats");
   } else if (data.documentFormats !== undefined) {
@@ -135,11 +158,15 @@ function effect(value: unknown, index: number) {
   }
 }
 
-export function decodeResponse(value: unknown): Response {
+export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
   const data = record(value, "response");
   integer(data.turnId, "response.turnId");
   integer(data.runtimeGeneration, "response.runtimeGeneration", 1);
   integer(data.timeMs, "response.timeMs");
+  if (protocol === 2) {
+    integer(data.monotonicMs, "response.monotonicMs");
+    integer(data.wallMillis, "response.wallMillis");
+  }
   integer(data.pendingTasks, "response.pendingTasks");
   integer(data.heldFrames, "response.heldFrames");
   if (!Array.isArray(data.effects)) invalid("response.effects");

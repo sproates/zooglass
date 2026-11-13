@@ -1,5 +1,6 @@
 package io.zooglass.runtime;
 
+import io.zooglass.simulation.RuntimeGeneration;
 import io.zooglass.simulation.TurnContext;
 
 /** Composition adapter; all reconciliation remains in the shared production runtime. */
@@ -10,18 +11,15 @@ public final class TimelineRuntime {
         return RuntimeConfiguration.parseConfiguration(json);
     }
 
-    public static ViewCoordinator create(RuntimeConfiguration config, TurnContext turns) {
-        return create(config, turns, 1_000_000);
-    }
-
-    public static ViewCoordinator create(RuntimeConfiguration config, TurnContext turns, long epoch) {
+    public static ViewCoordinator create(
+            RuntimeConfiguration config, TurnContext turns, RuntimeGeneration generation) {
         turns.check();
         if (!config.storage().equals("memory"))
             throw new IllegalArgumentException("POC supports memory only");
         return new ViewCoordinator(
                 config,
                 "",
-                new ControlledReceiptClock(turns, epoch),
+                new ControlledReceiptClock(turns, generation),
                 null,
                 () -> new ControlledAlarmScheduler(turns));
     }

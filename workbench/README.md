@@ -853,3 +853,7 @@ trace, results and a completeness manifest for later replay.
 [Raw qualification evidence](evidence/README.md) is retained as GitHub Release assets,
 with hashes and provenance in Git; see the
 [Linux qualification procedure](docs/timeline-linux.md) for the separate environment.
+
+The private [memory generation foundation](docs/timeline-generations.md) now
+verifies fresh JVM replacement, generation clocks and process completion directly.
+Document stop/start, downtime retries and SQLite recovery remain unimplemented.

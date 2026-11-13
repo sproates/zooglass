@@ -3,11 +3,19 @@ package io.zooglass.simulation;
 import static io.zooglass.simulation.HostProtocol.JSON;
 import static io.zooglass.simulation.HostProtocol.integer;
 import static io.zooglass.simulation.HostProtocol.text;
-import static io.zooglass.simulation.HostProtocol.validateFields;
 
-import io.zooglass.delivery.*;
-import io.zooglass.runtime.*;
+import io.zooglass.delivery.SlowClientPolicy;
+import io.zooglass.delivery.SnapshotBroadcaster;
+import io.zooglass.delivery.SnapshotSubscriptions;
+import io.zooglass.delivery.TimelineDelivery;
+import io.zooglass.runtime.EventIngress;
+import io.zooglass.runtime.PublicationJson;
+import io.zooglass.runtime.RuntimeConfiguration;
+import io.zooglass.runtime.TimelineProfile;
+import io.zooglass.runtime.TimelineRuntime;
+import io.zooglass.runtime.ViewCoordinator;
 
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 
 import tools.jackson.databind.JsonNode;
@@ -21,123 +29,94 @@ import java.util.TreeMap;
 /** Owns one controlled runtime and its sessions; framing belongs to HostProtocol. */
 public final class TimelineHost {
     private final TurnContext turns = new TurnContext();
-    private final Map<String, TimelineSession> sessions = new LinkedHashMap<>();
+    private final HostProtocol protocol;
+    private final HostTurns identities;
+    private final Map<String, Connection> sessions = new LinkedHashMap<>();
     private ViewCoordinator runtime;
     private TimelineDelivery delivery;
     private SnapshotBroadcaster broadcaster;
     private SnapshotSubscriptions subscriptions;
     private EventIngress ingress;
-    private long nextTurn;
     private boolean stopped;
-    private long epoch = 1_000_000;
     private boolean documentMode;
-    private final Map<String, String> roles = new LinkedHashMap<>();
 
-    public static void main(String[] args) throws Exception {
-        HostProtocol.serve(new TimelineHost()::command);
+    private enum Role { CLIENT, SOURCE }
+
+    private record Connection(TimelineSession session, Role role) {}
+
+    TimelineHost(HostProtocol protocol) {
+        this.protocol = protocol;
+        identities = new HostTurns(protocol);
     }
 
-    private Object command(JsonNode command) throws Exception {
+    public static void main(String[] args) throws Exception {
+        var protocol = HostProtocol.selected();
+        protocol.serve(new TimelineHost(protocol)::command);
+    }
+
+    Map<String, Object> command(JsonNode command) throws Exception {
         if (stopped) throw new IllegalStateException("Runtime already stopped");
-        long id = integer(command, "turnId");
-        long at = integer(command, "timeMs");
-        if (command.path("op").asString().equals("initialize-document") && runtime == null)
-            epoch = integer(command, "epochMillis");
-        if (id != nextTurn++
-                || id >= 10000
-                || integer(command, "runtimeGeneration") != 1
-                || integer(command, "monotonicMs") != at
-                || integer(command, "wallMillis") != Math.addExact(epoch, at))
-            throw new IllegalArgumentException("Invalid command identity or clocks");
-        if (id == 0 && at != 0)
-            throw new IllegalArgumentException("Initial elapsed time must be zero");
         String op = text(command, "op");
-        validateFields(command, op);
-        if (op.equals("inspect-configuration")) {
-            if (runtime != null || at != 0)
-                throw new IllegalArgumentException(
-                        "Configuration admission requires an unstarted host");
-            var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
-            return Map.of(
-                    "turnId", id,
-                    "runtimeGeneration", 1,
-                    "timeMs", at,
-                    "effects", List.of(),
-                    "pendingTasks", 0,
-                    "heldFrames", 0,
-                    "configuration",
-                    Map.of("contractVersion", config.contractVersion(), "storage", config.storage(),
-                            "documentProfile", TimelineProfile.supports(config) ? TimelineProfile.NAME : "unsupported"));
-        }
-        if ((runtime == null) != (op.equals("initialize") || op.equals("initialize-document")))
-            throw new IllegalArgumentException("Invalid lifecycle");
-        turns.begin(at);
+        protocol.validateFields(command, op);
+        var turn = identities.admit(command, op);
+        if (op.equals("inspect-configuration")) return inspectConfiguration(command, turn);
+
+        turns.begin(turn.timeMs());
         switch (op) {
-            case "initialize" -> initialize(command.path("policy").asString());
+            case "initialize" -> initialize(text(command, "policy"), turn.generation());
             case "initialize-document" -> {
                 var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
                 if (!TimelineProfile.supports(config))
                     throw new IllegalArgumentException("Unsupported document configuration profile");
                 documentMode = true;
-                compose(config);
+                compose(config, turn.generation());
             }
-            case "connect" -> {
-                String name = text(command, "session");
-                if (sessions.containsKey(name) || sessions.size() >= 10)
-                    throw new IllegalArgumentException("Session identity/limit");
-                var session =
-                        new TimelineSession(
-                                name,
-                                turns,
-                                wire ->
-                                        turns.effect(
-                                                Map.of(
-                                                        "kind", "receipt", "session", name, "wire",
-                                                        wire)));
-                String role = documentMode ? text(command, "role")
-                        : name.startsWith("viewer-") ? "client" : name.startsWith("source-") ? "source" : "invalid";
-                if (!Set.of("client", "source").contains(role))
-                    throw new IllegalArgumentException("Invalid session role");
-                sessions.put(name, session);
-                roles.put(name, role);
-                if (role.equals("client")) subscriptions.afterConnectionEstablished(session);
-            }
+            case "connect" -> connect(command);
             case "ingress" -> {
-                var session = session(command, "source");
+                var session = session(command, Role.SOURCE);
                 ingress.handleMessage(session, new TextMessage(text(command, "wire")));
             }
             case "subscribe" ->
                     subscriptions.handleMessage(
-                            session(command, "client"), new TextMessage(text(command, "wire")));
-            case "disconnect" -> {
-                String name = text(command, "session");
-                var session = sessions.get(name);
-                if (session == null) throw new IllegalArgumentException("Unavailable session");
-                if ("client".equals(roles.get(name)))
-                    subscriptions.afterConnectionClosed(session, org.springframework.web.socket.CloseStatus.NORMAL);
-                if (session.isOpen()) session.close();
-                sessions.remove(name);
-                roles.remove(name);
-            }
-            case "stall" -> {
-                session(command, "client");
-                delivery.stall(text(command, "session"));
-            }
+                            session(command, Role.CLIENT), new TextMessage(text(command, "wire")));
+            case "disconnect" -> disconnect(text(command, "session"));
+            case "stall" -> delivery.stall(session(command, Role.CLIENT).getId());
             case "release" -> {
-                session(command, "client");
+                var session = session(command, Role.CLIENT);
                 if (!command.path("fail").isBoolean())
                     throw new IllegalArgumentException("Expected boolean fail");
-                delivery.release(text(command, "session"), command.path("fail").asBoolean());
+                delivery.release(session.getId(), command.path("fail").asBoolean());
             }
             case "task" -> turns.dispatch(integer(command, "task"));
             case "observe" -> {} // No snapshot read: observations cannot repair a missing alarm.
             case "shutdown" -> {
                 broadcaster.close();
                 runtime.close();
+                sessions.clear();
                 stopped = true;
             }
             default -> throw new IllegalArgumentException("Unsupported POC operation");
         }
+        return response(turn);
+    }
+
+    private Map<String, Object> inspectConfiguration(JsonNode command, HostTurns.Turn turn) {
+        var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+        return Map.of(
+                "turnId", turn.id(),
+                "runtimeGeneration", turn.generation().number(),
+                "timeMs", turn.timeMs(),
+                "effects", List.of(),
+                "pendingTasks", 0,
+                "heldFrames", 0,
+                "configuration", Map.of(
+                        "contractVersion", config.contractVersion(),
+                        "storage", config.storage(),
+                        "documentProfile", TimelineProfile.supports(config)
+                                ? TimelineProfile.NAME : "unsupported"));
+    }
+
+    private Map<String, Object> response(HostTurns.Turn turn) {
         int pending = turns.pendingCount();
         int held = delivery.heldCount();
         var effects =
@@ -150,23 +129,22 @@ public final class TimelineHost {
                                     return result;
                                 })
                         .toList();
-        return Map.of(
-                "turnId",
-                id,
-                "runtimeGeneration",
-                1,
-                "timeMs",
-                at,
-                "effects",
-                effects,
-                "pendingTasks",
-                pending,
-                "heldFrames",
-                held,
+        var response = Map.<String, Object>of(
+                "turnId", turn.id(),
+                "runtimeGeneration", turn.generation().number(),
+                "timeMs", turn.timeMs(),
+                "effects", effects,
+                "pendingTasks", pending,
+                "heldFrames", held,
                 "diagnostics", turns.diagnostics());
+        if (protocol == HostProtocol.V1) return response;
+        var clocks = new LinkedHashMap<>(response);
+        clocks.put("monotonicMs", turn.generation().monotonicMillis(turn.timeMs()));
+        clocks.put("wallMillis", turn.generation().wallMillis(turn.timeMs()));
+        return clocks;
     }
 
-    private void initialize(String policy) {
+    private void initialize(String policy, RuntimeGeneration generation) {
         if (!Set.of("coalesceLatestState", "disconnectOnOverflow").contains(policy))
             throw new IllegalArgumentException("Unsupported policy");
         var field =
@@ -191,11 +169,11 @@ public final class TimelineHost {
                                         "position", Map.of("position", field))),
                         new RuntimeConfiguration.Delivery(
                                 null, SlowClientPolicy.select(policy), 3, 65536L));
-        compose(config);
+        compose(config, generation);
     }
 
-    private void compose(RuntimeConfiguration config) {
-        runtime = TimelineRuntime.create(config, turns, epoch);
+    private void compose(RuntimeConfiguration config, RuntimeGeneration generation) {
+        runtime = TimelineRuntime.create(config, turns, generation);
         runtime.listen(
                 snapshot ->
                         turns.effect(
@@ -210,12 +188,46 @@ public final class TimelineHost {
         ingress = new EventIngress(runtime, JSON);
     }
 
-    private TimelineSession session(JsonNode command, String role) {
+    private void connect(JsonNode command) {
+        String name = text(command, "session");
+        if (sessions.containsKey(name) || sessions.size() >= 10)
+            throw new IllegalArgumentException("Session identity/limit");
+        Role role = role(command, name);
+        var session = new TimelineSession(name, turns, wire -> turns.effect(
+                Map.of("kind", "receipt", "session", name, "wire", wire)));
+        sessions.put(name, new Connection(session, role));
+        if (role == Role.CLIENT) subscriptions.afterConnectionEstablished(session);
+    }
+
+    private Role role(JsonNode command, String name) {
+        if (documentMode) {
+            return switch (text(command, "role")) {
+                case "client" -> Role.CLIENT;
+                case "source" -> Role.SOURCE;
+                default -> throw new IllegalArgumentException("Invalid session role");
+            };
+        }
+        if (name.startsWith("viewer-")) return Role.CLIENT;
+        if (name.startsWith("source-")) return Role.SOURCE;
+        throw new IllegalArgumentException("Invalid session role");
+    }
+
+    private void disconnect(String name) {
+        var connection = sessions.get(name);
+        if (connection == null) throw new IllegalArgumentException("Unavailable session");
+        var session = connection.session();
+        if (connection.role() == Role.CLIENT)
+            subscriptions.afterConnectionClosed(session, CloseStatus.NORMAL);
+        if (session.isOpen()) session.close();
+        sessions.remove(name);
+    }
+
+    private TimelineSession session(JsonNode command, Role role) {
         String id = text(command, "session");
-        var session = sessions.get(id);
-        if (!role.equals(roles.get(id)) || session == null || !session.isOpen())
+        var connection = sessions.get(id);
+        if (connection == null || connection.role() != role || !connection.session().isOpen())
             throw new IllegalArgumentException("Unavailable session");
-        return session;
+        return connection.session();
     }
 
     private static String canonical(String wire) {

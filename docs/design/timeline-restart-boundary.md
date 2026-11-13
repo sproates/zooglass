@@ -2,8 +2,9 @@
 
 This refines the [accepted simulator design](deterministic-timeline.md) for the
 next POC increments. **Host isolation and executor ownership separation are now
-implemented; SQLite/restart support remains a design.** The current executable
-continues to use the single-generation memory profile. The separate host is
+implemented, along with the private memory generation/process foundation.**
+Document execution continues to use the single-generation memory profile;
+stop/start documents and SQLite recovery remain unimplemented. The separate host is
 described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
@@ -11,15 +12,15 @@ described in its [guide](../../zooglass/simulation-host/README.md).
 The assessment started from a 324-line host and 717-line `document-execution.ts`.
 Size alone did not justify a rewrite. Their mixed responsibilities justified
 separating protocol, runtime turns and transport ownership before adding restart.
-The refactor preserves v1 execution; generation lifecycle implementation is still
-part of the subsequent restart work.
+The refactor preserves v1 execution. The private generation foundation is tested
+directly against prepared hosts before integration into document execution.
 
 | Area                                       | Decision                                                                                                                                                               |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Production clock/alarm/delivery interfaces | Retain the small existing interfaces and production defaults.                                                                                                          |
 | Simulation classes in `src/main`           | Move to a separate host build; the service must not ship pause switches or simulation adapters.                                                                        |
 | Java host                                  | Separate framed protocol/validation from generation composition and sessions.                                                                                          |
-| TypeScript executor                        | Current: separate turn/task and transport ownership. Next: add generation/availability ownership; retain agenda, retry and delayed-link modules.                       |
+| TypeScript executor                        | Separate turn/task and transport ownership. Private process-generation owner implemented; document integration is next.                       |
 | Nested Java clock/alarm implementations    | Give the controlled clock and alarm driver named host-side classes.                                                                                                    |
 | Sorted agenda and internal assertions      | Keep the current bounded implementation. Profile a demonstrated bottleneck before changing algorithms; user-input validation must continue to produce explicit errors. |
 
@@ -34,12 +35,15 @@ Named controlled clock/alarm classes replace the nested implementations.
 Workbench's `DocumentExecution` owns actions, connections and retry orchestration;
 `RuntimeTurns` owns the execution budget, bridge commands and runtime tasks;
 `DocumentTransport` owns session-bound messages, faults, handoffs and observations.
-These are current v1 boundaries, not restart implementation. `RuntimeTurns` does
-not yet own generation or availability state: the executable still admits only
-generation 1. The memory-lifecycle slice will replace the runtime, delivery,
-sessions and roles as one generation-owned unit and centralise generation identity
-on each side of the bridge. Global agenda time, execution budgets and source retry
-timers must survive that replacement.
+These remain the current v1 document boundaries. `RuntimeGenerations` separately
+owns fresh host processes, global command IDs/budget and active generation handles.
+The host's `HostTurns` validates identity and binds `RuntimeGeneration` clocks
+before runtime construction. This foundation admits private protocol 2 with `memoryLifecycle:1`,
+but advertises no public document formats. It is not yet wired into document
+execution, agenda cancellation, retry orchestration or versioned trace evidence.
+See the [foundation contract](../../workbench/docs/timeline-generations.md).
+Global agenda time, execution budgets and source retry timers must survive the
+subsequent document lifecycle integration.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact

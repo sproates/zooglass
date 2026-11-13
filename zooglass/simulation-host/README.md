@@ -3,7 +3,9 @@
 This separate Java executable lets Workbench drive real ZooGlass reconciliation,
 freshness and delivery under a virtual-time agenda. It supports the fixed proofs
 and the bounded `memory-arrival-v1` document profile. It does not start Spring or
-open a socket listener. SQLite restart and protected access remain planned.
+open a socket listener. A private protocol 2 additionally supports the
+[memory generation foundation](../../workbench/docs/timeline-generations.md).
+Document stop/start actions, SQLite restart and protected access remain planned.
 
 ## Prepare and run
 
@@ -47,6 +49,9 @@ split, copied reconciliation implementation or public simulation extension API.
 The production project has no dependency on this host.
 
 - `simulation/HostProtocol` owns framing, strict command fields and JSON handling.
+- `simulation/HostTurns` admits consecutive command identities for one generation.
+- `simulation/RuntimeGeneration` owns generation identity and global/local clock
+  conversion before runtime construction.
 - `simulation/TimelineHost` composes one runtime and its sessions; `TurnContext`
   owns controlled tasks and active-turn checks.
 - `runtime/TimelineRuntime` and `TimelineProfile` construct and qualify the bounded

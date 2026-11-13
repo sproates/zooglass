@@ -542,6 +542,16 @@ callbacks and assertions consume that same budget. `DocumentTransport` owns
 session-bound effects, writer handoffs, receipt-loss decisions, delayed traffic and
 cumulative delivered observations. The modules exchange explicit commands and
 effect callbacks; they do not reconstruct runtime output from expected assertions.
+
+The private memory generation foundation is not yet connected to document
+execution. Its owner retains command identity and budget while replacing the JVM:
+
+```mermaid
+flowchart LR
+  generations["timeline/runtime-generations.ts"] -->|fresh process and verified stop| bridge["timeline/bridge.ts"]
+  bridge -->|explicit protocol 2 admission| protocol["timeline/host-protocol.ts"]
+```
+
 The bridge decodes UTF-8 strictly and admits handshake/response metadata through
 `host-protocol.ts`. Discriminated effect types tell each consumer which fields are
 present; task ownership and causal-time checks remain with the execution owner.

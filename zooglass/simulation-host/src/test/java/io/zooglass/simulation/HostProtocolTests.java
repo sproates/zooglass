@@ -7,8 +7,23 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 class HostProtocolTests {
+    @Test
+    void advertisesMemoryLifecycleWithoutClaimingADocumentFormat() {
+        assertThat(HostProtocol.V1.handshake("artifact"))
+                .containsEntry("protocol", 1)
+                .containsEntry("configurationAdmission", 1)
+                .containsEntry("documentFormats", List.of("timeline-simulation/v1"))
+                .doesNotContainKey("memoryLifecycle");
+        assertThat(HostProtocol.V2.handshake("artifact"))
+                .containsEntry("protocol", 2)
+                .containsEntry("memoryLifecycle", 1)
+                .containsEntry("documentFormats", List.of())
+                .doesNotContainKey("configurationAdmission");
+    }
+
     @Test
     void decodesUtf8CommandTextWithoutChangingItsCharacters() throws IOException {
         var bytes = "{\"op\":\"connect\",\"session\":\"viewer-é-𐀀\"}"

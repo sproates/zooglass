@@ -1,7 +1,8 @@
 # Workbench deterministic timeline simulation
 
-Status: proposed design, 13 November 2026. No simulator implementation is
-delivered by this document. The current `simulate` command still prints an
+Status: accepted design, 13 November 2026. The POC branch now provides an
+injectable freshness alarm driver alongside the receipt clock. The controlled host,
+writer driver and end-to-end determinism proof remain unimplemented. The current `simulate` command still prints an
 ordered trace; `integrate` still runs against real processes and sockets.
 
 ## The outcome we want

@@ -213,11 +213,22 @@ flowchart LR
   unspecified -.->|implements| policy
   candidate["SelectedContribution.java"] -->|retains| receipt["ReceiptAge.java"]
   runtime["ViewCoordinator.java"] -->|serialises expiry with source commits| timing["FreshnessRuntime.java"]
-  timing -->|indexes selected fields| queue["FreshnessDeadlines.java"]
+  timing -->|indexes selected fields in stable expiry order| queue["FreshnessDeadlines.java"]
+  timing -->|owns deferred wakeups| alarms["AlarmScheduler.java"]
+  production["SystemAlarmScheduler.java"] -.->|production driver| alarms
+  runtime -->|creates driver when freshness is first configured| production
   runtime -->|samples wall and elapsed time| clock["ReceiptClock.java"]
   timing -->|marks retained receipts on a backwards clock step| rollback["ClockRollback.java"]
   timing -->|rebases stored ages| policy
 ```
+
+The coordinator accepts a receipt clock and an alarm-driver factory internally.
+Ordinary service construction uses the system clock and a daemon scheduler; tests
+can dispatch expiry explicitly without snapshot polling. The driver is created
+only when receipt-age freshness is configured, including dynamic view registration,
+and closed with the runtime. Due fields are enumerated by deadline, view, entity
+and field before transitions and notifications. This seam is not yet a complete
+deterministic simulator.
 
 ## Decide when to publish an entity
 

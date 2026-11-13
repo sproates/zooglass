@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /** Serialises admission, storage commits and snapshot reads. */
@@ -46,6 +47,7 @@ public final class ViewCoordinator implements AutoCloseable {
     private final int historyLimit;
     private final StateStore storage;
     private final ReceiptClock clock;
+    private final Supplier<AlarmScheduler> alarms;
     private FreshnessRuntime freshness;
     private RuntimeConfiguration configuration;
 
@@ -57,10 +59,13 @@ public final class ViewCoordinator implements AutoCloseable {
     private boolean closed;
 
     @Autowired
-    public ViewCoordinator(ResourceLoader resources, Environment environment, AdmissionAccess access) {
+    public ViewCoordinator(
+            ResourceLoader resources, Environment environment, AdmissionAccess access) {
         this(
                 loadConfiguration(resources, environment),
-                environment.getProperty("zooglass.database", ""), ReceiptClock.SYSTEM, access.tenant());
+                environment.getProperty("zooglass.database", ""),
+                ReceiptClock.SYSTEM,
+                access.tenant());
     }
 
     private static RuntimeConfiguration loadConfiguration(
@@ -94,8 +99,25 @@ public final class ViewCoordinator implements AutoCloseable {
         this(configuration, database, clock, null);
     }
 
-    ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant) {
-        this.clock = clock;
+    ViewCoordinator(
+            RuntimeConfiguration configuration,
+            String database,
+            ReceiptClock clock,
+            String tenant) {
+        this(configuration, database, clock, tenant, SystemAlarmScheduler::new);
+    }
+
+    /**
+     * Create an owned alarm driver only when freshness is configured, including later registration.
+     */
+    ViewCoordinator(
+            RuntimeConfiguration configuration,
+            String database,
+            ReceiptClock clock,
+            String tenant,
+            Supplier<AlarmScheduler> alarms) {
+        this.clock = Objects.requireNonNull(clock);
+        this.alarms = Objects.requireNonNull(alarms);
         this.configuration = configuration;
         configuration.validate();
         factsEnabled = configuration.tracksFacts();
@@ -123,7 +145,7 @@ public final class ViewCoordinator implements AutoCloseable {
         historyLimit = configuration.maxHistoryEntries();
         freshness =
                 configuration.tracksAge()
-                        ? new FreshnessRuntime(views.byId(), clock, this::expire)
+                        ? new FreshnessRuntime(views.byId(), clock, this::expire, alarms.get())
                         : null;
         try {
             if (configuration.storage().equals("sqlite")) {
@@ -131,7 +153,8 @@ public final class ViewCoordinator implements AutoCloseable {
                         new SqliteState(
                                 database,
                                 configuration,
-                                freshness == null ? UnaryOperator.identity() : freshness::recover, tenant);
+                                freshness == null ? UnaryOperator.identity() : freshness::recover,
+                                tenant);
             } else {
                 storage = new InMemoryState();
                 if (freshness != null) {
@@ -486,7 +509,7 @@ public final class ViewCoordinator implements AutoCloseable {
         var nextRetirement = new FactRetirementTransitions(next, views.byId());
         FreshnessRuntime addedFreshness =
                 freshness == null && next.tracksAge()
-                        ? new FreshnessRuntime(views.byId(), clock, this::expire)
+                        ? new FreshnessRuntime(views.byId(), clock, this::expire, alarms.get())
                         : null;
         try {
             storage.configure(

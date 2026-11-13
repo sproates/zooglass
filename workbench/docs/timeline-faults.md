@@ -21,7 +21,9 @@ connection generation and can observe its duplicate result.
 ```
 
 `action` names one declared `source-send` or `source-retry`. At most 100 rules and
-one rule per action are admitted. Probabilities are integer pairs with denominator
+one rule per action are admitted. A [managed retry policy](timeline-retries.md)
+explicitly extends that action selector to its automatic attempt family, using the
+actual generation/attempt in each draw. Probabilities are integer pairs with denominator
 1–1,000,000 and numerator 0–denominator. Zero never selects loss; equal values
 always select it after an accepted draw. Other fault kinds reject. Omitting `faults`
 is equivalent to an empty array; null is invalid.
@@ -35,14 +37,15 @@ already committed publications are not undone. Multiple selected losses in one
 generation share one close. An unrelated receipt queued on that generation may
 therefore be lost even when its own rule did not select loss.
 
-The scenario must declare a disconnect to normalize its lifecycle, then reconnect
-before further sends or retries. The explicit disconnect is recorded even when
-the fault has already removed the host session. Retry/reconnect timing remains
-explicit: there is no inferred timeout, hidden retry or completion repair.
+For an unmanaged source, the scenario must declare a disconnect to normalize its
+lifecycle, then reconnect before further sends or retries. The explicit disconnect
+is recorded even when the fault has already removed the host session. A managed
+source instead declares a [retry policy](timeline-retries.md); its virtual deadlines,
+cleanup, fresh connections and generated sends are recorded in the trace.
 The [example](../scenarios/simulation/receipt-loss.json) loses the first
 receipt for its fixed seed, reconnects, and checks the duplicate receipt and full
 fresh/stale view history independently. Client-frame loss, arbitrary link delays,
-partitions and automatic timeout/retry actors remain future work.
+and partitions remain future work; bounded [automatic retry actors](timeline-retries.md) are available.
 
 ## Stable integer draws
 

@@ -66,6 +66,10 @@ Parent IDs retain the executing cause; additional `causes` retain earlier schedu
 or handoff ownership. Connection generations prevent stale callbacks from reaching
 replacement connections. No snapshot reads repair missing scheduled effects.
 
+[Managed retry actors](timeline-retries.md) add explicit bounded virtual deadlines
+and fresh-generation retries. Their pending timers are included in end counts,
+and every managed actor must acknowledge before success.
+
 End conditions are checked before teardown. A passing result's counts describe that
 boundary, even if shutdown then cancels permitted future tasks. Assertion/limit
 failures retain a completed failure prefix; failure counts are the last observed

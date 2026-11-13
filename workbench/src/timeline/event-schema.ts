@@ -27,7 +27,26 @@ export function eventData(
   until: number,
 ) {
   const data = object(value, path);
-  if (kind === "fault-decision") {
+  if (kind.startsWith("retry-")) {
+    object(data, path, [
+      "actionId",
+      "attempt",
+      ...(kind === "retry-lifecycle" ? ["operation"] : ["publication"]),
+      ...(kind === "retry-status" ? ["status"] : []),
+    ]);
+    text(data.actionId, `${path}.actionId`);
+    integer(data.attempt, `${path}.attempt`, 10, 1);
+    if (kind === "retry-lifecycle")
+      choice(data.operation, `${path}.operation`, ["connect", "disconnect"]);
+    else text(data.publication, `${path}.publication`);
+    if (kind === "retry-status")
+      choice(data.status, `${path}.status`, [
+        "acknowledged",
+        "late-receipt",
+        "timed-out",
+        "exhausted",
+      ]);
+  } else if (kind === "fault-decision") {
     object(data, path, [
       "algorithm",
       "drawIndex",

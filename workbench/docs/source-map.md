@@ -538,3 +538,20 @@ in the next causal round. Connection generations invalidate queued receipts and
 later sends; declared reconnect actions establish fresh sessions.
 `event-schema.ts` validates the draw record and sample/probability consistency.
 The Java runtime does not implement these link faults. See [receipt loss](timeline-faults.md).
+
+## Automatic receipt deadlines and retries
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit actor ownership and policy bounds| policy["timeline/retry-policy.ts"]
+  profile["timeline/document-profile.ts"] -->|reserve worst-case connection generations| policy
+  execution["timeline/document-execution.ts"] -->|arm deadlines and report actual delivered receipts| retries["timeline/retry-controller.ts"]
+  retries -->|schedule and cancel virtual timers| agenda["timeline/agenda.ts"]
+  retries -->|request fresh connection and identical ingress| execution
+  execution -->|emit lifecycle and attempt records| trace["timeline/semantic-trace.ts"]
+  retries -->|emit causal timer/status records through execution| execution
+```
+
+The controller decides when a retry is needed; the executor owns real connection
+commands and retained publication bytes. Runtime receipts remain the sole transport
+acknowledgement. See [bounded retry actors](timeline-retries.md).

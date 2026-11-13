@@ -810,3 +810,7 @@ record. A verified reproduction of a failed run remains a failed scenario.
 
 [Seeded receipt-loss rules](docs/timeline-faults.md) now exercise committed-but-unobserved
 publications and explicit duplicate retries, with every integer draw in the trace.
+
+[Bounded automatic retries](docs/timeline-retries.md) use virtual receipt deadlines,
+fresh source generations and retained publication bytes. Their timer decisions and
+failure prefixes are verified by replay.

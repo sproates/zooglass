@@ -30,7 +30,7 @@ structure, not whether the recorded execution or assertions actually happened.
 
 ## Scenario contract
 
-All fields except `faults` are required; unknown fields and unsupported operations are errors.
+All fields except `faults` and `retries` are required; unknown fields and unsupported operations are errors.
 The [example](../scenarios/simulation/receipt-contract.json) shows the whole shape.
 
 - `format`, `id`, `clock.epochMillis`, lowercase 256-bit `seed` and finite `untilMs`
@@ -77,6 +77,9 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
   and 16 MiB trace data. Documents allow at most 100 actors/links and 1,000 each
   of publications/actions/assertions. These are syntax admission bounds; the
   [executor](timeline-execution.md) enforces narrower runtime budgets.
+- Optional `retries` admits [bounded automatic receipt-timeout actors](timeline-retries.md).
+  Each managed source owns one declared send and its connection generations;
+  competing manual source actions are rejected.
 - Optional `faults` admits bounded [receipt-loss rules](timeline-faults.md) tied to
   source action IDs, with integer numerator/denominator probabilities. Other fault
   kinds and overlapping rules for an action reject.
@@ -123,7 +126,7 @@ Parents and causes must precede children; agenda
 keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 `action`, `runtime-command`, `task-dispatched`, `connection-closed`, `handoff`,
 `scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`, `frame`,
-`fault-decision` and `assertion`. Their `data` wrappers are closed schemas:
+`fault-decision`, `retry-attempt`, `retry-lifecycle`, `retry-status` and `assertion`. Their `data` wrappers are closed schemas:
 
 | Kind                           | Required data                                                                                                                                                                                              |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -136,6 +139,9 @@ keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 | `connection-closed`            | `code` (1000–4999).                                                                                                                                                                                        |
 | `handoff`                      | `messageId` and complete client `envelope`.                                                                                                                                                                |
 | `fault-decision`               | `algorithm`, `ruleId`, `actionId`, `messageId`, `attempt`, `drawIndex`, `digest`, `sample`, `numerator`, `denominator`, `rejected`, `lost`; see [draw contract](timeline-faults.md).                       |
+| `retry-attempt`                | `actionId`, `publication`, `attempt` (1–10); actor/generation identify the actual new send.                                                                                                                |
+| `retry-lifecycle`              | `actionId`, `attempt`, `operation` (`connect` or `disconnect`).                                                                                                                                            |
+| `retry-status`                 | `actionId`, `publication`, `attempt`, `status` (`timed-out`, `acknowledged`, `late-receipt`, `exhausted`).                                                                                                 |
 | `assertion`                    | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                                                                                                              |
 
 Receipt envelopes retain status, reason, stream identity, sequence, version,

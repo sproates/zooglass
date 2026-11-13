@@ -1,3 +1,4 @@
+import { retryPolicies } from "./retry-policy.js";
 import type { TimelineDocument } from "./contract.js";
 import { encodeJson } from "./json.js";
 import { integer, list, object, text } from "./validation.js";
@@ -40,7 +41,12 @@ export function executionSettings(
   const actions = list(doc.actions, "$.actions");
   if (
     actions.filter((entry) => object(entry, "action").kind === "connect")
-      .length > 10
+      .length +
+      retryPolicies(doc).reduce(
+        (total, policy) => total + policy.maxAttempts - 1,
+        0,
+      ) >
+    10
   )
     throw new Error(
       "unsupported-execution: at most ten connection generations per document",

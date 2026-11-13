@@ -7,7 +7,7 @@ export async function captureEnvironment(bridge: Bridge) {
   if (!bridge.environment)
     throw new Error("unsupported-replay: artifact lacks environment identity");
   return {
-    executor: "memory-arrival-v1/3",
+    executor: "memory-arrival-v1/4",
     node: process.version,
     v8: process.versions.v8,
     platform: process.platform,

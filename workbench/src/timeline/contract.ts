@@ -1,3 +1,4 @@
+import { retryPolicies } from "./retry-policy.js";
 import { receiptRules } from "./receipt-faults.js";
 import { actionFields } from "./event-schema.js";
 import { observationList } from "./envelopes.js";
@@ -23,6 +24,7 @@ export const capabilities = [
   "observations",
   "writer-stall",
   "receipt-loss",
+  "automatic-retry",
 ] as const;
 export type TimelineDocument = {
   canonical: string;
@@ -50,6 +52,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "untilMs",
     "end",
     ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
+    ...(Object.hasOwn(rawDocument, "retries") ? ["retries"] : []),
   ]);
   choice(doc.format, "$.format", [format]);
   text(doc.id, "$.id");
@@ -188,6 +191,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     observationList(assertion.expected, `${path}.expected`, kind);
     required.add("observations");
   });
+  if (retryPolicies(doc).length) required.add("automatic-retry");
   if (receiptRules(doc).length) required.add("receipt-loss");
   return {
     canonical,

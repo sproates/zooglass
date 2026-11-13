@@ -1,3 +1,5 @@
+import { RetryController } from "./retry-controller.js";
+import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules, receiptDraw } from "./receipt-faults.js";
 import assert from "node:assert/strict";
 import { Agenda } from "./agenda.js";
@@ -27,6 +29,7 @@ export class DocumentExecution {
   private turns = 0;
   private messages = 0;
   private messageSequence = 0;
+  private readonly retries: RetryController;
   private readonly rules: ReturnType<typeof receiptRules>;
   private readonly attempts = new Map<string, number>();
   private readonly pendingFaultCloses = new Set<string>();
@@ -44,6 +47,21 @@ export class DocumentExecution {
   ) {
     this.agenda = new Agenda(limits);
     this.rules = receiptRules(scenario.document);
+    this.retries = new RetryController(retryPolicies(scenario.document), {
+      agenda: this.agenda,
+      event: (kind, data, parent, actor, generation, causes) =>
+        this.trace.event(
+          kind,
+          this.agenda.current,
+          actor,
+          generation,
+          parent,
+          data,
+          causes,
+        ),
+      retry: (policy, attempt, parent) =>
+        this.retryPublication(policy, attempt, parent),
+    });
     this.actors = list(scenario.document.actors, "actors").map((item) => {
       const actor = object(item, "actor");
       return { id: text(actor.id, "id"), role: text(actor.role, "role") };
@@ -282,7 +300,7 @@ export class DocumentExecution {
       this.turn();
       this.messages--;
       const delivered = connection.open && !lossCause;
-      this.event(
+      const arrival = this.event(
         delivered ? "delivered" : "dropped",
         {
           ...(j({
@@ -303,7 +321,16 @@ export class DocumentExecution {
             ? [connection.closedBy]
             : [],
       );
-      if (delivered) this.observations.get(connection.actor)!.push(envelope);
+      if (delivered) {
+        this.observations.get(connection.actor)!.push(envelope);
+        if (effect.kind === "receipt" && publication)
+          this.retries.receipt(
+            publication.action,
+            publication.attempt,
+            connection.generation,
+            arrival,
+          );
+      }
     });
   }
   private closeForReceiptLoss(
@@ -328,6 +355,78 @@ export class DocumentExecution {
       );
       connection.open = false;
       connection.attached = false;
+    });
+  }
+  private async retryPublication(
+    policy: RetryPolicy,
+    attempt: number,
+    parent: string,
+  ) {
+    const previous = this.connections.get(policy.actor)!;
+    if (previous.attached) {
+      const close = this.event(
+        "retry-lifecycle",
+        j({ actionId: policy.action, operation: "disconnect", attempt }),
+        parent,
+        previous,
+      );
+      await this.command(
+        { op: "disconnect", session: previous.session },
+        close,
+      );
+      previous.open = false;
+      previous.attached = false;
+    }
+    const connection: Connection = {
+      actor: policy.actor,
+      session: `connection-${this.actors.findIndex((actor) => actor.id === policy.actor)}-${previous.generation + 1}`,
+      generation: previous.generation + 1,
+      open: true,
+      attached: true,
+    };
+    this.connections.set(policy.actor, connection);
+    this.sessions.set(connection.session, connection);
+    const connect = this.event(
+      "retry-lifecycle",
+      j({ actionId: policy.action, operation: "connect", attempt }),
+      parent,
+      connection,
+    );
+    await this.command(
+      { op: "connect", role: "source", session: connection.session },
+      connect,
+    );
+    this.agenda.add(this.agenda.current[0], 2, async () => {
+      const send = this.event(
+        "retry-attempt",
+        j({
+          actionId: policy.action,
+          publication: policy.publication,
+          attempt,
+        }),
+        connect,
+        connection,
+      );
+      this.retries.begin(policy.action, attempt, connection.generation, send);
+      const publication = list(
+        this.scenario.document.publications,
+        "publications",
+      )
+        .map((p) => object(p, "publication"))
+        .find((p) => p.id === policy.publication)!;
+      this.attempts.set(
+        JSON.stringify([policy.actor, policy.publication]),
+        attempt,
+      );
+      await this.command(
+        {
+          op: "ingress",
+          session: connection.session,
+          wire: encodeJson(publication.body),
+        },
+        send,
+        { action: policy.action, attempt },
+      );
     });
   }
   async initialize(
@@ -439,6 +538,13 @@ export class DocumentExecution {
                 entityId: action.entityId,
               }),
             };
+          if (publicationAttempt)
+            this.retries.begin(
+              publicationAttempt.action,
+              publicationAttempt.attempt,
+              connection.generation,
+              cause,
+            );
           await this.command(operation, cause, publicationAttempt);
           if (kind === "disconnect") {
             connection.open = false;
@@ -488,7 +594,8 @@ export class DocumentExecution {
   }
   counts(): Counts {
     return {
-      pendingFutureTasks: this.last?.pendingTasks ?? 0,
+      pendingFutureTasks:
+        (this.last?.pendingTasks ?? 0) + this.retries.pending(),
       pendingMessages: this.messages + this.handoffs.size,
       heldFrames: this.last?.heldFrames ?? 0,
     };
@@ -498,9 +605,11 @@ export class DocumentExecution {
     const counts = this.counts();
     assert.equal(
       this.tasks.size,
-      counts.pendingFutureTasks,
+      this.last?.pendingTasks ?? 0,
       "runtime/agenda pending-task accounting",
     );
+    if (this.retries.unfinished())
+      throw new Error("assertion-failed: unfinished retry actor at horizon");
     if (
       counts.pendingMessages ||
       counts.heldFrames ||

@@ -803,3 +803,7 @@ format. The [bounded document executor](docs/timeline-execution.md) now runs
 versioned scenarios against the real configured runtime, with causal traces and
 exact observation assertions. Its `memory-arrival-v1` profile remains narrower than
 the full runtime and legacy format; validation alone does not certify execution.
+
+[Verification replay](docs/timeline-replay.md) starts a fresh JVM from saved inputs,
+checks artifact/environment identity and stops at the first differing semantic
+record. A verified reproduction of a failed run remains a failed scenario.

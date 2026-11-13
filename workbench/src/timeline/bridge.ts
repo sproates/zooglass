@@ -39,6 +39,7 @@ export class Bridge {
   private failure?: Error;
   private turn = 0;
   private epoch = 1_000_000;
+  environment?: Record<string, string>;
   configurationAdmission = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
@@ -131,6 +132,14 @@ export class Bridge {
           ...handshake.documentFormats,
         ]) as readonly string[];
       }
+      if (
+        handshake.environment &&
+        typeof handshake.environment === "object" &&
+        Object.values(handshake.environment).every(
+          (value) => typeof value === "string",
+        )
+      )
+        bridge.environment = handshake.environment as Record<string, string>;
       return { bridge, artifact };
     } catch (error) {
       await bridge.close();

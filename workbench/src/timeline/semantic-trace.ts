@@ -19,6 +19,7 @@ export class SemanticTrace {
   constructor(
     header: unknown,
     private readonly limit: number,
+    private readonly observe?: (line: string) => void,
   ) {
     this.append(metadataJson(header));
   }
@@ -33,6 +34,7 @@ export class SemanticTrace {
     parseJson(line);
     this.bytes += Buffer.byteLength(line);
     this.lines.push(line);
+    this.observe?.(line);
   }
   event(
     kind: string,

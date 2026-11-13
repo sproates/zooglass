@@ -154,7 +154,9 @@ observation authenticity or runtime capability support. The executor emits these
 records during execution and preserves assertion/limit failure prefixes. An
 infrastructure failure returns an incomplete prefix without a result, deliberately
 rejected by complete-trace inspection. See [failure handling](timeline-execution.md).
-Full manifests and document verification replay remain later work.
+[Document verification replay](timeline-replay.md) now compares fresh execution
+within the bounded profile. Full artifact directories and broader environment
+qualification remain later work.
 
 ## Honest legacy compatibility assessment
 

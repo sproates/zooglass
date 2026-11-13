@@ -504,3 +504,19 @@ checking cumulative observations. Trace records are appended as effects occur;
 scheduling and handoff causes retain their own event identities. This path does
 not reuse the fixed-proof oracle or reconstruct effects from expected assertions.
 See [execution and limits](timeline-execution.md).
+
+## Document verification replay
+
+```mermaid
+flowchart LR
+  cli["timeline/replay-cli.ts"] --> replay["timeline/replay-document.ts"]
+  replay -->|validate saved inputs and complete trace| contract["timeline/trace-contract.ts"]
+  replay -->|retained inputs, fresh JVM| run["timeline/run-document.ts"]
+  run --> environment["timeline/replay-environment.ts"]
+  run --> trace["timeline/semantic-trace.ts"]
+  trace -->|compare each freshly emitted record| replay
+```
+
+Saved output is comparison evidence only. Identity/environment admission precedes
+runtime initialization; trace comparison stops at the first mismatch. See
+[verification replay](timeline-replay.md) for result meanings and artifact bounds.

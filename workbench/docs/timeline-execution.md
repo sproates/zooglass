@@ -16,8 +16,9 @@ Execution and tests never build Java. An optional third execution argument selec
 a prepared JAR. The output contains the canonical scenario, exact configuration
 text, artifact/configuration/Workbench hashes, semantic JSONL trace and outcome.
 A failed run exits nonzero. Admission errors reject before initialization; they do
-not produce a run artifact. This is execution evidence, not a full environment
-manifest or re-executing replay facility.
+not produce a run artifact. New versioned artifacts support [verification replay](timeline-replay.md)
+within the declared matching environment and artifact size bounds. Full artifact
+directories and a cross-environment qualification matrix remain future work.
 
 ## What is supported
 

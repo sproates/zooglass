@@ -64,7 +64,14 @@ public final class TimelineHost {
                         "configurationAdmission",
                         1,
                         "documentFormats",
-                        List.of("timeline-simulation/v1")));
+                        List.of("timeline-simulation/v1"),
+                        "environment",
+                        Map.of("javaRuntime", System.getProperty("java.runtime.version"),
+                                "javaVendor", System.getProperty("java.vendor"),
+                                "os", System.getProperty("os.name"),
+                                "arch", System.getProperty("os.arch"),
+                                "locale", java.util.Locale.getDefault().toLanguageTag(),
+                                "timezone", java.util.TimeZone.getDefault().getID())));
         var input = new DataInputStream(System.in);
         var host = new TimelineHost();
         while (true) {

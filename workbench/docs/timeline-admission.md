@@ -28,5 +28,5 @@ result: runtime-derived connection closure or an incorrect expected observation 
 still fail an eligible run.
 
 The ordinary `scenario`, `legacy` and `trace` inspection commands remain local
-parsing/assessment operations and do not start Java. Saved artifact identity and
-full verification replay are separate later work.
+parsing/assessment operations and do not start Java. The separate [verification replay](timeline-replay.md) command re-executes saved
+versioned runs within its explicit identity/environment boundary.

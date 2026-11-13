@@ -254,7 +254,11 @@ function transcript() {
       actor: "feed",
       runtimeGeneration: 1,
       connectionGeneration: 1,
-      data: { publication: "report" },
+      data: {
+        actionId: "send",
+        actionKind: "source-send",
+        publication: "report",
+      },
     },
     {
       kind: "receipt",
@@ -264,7 +268,7 @@ function transcript() {
       actor: "feed",
       runtimeGeneration: 1,
       connectionGeneration: 1,
-      data: { status: "applied", version: 1 },
+      data: { envelope: receipt() },
     },
     {
       kind: "result",
@@ -282,7 +286,7 @@ test("trace contract retains ordered semantic effects and requires completion", 
   const raw = lines(transcript());
   const encoded = validateTrace(raw);
   assert.equal(validateTrace(encoded), encoded);
-  assert.ok(encoded.includes('"status":"applied","version":1'));
+  assert.ok(encoded.includes('"status":"applied"'));
   assert.throws(() => validateTrace(lines(transcript().slice(0, -1))));
   assert.throws(
     () =>
@@ -316,7 +320,8 @@ test("trace byte budget applies to the complete canonical artifact", () => {
         if (index === 1 || index === 2)
           return JSON.stringify({
             ...record,
-            data: { values: "EXPAND" },
+            kind: "state",
+            data: { envelope: { ...snapshot(), data: { values: "EXPAND" } } },
           }).replace('"EXPAND"', numbers);
         return JSON.stringify(record);
       })
@@ -335,7 +340,13 @@ test("a canonical trace may exactly fill its budget including final newline", ()
         index === 1
           ? JSON.stringify({
               ...record,
-              data: { values: "EXPAND", padding: "" },
+              kind: "state",
+              data: {
+                envelope: {
+                  ...snapshot(),
+                  data: { values: "EXPAND", padding: "" },
+                },
+              },
             }).replace('"EXPAND"', numbers)
           : JSON.stringify(record),
       )
@@ -536,5 +547,285 @@ test("disconnect clears generation-local subscriptions and writer state", () => 
   assert.equal(
     lifecycle(failed).admittedActions.at(-1)?.connectionGeneration,
     2,
+  );
+});
+
+function receipt() {
+  return {
+    status: "applied",
+    reason: "memory",
+    stream: { sourceId: "feed", epoch: "v1", sourceEntityId: "bus" },
+    publicationSequence: 1,
+    version: 1,
+    changedViews: [],
+    targets: [],
+  };
+}
+function snapshot() {
+  return {
+    data: {},
+    entityId: "bus",
+    viewId: "position",
+    version: 0,
+    provenance: {},
+    status: {
+      publication: "partial",
+      missingFields: ["position"],
+      missingRequiredFields: [],
+      fields: {},
+      inputs: {},
+    },
+  };
+}
+test("assertions require complete typed envelopes and preserve exact long counters", () => {
+  const document = {
+    ...fixture(),
+    assertions: [
+      {
+        id: "receipt",
+        atMs: 10,
+        kind: "source-receipts",
+        actor: "feed",
+        expected: [receipt()],
+      },
+    ],
+  };
+  const raw = JSON.stringify(document).replaceAll(
+    '"version":1',
+    '"version":9223372036854775807',
+  );
+  assert.ok(
+    parseTimelineDocument(raw).canonical.includes("9223372036854775807"),
+  );
+  assert.throws(
+    () =>
+      parseTimelineDocument(
+        raw.replace("9223372036854775807", "9223372036854775808"),
+      ),
+    /signed-64-bit/,
+  );
+  assert.throws(
+    () =>
+      parseTimelineDocument(
+        JSON.stringify({
+          ...document,
+          assertions: [
+            { ...document.assertions[0], expected: [{ status: "applied" }] },
+          ],
+        }),
+      ),
+    /required field/,
+  );
+  const client = {
+    ...document,
+    assertions: [
+      {
+        id: "frames",
+        atMs: 10,
+        kind: "client-frames",
+        actor: "viewer",
+        expected: [
+          { ...snapshot(), type: "view-update", publicationSequences: {} },
+          {
+            type: "subscribed",
+            viewId: "position",
+            entityId: "bus",
+            recovery: "freshSnapshot",
+          },
+        ],
+      },
+    ],
+  };
+  parseTimelineDocument(JSON.stringify(client));
+  assert.throws(
+    () =>
+      parseTimelineDocument(
+        JSON.stringify(client).replace('"version":0', '"version":0.1'),
+      ),
+    /signed-64-bit/,
+  );
+});
+
+test("event data is kind-specific, closed and retains complete semantic envelopes", () => {
+  const event = transcript()[1];
+  const check = (kind: string, data: object) =>
+    validateTrace(
+      lines([
+        transcript()[0],
+        { ...event, kind, data },
+        { ...transcript().at(-1), eventCount: 1 },
+      ]),
+    );
+  for (const [kind, data] of [
+    ["action", { actionId: "connect", actionKind: "connect" }],
+    [
+      "scheduled",
+      { taskId: "alarm", atMs: 30, phase: 1, taskKind: "freshness" },
+    ],
+    ["cancelled", { taskId: "alarm" }],
+    [
+      "delivered",
+      { messageId: "message", channel: "source-receipt", envelope: receipt() },
+    ],
+    [
+      "dropped",
+      {
+        messageId: "message",
+        channel: "source-receipt",
+        envelope: receipt(),
+        reason: "fixture-loss",
+      },
+    ],
+    ["receipt", { envelope: receipt() }],
+    ["state", { envelope: snapshot() }],
+    [
+      "frame",
+      {
+        envelope: { type: "unsubscribed", viewId: "position", entityId: "bus" },
+      },
+    ],
+    [
+      "assertion",
+      {
+        assertionId: "expected",
+        assertionKind: "source-receipts",
+        atMs: 10,
+        passed: true,
+        expected: [receipt()],
+        actual: [receipt()],
+      },
+    ],
+  ] as [string, object][]) {
+    assert.doesNotThrow(() => check(kind, data), kind);
+    assert.throws(() => check(kind, {}), /required field|expected nonblank/);
+    assert.throws(() => check(kind, { ...data, extra: true }), /unknown field/);
+  }
+  assert.throws(
+    () =>
+      check("scheduled", {
+        taskId: "alarm",
+        atMs: 9,
+        phase: 1,
+        taskKind: "freshness",
+      }),
+    /expected integer/,
+  );
+  assert.throws(
+    () => check("frame", { envelope: receipt() }),
+    /expected nonblank/,
+  );
+  assert.throws(
+    () =>
+      check("receipt", {
+        envelope: {
+          ...receipt(),
+          targets: [
+            {
+              viewId: "v",
+              entityId: "e",
+              status: "accepted",
+              reason: null,
+              changedFields: [],
+              fields: [
+                {
+                  field: "f",
+                  status: "accepted",
+                  reason: null,
+                  changed: "true",
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    /expected boolean/,
+  );
+});
+
+test("assertion records cannot mislabel exact comparison or hide failures in a passing result", () => {
+  const assertion = {
+    ...transcript()[1],
+    kind: "assertion",
+    data: {
+      assertionId: "receipts",
+      assertionKind: "source-receipts",
+      atMs: 10,
+      passed: true,
+      expected: [],
+      actual: [receipt()],
+    },
+  };
+  const result = { ...transcript().at(-1), eventCount: 1 };
+  assert.throws(
+    () => validateTrace(lines([transcript()[0], assertion, result])),
+    /disagrees/,
+  );
+  assertion.data.passed = false;
+  assert.throws(
+    () => validateTrace(lines([transcript()[0], assertion, result])),
+    /failed assertion/,
+  );
+  assert.doesNotThrow(() =>
+    validateTrace(
+      lines([
+        transcript()[0],
+        assertion,
+        { ...result, outcome: "assertion-failed" },
+      ]),
+    ),
+  );
+});
+
+test("receipt schemas retain nullable rejection targets and unmapped entity identities", () => {
+  const envelopes = [
+    {
+      status: "rejected",
+      reason: "invalidEnvelope",
+      stream: null,
+      publicationSequence: null,
+      version: null,
+      changedViews: [],
+      targets: null,
+    },
+    {
+      ...receipt(),
+      targets: [
+        {
+          viewId: "position",
+          entityId: null,
+          status: "rejected",
+          reason: "unknownEntityMapping",
+          changedFields: [],
+          fields: [],
+        },
+      ],
+    },
+    {
+      ...receipt(),
+      status: "failed",
+      reason: "processingFailure",
+      version: null,
+      targets: [],
+    },
+  ];
+  const document = {
+    ...fixture(),
+    assertions: [
+      {
+        id: "receipts",
+        atMs: 10,
+        kind: "source-receipts",
+        actor: "feed",
+        expected: envelopes,
+      },
+    ],
+  };
+  assert.doesNotThrow(() => parseTimelineDocument(JSON.stringify(document)));
+  assert.throws(
+    () =>
+      parseTimelineDocument(
+        JSON.stringify(document).replace('"entityId":null', '"entityId":false'),
+      ),
+    /expected nonblank/,
   );
 });

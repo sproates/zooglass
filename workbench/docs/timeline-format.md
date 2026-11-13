@@ -14,12 +14,13 @@ npm run timeline:inspect -- legacy scenarios/*.json scenarios/browser/*.json
 npm run timeline:inspect -- trace /path/to/semantic-trace.jsonl
 ```
 
-The inspector never starts or builds Java. `syntax: valid` means the document's
+The ordinary `scenario`, `legacy` and `trace` inspectors never start or build Java. `syntax: valid` means the document's
 shape, references, declared lifecycle and bounded numeric values passed validation. It does not mean
 that its runtime configuration exists, matches its hash, is accepted by ZooGlass,
-or that runtime-derived effects permit every planned action. The configuration file is resolved
-relative to the scenario by a future executor, which must verify its byte hash and
-use the full existing ZooGlass configuration parser. No second strategy language
+or that runtime-derived effects permit every planned action. The optional [prepared-artifact admission inspector](timeline-admission.md) resolves
+the configuration relative to the scenario, verifies its byte hash and invokes the
+full existing ZooGlass configuration parser through the prepared JVM. It executes
+no runtime actions and never builds Java. No second strategy language
 is introduced here. The example is a contract example, not an executed acceptance
 fixture. `execution: unsupported` is deliberate; the capability gate rejects all
 general documents until an executor is qualified. Trace inspection likewise checks
@@ -66,6 +67,9 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
   list** observed by that actor through the settled timestamp against `expected`.
   An empty list explicitly asserts absence. Expected envelopes include meaningful
   versions, targets, provenance and status; no partial expected-value polling.
+  Complete receipt or client-message envelopes are validated at admission; arbitrary
+  application payloads remain lossless. Runtime counters accept exact nonnegative
+  signed-64-bit integers, independently of the safe-integer bound for agenda time.
 - `limits` bounds turns, rounds, queued events, pending messages and trace bytes.
   Parser ceilings are 100,000 turns, 1,000 rounds, 10,000 queued events/messages,
   and 16 MiB trace data. Documents allow at most 100 actors/links and 1,000 each
@@ -108,16 +112,35 @@ Each following event has `kind`, unique `eventId`, nullable `parentId`, a four-p
 `connectionGeneration` and object `data`. Parents must precede children; agenda
 keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 `action`, `scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`,
-`frame` and `assertion`. `data` preserves raw semantic envelopes; kind-specific
-runtime effect schemas are not yet validated by this structural inspector.
+`frame` and `assertion`. Their `data` wrappers are closed schemas:
+
+| Kind                        | Required data                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `action`                    | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                          |
+| `scheduled`                 | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon. |
+| `cancelled`                 | `taskId`.                                                                                                           |
+| `delivered`, `dropped`      | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.          |
+| `receipt`, `state`, `frame` | Full `envelope`, checked against the corresponding runtime message shape.                                           |
+| `assertion`                 | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                       |
+
+Receipt envelopes retain status, reason, stream identity, sequence, version,
+changed views and complete target/field outcomes. Snapshot and client-view envelopes
+retain data, provenance, status, version and identity; public updates also retain
+publication sequences. Client subscription acknowledgements and errors have their
+own shapes. Payload objects remain unconstrained domain data. Assertion timestamps
+must equal their agenda time, and `passed` must agree with the lossless comparison
+of the complete expected and actual lists. These checks validate recorded content;
+they cannot establish that observations occurred or that a recorded parent caused
+a child. Runtime status/reason strings remain runtime-owned, not a new strategy
+language.
 
 The final `result` contains `outcome`, `eventCount`, `pendingFutureTasks`,
 `pendingMessages` and `heldFrames`. Outcomes distinguish `passed`,
 `assertion-failed`, `limit-exceeded` and `infrastructure-failed`. Missing final
 results, count mismatches, forward parents, duplicate IDs, decreasing keys and
-passing results with held frames/messages are rejected. Structural validation
+passing results with held frames/messages or failed assertions are rejected. Structural validation
 alone cannot confirm horizon settlement, end-policy compliance, causal truth,
-assertion correctness or runtime capability support. Full manifests, executor
+observation authenticity or runtime capability support. Full manifests, executor
 emission, verification replay and diagnostic artifact handling remain later work.
 
 ## Honest legacy compatibility assessment

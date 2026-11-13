@@ -1,3 +1,4 @@
+import { eventData } from "./event-schema.js";
 import { canonicalJson, jsonLimits, parseJson } from "./json.js";
 import {
   choice,
@@ -20,6 +21,7 @@ export function validateTrace(raw: string): string {
   const ids = new Set<string>();
   let previous = [0, 0, 0, -1];
   let until = 0;
+  let failedAssertion = false;
   let remainingBytes = jsonLimits.bytes;
   for (const [index, line] of lines.entries()) {
     // Include every terminating newline and stop expansion at the artifact's remaining budget.
@@ -60,6 +62,8 @@ export function validateTrace(raw: string): string {
       integer(record.pendingFutureTasks, `${path}.pendingFutureTasks`);
       integer(record.pendingMessages, `${path}.pendingMessages`);
       integer(record.heldFrames, `${path}.heldFrames`);
+      if (outcome === "passed" && failedAssertion)
+        invalid(path, "passing result cannot contain a failed assertion");
       if (
         outcome === "passed" &&
         (integer(record.pendingMessages, path) ||
@@ -77,7 +81,7 @@ export function validateTrace(raw: string): string {
         "connectionGeneration",
         "data",
       ]);
-      choice(record.kind, `${path}.kind`, [
+      const kind = choice(record.kind, `${path}.kind`, [
         "action",
         "scheduled",
         "cancelled",
@@ -121,7 +125,12 @@ export function validateTrace(raw: string): string {
           Number.MAX_SAFE_INTEGER,
           1,
         );
-      object(record.data, `${path}.data`);
+      eventData(kind, record.data, `${path}.data`, key[0], until);
+      if (
+        kind === "assertion" &&
+        object(record.data, `${path}.data`).passed === false
+      )
+        failedAssertion = true;
     }
     canonical.push(encoded);
   }

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolve } from "node:path";
+import {
+  clientEnvelope,
+  receiptEnvelope,
+  snapshotEnvelope,
+} from "../../src/timeline/envelopes.js";
+import { parseJson } from "../../src/timeline/json.js";
 import { Agenda } from "../../src/timeline/agenda.js";
 import { Bridge } from "../../src/timeline/bridge.js";
 import {
@@ -78,6 +84,7 @@ test("fresh execution replays actual outputs despite delays; tampering diverges"
     replay: first,
   });
   compareReplay(first, replay);
+  validateEnvelopes(first);
   const tampered = structuredClone(first);
   const changed = tampered.trace.findIndex((entry) =>
     entry.effects.some((effect) => effect.kind === "frame"),
@@ -161,6 +168,7 @@ test("stalled delivery exercises real coalescing and baseline ordering", async (
     scenario: "delivery",
     hostDelay: 1,
   });
+  validateEnvelopes(result);
   for (const entry of result.trace.filter((entry) =>
     ["stall", "release"].includes(String(entry.operation.op)),
   )) {
@@ -282,3 +290,17 @@ test("bridge rejects unsupported initialization and nonmonotonic identities", as
     await bridge.close();
   }
 });
+
+function validateEnvelopes(result: ProofResult) {
+  for (const entry of result.trace)
+    for (const effect of entry.effects) {
+      if (!effect.wire) continue;
+      const validator =
+        effect.kind === "receipt"
+          ? receiptEnvelope
+          : effect.kind === "state"
+            ? snapshotEnvelope
+            : clientEnvelope;
+      validator(parseJson(effect.wire), `proof.${effect.kind}`);
+    }
+}

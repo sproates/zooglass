@@ -1,3 +1,5 @@
+import { actionFields } from "./event-schema.js";
+import { observationList } from "./envelopes.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { canonicalJson, parseJson, type Json } from "./json.js";
 import {
@@ -129,16 +131,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     object(publication.body, `${path}.body`);
   });
   const eventIds = new Set<string>();
-  const fields: Record<string, string[]> = {
-    "source-send": ["publication"],
-    "source-retry": ["publication"],
-    "client-subscribe": ["viewId", "entityId"],
-    "client-unsubscribe": ["viewId", "entityId"],
-    connect: [],
-    disconnect: [],
-    "writer-stall": [],
-    "writer-release": ["fail"],
-  };
+  const fields = actionFields;
   list(doc.actions, "$.actions").forEach((value, i) => {
     const path = `$.actions[${i}]`;
     const entry = object(value, path);
@@ -188,7 +181,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       kind === "client-frames" ? clients : sources,
       `${path}.actor`,
     );
-    list(assertion.expected, `${path}.expected`);
+    observationList(assertion.expected, `${path}.expected`, kind);
     required.add("observations");
   });
   return {

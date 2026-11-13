@@ -464,14 +464,21 @@ at the first difference. No Java build is invoked by proof execution or tests.
 flowchart LR
   inspect["timeline/inspect.ts"] -->|validate document only| contract["timeline/contract.ts"]
   inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
+  inspect -->|optional prepared-artifact validation| admission["timeline/admission.ts"]
+  admission -->|configuration hash and full production parser| bridge["timeline/bridge.ts"]
   inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
   inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
   contract -->|chronological connection, retry and subscription admission| lifecycle["timeline/lifecycle.ts"]
   contract -->|exact tokens and canonical bytes| json["timeline/json.ts"]
+  trace -->|kind-specific event data| event["timeline/event-schema.ts"]
+  event -->|full runtime message shapes| envelopes["timeline/envelopes.ts"]
+  contract -->|typed expected observations| envelopes
+  contract -->|shared admitted action fields| event
   trace -->|exact tokens and canonical bytes| json
   contract -->|strict fields, references, bounded integers| validation["timeline/validation.ts"]
   trace -->|strict fields and causal references| validation
 ```
 
-This inspector does not invoke the bridge or runtime. A valid document is not an
-executable-capability claim. See [contracts and compatibility](timeline-format.md).
+Ordinary inspection does not invoke Java. Explicit admission inspection invokes
+the prepared artifact solely for configuration validation, without runtime actions.
+A valid document or configuration is not an executable-capability claim. See [contracts and compatibility](timeline-format.md).

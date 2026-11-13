@@ -24,7 +24,7 @@ corrects that birth to Taylor:
 {
   "sourceId": "match-feed",
   "epoch": "run",
-  "entityId": "match-1",
+  "sourceEntityId": "match-1",
   "publicationSequence": 6,
   "type": "home.contribution",
   "fact": { "birthSequence": 5, "revision": 2, "operation": "revise" },

@@ -216,6 +216,43 @@ class FreshnessSchedulingTests {
         assertThat(failed.closed).isTrue();
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void rejectedRecoveryAlarmClosesDriverAndReleasesDatabase(
+            boolean failClose, @org.junit.jupiter.api.io.TempDir java.nio.file.Path directory) {
+        var clock = new ReceiptAgeTests.Clock();
+        var full = config();
+        var sqlite =
+                new RuntimeConfiguration(2, "sqlite", 20, 20, 20, full.sources(), full.views());
+        String database = directory.resolve("rejected.sqlite").toString();
+        try (var service =
+                new ViewCoordinator(sqlite, database, clock, null, () -> new ManualAlarms(clock))) {
+            service.apply(ProgressTests.event(1));
+        }
+        boolean[] closed = {false};
+        var rejection = new java.util.concurrent.RejectedExecutionException("test rejection");
+        var rejecting =
+                new AlarmScheduler() {
+                    public Task schedule(Runnable wake, long delay) {
+                        throw rejection;
+                    }
+
+                    public void close() {
+                        closed[0] = true;
+                        if (failClose) throw new IllegalStateException("close failure");
+                    }
+                };
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new ViewCoordinator(sqlite, database, clock, null, () -> rejecting))
+                .isSameAs(rejection);
+        assertThat(closed[0]).isTrue();
+        assertThat(rejection.getSuppressed()).hasSize(failClose ? 1 : 0);
+        try (var reopened =
+                new ViewCoordinator(sqlite, database, clock, null, () -> new ManualAlarms(clock))) {
+            assertThat(reopened.apply(ProgressTests.event(2)).status()).isEqualTo("committed");
+        }
+    }
+
     @Test
     void ordinaryServiceExpiresWithoutSnapshotPolling() throws InterruptedException {
         var stale = new CountDownLatch(1);

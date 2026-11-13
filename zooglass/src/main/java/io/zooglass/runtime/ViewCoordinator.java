@@ -167,8 +167,17 @@ public final class ViewCoordinator implements AutoCloseable {
             }
             throw failure;
         }
-        if (freshness != null) {
-            freshness.arm();
+        try {
+            if (freshness != null) {
+                freshness.arm();
+            }
+        } catch (RuntimeException failure) {
+            try {
+                close();
+            } catch (RuntimeException cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
         }
     }
 
@@ -582,10 +591,13 @@ public final class ViewCoordinator implements AutoCloseable {
     public synchronized void close() {
         closed = true;
         listeners.clear();
-        if (freshness != null) {
-            freshness.close();
+        try {
+            if (freshness != null) {
+                freshness.close();
+            }
+        } finally {
+            storage.close();
         }
-        storage.close();
     }
 
     public record Snapshot(

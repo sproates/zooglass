@@ -180,6 +180,11 @@ on the replacement socket. These do not change the generic check contract.
 
 ### Timeline order and real time
 
+The proposed [deterministic timeline design](../docs/design/deterministic-timeline.md)
+defines a separate execution mode with virtual time, controlled production-runtime
+turns and replayable faults. It is not implemented yet. Current commands retain
+the behaviour described below.
+
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are
 placed before timeline entries at time zero. This field schedules the scenario;

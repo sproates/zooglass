@@ -1,5 +1,11 @@
 # Verification and coverage
 
+A proposed [deterministic timeline simulator](design/deterministic-timeline.md)
+would add virtual-time, same-artifact replay evidence using the actual runtime
+with controlled adapters. Its acceptance matrix keeps real-interface, browser,
+concurrency and physical crash checks separate. It is not implemented and does
+not replace any checks in this guide.
+
 See the [CI selection and validation workflow](ci-validation.md) for the
 change-to-check baseline and optional development branch shortcuts.
 

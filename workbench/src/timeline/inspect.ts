@@ -35,7 +35,7 @@ if (mode === "admission") {
         JSON.stringify({
           path,
           syntax: "valid",
-          execution: "unsupported",
+          execution: "not-checked",
           requiredCapabilities: parsed.requiredCapabilities,
         }),
       );

@@ -164,17 +164,13 @@
           "publicationSequences": {},
           "status": {
             "publication": "partial",
-            "missingFields": [
-              "reading"
-            ],
+            "missingFields": ["reading"],
             "missingRequiredFields": [],
             "fields": {
               "reading": {
                 "freshness": "absent",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -219,17 +215,13 @@
           "publicationSequences": {},
           "status": {
             "publication": "partial",
-            "missingFields": [
-              "reading"
-            ],
+            "missingFields": ["reading"],
             "missingRequiredFields": [],
             "fields": {
               "reading": {
                 "freshness": "absent",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -268,9 +260,7 @@
             }
           },
           "publicationSequences": {
-            "reading": [
-              1
-            ]
+            "reading": [1]
           },
           "status": {
             "publication": "ready",
@@ -280,9 +270,7 @@
               "reading": {
                 "freshness": "fresh",
                 "receivedAtMillis": 1700000000010,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -327,17 +315,13 @@
           "publicationSequences": {},
           "status": {
             "publication": "partial",
-            "missingFields": [
-              "reading"
-            ],
+            "missingFields": ["reading"],
             "missingRequiredFields": [],
             "fields": {
               "reading": {
                 "freshness": "absent",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -376,9 +360,7 @@
             }
           },
           "publicationSequences": {
-            "reading": [
-              1
-            ]
+            "reading": [1]
           },
           "status": {
             "publication": "ready",
@@ -388,9 +370,7 @@
               "reading": {
                 "freshness": "fresh",
                 "receivedAtMillis": 1700000000010,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -429,9 +409,7 @@
             }
           },
           "publicationSequences": {
-            "reading": [
-              1
-            ]
+            "reading": [1]
           },
           "status": {
             "publication": "ready",
@@ -441,9 +419,7 @@
               "reading": {
                 "freshness": "stale",
                 "receivedAtMillis": 1700000000010,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -482,9 +458,7 @@
             }
           },
           "publicationSequences": {
-            "reading": [
-              2
-            ]
+            "reading": [2]
           },
           "status": {
             "publication": "ready",
@@ -494,9 +468,7 @@
               "reading": {
                 "freshness": "fresh",
                 "receivedAtMillis": 1700000000060,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -535,9 +507,7 @@
             }
           },
           "publicationSequences": {
-            "reading": [
-              2
-            ]
+            "reading": [2]
           },
           "status": {
             "publication": "ready",
@@ -547,9 +517,7 @@
               "reading": {
                 "freshness": "stale",
                 "receivedAtMillis": 1700000000060,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -588,18 +556,14 @@
           },
           "publicationSequence": 1,
           "version": 1,
-          "changedViews": [
-            "stock-view"
-          ],
+          "changedViews": ["stock-view"],
           "targets": [
             {
               "viewId": "stock-view",
               "entityId": "sku-4",
               "status": "accepted",
               "reason": null,
-              "changedFields": [
-                "reading"
-              ],
+              "changedFields": ["reading"],
               "fields": [
                 {
                   "field": "reading",
@@ -628,9 +592,7 @@
               "entityId": "sku-4",
               "status": "accepted",
               "reason": null,
-              "changedFields": [
-                "reading"
-              ],
+              "changedFields": ["reading"],
               "fields": [
                 {
                   "field": "reading",
@@ -652,18 +614,14 @@
           },
           "publicationSequence": 2,
           "version": 3,
-          "changedViews": [
-            "stock-view"
-          ],
+          "changedViews": ["stock-view"],
           "targets": [
             {
               "viewId": "stock-view",
               "entityId": "sku-4",
               "status": "accepted",
               "reason": null,
-              "changedFields": [
-                "reading"
-              ],
+              "changedFields": ["reading"],
               "fields": [
                 {
                   "field": "reading",

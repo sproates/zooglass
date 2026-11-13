@@ -16,7 +16,9 @@ npm run timeline:inspect -- trace /path/to/semantic-trace.jsonl
 ```
 
 The ordinary `scenario`, `legacy` and `trace` inspectors never start or build Java. `syntax: valid` means the document's
-shape, references, declared lifecycle and bounded numeric values passed validation. It does not mean
+shape, references, declared lifecycle and bounded numeric values passed validation.
+This parser-only command reports `execution: not-checked`; prepared-artifact
+admission must check capability separately. It does not mean
 that its runtime configuration exists, matches its hash, is accepted by ZooGlass,
 or that runtime-derived effects permit every planned action. The optional [prepared-artifact admission inspector](timeline-admission.md) resolves
 the configuration relative to the scenario, verifies its byte hash and invokes the

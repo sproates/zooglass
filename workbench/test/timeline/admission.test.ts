@@ -82,3 +82,21 @@ test("UTF-8 decoding preserves BOM bytes rather than silently changing the hashe
   const bytes = Buffer.from("\ufeff{}");
   assert.deepEqual(Buffer.from(decode(bytes)), bytes);
 });
+
+test("syntax-only CLI inspection does not claim execution capability", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const output = execFileSync(
+    process.execPath,
+    [
+      "--import",
+      "tsx",
+      "src/timeline/inspect.ts",
+      "scenario",
+      "scenarios/simulation/warehouse-retry.json",
+    ],
+    { encoding: "utf8" },
+  );
+  const report = JSON.parse(output);
+  assert.equal(report.syntax, "valid");
+  assert.equal(report.execution, "not-checked");
+});

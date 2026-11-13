@@ -108,5 +108,8 @@ benchmark. General producer restart, new-view backfill and production feed adapt
 remain outside this slice.
 
 The [source map](source-map.md#sports-source-foundation) shows ownership and shared
-helpers; the [accepted design](../../docs/plans/live-sports.md) describes the later
-continuous and interactive browser delivery.
+helpers; the [accepted design](../../docs/plans/live-sports.md) describes both
+delivered browser modes. The proposed [acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md)
+collects bounds, first viewer baselines and fresh setup. The
+[developer comparison](../../docs/sports-developer-value.md) shows actual policy
+outcomes and the extra-match/view configuration fixture.

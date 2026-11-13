@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 12 November 2026.
+Last reviewed: 13 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -27,9 +27,11 @@ and [developer-value comparison](docs/order-developer-value.md) are delivered on
 the shared delivery branch. The Sports source foundation is delivered on the shared branch. Its continuous
 browser is delivered: three matches, corrected and first-reported views,
 independent markets, cycle-window labels and returning-viewer snapshots.
-The finite checked interactive walkthrough is proposed for review, with fresh-store
+The finite checked interactive walkthrough is delivered, with fresh-store
 Reset and retained completion/failure states. See the [Sports guide](demos/live-sports/README.md).
-Final Sports acceptance and cross-domain evidence remain pending.
+Final [Sports acceptance](docs/verification/2026-11-13-sports-acceptance.md) and
+[cross-domain developer evidence](docs/sports-developer-value.md) are proposed for
+review. Combined delivery to main remains a separate approval.
 See the [Order guide](demos/order-tracker/README.md) for its available commands.
 
 See the [demo design](docs/plans/order-and-sports-demos.md) and

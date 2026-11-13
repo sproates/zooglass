@@ -28,7 +28,8 @@ also provides source-only commands and state-bound evidence. Use
 `npm run demo -- live-sports --interactive` for 21 checked scenes, shared
 Step/Play/Pause/Reset controls and a fresh-store Reset at the same URL. Results
 remain visible at completion; a failed scene can be reset. Terminal `help` lists
-commands and `quit` closes the run.
+commands and `quit` closes the run. The proposed [final acceptance record](../docs/verification/2026-11-13-sports-acceptance.md)
+links three-cycle viewer recovery, retained-state soak and clean-command evidence.
 
 ## Watch orders or step through a walkthrough
 

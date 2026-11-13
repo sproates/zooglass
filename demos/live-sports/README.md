@@ -1,8 +1,10 @@
 # Live sports
 
-Matchroom runs three fictional matches through real ZooGlass views. The continuous
-browser is delivered on the shared demo delivery branch; interactive playback is
-proposed for review.
+Matchroom runs three fictional matches through real ZooGlass views. Both browser
+modes are delivered on the shared demo delivery branch. The final
+[acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md) is
+proposed for review; the [developer comparison](../../docs/sports-developer-value.md)
+explains the work delegated and retained.
 The accepted prototype remains available below as a design reference.
 
 ## Run the demo

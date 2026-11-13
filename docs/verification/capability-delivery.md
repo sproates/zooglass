@@ -56,12 +56,12 @@ remains vehicles, orders and sports. Here is what is available at this baseline:
 | [Interactive vehicles](../../demos/vehicle-tracker/README.md) | Three-car fleet and single-car fixtures; latest/history views, independent status fields, controlled faults and recovery. | Does not present durable restart or retained-fact corrections. |
 | [Protected basic client](../../workbench/docs/protected-client-acceptance.md) | Real policy enforcement clears protected data on access loss and obtains a fresh authorised baseline. | An automated acceptance fixture; normal vehicle commands remain open demos. Order access-loss acceptance is now available separately. |
 | [Order desk](../../demos/order-tracker/README.md) | Six orders, five independent sources and two views in continuous and interactive browsers: mappings, priority, required inputs, receipt-age freshness, progress gaps, same-store restart and protected access acceptance. | Final [acceptance and value evidence](2026-11-12-order-acceptance.md) is delivered on the shared branch. Synthetic slots, fixed mappings and separate protected fixture; no production adapters or producer-process recovery. |
-| [Sports match centre](../../demos/live-sports/README.md), continuous delivered; interactive proposed for review | Three matches and two sources; supplied scores, corrected/first-reported views, receipt age, gaps, cycle-window gating and fresh returning-viewer baselines. Source foundation is delivered on the shared branch. | Interactive walkthrough adds checked scenes and fresh-store Reset; final cross-domain acceptance remains pending. |
+| [Sports match centre](../../demos/live-sports/README.md), both browser modes delivered | Three matches and two sources; supplied scores, corrected/first-reported views, receipt age, gaps, cycle-window gating and fresh returning-viewer baselines. Source foundation is delivered on the shared branch. | Interactive walkthrough adds checked scenes and fresh-store Reset. Final [acceptance and cross-domain evidence](2026-11-13-sports-acceptance.md) is proposed for review. |
 
 The vehicle demonstrations remain useful consumers of the shared service. They
 have not been expanded to display every newly delivered strategy. Both Order
 browser modes now make the listed policies visible; the Sports continuous browser makes corrections and window transitions visible
-in the proposed delivery. A service test alone is not counted as a browser experience.
+on the shared branch. A service test alone is not counted as a browser experience.
 
 The [Order acceptance record](2026-11-12-order-acceptance.md) links its separate
 Chromium/Firefox/WebKit layout checks and fresh desktop/phone captures for both

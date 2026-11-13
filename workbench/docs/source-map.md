@@ -592,3 +592,19 @@ cycle's baselines. `run.ts` advances the same lazy timeline used by continuous
 mode. Pause finishes pending verification; Reset cancels it and creates a fresh
 store. Failed checkpoints and failed Reset startup remain visible through the
 stable control connection. Terminal Quit/Ctrl+C retires the controller and host.
+
+## Sports acceptance evidence
+
+The runtime composition above is unchanged by final acceptance.
+`test/scenarios/sports-simulation.test.ts` checks literal outcomes over three cycles;
+`sports-bounds.test.ts` inspects the stopped 40-cycle SQLite image for retained
+facts, tombstones, stream receipts and progress ranges. `sports-retirement.test.ts`
+checks partial control failure and exact acknowledgement-loss retry.
+
+`test/scenarios/sports-extension.test.ts` supplies independent match-4 events and
+adds a score-only first-fact view through the same startup configuration. It uses
+`service/zooglass-session.ts`, `execution/sockets.ts` and
+`execution/publication-receipt.ts`, without the production timeline as its oracle.
+`test/browser/sports-acceptance.test.ts` verifies all nine first returning/late baselines
+after three completed cycles with no subsequent source publication. See the
+[acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md).

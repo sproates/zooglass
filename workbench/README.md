@@ -858,3 +858,8 @@ The [memory lifecycle executor](docs/timeline-lifecycle.md) now supports v2
 stop/start, downtime retries and matching replay/bundle evidence through fresh JVMs.
 SQLite recovery, wall adjustments and broader restart qualification remain future
 work. Existing v1 campaigns do not qualify the v2 profile.
+
+The [memory qualification campaign](docs/timeline-memory-qualification.md) checks
+three distinct lifecycle cases in fresh processes, with long Node/JVM pauses and
+an isolated wrong-generation-clock control. It is separate from v1 and SQLite
+qualification.

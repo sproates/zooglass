@@ -701,3 +701,27 @@ flowchart TB
 
 The archive command operates on saved evidence only. It neither executes scenarios
 nor rebuilds artifacts. Linux qualification has its own baselines and manifest.
+
+## Memory lifecycle qualification
+
+```mermaid
+flowchart LR
+  campaign["scripts/lifecycle-repeat.ts"] -->|authored variants and expected outcomes| inputs["scripts/lifecycle-campaign-inputs.ts"]
+  campaign -->|fresh Node process per run| child["scripts/document-campaign-child.ts"]
+  child -->|fresh runtime generations| run["timeline/run-document.ts"]
+  campaign -->|independent semantics, pauses and exact parity| checks["scripts/lifecycle-campaign-checks.ts"]
+  checks -->|complete versioned evidence admission| replay["timeline/replay-document.ts"]
+```
+
+```mermaid
+flowchart LR
+  control["scripts/generation-clock-check.ts"] -->|normal and wrong-clock executions| run["timeline/run-document.ts"]
+  control -->|validate retained semantic failure| replay["timeline/replay-document.ts"]
+  prepare["scripts/prepare-generation-clock-mutation.py"] -->|copies committed source then changes one clock method| clock["simulation-host: runtime/ControlledReceiptClock.java"]
+```
+
+Campaign checking is outside the runtime executor. Authored expectations decide
+correctness; exact within-group traces independently establish repeatability.
+The control checker consumes separately prepared JARs and verifies the mutation's
+actual artifact contents. Only the explicit preparation script builds Java, in an
+isolated copy. See [memory qualification](timeline-memory-qualification.md).

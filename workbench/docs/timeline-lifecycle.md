@@ -4,7 +4,8 @@
 keeps the v1 configuration boundary: one source, view and field, receipt-age
 freshness and unprotected empty memory storage. SQLite, wall adjustments and
 runtime snapshot assertions are not supported yet. This is POC functionality;
-the earlier 900-run campaigns qualify v1, not this new lifecycle profile.
+the earlier 900-run campaigns qualify v1. V2 has a separate bounded
+[memory lifecycle qualification](timeline-memory-qualification.md) procedure.
 
 With the host JAR already prepared, run the complete example:
 

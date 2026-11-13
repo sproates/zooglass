@@ -54,7 +54,10 @@
     "timeline:replay": "node --import tsx src/timeline/replay-cli.ts",
     "timeline:bundle": "node --import tsx src/timeline/bundle-cli.ts",
     "timeline:clock-leak": "node --import tsx scripts/clock-leak-check.ts",
-    "timeline:document-repeat": "node --import tsx scripts/document-repeat.ts"
+    "timeline:document-repeat": "node --import tsx scripts/document-repeat.ts",
+    "timeline:lifecycle-repeat": "node --import tsx scripts/lifecycle-repeat.ts",
+    "prepare:generation-clock-control": "python3 scripts/prepare-generation-clock-mutation.py",
+    "timeline:generation-clock-control": "node --import tsx scripts/generation-clock-check.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

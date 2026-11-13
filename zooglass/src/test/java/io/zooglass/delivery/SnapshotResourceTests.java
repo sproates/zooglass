@@ -114,7 +114,7 @@ class SnapshotResourceTests {
                                                                         "feed", "position")))))));
         var broadcaster = new SnapshotBroadcaster(json, store.runtime());
         var executor =
-                (ExecutorService) ReflectionTestUtils.getField(broadcaster, "outboundExecutor");
+                (ExecutorService) ReflectionTestUtils.getField(ReflectionTestUtils.getField(broadcaster, "driver"), "executor");
         assertThat(executor).isNotNull();
         try {
             for (int cycle = 0; cycle < 100; cycle++) {

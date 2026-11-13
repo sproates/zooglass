@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -70,7 +69,7 @@ class AuthorisedWriterTests {
     @ParameterizedTest
     @ValueSource(strings = {"expire", "replace", "unsubscribe", "deny"})
     void aFrameTakenBeforeInvalidationCannotReachTheTransport(String action) throws Exception {
-        try (var fixture = new ReleaseFixture(); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
             var socket = new Socket();
             var lease = fixture.admit(socket.viewer);
             var taken = new CountDownLatch(1);
@@ -121,7 +120,7 @@ class AuthorisedWriterTests {
 
     @Test
     void networkCompletionDoesNotHoldGrantLocksOrBlockAnotherViewer() throws Exception {
-        try (var fixture = new ReleaseFixture(); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
             var slow = new Socket();
             var healthy = new Socket();
             var slowLease = fixture.admit(slow.viewer);
@@ -161,7 +160,7 @@ class AuthorisedWriterTests {
     @ParameterizedTest
     @ValueSource(strings = {"disconnectOnOverflow", "coalesceLatestState"})
     void replacementDiscardsQueuedOldGenerationBeforeAdmittingNewBaseline(String policy) throws Exception {
-        try (var fixture = new ReleaseFixture(); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
             var socket = new Socket();
             var old = fixture.admit(socket.viewer);
             var failures = new LinkedBlockingQueue<Exception>();
@@ -193,7 +192,7 @@ class AuthorisedWriterTests {
 
     @Test
     void asynchronousTransportFailureReachesWriterCleanup() throws Exception {
-        try (var fixture = new ReleaseFixture(); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
             var socket = new Socket();
             var lease = fixture.admit(socket.viewer);
             var failures = new LinkedBlockingQueue<Exception>();

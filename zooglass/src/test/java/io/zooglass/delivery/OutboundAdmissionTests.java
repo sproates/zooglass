@@ -15,7 +15,6 @@ import org.springframework.web.socket.WebSocketSession;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 class OutboundAdmissionTests {
@@ -34,13 +33,14 @@ class OutboundAdmissionTests {
                 .when(session)
                 .sendMessage(any());
 
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        try (var executor = new SocketDeliveryDriver()) {
             var writer =
                     new OutboundWriter(
                             session,
                             executor,
                             new Delivery(null, null, 128, 1048576L),
-                            (ignored, error) -> {});
+                            (ignored, error) -> {},
+                            null);
             try {
                 var update = new Frame("ordinary update");
                 assertThat(writer.enqueueProtected(List.of(update)))

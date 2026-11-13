@@ -269,9 +269,21 @@ flowchart LR
   queue -->|key for a waiting update| policy["delivery/SlowClientPolicy"]
   policy -->|keep each update| fifo["delivery/DisconnectOnOverflow"]
   policy -->|replace by generation| latest["delivery/CoalesceLatestState"]
-  writer -->|outside coordinator monitor| socket["Client socket"]
+  writer -->|deferred turns and handoff completion| driver["delivery/DeliveryDriver"]
+  broadcaster -->|close and access-failure effects| driver
+  native["delivery/SocketDeliveryDriver"] -.->|production implementation| driver
+  native -->|outside coordinator monitor| socket["Client socket"]
   http --> dto
 ```
+
+`OutboundWriter` selects one waiting frame per turn and owns it until the driver
+reports completion or failure. Only waiting frames count towards the queue budget;
+coalescing never replaces a frame already handed off. Stopping invalidates queued
+turns and late completions. `SocketDeliveryDriver` runs turns on virtual threads,
+uses the existing protected transport checks, and owns asynchronous session close.
+The internal driver seam also permits explicit test turns and held handoffs without
+blocking the coordinator. Subscription recipients retain admission order before
+writer turns are scheduled. This is a delivery seam, not the complete simulator.
 
 The coordinator owns state and installation. Delivery owns subscriptions and
 writers, with no independent projection store. Registration uses

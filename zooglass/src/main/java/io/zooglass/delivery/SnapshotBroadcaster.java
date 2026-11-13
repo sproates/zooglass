@@ -11,22 +11,19 @@ import io.zooglass.runtime.ViewCoordinator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.function.Function;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 /** Enqueues committed snapshots and subscription replies under the coordinator monitor. */
 @Component
@@ -42,17 +39,31 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private final Runnable detach;
     private final ActiveViewGrants grants;
     private final GrantRenewals renewals;
-    private final ExecutorService outboundExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final DeliveryDriver driver;
     private final SubscriptionIndex subscriptions = new SubscriptionIndex();
     private final Map<WebSocketSession, OutboundWriter> writersBySession = new HashMap<>();
+    private boolean closed;
 
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator) {
         this(objectMapper, coordinator, new AdmissionAccess());
     }
 
     @Autowired
-    public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator, AdmissionAccess access) {
-        this.grants = access.protectedMode() ? new ActiveViewGrants(access, this::requestAccessClose) : null;
+    public SnapshotBroadcaster(
+            ObjectMapper objectMapper, ViewCoordinator coordinator, AdmissionAccess access) {
+        this(objectMapper, coordinator, access, new SocketDeliveryDriver());
+    }
+
+    SnapshotBroadcaster(
+            ObjectMapper objectMapper,
+            ViewCoordinator coordinator,
+            AdmissionAccess access,
+            DeliveryDriver driver) {
+        this.driver = driver;
+        this.grants =
+                access.protectedMode()
+                        ? new ActiveViewGrants(access, this::requestAccessClose)
+                        : null;
         this.objectMapper = objectMapper;
         this.coordinator = coordinator;
         this.settings = coordinator.delivery();
@@ -62,8 +73,11 @@ public class SnapshotBroadcaster implements AutoCloseable {
 
     public void registerSession(WebSocketSession session) {
         synchronized (coordinator) {
+            if (closed) throw new IllegalStateException("Delivery is closed");
             if (grants != null) {
-                var identity = (ViewerHandshake.Identity) session.getAttributes().get(ViewerHandshake.IDENTITY);
+                var identity =
+                        (ViewerHandshake.Identity)
+                                session.getAttributes().get(ViewerHandshake.IDENTITY);
                 grants.register(session, identity);
             }
             writersBySession.computeIfAbsent(
@@ -71,30 +85,45 @@ public class SnapshotBroadcaster implements AutoCloseable {
                     ignored ->
                             new OutboundWriter(
                                     session,
-                                    outboundExecutor,
+                                    driver,
                                     settings,
                                     (writer, failure) ->
-                                            handleWriteFailure(session, writer, failure), grants));
+                                            handleWriteFailure(session, writer, failure),
+                                    grants));
         }
     }
 
-    public enum Admission { ADMITTED, UNKNOWN_VIEW, REFUSED, FAILED }
+    public enum Admission {
+        ADMITTED,
+        UNKNOWN_VIEW,
+        REFUSED,
+        FAILED
+    }
 
     public boolean subscribe(WebSocketSession session, String viewId, String entityId) {
         return subscribe(session, viewId, entityId, () -> true) != Admission.UNKNOWN_VIEW;
     }
 
-    public Admission subscribe(WebSocketSession session, String viewId, String entityId,
-            BooleanSupplier permitted) {
+    public Admission subscribe(
+            WebSocketSession session, String viewId, String entityId, BooleanSupplier permitted) {
         return subscribe(session, viewId, entityId, permitted, null);
     }
 
     public Admission subscribe(WebSocketSession session, ViewResource resource, AccessGrant grant) {
-        return subscribe(session, resource.viewId(), resource.entityId(), () -> grant.permits(resource), grant);
+        return subscribe(
+                session,
+                resource.viewId(),
+                resource.entityId(),
+                () -> grant.permits(resource),
+                grant);
     }
 
-    private Admission subscribe(WebSocketSession session, String viewId, String entityId,
-            BooleanSupplier permitted, AccessGrant grant) {
+    private Admission subscribe(
+            WebSocketSession session,
+            String viewId,
+            String entityId,
+            BooleanSupplier permitted,
+            AccessGrant grant) {
         synchronized (coordinator) {
             if (!permitted.getAsBoolean()) {
                 return Admission.REFUSED;
@@ -105,10 +134,13 @@ public class SnapshotBroadcaster implements AutoCloseable {
             }
             List<OutboundQueue.Frame> opening;
             try {
-                opening = settings.recovery().openingMessages(snapshot.orElseThrow())
-                        .stream().map(this::frame).toList();
+                opening =
+                        settings.recovery().openingMessages(snapshot.orElseThrow()).stream()
+                                .map(this::frame)
+                                .toList();
             } catch (RuntimeException failure) {
-                logger.warn("Could not prepare subscription opening for client {}", session.getId());
+                logger.warn(
+                        "Could not prepare subscription opening for client {}", session.getId());
                 removeSession(session);
                 return Admission.FAILED;
             }
@@ -116,8 +148,9 @@ public class SnapshotBroadcaster implements AutoCloseable {
             if (!permitted.getAsBoolean()) {
                 return Admission.REFUSED;
             }
-            if (grants != null && (grant == null
-                    || !grants.admit(session, new ViewResource(viewId, entityId), grant))) {
+            if (grants != null
+                    && (grant == null
+                            || !grants.admit(session, new ViewResource(viewId, entityId), grant))) {
                 return Admission.REFUSED;
             }
             subscriptions.add(session, viewId, entityId);
@@ -127,8 +160,8 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
     }
 
-    public void refuseSubscription(WebSocketSession session, String viewId, String entityId,
-            String code) {
+    public void refuseSubscription(
+            WebSocketSession session, String viewId, String entityId, String code) {
         if (grants != null && grants.refuse(session, new ViewResource(viewId, entityId))) {
             return;
         }
@@ -145,7 +178,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
         // Grants are already invalidated. Never make expiry scans or policy workers
         // wait for coordinator work while removing delivery state.
         try {
-            outboundExecutor.execute(() -> closeAccess(session));
+            driver.execute(() -> closeAccess(session));
         } catch (RejectedExecutionException stopped) {
             // Shutdown has removed memberships and stopped writers already.
             requestClose(session, CloseStatus.POLICY_VIOLATION);
@@ -212,9 +245,18 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
         recipients.forEach(
                 (session, generation) ->
-                        enqueue(session, writer -> writer.enqueueUpdate(generation,
-                                scoped(session, new ViewResource(snapshot.viewId(), snapshot.entityId()),
-                                        List.of(shared)).getFirst())));
+                        enqueue(
+                                session,
+                                writer ->
+                                        writer.enqueueUpdate(
+                                                generation,
+                                                scoped(
+                                                                session,
+                                                                new ViewResource(
+                                                                        snapshot.viewId(),
+                                                                        snapshot.entityId()),
+                                                                List.of(shared))
+                                                        .getFirst())));
     }
 
     private void send(WebSocketSession session, Object message) {
@@ -228,11 +270,16 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private void sendProtected(WebSocketSession session, List<Object> messages) {
         enqueue(
                 session,
-                writer -> writer.enqueueProtected(scoped(session, null, messages.stream().map(this::frame).toList())));
+                writer ->
+                        writer.enqueueProtected(
+                                scoped(
+                                        session,
+                                        null,
+                                        messages.stream().map(this::frame).toList())));
     }
 
-    private List<OutboundQueue.Frame> scoped(WebSocketSession session, ViewResource resource,
-            List<OutboundQueue.Frame> frames) {
+    private List<OutboundQueue.Frame> scoped(
+            WebSocketSession session, ViewResource resource, List<OutboundQueue.Frame> frames) {
         if (grants == null) {
             return frames;
         }
@@ -284,25 +331,15 @@ public class SnapshotBroadcaster implements AutoCloseable {
         }
     }
 
-    private static void requestClose(WebSocketSession session, CloseStatus status) {
-        Thread.startVirtualThread(
-                () -> {
-                    try {
-                        if (session.isOpen()) {
-                            session.close(status);
-                        }
-                    } catch (IOException | RuntimeException exception) {
-                        logger.warn(
-                                "Could not close slow live view client {}: {}",
-                                session.getId(),
-                                exception.getMessage());
-                    }
-                });
+    private void requestClose(WebSocketSession session, CloseStatus status) {
+        driver.closeSession(session, status);
     }
 
     @Override
     public void close() {
         synchronized (coordinator) {
+            if (closed) return;
+            closed = true;
             if (renewals != null) {
                 renewals.close();
             }
@@ -312,7 +349,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
             writersBySession.clear();
             subscriptions.clear();
             detach.run();
-            outboundExecutor.shutdownNow();
+            driver.close();
         }
     }
 

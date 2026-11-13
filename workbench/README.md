@@ -210,6 +210,12 @@ on the replacement socket. These do not change the generic check contract.
 
 ### Timeline order and real time
 
+The accepted [deterministic timeline design](../docs/design/deterministic-timeline.md)
+defines a separate execution mode with virtual time, controlled production-runtime
+turns and replayable faults. A bounded proof lives on the separate
+[POC branch](https://github.com/sproates/zooglass/tree/poc/deterministic-timeline);
+these demo commands retain the real-time behaviour described below.
+
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are
 placed before timeline entries at time zero. This field schedules the scenario;

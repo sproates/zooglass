@@ -1,7 +1,7 @@
 # Live sports
 
 Matchroom runs three fictional matches through real ZooGlass views. Both browser
-modes are delivered on the shared demo delivery branch. The final
+modes are delivered with the demo collection. The final
 [acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md) was
 accepted in [PR #167](https://github.com/sproates/zooglass/pull/167); the [developer comparison](../../docs/sports-developer-value.md)
 explains the work delegated and retained.

@@ -127,7 +127,7 @@ collects three-cycle first-baseline checks, the 50-cycle retained-state inspecti
 recovery/access coverage and clean-command walkthroughs with current captures.
 The [Order developer comparison](../../docs/order-developer-value.md) explains
 what ZooGlass takes on and what changes for another order, source or view.
-Final acceptance is proposed for review; the combined programme has not merged to main.
+Order acceptance was completed on 12 November 2026; the record documents the tested scope and limits.
 
 ## Accepted static reference
 

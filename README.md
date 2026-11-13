@@ -89,8 +89,6 @@ automatic source activity and `--interactive` for a checked walkthrough:
 | [Sports](demos/live-sports/README.md)    | `npm run demo -- live-sports --continuous`     | Goals, corrections and withdrawals; corrected versus first-reported results and independent markets. |
 
 Replace `--continuous` with `--interactive` to use Step, Play, Pause and Reset.
-Order and Sports are implemented on `feature/order-and-sports-demos`; combined
-delivery to `main` is pending. Check out that branch to run all three today.
 The [Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) and
 [Sports acceptance record](docs/verification/2026-11-13-sports-acceptance.md) link
 repeated operation, recovery, bounded state and clean setup evidence.
@@ -118,7 +116,9 @@ real-process execution does not make network delivery, service scheduling or
 wall-clock timing deterministic. The
 [timeline guide](workbench/README.md#timeline-order-and-real-time) explains that
 distinction. We plan to develop Workbench into a deterministic timeline simulator,
-with an explicit controlled-time execution contract; see the
+with an explicit controlled-time execution contract. The accepted
+[deterministic timeline design](docs/design/deterministic-timeline.md) describes
+that separate work; the current demos retain real process and network timing. See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.
 

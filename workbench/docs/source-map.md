@@ -1,5 +1,9 @@
 # Workbench source map
 
+The proposed [deterministic timeline design](../../docs/design/deterministic-timeline.md)
+contains a separate planned component diagram. Its scheduler and controlled runtime
+adapters do not exist yet; the map below describes the current implementation.
+
 This is a reading guide to the current TypeScript modules. Start with the command
 being run, then follow its dependencies to the code that does the work.
 

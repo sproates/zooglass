@@ -523,6 +523,14 @@ runtime initialization; trace comparison stops at the first mismatch. See
 
 ## Receipt-loss rules
 
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|validate rule targets and probabilities| faults["timeline/receipt-faults.ts"]
+  execution["timeline/document-execution.ts"] -->|derive keyed receipt-loss draws| faults
+  execution -->|append decisions, closes and dropped receipts| trace["timeline/semantic-trace.ts"]
+  validation["timeline/trace-contract.ts"] -->|validate draw and disconnect records| schema["timeline/event-schema.ts"]
+```
+
 `timeline/receipt-faults.ts` validates explicit rules and derives versioned integer
 draws. `contract.ts` admits references; `document-execution.ts` invokes draws only
 for actual runtime receipts, records decisions and schedules a real host disconnect

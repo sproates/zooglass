@@ -42,3 +42,8 @@ In interactive mode, the shared `playback-controls.ts` module keeps command stat
 separate from data subscriptions. A Reset generation closes the old data client,
 clears retained snapshots, and subscribes afresh when the replacement run is ready.
 Controls never supply match values. Continuous pages omit the controls panel.
+
+Final acceptance checks this same consumer after three completed cycles: the first
+nine snapshots for returning and late viewers must replace old state, including
+supplied scores, floors and progress. The [acceptance record](../../../docs/verification/2026-11-13-sports-acceptance.md)
+links the tests and clean-command captures; no new client reducer is introduced.

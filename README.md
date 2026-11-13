@@ -53,8 +53,11 @@ application work delegated and retained.
 
 The [Sports match centre](demos/live-sports/README.md) shows three matches through
 corrected and first-reported views, independent bookmaker updates and bounded
-fact retirement. Continuous mode is delivered on the shared branch; the finite
-interactive walkthrough with Step/Play/Pause/Reset is proposed for review.
+fact retirement. Both continuous mode and the checked interactive walkthrough are
+delivered on the shared branch. The proposed [final acceptance record](docs/verification/2026-11-13-sports-acceptance.md)
+links the retained-state, recovery and clean-setup evidence. The
+[developer comparison](docs/sports-developer-value.md) contrasts concrete Fleet,
+Order and Sports responsibilities without claiming measured effort savings.
 
 The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 

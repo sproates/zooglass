@@ -17,14 +17,18 @@ enforces byte bounds before tar metadata parsing.
 The printed archive hash can be compared with the table below. Hashes establish
 consistency, not a signature or protection against coordinated rewriting.
 
-| Archive                          | Files | Uncompressed bytes | SHA-256                                                            |
-| -------------------------------- | ----: | -----------------: | ------------------------------------------------------------------ |
-| `macos-timeline-20261113.tar.gz` |   937 |         49,428,333 | `39b7cdc54d190e65c54e8e6422663101c24b90533b38c05de6e792953008f558` |
+| Archive                                | Files | Uncompressed bytes | SHA-256                                                            |
+| -------------------------------------- | ----: | -----------------: | ------------------------------------------------------------------ |
+| `macos-timeline-20261113.tar.gz`       |   937 |         49,428,333 | `39b7cdc54d190e65c54e8e6422663101c24b90533b38c05de6e792953008f558` |
+| `linux-arm64-timeline-20261113.tar.gz` |   916 |         49,915,765 | `3440a2bda91cd51dd4a149db12e19516ec8c9cdb3926f51d6cd8e065d4baa4ff` |
 
 The macOS archive retains the 900-run document campaign, the final 18 clock-leak
 controls and mutation recipe, and the portable bundle plus its replay report.
 Each original run retains its inputs, trace, identities, environment and timing
 observations. The older summary hashes still match the published reports.
+
+The Linux archive retains the complete 900-run matrix, test/campaign/preparation
+logs, image metadata and Dockerfile. See the [results](../docs/timeline-linux.md).
 
 The original prepared JARs are retained locally, not included in these archives.
 Matching executable/environment identities remain required for replay; archived

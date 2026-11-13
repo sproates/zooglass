@@ -89,9 +89,35 @@ class EvidenceArchiveTest(unittest.TestCase):
             self.assertEqual(self.invoke("pack", archive, source).returncode, 0)
             with patch.object(sys, "argv", [str(SCRIPT), "verify", str(archive)]):
                 module = runpy.run_path(str(SCRIPT))
-            module["verify"].__globals__["LIMIT"] = 100
+            module["verify"].__globals__["LIMIT"] = 1024
             with self.assertRaisesRegex(ValueError, "Decompressed container"):
                 module["verify"](archive)
+
+    def test_compressed_padding_and_pack_bounds(self):
+        import runpy
+        module = runpy.run_path(str(SCRIPT))
+        globals_ = module["verify"].__globals__
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            source = root / "evidence"
+            source.mkdir()
+            (source / "run").write_text("x")
+            archive = root / "archive.tar.gz"
+            module["pack"](archive, [source])
+            padded = root / "padded.tar.gz"
+            padded.write_bytes(archive.read_bytes() + bytes(20000))
+            globals_["LIMIT"] = 15000
+            with self.assertRaisesRegex(ValueError, "Compressed container"):
+                module["verify"](padded)
+            globals_["LIMIT"] = 100
+            with self.assertRaisesRegex(ValueError, "Decompressed container"):
+                module["pack"](root / "too-large.tar.gz", [source])
+            self.assertFalse((root / "too-large.tar.gz").exists())
+            globals_["LIMIT"] = 100000
+            globals_["MAX_MEMBERS"] = 1
+            with self.assertRaisesRegex(ValueError, "Too many"):
+                module["pack"](root / "too-many.tar.gz", [source])
+            self.assertFalse((root / "too-many.tar.gz").exists())
 
     def test_symlink_source_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

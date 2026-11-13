@@ -283,7 +283,8 @@ turns and late completions. `SocketDeliveryDriver` runs turns on virtual threads
 uses the existing protected transport checks, and owns asynchronous session close.
 The internal driver seam also permits explicit test turns and held handoffs without
 blocking the coordinator. Subscription recipients retain admission order before
-writer turns are scheduled. This is a delivery seam, not the complete simulator.
+writer turns are scheduled; shutdown cancels writers in session registration order.
+This is a delivery seam, not the complete simulator.
 
 The coordinator owns state and installation. Delivery owns subscriptions and
 writers, with no independent projection store. Registration uses

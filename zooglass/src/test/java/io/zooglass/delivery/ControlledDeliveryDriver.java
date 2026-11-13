@@ -15,6 +15,7 @@ final class ControlledDeliveryDriver implements DeliveryDriver {
     final ArrayDeque<Runnable> turns = new ArrayDeque<>();
     final ArrayDeque<Handoff> handoffs = new ArrayDeque<>();
     final List<String> closes = new ArrayList<>();
+    final List<String> stoppedSessions = new ArrayList<>();
     final List<ControlledWriter> writers = new ArrayList<>();
     boolean closed;
     boolean rejectTurns;
@@ -77,6 +78,7 @@ final class ControlledDeliveryDriver implements DeliveryDriver {
         }
 
         public void stop() {
+            if (!stopped) stoppedSessions.add(session.getId());
             stopped = true;
         }
     }

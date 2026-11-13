@@ -18,7 +18,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
@@ -41,7 +41,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private final GrantRenewals renewals;
     private final DeliveryDriver driver;
     private final SubscriptionIndex subscriptions = new SubscriptionIndex();
-    private final Map<WebSocketSession, OutboundWriter> writersBySession = new HashMap<>();
+    private final Map<WebSocketSession, OutboundWriter> writersBySession = new LinkedHashMap<>();
     private boolean closed;
 
     public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator) {

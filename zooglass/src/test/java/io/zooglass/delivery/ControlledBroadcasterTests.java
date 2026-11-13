@@ -144,6 +144,38 @@ class ControlledBroadcasterTests {
         }
     }
 
+    @org.junit.jupiter.api.Test
+    void shutdownCancelsWritersInRegistrationOrderRegardlessOfSessionHashes() {
+        var config = new RuntimeConfiguration(2, "memory", 20, 20, 20, List.of(), List.of());
+        var driver = new ControlledDeliveryDriver();
+        var first =
+                new org.springframework.web.socket.handler.WebSocketSessionDecorator(
+                        ResumableWriterTests.session("first")) {
+                    @Override
+                    public int hashCode() {
+                        return 2;
+                    }
+                };
+        var second =
+                new org.springframework.web.socket.handler.WebSocketSessionDecorator(
+                        ResumableWriterTests.session("second")) {
+                    @Override
+                    public int hashCode() {
+                        return 1;
+                    }
+                };
+        try (var runtime = new ViewCoordinator(config);
+                var broadcaster =
+                        new SnapshotBroadcaster(json, runtime, new AdmissionAccess(), driver)) {
+            broadcaster.registerSession(first);
+            broadcaster.registerSession(second);
+            broadcaster.close();
+            assertThat(driver.stoppedSessions).containsExactly("first", "second");
+            broadcaster.close();
+            assertThat(driver.stoppedSessions).containsExactly("first", "second");
+        }
+    }
+
     private void finishSnapshot(
             ControlledDeliveryDriver driver, WebSocketSession session, long version) {
         driver.runTurns();

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { resolve } from "node:path";
 import {
@@ -20,6 +21,26 @@ const jar = resolve(
     "../zooglass/simulation-host/target/zooglass-simulation.jar",
 );
 const seed = "0".repeat(64);
+
+test("direct host startup explains a missing or blank artifact property", () => {
+  for (const property of [undefined, "", "   "]) {
+    const args =
+      property === undefined
+        ? []
+        : [`-Dzooglass.simulation.artifact=${property}`];
+    const result = spawnSync("java", [...args, "-jar", jar], {
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(
+      result.stderr,
+      /Missing required system property zooglass\.simulation\.artifact; launch through Workbench/,
+    );
+  }
+});
 
 test("the packaged host ignores ambient Spring Boot loader overrides", async () => {
   const before = process.env.LOADER_CLASSLOADER;

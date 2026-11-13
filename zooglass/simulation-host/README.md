@@ -37,7 +37,9 @@ The production project supplies an ordinary `runtime` classifier dependency.
 Its service JAR remains `../target/zooglass.jar`; both production artifacts exclude
 simulation classes, including stale compiled output. This project packages its own
 adapters and the matching runtime dependency once. Preparation checks the embedded
-runtime hash against the freshly built classifier.
+runtime hash against the freshly built classifier and fails preparation on a
+mismatch. Installing a stale local snapshot cannot silently pass this check; the
+packaging regression also verifies rejection of a mismatched runtime artifact.
 
 Host adapters retain the runtime and delivery Java packages so they can use small
 package-private seams in the same application classloader. There is no module-path

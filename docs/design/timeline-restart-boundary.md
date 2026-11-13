@@ -19,7 +19,7 @@ part of the subsequent restart work.
 | Production clock/alarm/delivery interfaces | Retain the small existing interfaces and production defaults.                                                                                                          |
 | Simulation classes in `src/main`           | Move to a separate host build; the service must not ship pause switches or simulation adapters.                                                                        |
 | Java host                                  | Separate framed protocol/validation from generation composition and sessions.                                                                                          |
-| TypeScript executor                        | Extract runtime generation/availability ownership; retain the agenda, retry controller and delayed-link modules.                                                       |
+| TypeScript executor                        | Current: separate turn/task and transport ownership. Next: add generation/availability ownership; retain agenda, retry and delayed-link modules.                       |
 | Nested Java clock/alarm implementations    | Give the controlled clock and alarm driver named host-side classes.                                                                                                    |
 | Sorted agenda and internal assertions      | Keep the current bounded implementation. Profile a demonstrated bottleneck before changing algorithms; user-input validation must continue to produce explicit errors. |
 
@@ -34,7 +34,12 @@ Named controlled clock/alarm classes replace the nested implementations.
 Workbench's `DocumentExecution` owns actions, connections and retry orchestration;
 `RuntimeTurns` owns the execution budget, bridge commands and runtime tasks;
 `DocumentTransport` owns session-bound messages, faults, handoffs and observations.
-These are current v1 boundaries, not restart implementation.
+These are current v1 boundaries, not restart implementation. `RuntimeTurns` does
+not yet own generation or availability state: the executable still admits only
+generation 1. The memory-lifecycle slice will replace the runtime, delivery,
+sessions and roles as one generation-owned unit and centralise generation identity
+on each side of the bridge. Global agenda time, execution budgets and source retry
+timers must survive that replacement.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact
@@ -67,7 +72,7 @@ flowchart LR
   service["Production service JAR"] --> core["Shared runtime implementation"]
   host["Separate simulation host JAR"] -->|ordinary runtime dependency| core
   host --> owned["Owned clocks, alarms, sessions and pause probe"]
-  workbench["Workbench generation owner"] -->|framed commands| host
+  workbench["Workbench runtime turns"] -->|framed commands| host
   core -->|existing clock / alarm / delivery interfaces| owned
 ```
 

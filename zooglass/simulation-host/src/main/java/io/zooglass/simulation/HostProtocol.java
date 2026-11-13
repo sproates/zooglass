@@ -43,7 +43,11 @@ final class HostProtocol {
     static void serve(CommandHandler handler) throws Exception {
         var output = new DataOutputStream(System.out);
         System.setOut(System.err); // Libraries may log; stdout belongs exclusively to framing.
-        var artifact = Path.of(System.getProperty("zooglass.simulation.artifact"));
+        String artifactPath = System.getProperty("zooglass.simulation.artifact");
+        if (artifactPath == null || artifactPath.isBlank())
+            throw new IllegalArgumentException(
+                    "Missing required system property zooglass.simulation.artifact; launch through Workbench");
+        var artifact = Path.of(artifactPath);
         String digest =
                 HexFormat.of()
                         .formatHex(

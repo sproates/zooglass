@@ -1,4 +1,4 @@
-import { canonicalJson, parseJson } from "./json.js";
+import { canonicalJson, jsonLimits, parseJson } from "./json.js";
 import {
   choice,
   integer,
@@ -11,7 +11,7 @@ import {
 
 /** Validate complete semantic JSONL artifacts. Private fixed-proof transcripts are a different format. */
 export function validateTrace(raw: string): string {
-  if (Buffer.byteLength(raw) > 16 * 1024 * 1024)
+  if (Buffer.byteLength(raw) > jsonLimits.bytes)
     throw new Error("invalid-trace: byte limit");
   const lines = raw.trimEnd().split("\n");
   if (lines.length < 2 || lines.length > 100001)
@@ -20,8 +20,13 @@ export function validateTrace(raw: string): string {
   const ids = new Set<string>();
   let previous = [0, 0, 0, -1];
   let until = 0;
+  let remainingBytes = jsonLimits.bytes;
   for (const [index, line] of lines.entries()) {
-    const encoded = canonicalJson(line);
+    // Include every terminating newline and stop expansion at the artifact's remaining budget.
+    if (remainingBytes === 0)
+      throw new Error("invalid-trace: canonical byte limit");
+    const encoded = canonicalJson(line, remainingBytes - 1);
+    remainingBytes -= Buffer.byteLength(encoded) + 1;
     const record = object(parseJson(encoded), `trace[${index}]`);
     const path = `trace[${index}]`;
     if (index === 0) {

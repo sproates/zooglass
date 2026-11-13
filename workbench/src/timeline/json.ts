@@ -46,9 +46,24 @@ function scalarString(value: string) {
   return value;
 }
 
-export function parseJson(text: string): Json {
+/** A caller may narrow the canonical budget, for example for the remaining JSONL artifact. */
+export function parseJson(
+  text: string,
+  canonicalByteLimit = jsonLimits.bytes,
+): Json {
+  if (!Number.isSafeInteger(canonicalByteLimit) || canonicalByteLimit < 0)
+    throw new Error(
+      "invalid-json: canonical byte budget must be a nonnegative safe integer",
+    );
   if (Buffer.byteLength(text) > jsonLimits.bytes)
     throw new Error("invalid-json: byte limit");
+  const limit = Math.min(jsonLimits.bytes, canonicalByteLimit);
+  let canonicalBytes = 0;
+  const reserve = (bytes: number) => {
+    canonicalBytes += bytes;
+    if (canonicalBytes > limit)
+      throw new Error("invalid-json: canonical byte limit");
+  };
   let offset = 0;
   const whitespace = () => {
     while (/[ \t\r\n]/.test(text[offset] ?? "\0")) offset++;
@@ -64,8 +79,13 @@ export function parseJson(text: string): Json {
         offset++;
         continue;
       }
-      if (char === '"')
-        return scalarString(JSON.parse(text.slice(start, offset)) as string);
+      if (char === '"') {
+        const decoded = scalarString(
+          JSON.parse(text.slice(start, offset)) as string,
+        );
+        reserve(Buffer.byteLength(JSON.stringify(decoded)));
+        return decoded;
+      }
     }
     return fail();
   };
@@ -75,6 +95,7 @@ export function parseJson(text: string): Json {
       throw new Error("invalid-json: nesting limit");
     if (text[offset] === '"') return string();
     if (text[offset] === "{" || text[offset] === "[") {
+      reserve(2); // Both delimiters are present in every canonical container.
       const object = text[offset++] === "{";
       const result: { [key: string]: Json } = Object.create(null);
       const array: Json[] = [];
@@ -93,6 +114,7 @@ export function parseJson(text: string): Json {
             throw new Error(`invalid-json: duplicate key ${key}`);
           whitespace();
           if (text[offset++] !== ":") fail();
+          reserve(1);
           result[key] = value(depth + 1);
         } else array.push(value(depth + 1));
         whitespace();
@@ -101,6 +123,7 @@ export function parseJson(text: string): Json {
           return object ? result : array;
         }
         if (text[offset++] !== ",") fail();
+        reserve(1);
       }
     }
     for (const [literal, parsed] of [
@@ -110,6 +133,7 @@ export function parseJson(text: string): Json {
     ] as const) {
       if (text.startsWith(literal, offset)) {
         offset += literal.length;
+        reserve(literal.length);
         return parsed;
       }
     }
@@ -118,7 +142,9 @@ export function parseJson(text: string): Json {
     );
     if (!token) return fail();
     offset += token[0].length;
-    return decimal(token[0]);
+    const number = decimal(token[0]);
+    reserve(number.text.length);
+    return number;
   };
   const parsed = value(0);
   whitespace();
@@ -150,9 +176,14 @@ export function encodeJson(value: Json): string {
   }
   return JSON.stringify(value);
 }
-export function canonicalJson(text: string): string {
-  const encoded = encodeJson(parseJson(text));
-  if (Buffer.byteLength(encoded) > jsonLimits.bytes)
+export function canonicalJson(
+  text: string,
+  canonicalByteLimit = jsonLimits.bytes,
+): string {
+  const encoded = encodeJson(parseJson(text, canonicalByteLimit));
+  if (
+    Buffer.byteLength(encoded) > Math.min(jsonLimits.bytes, canonicalByteLimit)
+  )
     throw new Error("invalid-json: canonical byte limit");
   return encoded;
 }

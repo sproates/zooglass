@@ -76,6 +76,10 @@ The lossless parser rejects duplicate keys (including escaped aliases), trailing
 input, non-JSON numbers, invalid strings/unpaired surrogates, nesting beyond 64,
 and input/canonical output beyond 16 MiB. Decimal input and expanded output have
 at most 4,096 digits, including zero padding; exponent magnitude is at most 4,096.
+The parser accounts for canonical UTF-8 bytes as values are read, so compact
+exponent tokens cannot accumulate an oversized expanded value before rejection.
+JSONL shares one canonical byte budget across records, including every newline;
+it does not grant a separate 16 MiB allowance to each record.
 Object keys sort by Unicode scalar value; arrays keep order. UTF-8 output uses
 JSON string escaping, no insignificant whitespace, plain decimal numbers,
 normalised negative zero and removed insignificant fractional zeros. Large integers
@@ -148,3 +152,29 @@ unsupported format/mode/capability combinations must fail before execution, neve
 silently fall back. Exact CLI spelling and a converter are not implemented here.
 Equivalent fixtures can later run in both environments as complementary evidence;
 matching domain outcomes does not imply their transport timing is identical.
+
+The intended support matrix keeps those distinctions explicit:
+
+| Format    | Mode          | Current support                                                            | Intended boundary                                                                    |
+| --------- | ------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Legacy    | Preview       | Existing `simulate` prints planned actions.                                | No service execution or behavioural pass.                                            |
+| Legacy    | Integration   | Existing `integrate` uses real service interfaces.                         | Retain real scheduling, sockets and browser-specific companions.                     |
+| Legacy    | Deterministic | Rejected; no implicit conversion.                                          | An explicit, reviewed conversion must resolve changed semantics first.               |
+| Versioned | Preview       | Syntax inspection only; no scheduled-plan renderer yet.                    | A future preview adapter can show the admitted plan without executing it.            |
+| Versioned | Integration   | Unsupported.                                                               | A qualified real-interface adapter can later provide domain-outcome parity evidence. |
+| Versioned | Deterministic | General documents are unsupported; only the separate fixed proofs execute. | Admit only the capabilities implemented and verified by the controlled executor.     |
+
+A common entry point should require a mode rather than infer execution semantics
+from the format. The existing commands can remain explicit aliases. Proposed
+result labels are `preview-only`, `integration-verified` and
+`deterministic-verified`; these labels and mode dispatch are not implemented by
+this inspector. A preview cannot pass behavioural assertions. Integration parity
+should compare independently expected domain outcomes, not promise equal transport
+timing or identical deterministic traces.
+
+Keep conversion separate and reviewable: produce a versioned document and report
+unresolved polling assertions, same-time observation boundaries, reconnect
+retention and runtime reads. First qualify the admitted deterministic subset;
+then add a thin dispatcher and any justified parity adapter. Supporting three
+modes does not require three independent execution implementations or a universal
+converter now.

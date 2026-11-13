@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canonicalJson } from "../../src/timeline/json.js";
+import {
+  canonicalJson,
+  parseJson,
+  jsonLimits,
+} from "../../src/timeline/json.js";
 import {
   parseTimelineDocument,
   requireExecutionCapabilities,
@@ -105,6 +109,30 @@ test("reject ambiguous JSON and bounded encoding violations", () => {
   ])
     assert.throws(() => canonicalJson(raw), undefined, raw.slice(0, 100));
   assert.equal(canonicalJson('{"__proto__":1}'), '{"__proto__":1}');
+});
+
+test("lossless parsing enforces the expanded byte budget before returning a value", () => {
+  // Each expanded number has 4096 bytes. Including commas and brackets,
+  // 4095 numbers encode to exactly 16 MiB, despite the compact input.
+  const atLimit = "[" + Array(4095).fill("1e4095").join(",") + "]";
+  assert.equal(Buffer.byteLength(canonicalJson(atLimit)), jsonLimits.bytes);
+  const overLimit = "[" + Array(4096).fill("1e4095").join(",") + "]";
+  assert.throws(() => parseJson(overLimit), /canonical byte limit/);
+});
+
+test("canonical budgets count UTF-8, escaped strings and structural punctuation exactly", () => {
+  for (const raw of [
+    ' { "é": ["\\n", "𐀀", null, true, false, -0.00, 1e2] } ',
+    ' { "\\u0061": {}, "b": [], "c": "\\/" } ',
+  ]) {
+    const expected = canonicalJson(raw);
+    const bytes = Buffer.byteLength(expected);
+    assert.equal(canonicalJson(raw, bytes), expected);
+    assert.throws(() => parseJson(raw, bytes - 1), /canonical byte limit/);
+  }
+  for (const budget of [NaN, Infinity, -1, 0.5, Number.MAX_SAFE_INTEGER + 1])
+    assert.throws(() => canonicalJson("0", budget), /canonical byte budget/);
+  assert.throws(() => canonicalJson("0", 0), /canonical byte limit/);
 });
 
 test("scenario validation preserves payload precision but grants no executable support", () => {
@@ -275,6 +303,52 @@ test("trace contract retains ordered semantic effects and requires completion", 
     () => validateTrace(raw.replace('"heldFrames":0', '"heldFrames":1')),
     /passing result/,
   );
+});
+
+test("trace byte budget applies to the complete canonical artifact", () => {
+  const records = transcript();
+  const numbers = "[" + Array(2200).fill("1e4095").join(",") + "]";
+  const raw =
+    records
+      .map((record, index) => {
+        if (index === 1 || index === 2)
+          return JSON.stringify({
+            ...record,
+            data: { values: "EXPAND" },
+          }).replace('"EXPAND"', numbers);
+        return JSON.stringify(record);
+      })
+      .join("\n") + "\n";
+  assert.ok(Buffer.byteLength(raw) < jsonLimits.bytes);
+  assert.throws(() => validateTrace(raw), /canonical byte limit/);
+});
+
+test("a canonical trace may exactly fill its budget including final newline", () => {
+  const records = transcript();
+  const count = 4094;
+  const numbers = "[" + Array(count).fill("1e4095").join(",") + "]";
+  const raw =
+    records
+      .map((record, index) =>
+        index === 1
+          ? JSON.stringify({
+              ...record,
+              data: { values: "EXPAND", padding: "" },
+            }).replace('"EXPAND"', numbers)
+          : JSON.stringify(record),
+      )
+      .join("\n") + "\n";
+  // All other spellings keep their byte length when canonicalised.
+  const padding =
+    jsonLimits.bytes - Buffer.byteLength(raw) - count * (4096 - 6);
+  assert.ok(padding > 0);
+  const fill = (length: number) =>
+    raw.replace('"padding":""', '"padding":"' + "x".repeat(length) + '"');
+  assert.equal(
+    Buffer.byteLength(validateTrace(fill(padding))),
+    jsonLimits.bytes,
+  );
+  assert.throws(() => validateTrace(fill(padding + 1)), /canonical byte limit/);
 });
 
 test("legacy assessment exposes interleaved same-time checks and transient clients", () => {

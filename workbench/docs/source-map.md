@@ -657,12 +657,13 @@ file-hash validation.
 ## Environment qualification and evidence retention
 
 ```mermaid
-flowchart LR
+flowchart TB
   image["scripts/linux-timeline.Dockerfile"] -->|separate checkout; explicit JAR preparation| linux["Linux Node/JVM environment"]
   linux -->|execute unchanged campaign| campaign["scripts/document-repeat.ts"]
   campaign -->|full runs, identities and hashes| raw["raw qualification directory"]
   raw -->|exact bytes and bounded inventory| archive["scripts/evidence-archive.py"]
-  archive -->|pack or verify without extracting| retained["evidence/*.tar.gz"]
+  archive -->|pack or verify without extracting| retained["GitHub Release archive assets"]
+  retained -->|downloaded bytes checked against| hashes["evidence/README.md and SHA256SUMS"]
 ```
 
 The archive command operates on saved evidence only. It neither executes scenarios

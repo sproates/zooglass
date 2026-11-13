@@ -65,7 +65,7 @@ Recorded identities:
 - Campaign summary: `897112b6270845efc8587601b4a309ce41267f3f04d06ca03c7073379d3d445a`.
 
 The [Linux raw evidence archive](../evidence/README.md) retains all 900 runs,
-copied inputs, summary, logs and environment metadata in Git. Both Linux and
+copied inputs, summary, logs and environment metadata as GitHub Release assets. Both Linux and
 macOS have independently passed their selected campaigns. Replay still requires
 matching recorded environments; this is not a cross-platform equality guarantee,
 nor SQLite/restart qualification.

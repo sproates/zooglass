@@ -69,5 +69,6 @@ This packages admitted memory-runtime runs for copying or archiving and verifies
 their completeness. It does not upload or back up files, bundle executables,
 qualify Linux/cross-environment equality, or implement persistence/restart.
 Keep the matching prepared JAR and Workbench revision available separately.
-Earlier campaign evidence remains in its existing local format; it has not been
-silently converted or remotely archived.
+Earlier campaign evidence retains its original format, archived separately as
+[GitHub Release assets](../evidence/README.md); it has not been converted to this
+portable run-bundle format.

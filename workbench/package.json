@@ -48,7 +48,8 @@
     "timeline:proof": "node --import tsx src/timeline/run.ts",
     "test:timeline": "node --import tsx --test test/timeline/*.test.ts",
     "timeline:repeat": "node --import tsx scripts/timeline-repeat.ts",
-    "timeline:inspect": "node --import tsx src/timeline/inspect.ts"
+    "timeline:inspect": "node --import tsx src/timeline/inspect.ts",
+    "timeline:execute": "node --import tsx src/timeline/document-cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

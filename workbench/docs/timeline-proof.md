@@ -5,6 +5,8 @@ and bounded writer queues under a Workbench-owned agenda. It supports two litera
 memory/unprotected scenarios. It is not the general simulator or a replacement for
 `simulate` or real-socket integration tests.
 
+For configurable versioned scenarios, see the separate [document executor](timeline-execution.md).
+
 From `workbench/`, prepare the artifact explicitly:
 
 ```sh

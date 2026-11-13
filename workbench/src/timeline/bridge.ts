@@ -20,7 +20,11 @@ export type Response = {
   effects: Effect[];
   pendingTasks: number;
   heldFrames: number;
-  configuration?: { contractVersion: number; storage: string };
+  configuration?: {
+    contractVersion: number;
+    storage: string;
+    documentProfile: string;
+  };
 };
 const cap = 16 * 1024 * 1024;
 
@@ -34,6 +38,7 @@ export class Bridge {
   private commandActive = false;
   private failure?: Error;
   private turn = 0;
+  private epoch = 1_000_000;
   configurationAdmission = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
@@ -176,6 +181,14 @@ export class Bridge {
       if (this.failure) {
         throw this.failure;
       }
+      if (operation.op === "initialize-document") {
+        if (
+          !Number.isSafeInteger(operation.epochMillis) ||
+          Number(operation.epochMillis) < 0
+        )
+          throw new Error("Invalid document epoch");
+        this.epoch = Number(operation.epochMillis);
+      }
       const turnId = this.turn;
       const bytes = Buffer.from(
         JSON.stringify({
@@ -184,7 +197,7 @@ export class Bridge {
           runtimeGeneration: 1,
           timeMs,
           monotonicMs: timeMs,
-          wallMillis: 1_000_000 + timeMs,
+          wallMillis: this.epoch + timeMs,
         }),
       );
       if (bytes.length > cap) {

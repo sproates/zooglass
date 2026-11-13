@@ -3,10 +3,11 @@ import { open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { Bridge } from "./bridge.js";
 import { format, parseTimelineDocument } from "./contract.js";
+import { documentProfile, executionSettings } from "./document-profile.js";
 import { jsonLimits } from "./json.js";
 import { object, text } from "./validation.js";
 
-async function boundedFile(path: string): Promise<Buffer> {
+export async function boundedFile(path: string): Promise<Buffer> {
   const file = await open(path, "r");
   try {
     if (!(await file.stat()).isFile())
@@ -29,11 +30,11 @@ async function boundedFile(path: string): Promise<Buffer> {
     await file.close();
   }
 }
-const decode = (bytes: Buffer) =>
-  new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+export const decode = (bytes: Buffer) =>
+  new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
 
-/** Admission inspection only: validates config with the prepared artifact's production parser. */
-export async function inspectAdmission(scenarioPath: string, jar: string) {
+/** Resolve and hash the exact bytes before any runtime is started. */
+export async function loadDocument(scenarioPath: string) {
   const scenario = parseTimelineDocument(
     decode(await boundedFile(scenarioPath)),
   );
@@ -48,6 +49,14 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
     throw new Error("invalid-admission: configuration SHA-256 mismatch");
   }
   const wire = decode(bytes);
+  return { scenario, wire, configurationHash };
+}
+
+/** Read once and preserve the exact configuration bytes validated by the runtime. */
+export async function inspectAdmission(scenarioPath: string, jar: string) {
+  const { scenario, wire, configurationHash } =
+    await loadDocument(scenarioPath);
+  const runtime = object(scenario.document.runtime, "$.runtime");
   const { bridge, artifact } = await Bridge.open(resolve(jar));
   try {
     if (bridge.configurationAdmission !== 1)
@@ -74,16 +83,30 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
       throw new Error(
         "invalid-admission: runtime configuration disagrees with scenario storage/version",
       );
+    let reason: string | undefined;
+    if (
+      !bridge.documentFormats.includes(format) ||
+      response.configuration.documentProfile !== documentProfile
+    )
+      reason =
+        "Prepared artifact/configuration does not support memory-arrival-v1.";
+    try {
+      executionSettings(scenario, wire);
+    } catch (error) {
+      reason = String(error);
+    }
     return {
       artifact,
       configurationHash,
       configuration: "valid" as const,
+      documentProfile: response.configuration.documentProfile,
       format,
       artifactDocumentFormats: bridge.documentFormats,
       requiredCapabilities: scenario.requiredCapabilities,
-      execution: "unsupported" as const,
+      execution: reason ? "unsupported" : "eligible",
       reason:
-        "No general document executor is qualified in Workbench; configuration validity is not execution admission.",
+        reason ??
+        "Eligible for the bounded document executor; no actions have been executed.",
     };
   } finally {
     await bridge.close();

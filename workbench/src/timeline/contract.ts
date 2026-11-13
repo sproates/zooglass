@@ -192,7 +192,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   };
 }
 
-/** No general document executor is qualified yet. Empty by design, not inferred from parsing. */
+/** Default deny: callers must explicitly supply capabilities after runtime/profile admission. */
 export const qualifiedDocumentCapabilities: readonly string[] = [];
 export function requireExecutionCapabilities(
   document: TimelineDocument,
@@ -203,6 +203,6 @@ export function requireExecutionCapabilities(
   );
   if (missing.length)
     throw new Error(
-      `unsupported-execution: ${missing.join(", ")}; the fixed proof runner does not execute timeline-simulation/v1 documents`,
+      `unsupported-execution: ${missing.join(", ")}; execution capabilities have not been admitted`,
     );
 }

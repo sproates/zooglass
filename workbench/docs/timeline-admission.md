@@ -20,11 +20,12 @@ A missing hash match, unsupported artifact, invalid configuration or disagreemen
 fails inspection. Strategy validation is not reimplemented in TypeScript.
 
 A successful report contains the artifact hash, configuration hash, required
-capabilities, and `configuration: valid`. It still returns `execution: unsupported`:
-the prepared fixed host advertises no general document formats, and Workbench has
-no qualified general document executor. A syntactically valid document, valid
-configuration and recognised artifact are necessary prerequisites, not proof that
-the document ran or that its requested features are deterministic.
+capabilities, the decoded configuration profile, and `configuration: valid`.
+It reports `execution: eligible` when the prepared artifact advertises the document
+format and the configuration/document fit the [bounded executor](timeline-execution.md).
+Otherwise it reports `execution: unsupported` with a reason. Neither is an execution
+result: runtime-derived connection closure or an incorrect expected observation can
+still fail an eligible run.
 
 The ordinary `scenario`, `legacy` and `trace` inspection commands remain local
 parsing/assessment operations and do not start Java. Saved artifact identity and

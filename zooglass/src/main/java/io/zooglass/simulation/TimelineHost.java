@@ -33,6 +33,9 @@ public final class TimelineHost {
     private EventIngress ingress;
     private long nextTurn;
     private boolean stopped;
+    private long epoch = 1_000_000;
+    private boolean documentMode;
+    private final Map<String, String> roles = new LinkedHashMap<>();
 
     public static void main(String[] args) throws Exception {
         var output = new DataOutputStream(System.out);
@@ -61,7 +64,7 @@ public final class TimelineHost {
                         "configurationAdmission",
                         1,
                         "documentFormats",
-                        List.of()));
+                        List.of("timeline-simulation/v1")));
         var input = new DataInputStream(System.in);
         var host = new TimelineHost();
         while (true) {
@@ -92,11 +95,13 @@ public final class TimelineHost {
         if (stopped) throw new IllegalStateException("Runtime already stopped");
         long id = integer(command, "turnId");
         long at = integer(command, "timeMs");
+        if (command.path("op").asString().equals("initialize-document") && runtime == null)
+            epoch = integer(command, "epochMillis");
         if (id != nextTurn++
                 || id >= 10000
                 || integer(command, "runtimeGeneration") != 1
                 || integer(command, "monotonicMs") != at
-                || integer(command, "wallMillis") != 1_000_000 + at)
+                || integer(command, "wallMillis") != Math.addExact(epoch, at))
             throw new IllegalArgumentException("Invalid command identity or clocks");
         if (id == 0 && at != 0)
             throw new IllegalArgumentException("Initial elapsed time must be zero");
@@ -115,13 +120,21 @@ public final class TimelineHost {
                     "pendingTasks", 0,
                     "heldFrames", 0,
                     "configuration",
-                    Map.of("contractVersion", config.contractVersion(), "storage", config.storage()));
+                    Map.of("contractVersion", config.contractVersion(), "storage", config.storage(),
+                            "documentProfile", TimelineProfile.supports(config) ? TimelineProfile.NAME : "unsupported"));
         }
-        if ((runtime == null) != op.equals("initialize"))
+        if ((runtime == null) != (op.equals("initialize") || op.equals("initialize-document")))
             throw new IllegalArgumentException("Invalid lifecycle");
         turns.begin(at);
         switch (op) {
             case "initialize" -> initialize(command.path("policy").asString());
+            case "initialize-document" -> {
+                var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+                if (!TimelineProfile.supports(config))
+                    throw new IllegalArgumentException("Unsupported document configuration profile");
+                documentMode = true;
+                compose(config);
+            }
             case "connect" -> {
                 String name = text(command, "session");
                 if (sessions.containsKey(name) || sessions.size() >= 10)
@@ -135,25 +148,37 @@ public final class TimelineHost {
                                                 Map.of(
                                                         "kind", "receipt", "session", name, "wire",
                                                         wire)));
-                sessions.put(name, session);
-                if (name.startsWith("viewer-")) subscriptions.afterConnectionEstablished(session);
-                else if (!name.startsWith("source-"))
+                String role = documentMode ? text(command, "role")
+                        : name.startsWith("viewer-") ? "client" : name.startsWith("source-") ? "source" : "invalid";
+                if (!Set.of("client", "source").contains(role))
                     throw new IllegalArgumentException("Invalid session role");
+                sessions.put(name, session);
+                roles.put(name, role);
+                if (role.equals("client")) subscriptions.afterConnectionEstablished(session);
             }
             case "ingress" -> {
-                var session = session(command, "source-");
+                var session = session(command, "source");
                 ingress.handleMessage(session, new TextMessage(text(command, "wire")));
             }
             case "subscribe" ->
                     subscriptions.handleMessage(
-                            session(command, "viewer-"), new TextMessage(text(command, "wire")));
-            case "disconnect" -> session(command, "source-").close();
+                            session(command, "client"), new TextMessage(text(command, "wire")));
+            case "disconnect" -> {
+                String name = text(command, "session");
+                var session = sessions.get(name);
+                if (session == null) throw new IllegalArgumentException("Unavailable session");
+                if ("client".equals(roles.get(name)))
+                    subscriptions.afterConnectionClosed(session, org.springframework.web.socket.CloseStatus.NORMAL);
+                if (session.isOpen()) session.close();
+                sessions.remove(name);
+                roles.remove(name);
+            }
             case "stall" -> {
-                session(command, "viewer-");
+                session(command, "client");
                 delivery.stall(text(command, "session"));
             }
             case "release" -> {
-                session(command, "viewer-");
+                session(command, "client");
                 if (!command.path("fail").isBoolean())
                     throw new IllegalArgumentException("Expected boolean fail");
                 delivery.release(text(command, "session"), command.path("fail").asBoolean());
@@ -219,7 +244,11 @@ public final class TimelineHost {
                                         "position", Map.of("position", field))),
                         new RuntimeConfiguration.Delivery(
                                 null, SlowClientPolicy.select(policy), 3, 65536L));
-        runtime = TimelineRuntime.create(config, turns);
+        compose(config);
+    }
+
+    private void compose(RuntimeConfiguration config) {
+        runtime = TimelineRuntime.create(config, turns, epoch);
         runtime.listen(
                 snapshot ->
                         turns.effect(
@@ -244,7 +273,9 @@ public final class TimelineHost {
                 switch (op) {
                     case "initialize" -> Set.of("policy");
                     case "inspect-configuration" -> Set.of("wire");
-                    case "connect", "disconnect", "stall" -> Set.of("session");
+                    case "initialize-document" -> Set.of("wire", "epochMillis");
+                    case "connect" -> Set.of("session", "role");
+                    case "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");
                     case "release" -> Set.of("session", "fail");
                     case "task" -> Set.of("task");
@@ -255,10 +286,10 @@ public final class TimelineHost {
             throw new IllegalArgumentException("Unsupported POC command field");
     }
 
-    private TimelineSession session(JsonNode command, String prefix) {
+    private TimelineSession session(JsonNode command, String role) {
         String id = text(command, "session");
         var session = sessions.get(id);
-        if (!id.startsWith(prefix) || session == null || !session.isOpen())
+        if (!role.equals(roles.get(id)) || session == null || !session.isOpen())
             throw new IllegalArgumentException("Unavailable session");
         return session;
     }

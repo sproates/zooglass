@@ -482,3 +482,25 @@ flowchart LR
 Ordinary inspection does not invoke Java. Explicit admission inspection invokes
 the prepared artifact solely for configuration validation, without runtime actions.
 A valid document or configuration is not an executable-capability claim. See [contracts and compatibility](timeline-format.md).
+
+## Bounded document execution
+
+```mermaid
+flowchart LR
+  cli["timeline/document-cli.ts"] --> run["timeline/run-document.ts"]
+  run --> admission["timeline/admission.ts"]
+  run --> profile["timeline/document-profile.ts"]
+  run --> execution["timeline/document-execution.ts"]
+  execution --> agenda["timeline/agenda.ts"]
+  execution --> bridge["timeline/bridge.ts"]
+  execution --> trace["timeline/semantic-trace.ts"]
+  run --> validation["timeline/trace-contract.ts"]
+  bridge --> host["Java simulation/TimelineHost.java"]
+  host --> qualification["Java runtime/TimelineProfile.java"]
+```
+
+The executor preloads declared actions, then settles real scheduled work before
+checking cumulative observations. Trace records are appended as effects occur;
+scheduling and handoff causes retain their own event identities. This path does
+not reuse the fixed-proof oracle or reconstruct effects from expected assertions.
+See [execution and limits](timeline-execution.md).

@@ -485,12 +485,13 @@ Replay and authorisation remain outside the implemented contracts.
 ```mermaid
 flowchart LR
   host["simulation/TimelineHost.java"] -->|owns one command turn| turn["simulation/TurnContext.java"]
-  host -->|fixed memory composition| runtime["runtime/TimelineRuntime.java"]
+  host -->|fixed proof or admitted document composition| runtime["runtime/TimelineRuntime.java"]
   host -->|inspect configuration without starting runtime| runtime
   runtime -->|shared production decoder and validation| configuration["runtime/RuntimeConfiguration.java"]
   runtime -->|clock and alarm injection| coordinator["runtime/ViewCoordinator.java"]
   host -->|real source handler| ingress["runtime/EventIngress.java"]
   host -->|real subscription handler| subscriptions["delivery/SnapshotSubscriptions.java"]
+  host -->|decoded configuration qualification| profile["runtime/TimelineProfile.java"]
   host -->|modelled connections| session["simulation/TimelineSession.java"]
   host -->|controlled driver| driver["delivery/TimelineDelivery.java"]
   driver -->|same writer and queue| broadcaster["delivery/SnapshotBroadcaster.java"]

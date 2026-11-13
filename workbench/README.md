@@ -799,5 +799,7 @@ its JAR explicitly before running `npm run test:timeline` or `npm run timeline:p
 
 The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
 provides strict syntax/trace inspection and a census of the existing scenario
-format. Validation is separate from qualified execution; general documents are
-not yet executable through the fixed proof host.
+format. The [bounded document executor](docs/timeline-execution.md) now runs
+versioned scenarios against the real configured runtime, with causal traces and
+exact observation assertions. Its `memory-arrival-v1` profile remains narrower than
+the full runtime and legacy format; validation alone does not certify execution.

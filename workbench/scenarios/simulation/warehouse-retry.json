@@ -1,0 +1,694 @@
+{
+  "format": "timeline-simulation/v1",
+  "id": "warehouse-retry-and-expiry",
+  "clock": {
+    "epochMillis": 1700000000000
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "runtime": {
+    "configuration": "warehouse-runtime.json",
+    "sha256": "d9da3299f0e861c9d7f681611ffc89a138219a58ae826696f4c692a003e7071d",
+    "storage": "memory",
+    "access": "unprotected",
+    "initialState": "empty"
+  },
+  "actors": [
+    {
+      "id": "viewer-logical-source",
+      "role": "source"
+    },
+    {
+      "id": "source-logical-client",
+      "role": "client"
+    }
+  ],
+  "links": [
+    {
+      "actor": "viewer-logical-source",
+      "latencyMs": 0
+    },
+    {
+      "actor": "source-logical-client",
+      "latencyMs": 0
+    }
+  ],
+  "publications": [
+    {
+      "id": "report-1",
+      "body": {
+        "sourceId": "warehouse-feed",
+        "epoch": "day-1",
+        "sourceEntityId": "sku-4",
+        "publicationSequence": 1,
+        "type": "stock",
+        "payload": {
+          "amount": 1
+        }
+      }
+    },
+    {
+      "id": "report-2",
+      "body": {
+        "sourceId": "warehouse-feed",
+        "epoch": "day-1",
+        "sourceEntityId": "sku-4",
+        "publicationSequence": 2,
+        "type": "stock",
+        "payload": {
+          "amount": 2
+        }
+      }
+    },
+    {
+      "id": "report-3",
+      "body": {
+        "sourceId": "warehouse-feed",
+        "epoch": "day-1",
+        "sourceEntityId": "sku-4",
+        "publicationSequence": 3,
+        "type": "stock",
+        "payload": {
+          "amount": 3
+        }
+      }
+    },
+    {
+      "id": "report-4",
+      "body": {
+        "sourceId": "warehouse-feed",
+        "epoch": "day-1",
+        "sourceEntityId": "sku-4",
+        "publicationSequence": 4,
+        "type": "stock",
+        "payload": {
+          "amount": 4
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "source-connect",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "viewer-logical-source"
+    },
+    {
+      "id": "client-connect",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "source-logical-client"
+    },
+    {
+      "id": "subscribe",
+      "atMs": 0,
+      "kind": "client-subscribe",
+      "actor": "source-logical-client",
+      "viewId": "stock-view",
+      "entityId": "sku-4"
+    },
+    {
+      "id": "send-1",
+      "atMs": 10,
+      "kind": "source-send",
+      "actor": "viewer-logical-source",
+      "publication": "report-1"
+    },
+    {
+      "id": "source-disconnect",
+      "atMs": 15,
+      "kind": "disconnect",
+      "actor": "viewer-logical-source"
+    },
+    {
+      "id": "source-reconnect",
+      "atMs": 16,
+      "kind": "connect",
+      "actor": "viewer-logical-source"
+    },
+    {
+      "id": "retry",
+      "atMs": 20,
+      "kind": "source-retry",
+      "actor": "viewer-logical-source",
+      "publication": "report-1"
+    },
+    {
+      "id": "send-2",
+      "atMs": 60,
+      "kind": "source-send",
+      "actor": "viewer-logical-source",
+      "publication": "report-2"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "initial",
+      "atMs": 0,
+      "kind": "client-frames",
+      "actor": "source-logical-client",
+      "expected": [
+        {
+          "type": "subscribed",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "publicationSequences": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": [
+              "reading"
+            ],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "fresh",
+      "atMs": 59,
+      "kind": "client-frames",
+      "actor": "source-logical-client",
+      "expected": [
+        {
+          "type": "subscribed",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "publicationSequences": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": [
+              "reading"
+            ],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 1,
+          "data": {
+            "reading": {
+              "amount": 1
+            }
+          },
+          "provenance": {
+            "reading": {
+              "sourceId": "warehouse-feed",
+              "epoch": "day-1",
+              "sourceEntityId": "sku-4"
+            }
+          },
+          "publicationSequences": {
+            "reading": [
+              1
+            ]
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "fresh",
+                "receivedAtMillis": 1700000000010,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "all-frames",
+      "atMs": 110,
+      "kind": "client-frames",
+      "actor": "source-logical-client",
+      "expected": [
+        {
+          "type": "subscribed",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "publicationSequences": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": [
+              "reading"
+            ],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 1,
+          "data": {
+            "reading": {
+              "amount": 1
+            }
+          },
+          "provenance": {
+            "reading": {
+              "sourceId": "warehouse-feed",
+              "epoch": "day-1",
+              "sourceEntityId": "sku-4"
+            }
+          },
+          "publicationSequences": {
+            "reading": [
+              1
+            ]
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "fresh",
+                "receivedAtMillis": 1700000000010,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 2,
+          "data": {
+            "reading": {
+              "amount": 1
+            }
+          },
+          "provenance": {
+            "reading": {
+              "sourceId": "warehouse-feed",
+              "epoch": "day-1",
+              "sourceEntityId": "sku-4"
+            }
+          },
+          "publicationSequences": {
+            "reading": [
+              1
+            ]
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "stale",
+                "receivedAtMillis": 1700000000010,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 3,
+          "data": {
+            "reading": {
+              "amount": 2
+            }
+          },
+          "provenance": {
+            "reading": {
+              "sourceId": "warehouse-feed",
+              "epoch": "day-1",
+              "sourceEntityId": "sku-4"
+            }
+          },
+          "publicationSequences": {
+            "reading": [
+              2
+            ]
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "fresh",
+                "receivedAtMillis": 1700000000060,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        },
+        {
+          "type": "view-update",
+          "viewId": "stock-view",
+          "entityId": "sku-4",
+          "version": 4,
+          "data": {
+            "reading": {
+              "amount": 2
+            }
+          },
+          "provenance": {
+            "reading": {
+              "sourceId": "warehouse-feed",
+              "epoch": "day-1",
+              "sourceEntityId": "sku-4"
+            }
+          },
+          "publicationSequences": {
+            "reading": [
+              2
+            ]
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "reading": {
+                "freshness": "stale",
+                "receivedAtMillis": 1700000000060,
+                "inputs": [
+                  "warehouse-feed"
+                ]
+              }
+            },
+            "inputs": {
+              "warehouse-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "day-1",
+                "sourceEntityId": "sku-4",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "receipts",
+      "atMs": 110,
+      "kind": "source-receipts",
+      "actor": "viewer-logical-source",
+      "expected": [
+        {
+          "status": "applied",
+          "reason": "memory",
+          "stream": {
+            "sourceId": "warehouse-feed",
+            "epoch": "day-1",
+            "sourceEntityId": "sku-4"
+          },
+          "publicationSequence": 1,
+          "version": 1,
+          "changedViews": [
+            "stock-view"
+          ],
+          "targets": [
+            {
+              "viewId": "stock-view",
+              "entityId": "sku-4",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": [
+                "reading"
+              ],
+              "fields": [
+                {
+                  "field": "reading",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "duplicate",
+          "reason": "alreadyApplied",
+          "stream": {
+            "sourceId": "warehouse-feed",
+            "epoch": "day-1",
+            "sourceEntityId": "sku-4"
+          },
+          "publicationSequence": 1,
+          "version": 1,
+          "changedViews": [],
+          "targets": [
+            {
+              "viewId": "stock-view",
+              "entityId": "sku-4",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": [
+                "reading"
+              ],
+              "fields": [
+                {
+                  "field": "reading",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "applied",
+          "reason": "memory",
+          "stream": {
+            "sourceId": "warehouse-feed",
+            "epoch": "day-1",
+            "sourceEntityId": "sku-4"
+          },
+          "publicationSequence": 2,
+          "version": 3,
+          "changedViews": [
+            "stock-view"
+          ],
+          "targets": [
+            {
+              "viewId": "stock-view",
+              "entityId": "sku-4",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": [
+                "reading"
+              ],
+              "fields": [
+                {
+                  "field": "reading",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": {
+    "turns": 2000,
+    "rounds": 100,
+    "queuedEvents": 1000,
+    "pendingMessages": 1000,
+    "traceBytes": 1048576
+  },
+  "untilMs": 110,
+  "end": {
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0,
+    "heldFrames": 0
+  }
+}

@@ -15,13 +15,17 @@ public final class TimelineRuntime {
     }
 
     public static ViewCoordinator create(RuntimeConfiguration config, TurnContext turns) {
+        return create(config, turns, 1_000_000);
+    }
+
+    public static ViewCoordinator create(RuntimeConfiguration config, TurnContext turns, long epoch) {
         turns.check();
         if (!config.storage().equals("memory"))
             throw new IllegalArgumentException("POC supports memory only");
         var clock =
                 new ReceiptClock() {
                     public long wallMillis() {
-                        return 1_000_000 + turns.now();
+                        return Math.addExact(epoch, turns.now());
                     }
 
                     public long monotonicMillis() {

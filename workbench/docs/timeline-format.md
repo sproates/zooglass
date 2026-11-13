@@ -1,7 +1,8 @@
 # Timeline document and trace contracts
 
 This POC adds a strict **document admission contract**, an encoding contract and a legacy
-compatibility inspector. It does **not** add a general scenario executor.
+compatibility inspector. The [bounded executor](timeline-execution.md) runs admitted
+documents for the explicit `memory-arrival-v1` configuration profile.
 `timeline-simulation/v1` and `timeline-trace/v1` are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
 retain their private format and existing commands.
@@ -21,9 +22,8 @@ or that runtime-derived effects permit every planned action. The optional [prepa
 the configuration relative to the scenario, verifies its byte hash and invokes the
 full existing ZooGlass configuration parser through the prepared JVM. It executes
 no runtime actions and never builds Java. No second strategy language
-is introduced here. The example is a contract example, not an executed acceptance
-fixture. `execution: unsupported` is deliberate; the capability gate rejects all
-general documents until an executor is qualified. Trace inspection likewise checks
+is introduced here. Admission reports `execution: eligible` only when the prepared artifact, configuration
+profile and document bounds qualify. Eligibility does not mean the document ran. Trace inspection likewise checks
 structure, not whether the recorded execution or assertions actually happened.
 
 ## Scenario contract

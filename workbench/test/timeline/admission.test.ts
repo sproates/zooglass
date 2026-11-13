@@ -11,11 +11,11 @@ const jar = resolve(
 );
 const example = resolve("scenarios/simulation/receipt-contract.json");
 
-test("prepared artifact validates real configuration without granting execution", async () => {
+test("prepared artifact validates real configuration without claiming execution", async () => {
   const result = await inspectAdmission(example, jar);
   assert.equal(result.configuration, "valid");
-  assert.equal(result.execution, "unsupported");
-  assert.deepEqual(result.artifactDocumentFormats, []);
+  assert.equal(result.execution, "eligible");
+  assert.deepEqual(result.artifactDocumentFormats, ["timeline-simulation/v1"]);
   assert.equal(
     result.artifact,
     createHash("sha256")
@@ -74,4 +74,11 @@ test("production parser rejects correctly hashed unsupported strategy and storag
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// The retained configuration must encode to precisely the bytes whose hash was checked.
+test("UTF-8 decoding preserves BOM bytes rather than silently changing the hashed input", async () => {
+  const { decode } = await import("../../src/timeline/admission.js");
+  const bytes = Buffer.from("\ufeff{}");
+  assert.deepEqual(Buffer.from(decode(bytes)), bytes);
 });

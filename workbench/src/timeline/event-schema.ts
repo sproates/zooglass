@@ -27,7 +27,34 @@ export function eventData(
   until: number,
 ) {
   const data = object(value, path);
-  if (kind === "action") {
+  if (kind === "runtime-command") {
+    const op = choice(data.op, `${path}.op`, [
+      "initialize-document",
+      "observe",
+      "shutdown",
+    ]);
+    object(data, path, [
+      "op",
+      ...(op === "initialize-document"
+        ? ["configurationSha256", "epochMillis"]
+        : []),
+    ]);
+    if (op === "initialize-document") {
+      if (!/^[a-f0-9]{64}$/.test(text(data.configurationSha256, path)))
+        invalid(path, "expected configuration SHA-256");
+      integer(data.epochMillis, `${path}.epochMillis`);
+    }
+  } else if (kind === "task-dispatched") {
+    object(data, path, ["taskId"]);
+    text(data.taskId, `${path}.taskId`);
+  } else if (kind === "connection-closed") {
+    object(data, path, ["code"]);
+    integer(data.code, `${path}.code`, 4999, 1000);
+  } else if (kind === "handoff") {
+    object(data, path, ["messageId", "envelope"]);
+    text(data.messageId, `${path}.messageId`);
+    clientEnvelope(data.envelope, `${path}.envelope`);
+  } else if (kind === "action") {
     const actionKind = choice(
       data.actionKind,
       `${path}.actionKind`,
@@ -93,7 +120,11 @@ export function eventData(
         "assertion result disagrees with complete expected/actual comparison",
       );
   } else {
-    object(data, path, ["envelope"]);
+    object(data, path, [
+      "envelope",
+      ...(Object.hasOwn(data, "messageId") ? ["messageId"] : []),
+    ]);
+    if (data.messageId !== undefined) text(data.messageId, `${path}.messageId`);
     const validate =
       kind === "receipt"
         ? receiptEnvelope

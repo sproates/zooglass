@@ -32,7 +32,30 @@ export function validateTrace(raw: string): string {
     const record = object(parseJson(encoded), `trace[${index}]`);
     const path = `trace[${index}]`;
     if (index === 0) {
-      object(record, path, ["format", "scenarioSha256", "untilMs"]);
+      object(record, path, [
+        "format",
+        "scenarioSha256",
+        "untilMs",
+        ...(Object.hasOwn(record, "execution") ? ["execution"] : []),
+      ]);
+      if (record.execution !== undefined) {
+        const execution = object(record.execution, `${path}.execution`, [
+          "profile",
+          "artifactSha256",
+          "configurationSha256",
+          "workbenchSha256",
+        ]);
+        choice(execution.profile, `${path}.execution.profile`, [
+          "memory-arrival-v1",
+        ]);
+        for (const name of [
+          "artifactSha256",
+          "configurationSha256",
+          "workbenchSha256",
+        ])
+          if (!/^[a-f0-9]{64}$/.test(text(execution[name], name)))
+            invalid(path, "expected execution SHA-256");
+      }
       choice(record.format, `${path}.format`, ["timeline-trace/v1"]);
       if (
         !/^[a-f0-9]{64}$/.test(
@@ -80,9 +103,19 @@ export function validateTrace(raw: string): string {
         "runtimeGeneration",
         "connectionGeneration",
         "data",
+        ...(Object.hasOwn(record, "causes") ? ["causes"] : []),
       ]);
+      if (record.causes !== undefined) {
+        for (const cause of list(record.causes, `${path}.causes`, 1000))
+          if (!ids.has(text(cause, `${path}.causes`)))
+            invalid(path, "cause must identify an earlier event");
+      }
       const kind = choice(record.kind, `${path}.kind`, [
         "action",
+        "runtime-command",
+        "task-dispatched",
+        "connection-closed",
+        "handoff",
         "scheduled",
         "cancelled",
         "delivered",

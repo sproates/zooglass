@@ -520,3 +520,13 @@ flowchart LR
 Saved output is comparison evidence only. Identity/environment admission precedes
 runtime initialization; trace comparison stops at the first mismatch. See
 [verification replay](timeline-replay.md) for result meanings and artifact bounds.
+
+## Receipt-loss rules
+
+`timeline/receipt-faults.ts` validates explicit rules and derives versioned integer
+draws. `contract.ts` admits references; `document-execution.ts` invokes draws only
+for actual runtime receipts, records decisions and schedules a real host disconnect
+in the next causal round. Connection generations invalidate queued receipts and
+later sends; declared reconnect actions establish fresh sessions.
+`event-schema.ts` validates the draw record and sample/probability consistency.
+The Java runtime does not implement these link faults. See [receipt loss](timeline-faults.md).

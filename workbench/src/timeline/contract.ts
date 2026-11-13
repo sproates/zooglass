@@ -1,3 +1,4 @@
+import { receiptRules } from "./receipt-faults.js";
 import { actionFields } from "./event-schema.js";
 import { observationList } from "./envelopes.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
@@ -21,6 +22,7 @@ export const capabilities = [
   "client-lifecycle",
   "observations",
   "writer-stall",
+  "receipt-loss",
 ] as const;
 export type TimelineDocument = {
   canonical: string;
@@ -32,7 +34,8 @@ export type TimelineDocument = {
 /** Syntax, references and declared lifecycle admission. Does not certify runtime configuration or execution. */
 export function parseTimelineDocument(raw: string): TimelineDocument {
   const canonical = canonicalJson(raw);
-  const doc = object(parseJson(canonical), "$", [
+  const rawDocument = object(parseJson(canonical), "$");
+  const doc = object(rawDocument, "$", [
     "format",
     "id",
     "clock",
@@ -46,6 +49,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "limits",
     "untilMs",
     "end",
+    ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
   ]);
   choice(doc.format, "$.format", [format]);
   text(doc.id, "$.id");
@@ -184,6 +188,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     observationList(assertion.expected, `${path}.expected`, kind);
     required.add("observations");
   });
+  if (receiptRules(doc).length) required.add("receipt-loss");
   return {
     canonical,
     document: doc,

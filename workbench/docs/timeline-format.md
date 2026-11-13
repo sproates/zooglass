@@ -30,7 +30,7 @@ structure, not whether the recorded execution or assertions actually happened.
 
 ## Scenario contract
 
-All fields are required; unknown fields and unsupported operations are errors.
+All fields except `faults` are required; unknown fields and unsupported operations are errors.
 The [example](../scenarios/simulation/receipt-contract.json) shows the whole shape.
 
 - `format`, `id`, `clock.epochMillis`, lowercase 256-bit `seed` and finite `untilMs`
@@ -77,6 +77,9 @@ The [example](../scenarios/simulation/receipt-contract.json) shows the whole sha
   and 16 MiB trace data. Documents allow at most 100 actors/links and 1,000 each
   of publications/actions/assertions. These are syntax admission bounds; the
   [executor](timeline-execution.md) enforces narrower runtime budgets.
+- Optional `faults` admits bounded [receipt-loss rules](timeline-faults.md) tied to
+  source action IDs, with integer numerator/denominator probabilities. Other fault
+  kinds and overlapping rules for an action reject.
 - `end` permits or forbids future tasks and requires zero messages and held frames.
   All work due at or before the horizon must have settled before final success.
 
@@ -84,7 +87,7 @@ The accepted design's `(time, round, phase, ordinal)` ordering applies: lifecycl
 changes phase 0, deadlines phase 1, inputs phase 2. Declaration order is preserved
 within each phase, and derived same-time work enters the next round. Assertions
 observe after all executable work at that timestamp settles. No invisible drain
-occurs between same-time publications. Seeded fault rules, delayed/dropped links,
+occurs between same-time publications. Beyond the admitted receipt-loss rules, delayed/dropped links,
 restart, wall-clock changes, dynamic views, HTTP snapshot reads and other assertion
 kinds remain rejected by this grammar increment, not silently ignored. Their
 syntax and runtime evidence belong to subsequent increments.
@@ -119,19 +122,21 @@ event IDs, preserving scheduling or handoff ownership alongside the executing pa
 Parents and causes must precede children; agenda
 keys cannot decrease. Multiple effects may share a turn key. Event kinds are
 `action`, `runtime-command`, `task-dispatched`, `connection-closed`, `handoff`,
-`scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`, `frame` and `assertion`. Their `data` wrappers are closed schemas:
+`scheduled`, `cancelled`, `delivered`, `dropped`, `receipt`, `state`, `frame`,
+`fault-decision` and `assertion`. Their `data` wrappers are closed schemas:
 
-| Kind                           | Required data                                                                                                                 |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `action`                       | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                                    |
-| `scheduled`                    | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon.           |
-| `cancelled`, `task-dispatched` | `taskId`.                                                                                                                     |
-| `delivered`, `dropped`         | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.                    |
-| `receipt`, `state`, `frame`    | Full `envelope`, checked against the corresponding runtime message shape; optional `messageId` (emitted for receipts/frames). |
-| `runtime-command`              | `op` (`initialize-document`, `observe`, `shutdown`); initialization also requires `configurationSha256` and `epochMillis`.    |
-| `connection-closed`            | `code` (1000–4999).                                                                                                           |
-| `handoff`                      | `messageId` and complete client `envelope`.                                                                                   |
-| `assertion`                    | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                                 |
+| Kind                           | Required data                                                                                                                                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                       | `actionId`, `actionKind`, and the kind-specific action fields (for example `publication`).                                                                                                                 |
+| `scheduled`                    | `taskId`, `atMs`, `phase`, `taskKind`; the deadline cannot precede its scheduling event and may exceed the horizon.                                                                                        |
+| `cancelled`, `task-dispatched` | `taskId`.                                                                                                                                                                                                  |
+| `delivered`, `dropped`         | `messageId`, `channel` (`source-receipt` or `client-frame`), full `envelope`; drops also require `reason`.                                                                                                 |
+| `receipt`, `state`, `frame`    | Full `envelope`, checked against the corresponding runtime message shape; optional `messageId` (emitted for receipts/frames).                                                                              |
+| `runtime-command`              | `op` (`initialize-document`, `observe`, `shutdown`, `disconnect`); initialization also requires `configurationSha256` and `epochMillis`; fault disconnect requires `reason: receipt-loss` and `messageId`. |
+| `connection-closed`            | `code` (1000–4999).                                                                                                                                                                                        |
+| `handoff`                      | `messageId` and complete client `envelope`.                                                                                                                                                                |
+| `fault-decision`               | `algorithm`, `ruleId`, `actionId`, `messageId`, `attempt`, `drawIndex`, `digest`, `sample`, `numerator`, `denominator`, `rejected`, `lost`; see [draw contract](timeline-faults.md).                       |
+| `assertion`                    | `assertionId`, `assertionKind`, `atMs`, `passed`, full ordered `expected` and `actual` lists.                                                                                                              |
 
 Receipt envelopes retain status, reason, stream identity, sequence, version,
 changed views and complete target/field outcomes. Snapshot and client-view envelopes

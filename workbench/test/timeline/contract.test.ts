@@ -157,7 +157,7 @@ test("scenario validation preserves payload precision but grants no executable s
 
 test("reject unknown keys, identities, unsupported capabilities and unsafe limits", () => {
   const cases: [string, (value: ReturnType<typeof fixture>) => void][] = [
-    ["unknown field", (v) => Object.assign(v, { faults: [] })],
+    ["unknown field", (v) => Object.assign(v, { unsupported: [] })],
     [
       "supported values",
       (v) => {

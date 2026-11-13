@@ -807,3 +807,6 @@ the full runtime and legacy format; validation alone does not certify execution.
 [Verification replay](docs/timeline-replay.md) starts a fresh JVM from saved inputs,
 checks artifact/environment identity and stops at the first differing semantic
 record. A verified reproduction of a failed run remains a failed scenario.
+
+[Seeded receipt-loss rules](docs/timeline-faults.md) now exercise committed-but-unobserved
+publications and explicit duplicate retries, with every integer draw in the trace.

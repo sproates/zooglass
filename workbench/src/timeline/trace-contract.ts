@@ -112,6 +112,7 @@ export function validateTrace(raw: string): string {
       }
       const kind = choice(record.kind, `${path}.kind`, [
         "action",
+        "fault-decision",
         "runtime-command",
         "task-dispatched",
         "connection-closed",

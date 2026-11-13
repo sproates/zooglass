@@ -27,22 +27,66 @@ export function eventData(
   until: number,
 ) {
   const data = object(value, path);
-  if (kind === "runtime-command") {
+  if (kind === "fault-decision") {
+    object(data, path, [
+      "algorithm",
+      "drawIndex",
+      "digest",
+      "sample",
+      "rejected",
+      "lost",
+      "numerator",
+      "denominator",
+      "ruleId",
+      "actionId",
+      "messageId",
+      "attempt",
+    ]);
+    choice(data.algorithm, `${path}.algorithm`, ["sha256-u32-rejection-v1"]);
+    for (const field of ["ruleId", "actionId", "messageId"])
+      text(data[field], `${path}.${field}`);
+    integer(data.attempt, `${path}.attempt`, 1000, 1);
+    integer(data.drawIndex, `${path}.drawIndex`, 15);
+    const digest = text(data.digest, `${path}.digest`);
+    if (!/^[a-f0-9]{64}$/.test(digest)) invalid(path, "expected draw SHA-256");
+    const sample = integer(data.sample, `${path}.sample`, 4294967295);
+    const denominator = integer(
+      data.denominator,
+      `${path}.denominator`,
+      1000000,
+      1,
+    );
+    const numerator = integer(data.numerator, `${path}.numerator`, denominator);
+    const rejected =
+      sample >= Math.floor(4294967296 / denominator) * denominator;
+    if (
+      sample !== parseInt(digest.slice(0, 8), 16) ||
+      data.rejected !== rejected ||
+      data.lost !== (!rejected && sample % denominator < numerator)
+    )
+      invalid(path, "draw outcome disagrees with sample/probability");
+  } else if (kind === "runtime-command") {
     const op = choice(data.op, `${path}.op`, [
       "initialize-document",
       "observe",
       "shutdown",
+      "disconnect",
     ]);
     object(data, path, [
       "op",
       ...(op === "initialize-document"
         ? ["configurationSha256", "epochMillis"]
         : []),
+      ...(op === "disconnect" ? ["reason", "messageId"] : []),
     ]);
     if (op === "initialize-document") {
       if (!/^[a-f0-9]{64}$/.test(text(data.configurationSha256, path)))
         invalid(path, "expected configuration SHA-256");
       integer(data.epochMillis, `${path}.epochMillis`);
+    }
+    if (op === "disconnect") {
+      choice(data.reason, `${path}.reason`, ["receipt-loss"]);
+      text(data.messageId, `${path}.messageId`);
     }
   } else if (kind === "task-dispatched") {
     object(data, path, ["taskId"]);

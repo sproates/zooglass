@@ -1,3 +1,4 @@
+import { receiptRules, receiptDraw } from "./receipt-faults.js";
 import assert from "node:assert/strict";
 import { Agenda } from "./agenda.js";
 import { Bridge, type Effect, type Response } from "./bridge.js";
@@ -16,6 +17,8 @@ type Connection = {
   session: string;
   generation: number;
   open: boolean;
+  attached: boolean;
+  closedBy?: string;
 };
 type Handoff = { id: string; messageId: string; envelope: Json };
 export class DocumentExecution {
@@ -24,6 +27,9 @@ export class DocumentExecution {
   private turns = 0;
   private messages = 0;
   private messageSequence = 0;
+  private readonly rules: ReturnType<typeof receiptRules>;
+  private readonly attempts = new Map<string, number>();
+  private readonly pendingFaultCloses = new Set<string>();
   private readonly connections = new Map<string, Connection>();
   private readonly sessions = new Map<string, Connection>();
   private readonly handoffs = new Map<string, Handoff>();
@@ -37,6 +43,7 @@ export class DocumentExecution {
     readonly limits: ReturnType<typeof executionSettings>,
   ) {
     this.agenda = new Agenda(limits);
+    this.rules = receiptRules(scenario.document);
     this.actors = list(scenario.document.actors, "actors").map((item) => {
       const actor = object(item, "actor");
       return { id: text(actor.id, "id"), role: text(actor.role, "role") };
@@ -68,16 +75,25 @@ export class DocumentExecution {
       causes,
     );
   }
-  private async command(operation: Record<string, unknown>, parent: string) {
+  private async command(
+    operation: Record<string, unknown>,
+    parent: string,
+    publication?: { action: string; attempt: number },
+  ) {
     this.turn();
     const response = await this.bridge.command(
       this.agenda.current[0],
       operation,
     );
     this.last = response;
-    for (const effect of response.effects) this.effect(effect, parent);
+    for (const effect of response.effects)
+      this.effect(effect, parent, publication);
   }
-  private effect(effect: Effect, parent: string) {
+  private effect(
+    effect: Effect,
+    parent: string,
+    publication?: { action: string; attempt: number },
+  ) {
     if (effect.kind === "schedule") {
       assert.ok(
         Number.isSafeInteger(effect.task) &&
@@ -151,6 +167,7 @@ export class DocumentExecution {
         parent,
         connection,
       );
+      connection.closedBy = closed;
       const held = this.handoffs.get(connection.session);
       if (held) {
         this.event(
@@ -214,12 +231,57 @@ export class DocumentExecution {
       connection,
       causes,
     );
+    let lossCause: string | undefined;
+    if (effect.kind === "receipt" && publication) {
+      const rule = this.rules.find(
+        (rule) => rule.action === publication.action,
+      );
+      if (rule) {
+        for (let drawIndex = 0; ; drawIndex++) {
+          if (drawIndex === 16)
+            throw new Error("limit-exceeded: receipt-loss draws");
+          const draw = receiptDraw(
+            {
+              seed: text(this.scenario.document.seed, "seed"),
+              scenario: text(this.scenario.document.id, "id"),
+              rule: rule.id,
+              actor: connection.actor,
+              action: publication.action,
+              generation: connection.generation,
+              attempt: publication.attempt,
+            },
+            rule.numerator,
+            rule.denominator,
+            drawIndex,
+          );
+          const decision = this.event(
+            "fault-decision",
+            j({
+              ...draw,
+              ruleId: rule.id,
+              actionId: publication.action,
+              messageId,
+              attempt: publication.attempt,
+            }),
+            sent,
+            connection,
+          );
+          if (!draw.rejected) {
+            if (draw.lost) {
+              lossCause = decision;
+              this.closeForReceiptLoss(connection, messageId, decision);
+            }
+            break;
+          }
+        }
+      }
+    }
     this.messages++;
     this.messageBound();
     this.agenda.add(this.agenda.current[0], 2, async () => {
       this.turn();
       this.messages--;
-      const delivered = connection.open;
+      const delivered = connection.open && !lossCause;
       this.event(
         delivered ? "delivered" : "dropped",
         {
@@ -227,14 +289,45 @@ export class DocumentExecution {
             messageId,
             channel:
               effect.kind === "receipt" ? "source-receipt" : "client-frame",
-            ...(delivered ? {} : { reason: "connection-closed" }),
+            ...(delivered
+              ? {}
+              : { reason: lossCause ? "receipt-loss" : "connection-closed" }),
           }) as { [key: string]: Json }),
           envelope,
         },
         sent,
         connection,
+        lossCause
+          ? [lossCause]
+          : !delivered && connection.closedBy
+            ? [connection.closedBy]
+            : [],
       );
       if (delivered) this.observations.get(connection.actor)!.push(envelope);
+    });
+  }
+  private closeForReceiptLoss(
+    connection: Connection,
+    messageId: string,
+    decision: string,
+  ) {
+    if (this.pendingFaultCloses.has(connection.session)) return;
+    this.pendingFaultCloses.add(connection.session);
+    this.agenda.add(this.agenda.current[0], 0, async () => {
+      this.pendingFaultCloses.delete(connection.session);
+      if (!connection.attached) return;
+      const cause = this.event(
+        "runtime-command",
+        j({ op: "disconnect", reason: "receipt-loss", messageId }),
+        decision,
+        connection,
+      );
+      await this.command(
+        { op: "disconnect", session: connection.session },
+        cause,
+      );
+      connection.open = false;
+      connection.attached = false;
     });
   }
   async initialize(
@@ -272,6 +365,7 @@ export class DocumentExecution {
               session: `connection-${this.actors.indexOf(actor)}-${admitted.connectionGeneration}`,
               generation: admitted.connectionGeneration,
               open: true,
+              attached: true,
             };
             this.connections.set(actor.id, connection);
             this.sessions.set(connection.session, connection);
@@ -294,15 +388,20 @@ export class DocumentExecution {
           delete (data as Record<string, unknown>).actor;
           const cause = this.event("action", data, null, connection);
           let operation: Record<string, unknown>;
+          let publicationAttempt:
+            { action: string; attempt: number } | undefined;
           if (kind === "connect")
             operation = {
               op: "connect",
               role: actor.role,
               session: connection.session,
             };
-          else if (kind === "disconnect")
+          else if (kind === "disconnect") {
+            // A fault already removed this source from the host. Keep the declared
+            // lifecycle action, while closed client sessions still receive cleanup.
+            if (!connection.attached) return;
             operation = { op: "disconnect", session: connection.session };
-          else if (kind === "writer-stall")
+          } else if (kind === "writer-stall")
             operation = { op: "stall", session: connection.session };
           else if (kind === "writer-release")
             operation = {
@@ -311,6 +410,13 @@ export class DocumentExecution {
               fail: action.fail,
             };
           else if (kind.startsWith("source-")) {
+            const attemptKey = JSON.stringify([actor.id, action.publication]);
+            const attempt = (this.attempts.get(attemptKey) ?? 0) + 1;
+            this.attempts.set(attemptKey, attempt);
+            publicationAttempt = {
+              action: text(action.id, "action.id"),
+              attempt,
+            };
             const publication = list(
               this.scenario.document.publications,
               "publications",
@@ -333,8 +439,11 @@ export class DocumentExecution {
                 entityId: action.entityId,
               }),
             };
-          await this.command(operation, cause);
-          if (kind === "disconnect") connection.open = false;
+          await this.command(operation, cause, publicationAttempt);
+          if (kind === "disconnect") {
+            connection.open = false;
+            connection.attached = false;
+          }
         },
         undefined,
         true,

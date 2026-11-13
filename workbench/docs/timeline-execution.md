@@ -36,8 +36,11 @@ and identical retry, subscription/unsubscription, writer stall and release (incl
 failed release). Logical actor names do not determine runtime roles. Reconnects use
 fresh internal identities; observations remain cumulative for the logical actor.
 
-Links are explicit, bidirectional and zero latency. The seed is retained but this
-profile makes no random choices. Arbitrary delays, probabilistic faults, restart,
+Links are explicit, bidirectional and zero latency. Optional [receipt-loss rules](timeline-faults.md)
+use the seed for reproducible integer decisions. Selected loss closes the source
+connection in the next causal round, invalidating both directions; later sends
+require explicit disconnect/reconnect actions and a fresh generation.
+Arbitrary delays, other probabilistic faults, restart,
 SQLite, protected access, multiple fields/sources and other reconciliation strategies
 are outside this qualification. Unsupported configurations fail rather than falling
 back to the fixed fixture or a projection implemented in Workbench.

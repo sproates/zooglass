@@ -23,12 +23,17 @@ const jar = resolve(
 const seed = "0".repeat(64);
 
 test("direct host startup explains a missing or blank artifact property", () => {
+  const env = { ...process.env };
+  delete env.JAVA_TOOL_OPTIONS;
+  delete env.JDK_JAVA_OPTIONS;
+  delete env._JAVA_OPTIONS;
   for (const property of [undefined, "", "   "]) {
     const args =
       property === undefined
         ? []
         : [`-Dzooglass.simulation.artifact=${property}`];
     const result = spawnSync("java", [...args, "-jar", jar], {
+      env,
       encoding: "utf8",
       timeout: 10_000,
     });

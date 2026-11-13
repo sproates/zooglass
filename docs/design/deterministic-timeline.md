@@ -596,7 +596,10 @@ The gate must demonstrate all of the following:
    updates to exercise the real configured overflow or coalescing policy, and
    release/fail the handoff at a scheduled turn. The healthy subscriber
    continues. Same-time inputs deliberately exercise the documented burst
-   ordering.
+   ordering. Compare baseline ordering, queue/in-flight ownership and
+   completion/ failure cleanup through both normal and simulated drivers at
+   controlled barriers now. Broader demo parity must not be the first check of
+   this shared writer refactor.
 3. **Faults cause real outcomes.** A seeded decision loses the receipt after a
    commit. The source timeout schedules an identical retry. Expect the runtime's
    duplicate result, original version and unchanged receipt age. A different
@@ -610,8 +613,10 @@ The gate must demonstrate all of the following:
 5. **The oracle catches wrong behaviour.** Hand-write expected receipts,
    versions, freshness and client frames. In a separate negative-control build,
    deliberately break one runtime rule such as duplicate suppression or expiry
-   and require a test failure, even when that faulty build repeats its wrong
-   result perfectly.
+   and require a named receipt, state or frame assertion failure after the
+   scenario executes, even when that faulty build repeats its wrong result
+   perfectly. Artifact-hash rejection, startup failure or manifest mismatch
+   cannot pass this negative control; run it against its own valid manifest.
 6. **Nothing runs outside a turn.** Audit and instrument the supported runtime
    composition for clock reads, timer dispatch, writer/close callbacks and state
    transitions. Reject an uncontrolled executor or callback; test a long idle

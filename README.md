@@ -103,7 +103,10 @@ real-process execution does not make network delivery, service scheduling or
 wall-clock timing deterministic. The
 [timeline guide](workbench/README.md#timeline-order-and-real-time) explains that
 distinction. We plan to develop Workbench into a deterministic timeline simulator,
-with an explicit controlled-time execution contract; see the
+with an explicit controlled-time execution contract. The proposed
+[deterministic timeline design](docs/design/deterministic-timeline.md) defines
+virtual time, runtime execution boundaries and reproducible replay; it is not yet
+implemented. See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.
 

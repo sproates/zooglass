@@ -457,3 +457,20 @@ The fixture oracle compares complete client frames, receipts and state transitio
 against hand-authored expectations, with exact wire checks for lossless payload
 numbers. Replay compares each fresh turn before processing its effects and stops
 at the first difference. No Java build is invoked by proof execution or tests.
+
+## Experimental timeline contracts
+
+```mermaid
+flowchart LR
+  inspect["timeline/inspect.ts"] -->|validate document only| contract["timeline/contract.ts"]
+  inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
+  inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
+  inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
+  contract -->|exact tokens and canonical bytes| json["timeline/json.ts"]
+  trace -->|exact tokens and canonical bytes| json
+  contract -->|strict fields, references, bounded integers| validation["timeline/validation.ts"]
+  trace -->|strict fields and causal references| validation
+```
+
+This inspector does not invoke the bridge or runtime. A valid document is not an
+executable-capability claim. See [contracts and compatibility](timeline-format.md).

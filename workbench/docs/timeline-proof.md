@@ -89,3 +89,7 @@ production concurrency modelling remain unimplemented. Native/control writer
 parity and protected transport regressions remain covered by the Java delivery
 suite; this proof does not replace those tests. Passing these fixtures provides
 evidence for this bounded architecture, not a guarantee for unimplemented paths.
+
+The separate [experimental format inspector](timeline-format.md) now validates
+versioned documents and structural traces and audits legacy compatibility. It does
+not extend this fixed runner's executable scope or replace its private transcript.

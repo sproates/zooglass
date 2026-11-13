@@ -1,0 +1,93 @@
+{
+  "format": "timeline-simulation/v1",
+  "id": "receipt-contract-example",
+  "clock": {
+    "epochMillis": 1000000
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "runtime": {
+    "configuration": "receipt-runtime.json",
+    "sha256": "0aa7792c5977a4ffd82b9dcf4fda1ed91aafd5bad60bde4c4de6ef7a36706981",
+    "storage": "memory",
+    "access": "unprotected",
+    "initialState": "empty"
+  },
+  "actors": [
+    {
+      "id": "feed",
+      "role": "source"
+    },
+    {
+      "id": "viewer",
+      "role": "client"
+    }
+  ],
+  "links": [
+    {
+      "actor": "feed",
+      "latencyMs": 0
+    },
+    {
+      "actor": "viewer",
+      "latencyMs": 0
+    }
+  ],
+  "publications": [
+    {
+      "id": "report",
+      "body": {
+        "sourceId": "feed",
+        "epoch": "v1",
+        "publicationSequence": 1,
+        "type": "position",
+        "sourceEntityId": "bus",
+        "payload": {
+          "x": 1
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "connect-feed",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "feed"
+    },
+    {
+      "id": "connect-viewer",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "viewer"
+    },
+    {
+      "id": "send",
+      "atMs": 10,
+      "kind": "source-send",
+      "actor": "feed",
+      "publication": "report"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "unsubscribed-client",
+      "atMs": 110,
+      "kind": "client-frames",
+      "actor": "viewer",
+      "expected": []
+    }
+  ],
+  "limits": {
+    "turns": 2000,
+    "rounds": 100,
+    "queuedEvents": 1000,
+    "pendingMessages": 1000,
+    "traceBytes": 1048576
+  },
+  "untilMs": 110,
+  "end": {
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0,
+    "heldFrames": 0
+  }
+}

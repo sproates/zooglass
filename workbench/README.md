@@ -796,3 +796,8 @@ The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingres
 freshness and subscription delivery under an explicit agenda. It is not a new
 implementation of `simulate` and does not yet support general scenarios. Prepare
 its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.
+
+The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
+provides strict syntax/trace inspection and a census of the existing scenario
+format. Validation is separate from qualified execution; general documents are
+not yet executable through the fixed proof host.

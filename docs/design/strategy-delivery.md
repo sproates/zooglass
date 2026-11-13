@@ -48,7 +48,10 @@ that fails for that bug before the fix.
 The table records the original sequence, rather than current task status.
 The service capabilities, access enforcement and combined acceptance are delivered;
 see the [delivery record](../verification/capability-delivery.md). Orders have continuous and interactive browser modes, a durable service-restart
-checkpoint and separate protected-access acceptance. Sports browser integration remains planned.
+checkpoint and separate protected-access acceptance. Sports also has continuous and interactive browser modes, with corrected and
+first-reported views, independent bookmaker updates and bounded fact retirement.
+Both demos are implemented on the shared delivery branch; combined main delivery
+remains pending.
 
 | Step | Scope and completion | Likely PR boundaries |
 | --- | --- | --- |

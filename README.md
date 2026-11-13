@@ -1,89 +1,156 @@
 # ZooGlass
 
-### Event-driven live views
+### Configurable live views from independent event sources
 
 [![Validation](https://github.com/sproates/zooglass/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sproates/zooglass/actions/workflows/ci.yml)
 
-Applications often need a live view built from updates owned by several independent systems.
+ZooGlass maintains live views when source reports arrive late, conflict, go missing
+or are corrected. Applications configure how contributions are mapped, selected
+and combined. ZooGlass applies those rules, retains the resulting state and serves
+snapshots through HTTP and WebSocket subscriptions.
 
-Keeping that view useful gets harder when updates arrive late, out of order, are corrected, or when a client disconnects and reconnects.
+A view includes more than values: it exposes the selected sources, publication
+sequences, known delivery gaps and freshness status. Consumers can distinguish
+what has been reported from what is missing, stale or still waiting for required
+contributions.
 
-ZooGlass aims to help keep event-driven views current, and clarify what data they reflect.
+For example, order, payment and stock systems can use different identifiers for
+the same order. A configured view maps their contributions together, while a
+smaller tracking view waits for its required inputs. In a sports view, a goal
+correction can change the scorer, or a withdrawal can change the total; another
+view can deliberately retain the first report. These policies are implemented in
+the runtime and exercised by [acceptance tests](docs/verification/capability-delivery.md).
+
+ZooGlass is under active development. The capabilities below are implemented;
+the [roadmap](ROADMAP.md#further-direction) also sets out our plans for deterministic
+timeline simulation, performance measurement, clustering and high availability.
+These are future work, not current guarantees.
+
+## What ZooGlass handles
+
+| Application problem                        | Delivered capability                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Reports arrive out of order or are retried | Per-field sequence ordering, bounded history and identified publications with retained retry outcomes.                  |
+| Sources use different keys or disagree     | Explicit entity mappings and configured source priority, with provenance for selected contributions.                    |
+| Inputs are missing or a source goes quiet  | Required-contribution gates, partial views, sequence-gap tracking, source watermarks and receipt-age freshness.         |
+| Facts are corrected or withdrawn           | Retained fact revisions, active-fact collections and sums; separate views can select different revision policies.       |
+| The service restarts                       | In-memory or SQLite storage, with durable state, publication identities and outcomes recovered in SQLite mode.          |
+| Viewers reconnect or cannot keep up        | Fresh subscription snapshots and bounded per-connection queues, with overflow disconnection or latest-state coalescing. |
+| Access changes while a viewer is connected | Application-supplied access decisions, tenant ownership and active grant enforcement, including revocation.             |
+
+The [capability delivery record](docs/verification/capability-delivery.md) links
+each behaviour to its configuration, contract and executable evidence. Start with
+the [runtime guide](zooglass/README.md) for interfaces and the
+[publication guide](zooglass/docs/publications.md) for source identities and view
+definitions. Progress, freshness, storage and protected deployment have dedicated
+guides linked from those pages.
+
+Applications still own source integration, meaningful identities, domain policy,
+permission decisions, presentation and operations. ZooGlass supplies the configured
+reconciliation and delivery machinery. The
+[developer-value comparison](docs/developer-value.md) explains that boundary using
+a working vehicle example.
+
+## Try the demos
+
+With **JDK 25** and **Node.js 26** installed, run these commands from the repository
+root:
+
+```sh
+cd workbench
+npm ci
+npm run prepare:service
+npm run demo -- vehicle-tracker --continuous
+```
+
+Open the URL printed by the command. Six simulated cars move around Gibraltar
+while their reports encounter delays, duplicates, loss and interruptions. Open a
+second browser or reconnect a viewer to see current-state snapshots. Ctrl+C stops
+the demo and its owned processes.
+
+`prepare:service` explicitly builds the Java service. Demo startup uses that
+prepared JAR and compiles the TypeScript viewer; it does not trigger a Java build.
+The continuous demo opens in your own browser and needs no Playwright browser
+installation. See the [walkthrough](workbench/docs/continuous-driving.md) for setup,
+map-provider details, private-LAN access and limitations.
+
+The [interactive vehicle demos](demos/vehicle-tracker/README.md) provide Step,
+Play, Pause and Reset controls for inspecting scripted scenarios. They demonstrate
+a subset of the runtime: the map's older-report labels are application observation
+age, not a demonstration of every runtime freshness or completeness policy.
+
+Choose a demo after the shared setup above. Each supports `--continuous` for
+automatic source activity and `--interactive` for a checked walkthrough:
+
+| Demo                                     | Command (from `workbench/`)                    | What to watch                                                                                        |
+| ---------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Fleet](demos/vehicle-tracker/README.md) | `npm run demo -- vehicle-tracker --continuous` | Six cars, late and duplicate position reports, source silence and returning viewers.                 |
+| [Orders](demos/order-tracker/README.md)  | `npm run demo -- order-tracker --continuous`   | Five independent sources, entity mapping, required inputs, courier priority, gaps and freshness.     |
+| [Sports](demos/live-sports/README.md)    | `npm run demo -- live-sports --continuous`     | Goals, corrections and withdrawals; corrected versus first-reported results and independent markets. |
+
+Replace `--continuous` with `--interactive` to use Step, Play, Pause and Reset.
+Order and Sports are implemented on `feature/order-and-sports-demos`; combined
+delivery to `main` is pending. Check out that branch to run all three today.
+The [Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) and
+[Sports acceptance record](docs/verification/2026-11-13-sports-acceptance.md) link
+repeated operation, recovery, bounded state and clean setup evidence.
+The [cross-domain comparison](docs/sports-developer-value.md) explains what changes
+between applications and which responsibilities remain with their developers.
+
+## How the project fits together
 
 ![ZooGlass architecture: events flow from simulated sources through ZooGlass to demo applications, with Workbench alongside generating faults and checking outcomes.](docs/diagrams/zooglass-overview.svg)
 
-Read the stack from bottom to top. ZooGlass maintains the views; demos make them
-visible. Workbench supplies scenarios and verifies the results through real service
-and client interfaces. In an application deployment, your source systems and apps
-fill those roles; Workbench is development and verification tooling.
+ZooGlass is the runtime. Demo applications make its behaviour visible. Workbench
+generates controlled inputs and faults, then checks results through real service
+and client interfaces. In an application deployment, your sources and consumers
+replace the demo systems; Workbench is development and verification tooling.
 
-[What we're trying to build](docs/what-is-zooglass.md) explains the intended
-product, the promises its views should make, and how Workbench will help us
-verify them. Separate diagrams show ZooGlass's intended production role and the
-Workbench environment used to build and test it. The maintained
-[vertical architecture diagram](docs/diagrams/README.md) explains the implemented
-vehicle-demo stack and how Workbench controls and observes it.
+| Component                           | Role                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [`zooglass/`](zooglass/README.md)   | Java 25 / Spring Boot runtime: reconciliation, retained state, access enforcement and snapshot delivery.         |
+| [`workbench/`](workbench/README.md) | TypeScript / Node.js 26 scenario runner: scripted inputs, delivery faults, client actions and observable checks. |
+| [`demos/`](#try-the-demos)          | Browser applications consuming ZooGlass views, with domain-specific presentation.                                |
+| [`docs/`](docs/what-is-zooglass.md) | Product explanation, designs, contracts and verification records.                                                |
 
-ZooGlass is an early prototype with a working in-memory service and scenario
-runner. A [basic browser demo](demos/vehicle-tracker/README.md) now shows
-vehicle position and received history from real live views. Interactive controls,
-late delivery, duplicate handling and bounded connection recovery are implemented.
-The demo recovers current snapshots; it does not replay missed messages or
-establish that received history is complete. The
-[completion record](docs/verification/2026-10-27-demo-completion.md) brings together
-the accepted scope and evidence for this bounded demo, delivered in
-[PR #75](https://github.com/sproates/zooglass/pull/75).
+Workbench's scenarios have a defined action order and can be run repeatedly. Its
+real-process execution does not make network delivery, service scheduling or
+wall-clock timing deterministic. The
+[timeline guide](workbench/README.md#timeline-order-and-real-time) explains that
+distinction. We plan to develop Workbench into a deterministic timeline simulator,
+with an explicit controlled-time execution contract; see the
+[roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
+vehicle-demo stack and its boundaries.
 
-The [continuous six-car Gibraltar demo](workbench/docs/continuous-driving.md):
-open a map and watch ZooGlass deliver positions under delayed, lost and duplicate
-reports, source reconnects and reporting silence. It runs automatically without
-playback controls. It was delivered in [PR #93](https://github.com/sproates/zooglass/pull/93).
+## Guarantees and limits
 
-[What ZooGlass handles for your application](docs/developer-value.md) compares the
-implemented service responsibilities with an equally scoped custom service, and
-explains what developers still need to build.
+- Reconnecting consumers receive current snapshots, not a replay of every missed
+  transition. Independent views do not form an atomic multi-view read.
+- A source watermark can confirm gaps within its declared scope. Silence alone
+  proves neither missing events nor source failure; receipt age is not observation age.
+- Source priority is configured explicitly. A stale primary does not automatically
+  yield to a fresh backup. Supported mappings and aggregates are not arbitrary joins
+  or a general query engine.
+- Identity, history, gap and fact state have configured bounds. Runtime view
+  registration has no historical backfill.
+- SQLite recovery is single-instance recovery. Protected deployment requires the
+  documented TLS, tenant and operator boundaries; access revocation cannot retract
+  data a client has already received.
 
-The [Order desk](demos/order-tracker/README.md) shows real multi-source
-views, waiting/stale/gap labels and reconnect baselines using the accepted design.
-Use continuous mode or the finite checked interactive walkthrough. The
-[Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) brings
-together repeated operation, recovery, protected access and fresh setup evidence;
-the [Order developer comparison](docs/order-developer-value.md) explains the
-application work delegated and retained.
+See the [delivery evidence and boundaries](docs/verification/capability-delivery.md#boundaries)
+and [protected deployment guide](zooglass/docs/protected-deployment.md) before
+choosing a deployment or relying on a particular guarantee.
 
-The [Sports match centre](demos/live-sports/README.md) shows three matches through
-corrected and first-reported views, independent bookmaker updates and bounded
-fact retirement. Both continuous mode and the checked interactive walkthrough are
-delivered on the shared branch. The proposed [final acceptance record](docs/verification/2026-11-13-sports-acceptance.md)
-links the retained-state, recovery and clean-setup evidence. The
-[developer comparison](docs/sports-developer-value.md) contrasts concrete Fleet,
-Order and Sports responsibilities without claiming measured effort savings.
+## Verification and contributing
 
-The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
+Java tests verify runtime strategies, transaction boundaries, persistence, crash
+recovery and delivery contracts. Workbench scenarios exercise real source and
+client interfaces; browser checks verify rendering, connection behaviour and
+protected-data clearing. Demos illustrate behaviour, while the tests provide
+correctness evidence.
 
-The main components live at the repository root:
-
-- `zooglass/`: the live-view service.
-- `workbench/`: scenario execution and verification.
-- `demos/`: demo applications, including `demos/vehicle-tracker/`.
-- `docs/`: project explanations, designs and verification records.
-
-The service uses Java 25 and Spring Boot.
-
-The [Workbench Scenario Simulator](workbench/README.md) uses TypeScript and Node 26 to play JSON scenarios on a deterministic simulated timeline. It can run those scenarios through a local ZooGlass process and check the views it produces.
-
-See the [ZooGlass prototype](zooglass/README.md) and try the [live-match scenario](workbench/scenarios/live-match.json).
-
-## Testing
-
-ZooGlass has unit and functional tests for the system itself. The Workbench is
-where most scenario testing should happen: it drives different event and client
-behaviours through ZooGlass and checks the resulting views. Tests for
-integrations with external systems, such as Kafka, are a separate concern.
-
-## Contributing and security
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks and review expectations.
+The [testing guide](docs/testing.md) describes the layers and commands.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, checks and review expectations.
 Report suspected vulnerabilities privately using [SECURITY.md](SECURITY.md).
 
 ## Licence

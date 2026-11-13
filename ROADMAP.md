@@ -7,45 +7,39 @@ arrive late, go missing, conflict or are corrected, and when services or clients
 reconnect. The [capability delivery record](docs/verification/capability-delivery.md)
 links the implemented policies to their configuration, tests and examples.
 
-## Next: order tracking, then sports
+## Demo delivery
 
-The next demonstrations make the capabilities visible in familiar multi-source
-applications:
+Fleet, Order and Sports make the runtime capabilities visible through real
+service views and simulated source activity. All three have continuous and
+interactive experiences. Order and Sports are implemented on
+`feature/order-and-sports-demos`; their combined delivery to `main` remains pending.
 
-- **Order tracking:** combine order, payment and inventory facts into useful
-  views despite missing inputs and independently progressing sources.
-- **Live sports:** combine match and bookmaker publications, including corrections
-  and different update rates.
+- [Fleet](demos/vehicle-tracker/README.md): delayed, duplicated and missing position
+  reports, source silence and current snapshots for returning viewers.
+- [Orders](demos/order-tracker/README.md): five sources, explicit identifier mapping,
+  required contributions, courier priority, progress and receipt-age freshness.
+- [Sports](demos/live-sports/README.md): corrected and first-reported facts, derived
+  scores, independent bookmaker updates and bounded fact retirement.
 
-Each will have an interactive scenario and a continuously running mode. Together
-they should show what ZooGlass makes easier and which domain rules still belong
-in the application. The Order source foundation and accepted static prototypes
-and both Order browser modes are delivered on the shared delivery branch. Order
-recovery/protected evidence is also delivered. The
-[final Order acceptance record](docs/verification/2026-11-12-order-acceptance.md)
-and [developer-value comparison](docs/order-developer-value.md) are delivered on
-the shared delivery branch. The Sports source foundation is delivered on the shared branch. Its continuous
-browser is delivered: three matches, corrected and first-reported views,
-independent markets, cycle-window labels and returning-viewer snapshots.
-The finite checked interactive walkthrough is delivered, with fresh-store
-Reset and retained completion/failure states. See the [Sports guide](demos/live-sports/README.md).
-Final [Sports acceptance](docs/verification/2026-11-13-sports-acceptance.md) and
-[cross-domain developer evidence](docs/sports-developer-value.md) are proposed for
-review. Combined delivery to main remains a separate approval.
-See the [Order guide](demos/order-tracker/README.md) for its available commands.
-
-See the [demo design](docs/plans/order-and-sports-demos.md) and
-[capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage).
+The [Order acceptance record](docs/verification/2026-11-12-order-acceptance.md) and
+[Sports acceptance record](docs/verification/2026-11-13-sports-acceptance.md) collect
+behavioural checks, recovery, fresh setup and desktop/phone-width evidence.
+See the [cross-domain comparison](docs/sports-developer-value.md) and
+[capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage)
+for what these applications demonstrate and their limits.
 
 ## Further direction
 
-These items have no scheduled delivery date:
+These are planned directions, not delivered capabilities, and have no scheduled
+delivery date:
 
 - **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
 
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
+- **Deterministic timeline simulation.** Develop Workbench from a scripted, repeatable scenario runner into a deterministic timeline simulator. Define controlled simulation time, scheduling and fault delivery so the same scenario and seed reproduce the same event ordering and outcomes within the simulated environment. Keep real-service integration runs as separate evidence; ordinary process and network timing are not deterministic today. The execution contract and design come first.
+- **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 
 Broader replay, query and distributed-storage
@@ -54,9 +48,11 @@ part of the current delivery sequence.
 
 ## Background and progress
 
-The prototype already provides entity-scoped live views, configurable field
-ordering, HTTP snapshots and WebSocket subscriptions, with Workbench scenarios
-for verification. The [delivery retrospective](docs/retrospectives/2026-10-30-prototype-delivery.md)
+The runtime already provides entity-scoped live views, configurable reconciliation,
+source progress and freshness, fact corrections, SQLite recovery and access
+enforcement, delivered through HTTP snapshots and WebSocket subscriptions.
+The [capability delivery record](docs/verification/capability-delivery.md) links
+current contracts and evidence; Workbench exercises real interfaces. The [delivery retrospective](docs/retrospectives/2026-10-30-prototype-delivery.md)
 contains the detailed history and evidence.
 
 The [product explanation](docs/what-is-zooglass.md) describes the ambition, and the

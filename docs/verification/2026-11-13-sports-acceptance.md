@@ -1,9 +1,10 @@
 # Sports demo acceptance record
 
-This proposes final acceptance of the bounded Sports demo on the shared Order and
-Sports delivery branch. Merging this acceptance change records both Sports modes
-and the evidence below. The combined programme still needs its separate delivery
-PR and approval before reaching main.
+Final acceptance of the bounded Sports demo was merged into the shared Order and
+Sports delivery branch in [PR #167](https://github.com/sproates/zooglass/pull/167).
+Final head `bf09373` passed [CI](https://github.com/sproates/zooglass/actions/runs/43339367972).
+Both Sports modes and the evidence below are accepted there. The combined
+programme still needs its separate delivery PR and approval before reaching main.
 
 Runtime baseline: `731f886`, after the interactive delivery in
 [PR #166](https://github.com/sproates/zooglass/pull/166). Its reviewed head `c8458ea`

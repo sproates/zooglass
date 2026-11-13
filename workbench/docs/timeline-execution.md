@@ -67,7 +67,10 @@ boundary, even if shutdown then cancels permitted future tasks. Assertion/limit
 failures retain a completed failure prefix; failure counts are the last observed
 runtime counts, which can include due tasks when execution stops mid-turn. An
 infrastructure failure retains an incomplete trace prefix and cannot be certified
-as a complete run. Host watchdog time is never simulation time.
+as a complete run. Trace wrappers count toward the 64-level JSON depth bound;
+a structurally oversized runtime effect stops execution and retains the preceding
+incomplete prefix. Failed runs force-close the JVM; only successful runs record
+normal shutdown. Host watchdog time is never simulation time.
 
 The warehouse example asserts literal initial/fresh/stale frames and applied/
 duplicate receipts across a reconnect. Focused tests also cover exact integers above

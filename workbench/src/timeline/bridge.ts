@@ -181,13 +181,14 @@ export class Bridge {
       if (this.failure) {
         throw this.failure;
       }
+      let commandEpoch = this.epoch;
       if (operation.op === "initialize-document") {
         if (
           !Number.isSafeInteger(operation.epochMillis) ||
           Number(operation.epochMillis) < 0
         )
           throw new Error("Invalid document epoch");
-        this.epoch = Number(operation.epochMillis);
+        commandEpoch = Number(operation.epochMillis);
       }
       const turnId = this.turn;
       const bytes = Buffer.from(
@@ -197,12 +198,13 @@ export class Bridge {
           runtimeGeneration: 1,
           timeMs,
           monotonicMs: timeMs,
-          wallMillis: this.epoch + timeMs,
+          wallMillis: commandEpoch + timeMs,
         }),
       );
       if (bytes.length > cap) {
         throw new Error("Command frame overflow");
       }
+      this.epoch = commandEpoch;
       this.turn++;
       const header = Buffer.alloc(4);
       header.writeUInt32BE(bytes.length);

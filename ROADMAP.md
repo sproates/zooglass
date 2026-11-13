@@ -36,8 +36,10 @@ delivery date:
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
 - **Deterministic timeline simulation.** Develop Workbench from a scripted, repeatable scenario runner into a deterministic timeline simulator. Define controlled simulation time, scheduling and fault delivery so the same scenario and seed reproduce the same event ordering and outcomes within the simulated environment. Keep real-service integration runs as separate evidence; ordinary process and network timing are not deterministic today. The [execution contract and design](docs/design/deterministic-timeline.md) are now
-  proposed for review, with controlled Java runtime turns, simulated message links
-  and verification replay. Implementation follows design acceptance.
+  accepted. The separate POC has a [bounded document executor](workbench/docs/timeline-execution.md)
+  with controlled Java runtime turns and causal traces. General faults, full
+  manifests, document replay and SQLite/restart remain future work; the POC has
+  not been promoted to the main delivery.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

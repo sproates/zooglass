@@ -501,7 +501,8 @@ flowchart LR
 
 This explicit main class uses framed stdin/stdout and a prepared JAR. It does not
 start Spring, bind a network listener or expose controls through normal endpoints.
-Only the fixed memory/unprotected proof configuration is supported. Initial clocks
+The fixed memory/unprotected proofs and the explicitly qualified `memory-arrival-v1`
+document profile are supported. Initial clocks
 are installed before runtime construction; effects and callbacks require the owning
 thread's active turn. Arbitrary configuration, restart and protected access remain
 outside this POC capability boundary; unsupported command fields fail explicitly.

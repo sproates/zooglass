@@ -338,6 +338,7 @@ test("runtime budgets produce deterministic failure prefixes with reserved final
     ["traceBytes", 1024],
     ["rounds", 1],
     ["queuedEvents", 2],
+    ["pendingMessages", 1],
   ] as const) {
     const f = fixture();
     f.document.limits[name] = value;
@@ -356,5 +357,52 @@ test("runtime budgets produce deterministic failure prefixes with reserved final
     } finally {
       await input.close();
     }
+  }
+});
+
+test("deep admitted payload preserves an incomplete artifact when trace wrapping exceeds structural bounds", async () => {
+  const f = fixture();
+  let value: unknown = 1;
+  for (let i = 0; i < 59; i++) value = [value];
+  (f.document.publications[0].body.payload as { amount: unknown }).amount =
+    value;
+  f.document.actions = f.document.actions.slice(0, 4);
+  f.document.assertions = [];
+  f.document.untilMs = 60;
+  const input = await files(f);
+  try {
+    const result = await runDocument(input.path, { jar });
+    assert.equal(result.outcome, "infrastructure-failed");
+    assert.match(result.message!, /nesting limit/);
+    const prefix = events(result.trace);
+    assert.ok(
+      prefix.some((e) => e.kind === "action" && e.data.actionId === "send-1"),
+    );
+    assert.ok(!prefix.some((e) => e.kind === "result"));
+  } finally {
+    await input.close();
+  }
+});
+
+test("oversized initialization rejection leaves bridge clock and turn identity unchanged", async () => {
+  const { Bridge } = await import("../../src/timeline/bridge.js");
+  const { bridge } = await Bridge.open(jar);
+  try {
+    await assert.rejects(
+      bridge.command(0, {
+        op: "initialize-document",
+        epochMillis: 123,
+        wire: "x".repeat(16 * 1024 * 1024),
+      }),
+      /Command frame overflow/,
+    );
+    const response = await bridge.command(0, {
+      op: "initialize",
+      policy: "coalesceLatestState",
+    });
+    assert.equal(response.turnId, 0);
+    assert.equal(response.timeMs, 0);
+  } finally {
+    await bridge.close();
   }
 });

@@ -107,11 +107,18 @@ export async function runDocument(path: string, options: DocumentOptions) {
           : "infrastructure-failed";
       counts = run.counts();
     }
-    const result =
-      outcome === "infrastructure-failed"
-        ? trace.prefix()
-        : trace.finish(outcome, counts!);
-    if (outcome !== "infrastructure-failed") validateTrace(result);
+    // Final validation must not discard evidence after the runtime has started.
+    const prefix = trace.prefix();
+    let result = prefix;
+    if (outcome !== "infrastructure-failed") {
+      try {
+        result = validateTrace(trace.finish(outcome, counts!));
+      } catch (error) {
+        outcome = "infrastructure-failed";
+        message = error instanceof Error ? error.message : String(error);
+        result = prefix;
+      }
+    }
     return {
       outcome,
       ...(message ? { message } : {}),

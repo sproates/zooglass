@@ -29,6 +29,8 @@ export class SemanticTrace {
       this.limit - (terminal ? 0 : 512)
     )
       throw new Error("limit-exceeded: trace bytes");
+    // Validate the wrapped representation before it can enter the retained prefix.
+    parseJson(line);
     this.bytes += Buffer.byteLength(line);
     this.lines.push(line);
   }

@@ -43,7 +43,11 @@
     "pretest:demo-unit": "node scripts/check-node-version.js && npm run build:browser",
     "test:demo-unit": "tsx --test test/demo-unit/*.test.ts",
     "predemo:drive": "node scripts/check-node-version.js && npm run build:browser",
-    "demo:drive": "tsx src/demos/vehicle/demo.ts vehicle-tracker --continuous"
+    "demo:drive": "tsx src/demos/vehicle/demo.ts vehicle-tracker --continuous",
+    "prepare:timeline": "node scripts/check-node-version.js && ../zooglass/mvnw -f ../zooglass/pom.xml -DskipTests package",
+    "timeline:proof": "node --import tsx src/timeline/run.ts",
+    "test:timeline": "node --import tsx --test test/timeline/*.test.ts",
+    "timeline:repeat": "node --import tsx scripts/timeline-repeat.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

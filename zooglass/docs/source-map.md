@@ -479,3 +479,26 @@ registration, read `RuntimeConfiguration.java`, `ConfigurationValidation.java`
 and `ViewCoordinator.define`.
 
 Replay and authorisation remain outside the implemented contracts.
+
+## Controlled timeline proof host
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|owns one command turn| turn["simulation/TurnContext.java"]
+  host -->|fixed memory composition| runtime["runtime/TimelineRuntime.java"]
+  runtime -->|clock and alarm injection| coordinator["runtime/ViewCoordinator.java"]
+  host -->|real source handler| ingress["runtime/EventIngress.java"]
+  host -->|real subscription handler| subscriptions["delivery/SnapshotSubscriptions.java"]
+  host -->|modelled connections| session["simulation/TimelineSession.java"]
+  host -->|controlled driver| driver["delivery/TimelineDelivery.java"]
+  driver -->|same writer and queue| broadcaster["delivery/SnapshotBroadcaster.java"]
+  driver -->|register callbacks, no threads| turn
+  runtime -->|clock reads and alarms| turn
+```
+
+This explicit main class uses framed stdin/stdout and a prepared JAR. It does not
+start Spring, bind a network listener or expose controls through normal endpoints.
+Only the fixed memory/unprotected proof configuration is supported. Initial clocks
+are installed before runtime construction; effects and callbacks require the owning
+thread's active turn. Arbitrary configuration, restart and protected access remain
+outside this POC capability boundary.

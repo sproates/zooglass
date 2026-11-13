@@ -180,7 +180,7 @@ on the replacement socket. These do not change the generic check contract.
 
 ### Timeline order and real time
 
-The proposed [deterministic timeline design](../docs/design/deterministic-timeline.md)
+The accepted [deterministic timeline design](../docs/design/deterministic-timeline.md)
 defines a separate execution mode with virtual time, controlled production-runtime
 turns and replayable faults. It is not implemented yet. Current commands retain
 the behaviour described below.
@@ -788,3 +788,10 @@ are demo-specific and do not change scenario execution or verification. See the
 policy revocation and connection loss against a real TLS service and the basic
 vehicle demo. It uses the existing service owner and client modules, with a
 controlled HTTPS authority and explicit protected-data clearing.
+
+## Deterministic timeline POC
+
+The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingress,
+freshness and subscription delivery under an explicit agenda. It is not a new
+implementation of `simulate` and does not yet support general scenarios. Prepare
+its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.

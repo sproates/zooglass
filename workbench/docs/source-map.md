@@ -1,8 +1,8 @@
 # Workbench source map
 
-The proposed [deterministic timeline design](../../docs/design/deterministic-timeline.md)
-contains a separate planned component diagram. Its scheduler and controlled runtime
-adapters do not exist yet; the map below describes the current implementation.
+The accepted [deterministic timeline design](../../docs/design/deterministic-timeline.md)
+contains the wider planned component diagram. The POC implements a bounded
+[fixed-fixture proof](timeline-proof.md), separately from existing commands.
 
 This is a reading guide to the current TypeScript modules. Start with the command
 being run, then follow its dependencies to the code that does the work.
@@ -435,3 +435,22 @@ flowchart TB
 
 See [protected client acceptance](protected-client-acceptance.md) for the command
 and the behaviours it verifies.
+
+## Fixed-fixture timeline proof
+
+```mermaid
+flowchart LR
+  cli["timeline/run.ts"] -->|run literal fixture| proof["timeline/proof.ts"]
+  proof -->|independent assertions| execution["timeline/execution.ts"]
+  proof -->|keyed receipt-loss choice| random["timeline/random.ts"]
+  proof -->|module identity| manifest["timeline/manifest.ts"]
+  execution -->|ordered turns| agenda["timeline/agenda.ts"]
+  execution -->|framed commands| bridge["timeline/bridge.ts"]
+  bridge -->|prepared JAR only| host["Java simulation/TimelineHost.java"]
+  repeat["scripts/timeline-repeat.ts"] -->|fresh Node and JVM pairs| cli
+```
+
+Wire payloads remain exact strings across Node. Java canonicalises object keys and
+exact decimal values; the transcript retains ordered effects before comparison.
+The fixture oracle reads safe receipt/version metadata and checks lossless payload
+vectors separately. No Java build is invoked by proof execution or tests.

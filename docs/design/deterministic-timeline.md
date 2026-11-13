@@ -1,10 +1,11 @@
 # Workbench deterministic timeline simulation
 
-Status: accepted design, 13 November 2026. The POC branch now provides an
-injectable freshness alarm driver alongside the receipt clock, and a shared
-resumable writer with native and controlled-test drivers. The controlled host
-and end-to-end determinism proof remain unimplemented. The current `simulate` command still prints an
-ordered trace; `integrate` still runs against real processes and sockets.
+Status: accepted design, 13 November 2026. The POC branch now contains shared
+clock/alarm and writer seams plus a fixed-fixture controlled host and agenda.
+See the [bounded proof](../../workbench/docs/timeline-proof.md) for execution,
+validation and limits. The complete simulator described below is not delivered.
+The existing `simulate` command still prints an ordered trace; `integrate` still
+runs against real processes and sockets.
 
 ## The outcome we want
 

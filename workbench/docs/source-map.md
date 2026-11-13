@@ -565,3 +565,30 @@ Ctrl+C or SIGTERM. `browser.ts` publishes run failures and owns cleanup of sourc
 route, HTTP host and service. Tests can block the data route or await source
 checkpoints without adding controls to the passive page. The browser consumer has
 its own [source map](../../demos/live-sports/docs/source-map.md).
+
+## Sports interactive walkthrough
+
+The interactive host keeps the page and controls alive while Reset replaces the
+service, store, source sockets and data route. It uses the delivered prepared
+checkpoint controller; no browser code reconciles scores or owns source state.
+
+```mermaid
+flowchart TB
+  demo["demos/sports/demo.ts"] -->|terminal commands and lifetime| interactive["demos/sports/interactive.ts"]
+  interactive -->|hand-authored view expectations| checks["demos/sports/checkpoints.ts"]
+  interactive -->|Step Play Pause Reset| prepared["control/prepared-checkpoints.ts"]
+  prepared -->|shared cursor and cancellation| controller["control/demo-controller.ts"]
+  interactive -->|fresh run per Reset| run["demos/sports/run.ts"]
+  run -->|same source actions as continuous| timeline["demos/sports/timeline.ts"]
+  run -->|receipts and retirement checks| sources["demos/sports/source-session.ts"]
+  run -->|owned fresh service and store| service["service/zooglass-session.ts"]
+  run -->|replace subscriptions on Reset| route["browser/browser-data-route.ts"]
+  interactive -->|stable page and bounded controls| host["browser/browser-http-server.ts"]
+```
+
+`checkpoints.ts` inspects real snapshots with independent expected totals, scorers,
+gaps and floors. Its finite sequence covers the complete first cycle and the next
+cycle's baselines. `run.ts` advances the same lazy timeline used by continuous
+mode. Pause finishes pending verification; Reset cancels it and creates a fresh
+store. Failed checkpoints and failed Reset startup remain visible through the
+stable control connection. Terminal Quit/Ctrl+C retires the controller and host.

@@ -236,14 +236,15 @@ test("Sports source foundation and browser composition select their consumers", 
       "core",
     ]);
   }
-  assert.deepEqual(selected(["workbench/src/demos/sports/browser.ts"]), [
-    "static",
-    "core",
-    "demo",
-    "browser",
-    "native",
-    "engines",
-  ]);
+  for (const module of ["browser", "interactive", "run", "checkpoints"])
+    assert.deepEqual(selected([`workbench/src/demos/sports/${module}.ts`]), [
+      "static",
+      "core",
+      "demo",
+      "browser",
+      "native",
+      "engines",
+    ]);
   assert.deepEqual(selected(["demos/live-sports/src/view.ts"]), [
     "static",
     "core",

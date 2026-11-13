@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 export async function runDemo(args: string[]) {
   if (args.length === 1 && args[0] === "--help") {
     console.log(
-      "Demos:\n  npm run demo -- live-sports --continuous [--bind=<private IPv4>]\n  npm run demo -- order-tracker (--continuous | --interactive) [--bind=<private IPv4>]\n  npm run demo -- vehicle-tracker --help",
+      "Demos:\n  npm run demo -- live-sports (--continuous | --interactive) [--bind=<private IPv4>]\n  npm run demo -- order-tracker (--continuous | --interactive) [--bind=<private IPv4>]\n  npm run demo -- vehicle-tracker --help",
     );
     return;
   }

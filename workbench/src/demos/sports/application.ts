@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import type { BrowserApplication } from "../../browser/browser-host.js";
 
 /** Passive assets only; service management and source routes are not exposed. */
-export async function sportsApplication(): Promise<BrowserApplication> {
+export async function sportsApplication(
+  interactive = false,
+): Promise<BrowserApplication> {
   const root = new URL("../../../../demos/live-sports/", import.meta.url);
   const assets = new Map<string, readonly [string, Buffer]>();
   for (const [path, file, mime] of [
@@ -15,11 +17,38 @@ export async function sportsApplication(): Promise<BrowserApplication> {
       "text/javascript",
     ]),
     [
+      "/vehicle-tracker/src/playback-controls.js",
+      "dist/vehicle-tracker/src/playback-controls.js",
+      "text/javascript",
+    ],
+    [
       "/vehicle-tracker/src/subscription-client.js",
       "dist/vehicle-tracker/src/subscription-client.js",
       "text/javascript",
     ],
   ])
     assets.set(path, [mime, await readFile(new URL(file, root))]);
+  if (interactive) {
+    const page = assets.get("/")!;
+    assets.set("/", [
+      page[0],
+      Buffer.from(
+        page[1]
+          .toString()
+          .replace("Continuous demo", "Interactive demo")
+          .replace("<body>", '<body data-interactive="true">'),
+      ),
+    ]);
+  } else {
+    const page = assets.get("/")!;
+    assets.set("/", [
+      page[0],
+      Buffer.from(
+        page[1]
+          .toString()
+          .replace(/<section\s+id="playback"[\s\S]*?<\/section>/, ""),
+      ),
+    ]);
+  }
   return { clientId: "sports", assets };
 }

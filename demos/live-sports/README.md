@@ -1,16 +1,18 @@
 # Live sports
 
 Matchroom runs three fictional matches through real ZooGlass views. The continuous
-browser implementation is proposed for review on the shared demo delivery branch.
+browser is delivered on the shared demo delivery branch; interactive playback is
+proposed for review.
 The accepted prototype remains available below as a design reference.
 
-## Run the continuous demo
+## Run the demo
 
 From `workbench`, after the [documented setup](../../workbench/README.md) and
 explicit preparation of `zooglass/target/zooglass.jar`:
 
 ```sh
 npm run demo -- live-sports --continuous
+npm run demo -- live-sports --interactive
 npm run demo -- live-sports --continuous --bind=192.168.1.20
 ```
 
@@ -20,13 +22,26 @@ without affecting the sources. Ctrl+C stops the sources, host and owned service.
 The command compiles browser assets but never builds Java. Each run starts a fresh
 SQLite store; general producer restart and production deployment are outside scope.
 
-Only continuous mode is available. It has no playback controls and repeats the
-same bounded source schedule at roughly three minutes per synthetic cycle.
-Interactive delivery follows separately.
+Continuous mode has no playback controls and repeats the same bounded source
+schedule at roughly three minutes per synthetic cycle.
+
+Interactive mode provides 21 checked scenes using **Step**, **Play**, **Pause** and
+**Reset**, below the match/detail/comparison content and above delivery notices.
+Step waits for receipt and view checks. Pause allows the current check
+to finish, including the real 15-second market freshness wait. The finite sequence
+covers corrected and first-reported goals, missing deliveries, bookmaker outage,
+and retirement into a fresh cycle. Results stay visible at completion.
+
+Reset replaces the service and SQLite store, clears all viewers, and keeps the
+same page URL. A failed checkpoint stays visible until Reset or shutdown. A failed
+Reset can be retried. Viewers share the same walkthrough; commands from an old run
+are rejected. Terminal commands are `step`, `play`, `pause`, `reset`, `help`/`?`
+and `quit`/`q`; Ctrl+C also closes all owned resources.
 
 If a simulation checkpoint fails, the terminal logs the error and the browser
 keeps the failed run and its snapshots available for inspection. Press Ctrl+C
-to close the viewer and its ZooGlass service before restarting the demo.
+to close the viewer and its ZooGlass service before restarting continuous mode.
+In interactive mode, Reset starts a fresh run without closing the page.
 
 ## Read the views
 
@@ -184,3 +199,14 @@ interactive completion and Reset.
 service client, fact reducer, durable storage or production playback engine here.
 Live integration must consume ZooGlass snapshots and use Workbench's scenario
 runner, rather than treating this fixture selector as their implementation.
+
+## Interactive verification
+
+The real-service browser tests cover checked completion, Pause during a pending
+freshness check, Reset/quit cancellation, partial retirement failure, retryable
+Reset startup failure, fresh baselines in multiple viewers and identical first-cycle
+source actions in both modes. The shared controls also retain Order's recovery
+walkthrough. Tests use the prepared JAR and never trigger a Java build.
+
+Interactive captures from a real service: [desktop](docs/images/interactive-desktop.png),
+[phone](docs/images/interactive-phone.png), [policy comparison](docs/images/interactive-comparison.png).

@@ -54,6 +54,25 @@
         hidden
         aria-label="Revision policy comparison"
       ></section>
+      <section
+        id="playback"
+        class="playback"
+        aria-label="Walkthrough controls"
+        hidden
+      >
+        <div class="playback-buttons">
+          <button id="step" disabled>Step</button
+          ><button id="play" disabled>Play</button>
+          <button id="pause" disabled>Pause</button
+          ><button id="reset" disabled>Reset</button>
+        </div>
+        <p id="checkpoint-label" role="status">Preparing walkthrough…</p>
+        <p id="control-detail" role="status"></p>
+        <p class="playback-note">
+          Step checks one scene. Pause finishes the current check. Reset starts
+          a fresh match run. Terminal: help or quit.
+        </p>
+      </section>
       <section class="notice">
         <span>Simulated delivery events</span>
         <p id="notice" role="status">Waiting for simulated delivery events.</p>

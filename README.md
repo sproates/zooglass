@@ -53,8 +53,8 @@ application work delegated and retained.
 
 The [Sports match centre](demos/live-sports/README.md) shows three matches through
 corrected and first-reported views, independent bookmaker updates and bounded
-fact retirement. The continuous browser implementation is proposed for review;
-interactive delivery follows separately.
+fact retirement. Continuous mode is delivered on the shared branch; the finite
+interactive walkthrough with Step/Play/Pause/Reset is proposed for review.
 
 The [roadmap](ROADMAP.md) sets out upcoming capabilities and demonstrations.
 

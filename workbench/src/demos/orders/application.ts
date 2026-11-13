@@ -19,6 +19,11 @@ export async function orderApplication(
       ],
     ),
     [
+      "/vehicle-tracker/src/playback-controls.js",
+      "dist/vehicle-tracker/src/playback-controls.js",
+      "text/javascript",
+    ],
+    [
       "/vehicle-tracker/src/subscription-client.js",
       "dist/vehicle-tracker/src/subscription-client.js",
       "text/javascript",

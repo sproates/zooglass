@@ -912,3 +912,40 @@ footer {
     text-align: right;
   }
 }
+
+.playback {
+  margin: 18px 0;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.playback[hidden] {
+  display: none;
+}
+.playback-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.playback button {
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--white);
+  cursor: pointer;
+}
+.playback button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.playback p {
+  margin: 7px 0;
+}
+.playback-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

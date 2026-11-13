@@ -240,3 +240,87 @@ test("replay CLI refuses symlink and hardlink outputs that alias saved evidence"
     await saved.close();
   }
 });
+
+test("require-passed distinguishes reproduced failures while preserving default verification exit", async () => {
+  const { spawnSync } = await import("node:child_process");
+  for (const outcome of ["passed", "assertion-failed", "limit-exceeded"]) {
+    const f = fixture();
+    if (outcome === "assertion-failed") f.document.assertions[0].expected = [];
+    if (outcome === "limit-exceeded") f.document.limits.turns = 2;
+    const saved = await baseline(f);
+    try {
+      for (const requirePassed of [false, true]) {
+        const output = saved.path + `.${requirePassed}.json`;
+        const child = spawnSync(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "src/timeline/replay-cli.ts",
+            saved.path,
+            output,
+            jar,
+            ...(requirePassed ? ["--require-passed"] : []),
+          ],
+          { encoding: "utf8" },
+        );
+        assert.equal(
+          child.status,
+          requirePassed && outcome !== "passed" ? 2 : 0,
+          child.stderr,
+        );
+        const report = JSON.parse(await readFile(output, "utf8"));
+        assert.equal(report.status, "verified");
+        assert.equal(report.recordedOutcome, outcome);
+      }
+    } finally {
+      await saved.close();
+    }
+  }
+});
+
+test("require-passed still rejects divergence and invalid/incomplete evidence", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const saved = await baseline();
+  try {
+    const lines = saved.result.trace.trimEnd().split("\n");
+    const index = lines.findIndex((line) => JSON.parse(line).kind === "state");
+    const changed = JSON.parse(lines[index]);
+    changed.data.envelope.data.reading.amount = 987;
+    lines[index] = canonicalJson(JSON.stringify(changed));
+    for (const kind of ["diverged", "incomplete", "invalid"]) {
+      const trace =
+        kind === "diverged"
+          ? lines.join("\n") + "\n"
+          : saved.result.trace.trimEnd().split("\n").slice(0, -1).join("\n") +
+            "\n";
+      await writeFile(
+        saved.path,
+        kind === "invalid" ? "{" : JSON.stringify({ ...saved.result, trace }),
+      );
+      const output = saved.path + `.${kind}.json`;
+      const child = spawnSync(
+        process.execPath,
+        [
+          "--import",
+          "tsx",
+          "src/timeline/replay-cli.ts",
+          saved.path,
+          output,
+          jar,
+          "--require-passed",
+        ],
+        { encoding: "utf8" },
+      );
+      assert.equal(child.status, 1);
+      if (kind === "diverged")
+        assert.equal(
+          JSON.parse(await readFile(output, "utf8")).status,
+          "diverged",
+        );
+      else await assert.rejects(readFile(output), /ENOENT/);
+    }
+  } finally {
+    await saved.close();
+  }
+});

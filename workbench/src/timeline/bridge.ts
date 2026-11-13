@@ -13,7 +13,17 @@ export type Effect = {
   wire?: string;
   code?: number;
 };
+export type TimingDiagnostics = {
+  pauseMillis: number;
+  pauses: {
+    site: string;
+    requestedMillis: number;
+    elapsedNanos: number;
+    virtualMs: number;
+  }[];
+};
 export type Response = {
+  diagnostics?: TimingDiagnostics;
   turnId: number;
   runtimeGeneration: number;
   timeMs: number;
@@ -40,6 +50,7 @@ export class Bridge {
   private turn = 0;
   private epoch = 1_000_000;
   environment?: Record<string, string>;
+  timing?: TimingDiagnostics;
   configurationAdmission = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
@@ -48,12 +59,14 @@ export class Bridge {
   private constructor(
     jar: string,
     private readonly hostDelay: number,
+    jvmPauseMs: number,
   ) {
     this.child = spawn(
       "java",
       [
         "-Xms16m",
         "-Xmx128m",
+        `-Dzooglass.simulation.pauseMillis=${jvmPauseMs}`,
         `-Dzooglass.simulation.artifact=${jar}`,
         "-Dloader.main=io.zooglass.simulation.TimelineHost",
         "-cp",
@@ -104,11 +117,14 @@ export class Bridge {
   static async open(
     jar: string,
     hostDelay = 0,
+    jvmPauseMs = 0,
   ): Promise<{ bridge: Bridge; artifact: string }> {
+    if (!Number.isSafeInteger(jvmPauseMs) || jvmPauseMs < 0 || jvmPauseMs > 250)
+      throw new Error("Invalid JVM host pause");
     const artifact = createHash("sha256")
       .update(await readFile(jar))
       .digest("hex");
-    const bridge = new Bridge(jar, hostDelay);
+    const bridge = new Bridge(jar, hostDelay, jvmPauseMs);
     try {
       const handshake = (await bridge.read()) as Record<string, unknown>;
       if (
@@ -228,6 +244,7 @@ export class Bridge {
       ) {
         throw new Error("Mismatched turn response");
       }
+      if (value.diagnostics) this.timing = value.diagnostics;
       return value;
     } finally {
       this.commandActive = false;

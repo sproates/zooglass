@@ -32,7 +32,9 @@ export function parseReplay(raw: string) {
     "execution",
     "trace",
     ...(Object.hasOwn(saved, "message") ? ["message"] : []),
+    ...(Object.hasOwn(saved, "diagnostics") ? ["diagnostics"] : []),
   ]);
+  if (saved.diagnostics !== undefined) object(saved.diagnostics, "diagnostics");
   choice(saved.format, "format", ["timeline-run/v1"]);
   const outcome = choice(saved.outcome, "outcome", [
     "passed",

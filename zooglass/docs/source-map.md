@@ -495,7 +495,8 @@ flowchart LR
   host -->|modelled connections| session["simulation/TimelineSession.java"]
   host -->|controlled driver| driver["delivery/TimelineDelivery.java"]
   driver -->|same writer and queue| broadcaster["delivery/SnapshotBroadcaster.java"]
-  driver -->|register callbacks, no threads| turn
+  driver -->|register callbacks and probe writer handoff, no threads| turn
+  turn -->|owned-turn pauses and separate diagnostics| probe["simulation/HostTimingProbe.java"]
   runtime -->|clock reads and alarms| turn
 ```
 

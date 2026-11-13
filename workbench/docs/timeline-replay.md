@@ -57,9 +57,17 @@ new run with the current executor instead of relabelling an old artifact.
   no replay report is written. JVM environment matching requires a handshake but
   happens before runtime initialization.
 
-Replay exits zero only for `verified`, even when the faithfully reproduced scenario
-failed; read `recordedOutcome` before treating it as behavioural acceptance. Other
-statuses and admission errors exit nonzero. The output includes the fresh run;
+By default, replay exits zero for `verified`, including a faithfully reproduced
+scenario failure. Add `--require-passed` when using replay as a behavioural gate:
+
+```sh
+npm run timeline:replay -- /tmp/warehouse-run.json /tmp/warehouse-replay.json --require-passed
+```
+
+With that flag, exit 0 means verified and scenario passed; exit 2 means verified but
+the scenario failed an assertion or exhausted a budget. Exit 1 means divergence,
+infrastructure failure or rejected/invalid evidence. The report always preserves
+`status` and `recordedOutcome`; verification never relabels scenario failure as pass. The output includes the fresh run;
 diagnostic error wording is not part of semantic equality. The report path must be a new file: exclusive creation refuses existing files,
 including symlink or hardlink aliases of the saved evidence.
 

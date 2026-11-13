@@ -7,11 +7,12 @@ public final class TurnContext {
     private final Thread owner = Thread.currentThread();
     private final Map<Long, Pending> pending = new LinkedHashMap<>();
     private final List<Map<String, Object>> effects = new ArrayList<>();
+    private final HostTimingProbe timing = new HostTimingProbe();
     private boolean active;
     private long now;
     private long next;
 
-    private record Pending(long at, Runnable action) {}
+    private record Pending(long at, String kind, Runnable action) {}
 
     public void begin(long at) {
         if (active || at < now || at > 3_600_000)
@@ -48,7 +49,7 @@ public final class TurnContext {
         if (at < now || phase < 0 || phase > 2 || pending.size() >= 1000)
             throw new IllegalStateException("Invalid task or task limit");
         long id = ++next;
-        pending.put(id, new Pending(at, action));
+        pending.put(id, new Pending(at, taskKind, action));
         effect(
                 Map.of(
                         "kind", "schedule", "task", id, "at", at, "phase", phase,
@@ -66,13 +67,25 @@ public final class TurnContext {
         var task = pending.remove(id);
         if (task == null || task.at() != now)
             throw new IllegalStateException("Unknown or mistimed task");
+        if (task.kind().equals("alarm")) perturb("alarm-dispatch");
         task.action().run();
     }
 
     public void effect(Map<String, Object> effect) {
         check();
+        if ("state".equals(effect.get("kind"))) perturb("state-effect");
         effects.add(effect);
     }
+
+    public void perturb(String site) {
+        check();
+        long before = now;
+        timing.pause(site, before);
+        check();
+        if (now != before) throw new IllegalStateException("Host pause changed virtual time");
+    }
+
+    public Map<String, Object> diagnostics() { return timing.diagnostics(); }
 
     public int pendingCount() {
         check();

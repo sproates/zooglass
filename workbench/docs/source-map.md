@@ -571,3 +571,17 @@ flowchart LR
 Positive latency is transport transit after source send or completed writer handoff.
 It does not replace the runtime's bounded writer or implement backpressure. See
 [link ordering and interruption](timeline-links.md).
+
+## Document repeatability evidence
+
+```mermaid
+flowchart LR
+  campaign["scripts/document-repeat.ts"] -->|write independently specified seeded inputs| inputs["scripts/document-campaign-inputs.ts"]
+  campaign -->|launch fresh Node process| child["scripts/document-campaign-child.ts"]
+  child -->|execute prepared JVM with host-only perturbations| run["timeline/run-document.ts"]
+  campaign -->|check literal vectors, trace equality and pause coverage| checks["timeline/campaign-checks.ts"]
+  campaign -->|retain full runs, hashes and matrix| evidence["campaign output directory"]
+```
+
+See [document campaigns](timeline-campaign.md). Host timing diagnostics are separate
+from semantic output and must not be used to choose runtime behaviour.

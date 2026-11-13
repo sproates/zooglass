@@ -58,7 +58,8 @@ Full independent observation assertions still determine the scenario's result.
 Receipts for unrelated actions cannot acknowledge the actor. Closed old generations
 continue to drop their queued receipts and cannot acknowledge a replacement.
 
-At a zero-timeout tie, timeout phase one precedes receipt delivery phase two. A
+Timeout-before-receipt is a declared simulator policy, not a claim about production
+network race ordering. At a zero-timeout tie, timeout phase one precedes receipt delivery phase two. A
 nonfinal timeout only schedules a retry; the same-round receipt can cancel it before
 it executes, even with a zero retry interval because derived work enters the next
 causal round. No extra attempt or connection is consumed. This also holds for a

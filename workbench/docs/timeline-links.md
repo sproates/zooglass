@@ -33,7 +33,9 @@ retain the existing inline request handling and next-round return delivery seman
 Connect/disconnect are local lifecycle actions, with no simulated handshake delay.
 A root disconnect at a delivery timestamp runs in phase zero before phase-two arrival.
 
-Closing the real connection immediately cancels all queued positive-latency packets
+Interruption models an **abortive close**, not graceful stream drainage; FIFO
+describes delivery within a surviving generation, not delivery guarantees after
+closure. Closing the real connection immediately cancels all queued positive-latency packets
 in both directions and records their exact envelopes, message IDs and close causes.
 Pending counts fall immediately, so a run may finish before their original delivery
 times. Old publications that never reached runtime do not commit. Publications that

@@ -14,6 +14,7 @@ import { validateTrace } from "./trace-contract.js";
 export type DocumentOptions = {
   jar: string;
   hostDelay?: number;
+  jvmPauseMs?: number;
   paced?: boolean;
   idlePauseMs?: number;
   observeRecord?: (line: string) => void;
@@ -37,6 +38,7 @@ export async function executeDocument(
   const { bridge, artifact } = await Bridge.open(
     options.jar,
     options.hostDelay,
+    options.jvmPauseMs,
   );
   try {
     if (!bridge.documentFormats.includes("timeline-simulation/v1"))
@@ -140,6 +142,12 @@ export async function executeDocument(
     return {
       format: "timeline-run/v1" as const,
       environment,
+      diagnostics: {
+        hostDelayMs: options.hostDelay ?? 0,
+        paced: options.paced ?? false,
+        idlePauseMs: options.idlePauseMs ?? 0,
+        jvm: bridge.timing ?? null,
+      },
       outcome,
       ...(message ? { message } : {}),
       scenario: scenario.canonical,

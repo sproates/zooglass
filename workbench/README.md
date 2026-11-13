@@ -818,3 +818,8 @@ failure prefixes are verified by replay.
 [Fixed virtual link delays](docs/timeline-links.md) now cover source/client requests
 and return delivery, preserving FIFO and cancelling old-generation messages on
 connection interruption. Receipt deadlines include the full round trip.
+
+The [document repeatability campaign](docs/timeline-campaign.md) exercises nine
+scenario/seed combinations in fresh processes with Node and JVM host-time
+perturbations. Replay offers `--require-passed` for scripts requiring both verified
+reproduction and successful scenario assertions.

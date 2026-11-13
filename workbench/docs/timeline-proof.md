@@ -1,7 +1,7 @@
 # Fixed-fixture deterministic timeline proof
 
-This POC exercises real ZooGlass handlers, reconciliation, freshness, subscriptions
-and bounded writer queues under a Workbench-owned agenda. It supports two literal
+The fixed-fixture proof runner exercises real ZooGlass handlers, reconciliation, freshness, subscriptions
+and bounded writer queues under a Workbench-owned agenda. This runner supports two literal
 memory/unprotected scenarios. It is not the general simulator or a replacement for
 `simulate` or real-socket integration tests.
 

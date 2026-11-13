@@ -86,3 +86,9 @@ JavaScript's safe range, both delivery policies, failed release, reconnect clean
 end policies and budgets. Fresh JVM runs with bridge delays, pacing and host pauses
 longer than the freshness threshold produce identical semantic traces. These checks
 qualify this bounded profile, not every configuration accepted by ZooGlass.
+
+The [document repeatability campaign](timeline-campaign.md) qualifies representative
+versioned scenarios separately from the original fixed proofs. JVM pause diagnostics
+are excluded from semantic comparison; real virtual timestamps and business fields
+remain included. Wall-clock rollback is not admitted by this profile and remains
+part of planned persistence/restart work.

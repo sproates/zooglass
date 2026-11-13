@@ -223,7 +223,8 @@ public final class TimelineHost {
                 "pendingTasks",
                 pending,
                 "heldFrames",
-                held);
+                held,
+                "diagnostics", turns.diagnostics());
     }
 
     private void initialize(String policy) {

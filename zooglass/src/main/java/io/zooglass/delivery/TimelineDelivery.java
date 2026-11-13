@@ -131,6 +131,7 @@ public final class TimelineDelivery implements DeliveryDriver {
 
         public void send(OutboundQueue.Frame frame, Consumer<Exception> done) {
             turns.check();
+            turns.perturb("writer-handoff");
             if (stopped) return;
             var handoff = new Handoff(this, frame, done);
             turns.effect(

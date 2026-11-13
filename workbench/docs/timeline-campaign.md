@@ -64,3 +64,9 @@ its results must not be presented as document-executor campaign results.
 
 The [recorded 900-run results](timeline-campaign-results.md) include the tested
 revision, matrix, hashes, environment and limits.
+
+The [real-clock leak control](timeline-clock-leak.md) separately demonstrates that
+runtime host-time leakage can fail a behavioural assertion under these pauses.
+The nine matrix cells above represent approximately four behavioural cases:
+seeds do not affect warehouse retry or delayed links, which have no loss rules;
+automatic retry has two selected loss patterns.

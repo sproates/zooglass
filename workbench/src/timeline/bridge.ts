@@ -51,6 +51,13 @@ export class Bridge {
   private epoch = 1_000_000;
   environment?: Record<string, string>;
   timing?: TimingDiagnostics;
+  readonly hostPauses: {
+    turn: number;
+    timeMs: number;
+    operation: string;
+    requestedMillis: number;
+    elapsedNanos: number;
+  }[] = [];
   configurationAdmission = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
@@ -119,6 +126,8 @@ export class Bridge {
     hostDelay = 0,
     jvmPauseMs = 0,
   ): Promise<{ bridge: Bridge; artifact: string }> {
+    if (!Number.isSafeInteger(hostDelay) || hostDelay < 0 || hostDelay > 250)
+      throw new Error("Invalid Node host pause");
     if (!Number.isSafeInteger(jvmPauseMs) || jvmPauseMs < 0 || jvmPauseMs > 250)
       throw new Error("Invalid JVM host pause");
     const artifact = createHash("sha256")
@@ -201,7 +210,15 @@ export class Bridge {
     this.commandActive = true;
     try {
       if (this.hostDelay) {
+        const before = process.hrtime.bigint();
         await delay(this.hostDelay);
+        this.hostPauses.push({
+          turn: this.turn,
+          timeMs,
+          operation: String(operation.op),
+          requestedMillis: this.hostDelay,
+          elapsedNanos: Number(process.hrtime.bigint() - before),
+        });
       }
       if (this.failure) {
         throw this.failure;

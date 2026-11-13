@@ -57,3 +57,34 @@ test("JVM pause options reject before opening an artifact", async () => {
       /Invalid JVM host pause/,
     );
 });
+
+test("long Node command-boundary pauses preserve traces within virtual timestamps", async () => {
+  for (const name of ["warehouse-retry", "automatic-retry", "delayed-links"]) {
+    const path = resolve(`scenarios/simulation/${name}.json`);
+    const baseline = await runDocument(path, { jar });
+    assert.equal(baseline.outcome, "passed");
+    const hostDelay = name === "delayed-links" ? 90 : 70;
+    const actual = await runDocument(path, { jar, hostDelay });
+    assert.equal(actual.outcome, "passed", actual.message);
+    assert.equal(actual.trace, baseline.trace);
+    const pauses = actual.diagnostics.node;
+    assert.ok(pauses.length > 1);
+    assert.ok(
+      pauses.every(
+        (p) => p.requestedMillis === hostDelay && p.elapsedNanos > 50_000_000,
+      ),
+    );
+    assert.ok(
+      pauses.some((p, i) => i > 0 && p.timeMs === pauses[i - 1].timeMs),
+    );
+  }
+});
+
+test("Node pause options reject before opening an artifact", async () => {
+  const { Bridge } = await import("../../src/timeline/bridge.js");
+  for (const value of [-1, 251, 1.5])
+    await assert.rejects(
+      Bridge.open("/missing.jar", value),
+      /Invalid Node host pause/,
+    );
+});

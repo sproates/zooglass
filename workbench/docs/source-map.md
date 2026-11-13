@@ -585,3 +585,18 @@ flowchart LR
 
 See [document campaigns](timeline-campaign.md). Host timing diagnostics are separate
 from semantic output and must not be used to choose runtime behaviour.
+
+## Clock-leak detection control
+
+```mermaid
+flowchart LR
+  prep["scripts/prepare-clock-leak.py"] -->|copy, mutate and explicitly build| mutant["isolated FreshnessRuntime mutant JAR"]
+  check["scripts/clock-leak-check.ts"] -->|prepared normal and mutant artifacts| run["src/timeline/run-document.ts"]
+  run -->|framed commands and measured Node pauses| bridge["src/timeline/bridge.ts"]
+  check -->|normal trace and failing mutant qualification| checks["src/timeline/campaign-checks.ts"]
+  check -->|full runs, outcomes and hashes| evidence["local clock-leak evidence"]
+```
+
+The preparation command is separate from the check. The mutant remains outside
+the normal source tree and JAR; it deliberately lets host elapsed time affect
+freshness expiry.

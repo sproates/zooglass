@@ -147,6 +147,7 @@ export async function executeDocument(
         paced: options.paced ?? false,
         idlePauseMs: options.idlePauseMs ?? 0,
         jvm: bridge.timing ?? null,
+        node: bridge.hostPauses,
       },
       outcome,
       ...(message ? { message } : {}),

@@ -823,3 +823,6 @@ The [document repeatability campaign](docs/timeline-campaign.md) exercises nine
 scenario/seed combinations in fresh processes with Node and JVM host-time
 perturbations. Replay offers `--require-passed` for scripts requiring both verified
 reproduction and successful scenario assertions.
+
+See the [clock-leak detection control](docs/timeline-clock-leak.md) for the
+separately prepared mutant and long command-boundary pause evidence.

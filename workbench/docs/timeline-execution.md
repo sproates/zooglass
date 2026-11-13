@@ -92,3 +92,7 @@ versioned scenarios separately from the original fixed proofs. JVM pause diagnos
 are excluded from semantic comparison; real virtual timestamps and business fields
 remain included. Wall-clock rollback is not admitted by this profile and remains
 part of planned persistence/restart work.
+
+Production `ViewCoordinator.apply()` calls `expire()` before applying a publication.
+That supports expiry-before-same-time-input in this model; retry-timeout-before-
+receipt remains a separate simulator convention.

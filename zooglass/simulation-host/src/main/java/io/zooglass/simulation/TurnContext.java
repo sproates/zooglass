@@ -1,6 +1,10 @@
 package io.zooglass.simulation;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /** POC-only turn ownership, clocks and opaque deferred callbacks. Never starts a worker. */
 public final class TurnContext {
@@ -15,11 +19,11 @@ public final class TurnContext {
     private record Pending(long at, String kind, Runnable action) {}
 
     public void begin(long at) {
+        checkOwner();
         if (active || at < now || at > 3_600_000)
             throw new IllegalStateException("Invalid turn time");
         now = at;
         active = true;
-        check();
     }
 
     public List<Map<String, Object>> end() {
@@ -31,7 +35,13 @@ public final class TurnContext {
     }
 
     public void check() {
-        if (!active || Thread.currentThread() != owner)
+        checkOwner();
+        if (!active)
+            throw new IllegalStateException("Semantic work outside turn");
+    }
+
+    private void checkOwner() {
+        if (Thread.currentThread() != owner)
             throw new IllegalStateException("Semantic work outside turn");
     }
 
@@ -48,6 +58,8 @@ public final class TurnContext {
         check();
         if (at < now || phase < 0 || phase > 2 || pending.size() >= 1000)
             throw new IllegalStateException("Invalid task or task limit");
+        Objects.requireNonNull(taskKind, "task kind");
+        Objects.requireNonNull(action, "task action");
         long id = ++next;
         pending.put(id, new Pending(at, taskKind, action));
         effect(
@@ -64,9 +76,10 @@ public final class TurnContext {
 
     public void dispatch(long id) {
         check();
-        var task = pending.remove(id);
+        var task = pending.get(id);
         if (task == null || task.at() != now)
             throw new IllegalStateException("Unknown or mistimed task");
+        pending.remove(id);
         if (task.kind().equals("alarm")) perturb("alarm-dispatch");
         task.action().run();
     }

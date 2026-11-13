@@ -4,40 +4,21 @@ import { readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { requireHostArtifact } from "./host-artifact.js";
 
-export type Effect = {
-  kind: string;
-  task?: number;
-  at?: number;
-  phase?: number;
-  taskKind?: string;
-  session?: string;
-  wire?: string;
-  code?: number;
-};
-export type TimingDiagnostics = {
-  pauseMillis: number;
-  pauses: {
-    site: string;
-    requestedMillis: number;
-    elapsedNanos: number;
-    virtualMs: number;
-  }[];
-};
-export type Response = {
-  diagnostics?: TimingDiagnostics;
-  turnId: number;
-  runtimeGeneration: number;
-  timeMs: number;
-  effects: Effect[];
-  pendingTasks: number;
-  heldFrames: number;
-  configuration?: {
-    contractVersion: number;
-    storage: string;
-    documentProfile: string;
-  };
-};
+import {
+  decodeHandshake,
+  decodeResponse,
+  type Response,
+  type TimingDiagnostics,
+} from "./host-protocol.js";
+export type {
+  Effect,
+  Response,
+  SessionEffect,
+  TimingDiagnostics,
+} from "./host-protocol.js";
+
 const cap = 16 * 1024 * 1024;
+const utf8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
 /** Private framed bridge. Never builds Java or treats host latency as simulated time. */
 export class Bridge {
@@ -99,7 +80,7 @@ export class Bridge {
             break;
           }
           const value: unknown = JSON.parse(
-            this.buffer.subarray(4, length + 4).toString("utf8"),
+            utf8.decode(this.buffer.subarray(4, length + 4)),
           );
           this.buffer = this.buffer.subarray(length + 4);
           if (this.waiting) {
@@ -134,7 +115,7 @@ export class Bridge {
     const artifact = createHash("sha256").update(bytes).digest("hex");
     const bridge = new Bridge(jar, hostDelay, jvmPauseMs);
     try {
-      const handshake = (await bridge.read()) as Record<string, unknown>;
+      const handshake = decodeHandshake(await bridge.read());
       if (
         handshake.protocol !== 1 ||
         handshake.fixture !== "timeline-proof-v1" ||
@@ -144,26 +125,13 @@ export class Bridge {
         throw new Error("Unsupported or mismatched simulation artifact");
       }
       if (handshake.configurationAdmission !== undefined) {
-        if (
-          handshake.configurationAdmission !== 1 ||
-          !Array.isArray(handshake.documentFormats) ||
-          !handshake.documentFormats.every((value) => typeof value === "string")
-        ) {
+        if (handshake.configurationAdmission !== 1) {
           throw new Error("Unsupported configuration admission protocol");
         }
         bridge.configurationAdmission = 1;
-        bridge.documentFormats = Object.freeze([
-          ...handshake.documentFormats,
-        ]) as readonly string[];
+        bridge.documentFormats = Object.freeze([...handshake.documentFormats]);
       }
-      if (
-        handshake.environment &&
-        typeof handshake.environment === "object" &&
-        Object.values(handshake.environment).every(
-          (value) => typeof value === "string",
-        )
-      )
-        bridge.environment = handshake.environment as Record<string, string>;
+      bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {
       await bridge.close();
@@ -251,12 +219,11 @@ export class Bridge {
       header.writeUInt32BE(bytes.length);
       const response = this.read();
       this.child.stdin.write(Buffer.concat([header, bytes]));
-      const value = (await response) as Response;
+      const value = decodeResponse(await response);
       if (
         value.turnId !== turnId ||
         value.runtimeGeneration !== 1 ||
-        value.timeMs !== timeMs ||
-        !Array.isArray(value.effects)
+        value.timeMs !== timeMs
       ) {
         throw new Error("Mismatched turn response");
       }

@@ -1,6 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { boundedFile, decode } from "../src/timeline/admission.js";
 import type { CampaignExpectation } from "../src/timeline/campaign-checks.js";
+import { encodeJson, parseJson } from "../src/timeline/json.js";
+import { list, object } from "../src/timeline/validation.js";
 
 // Literal SHA-256 vectors independently calculated using Python hashlib/struct.
 const draws: Record<string, string[]> = {
@@ -12,36 +15,39 @@ const draws: Record<string, string[]> = {
     "ecf6b18f13009d4ea5249695ef06a230f2ca51e6ccea6918b46831aa97f358cf",
   ],
 };
-export async function campaignInputs(directory: string) {
-  const source = resolve("scenarios/simulation");
-  const configuration = await readFile(
-    join(source, "warehouse-runtime.json"),
-    "utf8",
-  );
+export async function campaignInputs(
+  directory: string,
+  source = resolve("scenarios/simulation"),
+) {
+  const configuration = await readFile(join(source, "warehouse-runtime.json"));
   await writeFile(join(directory, "warehouse-runtime.json"), configuration, {
     flag: "wx",
   });
   const groups: { id: string; path: string; expected: CampaignExpectation }[] =
     [];
   for (const name of ["warehouse-retry", "automatic-retry", "delayed-links"]) {
+    const template = decode(await boundedFile(join(source, `${name}.json`)));
     for (const digit of ["0", "1", "2"]) {
-      const document = JSON.parse(
-        await readFile(join(source, `${name}.json`), "utf8"),
-      );
+      const document = object(parseJson(template), name);
       document.seed = digit.repeat(64);
       if (name === "automatic-retry" && digit !== "2") {
         // These seeds deliver the first receipt: retain the independently authored
         // full target/field expectation, with the original applied outcome.
-        const receipt = document.assertions.find(
-          (a: { id: string }) => a.id === "receipts",
-        ).expected[0];
+        const assertion = list(document.assertions, "assertions")
+          .map((value) => object(value, "assertion"))
+          .find((assertion) => assertion.id === "receipts");
+        if (!assertion) throw new Error(`${name}: missing receipts assertion`);
+        const receipt = object(
+          list(assertion.expected, "expected")[0],
+          "receipt",
+        );
         receipt.status = "applied";
         receipt.reason = "memory";
         receipt.changedViews = ["stock-view"];
       }
       const id = `${name}-seed-${digit}`;
       const path = join(directory, `${id}.json`);
-      await writeFile(path, JSON.stringify(document, null, 2) + "\n", {
+      await writeFile(path, encodeJson(document) + "\n", {
         flag: "wx",
       });
       groups.push({

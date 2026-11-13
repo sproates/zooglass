@@ -5,7 +5,7 @@ import { parseTimelineDocument } from "./contract.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
-import { validateTrace } from "./trace-contract.js";
+import { parseTrace } from "./trace-contract.js";
 import { choice, integer, object, text } from "./validation.js";
 
 const sha = (text: string | Buffer) =>
@@ -49,25 +49,19 @@ export function parseReplay(raw: string) {
   const configurationHash = sha(wire);
   if (object(scenario.document.runtime, "runtime").sha256 !== configurationHash)
     throw new Error("invalid-replay: configuration hash mismatch");
-  const trace = string(saved.trace, "trace");
-  if (validateTrace(trace) !== trace)
+  const trace = parseTrace(string(saved.trace, "trace"));
+  if (trace.canonical !== saved.trace)
     throw new Error("invalid-replay: noncanonical trace");
-  const lines = trace
-    .trimEnd()
-    .split("\n")
-    .map((line) => line + "\n");
-  const header = object(parseJson(lines[0]), "header");
-  const result = object(parseJson(lines.at(-1)!), "result");
   if (
-    header.scenarioSha256 !== sha(scenario.canonical) ||
-    integer(header.untilMs, "untilMs") !==
-      integer(scenario.document.untilMs, "untilMs") ||
-    result.outcome !== outcome
+    trace.header.scenarioSha256 !== sha(scenario.canonical) ||
+    trace.header.untilMs !== integer(scenario.document.untilMs, "untilMs") ||
+    trace.outcome !== outcome
   )
     throw new Error("invalid-replay: scenario/result identity mismatch");
   const execution = object(saved.execution, "execution");
   if (
-    encodeJson(header.execution) !== encodeJson(execution) ||
+    !trace.header.execution ||
+    encodeJson(trace.header.execution) !== encodeJson(execution) ||
     execution.configurationSha256 !== configurationHash
   )
     throw new Error("invalid-replay: execution identity mismatch");
@@ -78,7 +72,7 @@ export function parseReplay(raw: string) {
     wire,
     configurationHash,
     execution,
-    lines,
+    lines: trace.lines,
     outcome,
   };
 }
@@ -114,11 +108,14 @@ export class ReplayComparison {
 }
 
 export async function replayDocument(path: string, options: DocumentOptions) {
-  return replaySaved(decode(await boundedFile(path)), options);
+  const input = parseReplay(decode(await boundedFile(path)));
+  return replaySaved(input, options);
 }
 
-export async function replaySaved(raw: string, options: DocumentOptions) {
-  const input = parseReplay(raw);
+export async function replaySaved(
+  input: ReturnType<typeof parseReplay>,
+  options: DocumentOptions,
+) {
   if (
     text(input.execution.artifactSha256, "artifactSha256") !==
     sha(await readFile(options.jar))

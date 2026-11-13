@@ -3,7 +3,7 @@ import { receiptRules } from "./receipt-faults.js";
 import { actionFields } from "./event-schema.js";
 import { observationList } from "./envelopes.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
-import { canonicalJson, parseJson, type Json } from "./json.js";
+import { encodeJson, parseJson, type Json } from "./json.js";
 import {
   choice,
   integer,
@@ -36,8 +36,7 @@ export type TimelineDocument = {
 
 /** Syntax, references and declared lifecycle admission. Does not certify runtime configuration or execution. */
 export function parseTimelineDocument(raw: string): TimelineDocument {
-  const canonical = canonicalJson(raw);
-  const rawDocument = object(parseJson(canonical), "$");
+  const rawDocument = object(parseJson(raw), "$");
   const doc = object(rawDocument, "$", [
     "format",
     "id",
@@ -193,7 +192,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   if (retryPolicies(doc).length) required.add("automatic-retry");
   if (receiptRules(doc).length) required.add("receipt-loss");
   return {
-    canonical,
+    canonical: encodeJson(doc),
     document: doc,
     requiredCapabilities: [...required].sort(),
     admittedActions: admitLifecycle(doc),

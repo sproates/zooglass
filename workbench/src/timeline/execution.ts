@@ -37,7 +37,9 @@ export class Execution {
   readonly clients = new Map<string, string[]>();
   readonly receipts: string[] = [];
   last?: Response;
-  receiptArrival: (effect: Effect) => Promise<void> = async () => {};
+  receiptArrival: (
+    effect: Extract<Effect, { kind: "receipt" }>,
+  ) => Promise<void> = async () => {};
   constructor(
     readonly bridge: Bridge,
     readonly disableAlarms = false,
@@ -70,21 +72,21 @@ export class Execution {
         case "schedule":
           if (!(this.disableAlarms && effect.taskKind === "alarm")) {
             this.agenda.add(
-              effect.at!,
-              effect.phase!,
+              effect.at,
+              effect.phase,
               () => this.command({ op: "task", task: effect.task }),
               effect.task,
             );
           }
           break;
         case "cancel":
-          this.agenda.cancel(effect.task!);
+          this.agenda.cancel(effect.task);
           break;
         case "state":
-          this.states.push(effect.wire!);
+          this.states.push(effect.wire);
           break;
         case "receipt":
-          this.receipts.push(effect.wire!);
+          this.receipts.push(effect.wire);
           this.agenda.add(this.agenda.current[0], 2, async () => {
             await this.receiptArrival(effect);
           });
@@ -94,16 +96,16 @@ export class Execution {
             this.record({ op: "client-arrival", session: effect.session }, [
               effect,
             ]);
-            const frames = this.clients.get(effect.session!) ?? [];
-            frames.push(effect.wire!);
-            this.clients.set(effect.session!, frames);
+            const frames = this.clients.get(effect.session) ?? [];
+            frames.push(effect.wire);
+            this.clients.set(effect.session, frames);
           });
           break;
         case "handoff":
         case "close":
           break;
         default:
-          throw new Error(`Unsupported effect ${effect.kind}`);
+          throw new Error("Unsupported host effect");
       }
     }
   }

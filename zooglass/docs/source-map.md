@@ -528,6 +528,10 @@ construction; effects and callbacks require the owning thread's active turn.
 Arbitrary configuration, restart and protected access remain outside this POC
 capability boundary; unsupported command fields fail explicitly. The handshake
 identifies the actual JVM environment for bounded replay admission.
-The driver owns and cancels its deferred lifecycle, writer and transport callbacks.
+The driver owns deferred lifecycle callbacks; each writer owns and cancels its
+writer/transport callbacks, stall state and held handoff. Stopped writers leave
+the registry. Deferred closure still identifies the original connection even if
+a session name is later reused. Turn ownership and dispatch timing are checked
+before state mutation; malformed UTF-8 is rejected before command dispatch.
 Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
 completion in phase 2; released handoffs complete in a later causal round.

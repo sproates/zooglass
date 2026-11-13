@@ -485,29 +485,36 @@ at the first difference. No Java build is invoked by proof execution or tests.
 flowchart LR
   inspect["timeline/inspect.ts"] -->|validate document only| contract["timeline/contract.ts"]
   inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
-  inspect -->|optional prepared-artifact validation| admission["timeline/admission.ts"]
+  inspect -->|bounded UTF-8 reads; optional artifact validation| admission["timeline/admission.ts"]
   admission -->|configuration hash and full production parser| bridge["timeline/bridge.ts"]
   inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
   inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
-  contract -->|chronological connection, retry and subscription admission| lifecycle["timeline/lifecycle.ts"]
-  contract -->|exact tokens and canonical bytes| json["timeline/json.ts"]
-  trace -->|kind-specific event data| event["timeline/event-schema.ts"]
-  event -->|full runtime message shapes| envelopes["timeline/envelopes.ts"]
-  contract -->|typed expected observations| envelopes
-  contract -->|shared admitted action fields| event
-  trace -->|exact tokens and canonical bytes| json
-  contract -->|strict fields, references, bounded integers| validation["timeline/validation.ts"]
-  trace -->|strict fields and causal references| validation
 ```
 
-Ordinary inspection does not invoke Java. Explicit admission inspection invokes
+Document and trace admission share lossless values and explicit structural checks:
+
+```mermaid
+flowchart TB
+  contract["timeline/contract.ts"] -->|lifecycle admission| lifecycle["timeline/lifecycle.ts"]
+  contract -->|lossless JSON| json["timeline/json.ts"]
+  trace["timeline/trace-contract.ts"] -->|event data| event["timeline/event-schema.ts"]
+  event -->|runtime envelopes| envelopes["timeline/envelopes.ts"]
+  contract -->|observations| envelopes
+  contract -->|action fields| event
+  trace -->|lossless JSON| json
+  contract -->|field checks| validation["timeline/validation.ts"]
+  trace -->|causal checks| validation
+```
+
+All inspection modes use bounded reads and reject malformed UTF-8. Ordinary
+inspection does not invoke Java. Explicit admission inspection invokes
 the prepared artifact solely for configuration validation, without runtime actions.
 A valid document or configuration is not an executable-capability claim. See [contracts and compatibility](timeline-format.md).
 
 ## Bounded document execution
 
 ```mermaid
-flowchart LR
+flowchart TB
   cli["timeline/document-cli.ts"] --> run["timeline/run-document.ts"]
   run --> admission["timeline/admission.ts"]
   run --> profile["timeline/document-profile.ts"]
@@ -524,6 +531,7 @@ flowchart LR
   transport --> trace
   run --> validation["timeline/trace-contract.ts"]
   bridge -->|validate entry point before launch| artifact["timeline/host-artifact.ts"]
+  bridge -->|typed frame metadata; opaque wire payloads| protocol["timeline/host-protocol.ts"]
   bridge --> host["simulation-host: HostProtocol.java / TimelineHost.java"]
 ```
 
@@ -534,6 +542,10 @@ callbacks and assertions consume that same budget. `DocumentTransport` owns
 session-bound effects, writer handoffs, receipt-loss decisions, delayed traffic and
 cumulative delivered observations. The modules exchange explicit commands and
 effect callbacks; they do not reconstruct runtime output from expected assertions.
+The bridge decodes UTF-8 strictly and admits handshake/response metadata through
+`host-protocol.ts`. Discriminated effect types tell each consumer which fields are
+present; task ownership and causal-time checks remain with the execution owner.
+Domain envelopes stay exact wire strings until the lossless domain parser reads them.
 
 Trace records are appended as effects occur. Scheduling and handoff causes retain
 their own event identities, and assertions wait for real scheduled work to settle.
@@ -651,8 +663,10 @@ flowchart LR
 ```
 
 The bundle loader checks completeness before the shared replay executor starts
-Java. It passes the verified in-memory envelope, avoiding a second path read after
-file-hash validation.
+Java. It passes the already parsed, validated in-memory envelope, avoiding a
+second path read or decode after file-hash validation. Trace admission retains
+canonical lines and parsed header/result metadata for replay. Failure-marker and
+cleanup errors cannot replace the original recording failure.
 
 ## Environment qualification and evidence retention
 

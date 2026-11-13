@@ -337,7 +337,7 @@ test("bridge rejects unsupported initialization and nonmonotonic identities", as
 function validateEnvelopes(result: ProofResult) {
   for (const entry of result.trace)
     for (const effect of entry.effects) {
-      if (!effect.wire) continue;
+      if (!("wire" in effect)) continue;
       const validator =
         effect.kind === "receipt"
           ? receiptEnvelope

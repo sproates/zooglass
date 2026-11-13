@@ -11,6 +11,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -91,9 +93,21 @@ final class HostProtocol {
             if (length < 1 || length > CAP) throw new IOException("Invalid frame size");
             byte[] bytes = input.readNBytes(length);
             if (bytes.length != length) throw new EOFException("Truncated frame");
-            var command = JSON.readTree(new String(bytes, StandardCharsets.UTF_8));
-            write(output, handler.execute(command));
+            write(output, handler.execute(decodeCommand(bytes)));
         }
+    }
+
+    static JsonNode decodeCommand(byte[] bytes) throws IOException {
+        String command;
+        try {
+            command =
+                    StandardCharsets.UTF_8.newDecoder()
+                            .decode(ByteBuffer.wrap(bytes))
+                            .toString();
+        } catch (CharacterCodingException failure) {
+            throw new IOException("Command frame is not valid UTF-8", failure);
+        }
+        return JSON.readTree(command);
     }
 
     private static void write(DataOutputStream out, Object value) throws IOException {

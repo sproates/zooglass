@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
 import {
   cp,
   mkdtemp,
@@ -62,10 +63,10 @@ test("portable bundle retains lossless inputs, streamed trace and identities aft
     const report = await replayBundle(moved, { jar, hostDelay: 1 });
     assert.equal(report.status, "verified");
     assert.equal(report.actual.trace, result.trace);
-    const raw = await readBundle(moved);
+    const raw = await readFile(join(moved, "run.json"), "utf8");
     assert.ok(raw.includes("9007199254740993"));
     await assert.rejects(recordBundle("/missing", moved, { jar }), /EEXIST/);
-    assert.equal(await readBundle(moved), raw);
+    assert.equal(await readFile(join(moved, "run.json"), "utf8"), raw);
   } finally {
     await input.close();
     await rm(root, { recursive: true, force: true });
@@ -140,7 +141,7 @@ test("bundle CLI preserves failed semantics, strict replay exits and immutable e
     const dir = join(root, "run");
     const recorded = cli("record", input.path, dir, jar);
     assert.equal(recorded.status, 1, recorded.stderr);
-    const original = await readBundle(dir);
+    const original = await readFile(join(dir, "run.json"), "utf8");
     const replayed = cli(
       "replay",
       dir,
@@ -163,7 +164,7 @@ test("bundle CLI preserves failed semantics, strict replay exits and immutable e
       1,
     );
     assert.equal(cli("replay", dir, join(root, "report.json"), jar).status, 1);
-    assert.equal(await readBundle(dir), original);
+    assert.equal(await readFile(join(dir, "run.json"), "utf8"), original);
   } finally {
     await input.close();
     await rm(root, { recursive: true, force: true });
@@ -196,6 +197,31 @@ test("validation and startup failures retain diagnostic evidence without a compl
     } finally {
       await bounded.close();
     }
+  } finally {
+    await input.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("failure marker collision preserves the original startup error", async () => {
+  const input = await files();
+  const root = await mkdtemp(join(tmpdir(), "timeline-bundle-diagnostic-"));
+  const directory = join(root, "run");
+  const marker = join(directory, "failure.json");
+  const missingJar = join(root, "missing.jar");
+  try {
+    await assert.rejects(
+      recordBundle(input.path, directory, {
+        get jar() {
+          // Simulate a competing diagnostic writer before the host is opened.
+          writeFileSync(marker, "existing diagnostic", { flag: "wx" });
+          return missingJar;
+        },
+      }),
+      { code: "ENOENT", path: missingJar },
+    );
+    assert.equal(await readFile(marker, "utf8"), "existing diagnostic");
+    assert.ok(!(await readdir(directory)).includes("manifest.json"));
   } finally {
     await input.close();
     await rm(root, { recursive: true, force: true });

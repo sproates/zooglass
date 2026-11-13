@@ -50,6 +50,28 @@ function provenance() {
   }
 }
 
+function appendTrace(file: number, line: string) {
+  const bytes = Buffer.from(line);
+  let offset = 0;
+  while (offset < bytes.length) {
+    const count = writeSync(file, bytes, offset, bytes.length - offset);
+    if (!count) throw new Error("Trace write made no progress");
+    offset += count;
+  }
+}
+
+async function writeFailure(directory: string, message: string) {
+  try {
+    await writeFile(
+      join(directory, "failure.json"),
+      JSON.stringify({ status: "incomplete", message }) + "\n",
+      { flag: "wx" },
+    );
+  } catch {
+    // The original failure remains available even when its marker cannot be written.
+  }
+}
+
 /** Exclusive destination; trace is appended live and manifest is the last completeness marker. */
 export async function recordBundle(
   scenarioPath: string,
@@ -68,43 +90,21 @@ export async function recordBundle(
     await writeFile(join(directory, "configuration.json"), input.wire, {
       flag: "wx",
     });
-    traceFile = openSync(join(directory, "trace.jsonl"), "wx");
+    const fd = openSync(join(directory, "trace.jsonl"), "wx");
+    traceFile = fd;
     const result = await executeDocument(input, {
       ...options,
-      observeRecord: (line) => {
-        const bytes = Buffer.from(line);
-        let offset = 0;
-        while (offset < bytes.length) {
-          const count = writeSync(
-            traceFile!,
-            bytes,
-            offset,
-            bytes.length - offset,
-          );
-          if (!count) throw new Error("Trace write made no progress");
-          offset += count;
-        }
-      },
+      observeRecord: (line) => appendTrace(fd, line),
     });
-    closeSync(traceFile);
     traceFile = undefined;
-    await writeFile(
-      join(directory, "run.json"),
-      JSON.stringify(result) + "\n",
-      { flag: "wx" },
-    );
+    closeSync(fd);
+    const raw = JSON.stringify(result) + "\n";
+    await writeFile(join(directory, "run.json"), raw, { flag: "wx" });
     if (result.outcome === "infrastructure-failed") {
-      await writeFile(
-        join(directory, "failure.json"),
-        JSON.stringify({
-          status: "incomplete",
-          message: result.message ?? "Infrastructure failure",
-        }) + "\n",
-        { flag: "wx" },
-      );
+      await writeFailure(directory, result.message ?? "Infrastructure failure");
       return result;
     }
-    parseReplay(JSON.stringify(result));
+    parseReplay(raw);
     const inventory: Record<string, { bytes: number; sha256: string }> = {};
     for (const name of files) {
       const bytes = await boundedFile(join(directory, name));
@@ -132,17 +132,15 @@ export async function recordBundle(
     );
     return result;
   } catch (cause) {
-    await writeFile(
-      join(directory, "failure.json"),
-      JSON.stringify({
-        status: "incomplete",
-        message: String(cause),
-      }) + "\n",
-      { flag: "wx" },
-    );
+    if (traceFile !== undefined) {
+      try {
+        closeSync(traceFile);
+      } catch {
+        // Preserve the original failure if closing the partial trace also fails.
+      }
+    }
+    await writeFailure(directory, String(cause));
     throw cause;
-  } finally {
-    if (traceFile !== undefined) closeSync(traceFile);
   }
 }
 
@@ -201,8 +199,7 @@ export async function readBundle(directory: string) {
     )
       throw new Error(`invalid-bundle: ${name} hash/size mismatch`);
   }
-  const raw = decode(bytes["run.json"]);
-  const run = parseReplay(raw);
+  const run = parseReplay(decode(bytes["run.json"]));
   same(manifest.outcome, run.outcome, "outcome");
   // Lossless parsed metadata is compared directly, without converting Decimal objects.
   if (
@@ -216,7 +213,7 @@ export async function readBundle(directory: string) {
     decode(bytes["trace.jsonl"]) !== run.saved.trace
   )
     throw new Error("invalid-bundle: retained inputs/trace mismatch");
-  return raw;
+  return run;
 }
 
 export async function replayBundle(

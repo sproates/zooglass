@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,6 +60,61 @@ class TurnContextTests {
         turns.dispatch(task);
         assertThat(turns.end()).containsExactly(java.util.Map.of("kind", "ran"));
         assertThatThrownBy(() -> turns.begin(4)).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void aRejectedOffThreadBeginLeavesTheOwnersNextTurnIntact() throws Exception {
+        var turns = new TurnContext();
+        var failure = new AtomicReference<Throwable>();
+        var worker = new Thread(() -> {
+            try {
+                turns.begin(1);
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+
+        worker.start();
+        worker.join();
+
+        assertThat(failure.get()).isInstanceOf(IllegalStateException.class);
+        turns.begin(0);
+        assertThat(turns.now()).isZero();
+        assertThat(turns.end()).isEmpty();
+    }
+
+    @Test
+    void aRejectedEarlyDispatchRetainsTheScheduledCallback() {
+        var turns = new TurnContext();
+        var calls = new ArrayList<Long>();
+        turns.begin(0);
+        long task = turns.schedule(5, 1, () -> calls.add(turns.now()));
+
+        assertThatThrownBy(() -> turns.dispatch(task)).isInstanceOf(IllegalStateException.class);
+        assertThat(calls).isEmpty();
+        assertThat(turns.pendingCount()).isOne();
+        turns.end();
+
+        turns.begin(5);
+        turns.dispatch(task);
+        assertThat(calls).containsExactly(5L);
+        assertThat(turns.pendingCount()).isZero();
+        turns.end();
+    }
+
+    @Test
+    void malformedTasksDoNotConsumeIdentitiesOrEnterTheAgenda() {
+        var turns = new TurnContext();
+        turns.begin(0);
+
+        assertThatThrownBy(() -> turns.schedule(5, 1, null, () -> {}))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> turns.schedule(5, 1, null))
+                .isInstanceOf(NullPointerException.class);
+
+        assertThat(turns.pendingCount()).isZero();
+        assertThat(turns.schedule(5, 1, () -> {})).isOne();
+        assertThat(turns.end()).hasSize(1);
     }
 
     @Test

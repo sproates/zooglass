@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
-import type { Effect } from "./bridge.js";
+import type { SessionEffect } from "./bridge.js";
 import type { TimelineDocument } from "./contract.js";
 import { DelayedLinks, type LinkChannel } from "./delayed-links.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
@@ -109,8 +109,12 @@ export class DocumentTransport {
       causes,
     );
   }
-  effect(effect: Effect, parent: string, publication?: PublicationAttempt) {
-    const connection = this.sessions.get(effect.session!);
+  effect(
+    effect: SessionEffect,
+    parent: string,
+    publication?: PublicationAttempt,
+  ) {
+    const connection = this.sessions.get(effect.session);
     assert.ok(
       connection,
       `effect names a known connection generation: ${effect.session}`,
@@ -145,7 +149,7 @@ export class DocumentTransport {
       }
       return;
     }
-    const envelope = parseJson(effect.wire!);
+    const envelope = parseJson(effect.wire);
     if (effect.kind === "handoff") {
       assert.ok(
         !this.handoffs.has(connection.session),

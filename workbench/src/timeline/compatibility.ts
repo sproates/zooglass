@@ -94,7 +94,7 @@ export function assessLegacyScenario(scenario: Scenario) {
     name: scenario.name,
     unchangedExecutionSupported: false,
     blocker:
-      "The controlled host has a fixed configuration and no general scenario executor. This report does not certify conversion.",
+      "Legacy scenarios require conversion to timeline-simulation/v1 with explicit connection actions and settled-time assertions.",
     kinds,
     issues,
   };

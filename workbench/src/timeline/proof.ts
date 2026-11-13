@@ -96,7 +96,7 @@ export async function runProof(options: Options): Promise<ProofResult> {
     }
     let source = "source-1";
     run.receiptArrival = async (effect) => {
-      const receipt = metadata(effect.wire!);
+      const receipt = metadata(effect.wire);
       if (
         options.scenario === "receipt" &&
         receipt.publicationSequence === 1 &&
@@ -220,7 +220,7 @@ export async function runProof(options: Options): Promise<ProofResult> {
             entry.effects.some(
               (effect) =>
                 effect.kind === "state" &&
-                freshness(effect.wire!).freshness === "stale",
+                freshness(effect.wire).freshness === "stale",
             ),
         ),
         "deadline expiry must originate from alarm",

@@ -1,27 +1,35 @@
 package io.zooglass.delivery;
 
-import io.zooglass.access.*;
+import io.zooglass.access.ActiveViewGrants;
+import io.zooglass.access.AdmissionAccess;
 import io.zooglass.runtime.ViewCoordinator;
-import io.zooglass.simulation.*;
+import io.zooglass.simulation.TurnContext;
 
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.WebSocketSession;
 
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /** POC adapter: defers real writer turns and holds transport handoffs without queue emulation. */
 public final class TimelineDelivery implements DeliveryDriver {
+    private static final int LIFECYCLE_PHASE = 0;
+    private static final int RUNTIME_PHASE = 1;
+    private static final int ARRIVAL_PHASE = 2;
+
     private final TurnContext turns;
     private final Map<String, ModelWriter> writers = new LinkedHashMap<>();
-    private final Map<String, Handoff> held = new LinkedHashMap<>();
-    private final Set<String> stalled = new LinkedHashSet<>();
     private final Set<Long> tasks = new LinkedHashSet<>();
     private boolean closed;
 
-    private record Handoff(
-            ModelWriter writer, OutboundQueue.Frame frame, Consumer<Exception> done) {}
+    private record Handoff(OutboundQueue.Frame frame, Consumer<Exception> done) {}
 
     public TimelineDelivery(TurnContext turns) {
         this.turns = turns;
@@ -31,109 +39,115 @@ public final class TimelineDelivery implements DeliveryDriver {
         return new SnapshotBroadcaster(json, runtime, new AdmissionAccess(), this);
     }
 
+    @Override
     public Writer writer(WebSocketSession session, ActiveViewGrants grants) {
         turns.check();
         if (closed || grants != null)
             throw new IllegalArgumentException("Unsupported delivery composition");
         var writer = new ModelWriter(session);
-        writers.put(session.getId(), writer);
+        if (writers.putIfAbsent(session.getId(), writer) != null)
+            throw new IllegalStateException("Duplicate writer for session " + session.getId());
         return writer;
     }
 
+    @Override
     public void execute(Runnable action) {
-        defer(1, action);
+        deferDriverTask(RUNTIME_PHASE, action);
     }
 
-    private void defer(int phase, Runnable action) {
+    private void deferDriverTask(int phase, Runnable action) {
         turns.check();
         if (closed) throw new IllegalStateException("Closed delivery driver");
+        defer(phase, tasks, action);
+    }
+
+    private void defer(int phase, Set<Long> ownerTasks, Runnable action) {
         long[] id = {0};
         id[0] =
                 turns.schedule(
                         turns.now(),
                         phase,
                         () -> {
-                            tasks.remove(id[0]);
+                            ownerTasks.remove(id[0]);
                             action.run();
                         });
-        tasks.add(id[0]);
+        ownerTasks.add(id[0]);
     }
 
+    @Override
     public void closeSession(WebSocketSession session, CloseStatus status) {
-        defer(
-                0,
+        deferDriverTask(
+                LIFECYCLE_PHASE,
                 () -> {
                     try {
-                        session.close(status);
-                    } catch (java.io.IOException e) {
-                        throw new IllegalStateException(e);
+                        if (session.isOpen()) session.close(status);
+                    } catch (IOException failure) {
+                        throw new IllegalStateException("Could not close modelled session", failure);
                     }
                 });
     }
 
     public void stall(String session) {
-        turns.check();
-        stalled.add(session);
+        writerFor(session).stalled = true;
     }
 
     public void release(String session, boolean fail) {
+        writerFor(session).release(fail);
+    }
+
+    private ModelWriter writerFor(String session) {
         turns.check();
-        stalled.remove(session);
-        var handoff = held.remove(session);
-        if (handoff == null) throw new IllegalArgumentException("No held handoff");
-        handoff.writer().defer(2, () -> handoff.writer().finish(handoff, fail));
+        var writer = writers.get(session);
+        if (writer == null) throw new IllegalArgumentException("No writer for session " + session);
+        return writer;
     }
 
     public int heldCount() {
         turns.check();
-        return held.size();
+        int count = 0;
+        for (var writer : writers.values()) {
+            if (writer.held != null) count++;
+        }
+        return count;
     }
 
+    @Override
     public void close() {
         turns.check();
         if (closed) return;
         closed = true;
-        for (long id : List.copyOf(tasks)) turns.cancel(id);
+        tasks.forEach(turns::cancel);
         tasks.clear();
-        writers.values().forEach(ModelWriter::stop);
-        writers.clear();
-        held.clear();
-        stalled.clear();
+        List.copyOf(writers.values()).forEach(ModelWriter::stop);
     }
 
     private final class ModelWriter implements Writer {
-        final WebSocketSession session;
-        final Set<Long> tasks = new LinkedHashSet<>();
-        boolean stopped;
+        private final WebSocketSession session;
+        private final Set<Long> tasks = new LinkedHashSet<>();
+        private boolean stopped;
+        private boolean stalled;
+        private Handoff held;
 
         ModelWriter(WebSocketSession session) {
             this.session = session;
         }
 
+        @Override
         public void execute(Runnable turn) {
-            defer(1, turn);
+            defer(RUNTIME_PHASE, turn);
         }
 
-        void defer(int phase, Runnable turn) {
+        private void defer(int phase, Runnable turn) {
             turns.check();
-            if (stopped) return;
-            long[] id = {0};
-            id[0] =
-                    turns.schedule(
-                            turns.now(),
-                            phase,
-                            () -> {
-                                tasks.remove(id[0]);
-                                if (!stopped) turn.run();
-                            });
-            tasks.add(id[0]);
+            if (!stopped) TimelineDelivery.this.defer(phase, tasks, turn);
         }
 
+        @Override
         public void send(OutboundQueue.Frame frame, Consumer<Exception> done) {
             turns.check();
             turns.perturb("writer-handoff");
             if (stopped) return;
-            var handoff = new Handoff(this, frame, done);
+            var handoff = new Handoff(frame, done);
             turns.effect(
                     Map.of(
                             "kind",
@@ -142,11 +156,19 @@ public final class TimelineDelivery implements DeliveryDriver {
                             session.getId(),
                             "wire",
                             frame.message().getPayload()));
-            if (stalled.contains(session.getId())) held.put(session.getId(), handoff);
-            else defer(2, () -> finish(handoff, false));
+            if (stalled) held = handoff;
+            else defer(ARRIVAL_PHASE, () -> finish(handoff, false));
         }
 
-        void finish(Handoff handoff, boolean fail) {
+        private void release(boolean fail) {
+            var handoff = held;
+            if (handoff == null) throw new IllegalArgumentException("No held handoff");
+            defer(ARRIVAL_PHASE, () -> finish(handoff, fail));
+            held = null;
+            stalled = false;
+        }
+
+        private void finish(Handoff handoff, boolean fail) {
             turns.check();
             if (stopped) return;
             if (!fail)
@@ -158,16 +180,18 @@ public final class TimelineDelivery implements DeliveryDriver {
                                 session.getId(),
                                 "wire",
                                 handoff.frame().message().getPayload()));
-            handoff.done()
-                    .accept(fail ? new java.io.IOException("Modelled handoff failure") : null);
+            handoff.done().accept(fail ? new IOException("Modelled handoff failure") : null);
         }
 
+        @Override
         public void stop() {
             turns.check();
+            if (stopped) return;
             stopped = true;
-            for (long id : List.copyOf(tasks)) turns.cancel(id);
+            tasks.forEach(turns::cancel);
             tasks.clear();
-            held.remove(session.getId());
+            held = null;
+            writers.remove(session.getId(), this);
         }
     }
 }

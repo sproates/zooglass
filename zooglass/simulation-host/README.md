@@ -55,6 +55,13 @@ The production project has no dependency on this host.
 - `delivery/TimelineDelivery` drives the real writer and queue through controlled
   callbacks. `HostTimingProbe` adds host-only pause diagnostics for qualification.
 
+Each controlled writer owns its stall state, held handoff and deferred callbacks.
+Stopping it releases those resources and removes its registry entry; reusing a
+session name cannot inherit them. Deferred closes refer to the original connection.
+`TurnContext` checks ownership and dispatch time before changing clocks or tasks,
+so rejected operations do not corrupt the next valid turn. Both pipe endpoints
+reject malformed UTF-8 rather than silently replacing payload characters.
+
 ## Refactor validation
 
 The 13 November 2026 refactor passed 90 timeline tests, 144 Workbench core tests,

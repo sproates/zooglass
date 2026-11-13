@@ -1,5 +1,4 @@
-import { inspectAdmission } from "./admission.js";
-import { readFile } from "node:fs/promises";
+import { boundedFile, decode, inspectAdmission } from "./admission.js";
 import { parseScenario } from "../scenario/scenario.js";
 import { assessLegacyScenario } from "./compatibility.js";
 import { parseTimelineDocument } from "./contract.js";
@@ -20,7 +19,7 @@ if (mode === "admission") {
   console.log(JSON.stringify(await inspectAdmission(paths[0], paths[1])));
 } else
   for (const path of paths) {
-    const raw = await readFile(path, "utf8");
+    const raw = decode(await boundedFile(path));
     if (mode === "legacy") {
       canonicalJson(raw); // Reject duplicate keys before the legacy parser discards them.
       console.log(

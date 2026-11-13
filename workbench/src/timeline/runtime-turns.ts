@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
-import type { Bridge, Effect, Response } from "./bridge.js";
+import type { Bridge, Effect, Response, SessionEffect } from "./bridge.js";
 import { parseJson, type Json } from "./json.js";
 import { SemanticTrace, metadataJson as j } from "./semantic-trace.js";
 
@@ -17,7 +17,7 @@ export class RuntimeTurns {
     private readonly trace: SemanticTrace,
     private readonly turnLimit: number,
     private readonly sessionEffect: (
-      effect: Effect,
+      effect: SessionEffect,
       parent: string,
       publication?: PublicationAttempt,
     ) => void,
@@ -63,14 +63,13 @@ export class RuntimeTurns {
   ) {
     if (effect.kind === "schedule") {
       assert.ok(
-        Number.isSafeInteger(effect.task) &&
-          effect.task! > 0 &&
-          !this.tasks.has(effect.task!),
+        !this.tasks.has(effect.task),
+        "scheduled task has a unique owner",
       );
       assert.ok(
-        Number.isSafeInteger(effect.at) && effect.at! >= this.agenda.current[0],
+        effect.at >= this.agenda.current[0],
+        "runtime task cannot be scheduled in the past",
       );
-      assert.ok([0, 1, 2].includes(effect.phase!));
       const id = this.event(
         "scheduled",
         j({
@@ -81,17 +80,17 @@ export class RuntimeTurns {
         }),
         parent,
       );
-      this.tasks.set(effect.task!, id);
+      this.tasks.set(effect.task, id);
       this.agenda.add(
-        effect.at!,
-        effect.phase!,
+        effect.at,
+        effect.phase,
         async () => {
           assert.equal(
-            this.tasks.get(effect.task!),
+            this.tasks.get(effect.task),
             id,
             "task retains its scheduling owner",
           );
-          this.tasks.delete(effect.task!);
+          this.tasks.delete(effect.task);
           const dispatch = this.event(
             "task-dispatched",
             j({ taskId: String(effect.task) }),
@@ -104,17 +103,17 @@ export class RuntimeTurns {
       return;
     }
     if (effect.kind === "cancel") {
-      const owner = this.tasks.get(effect.task!);
+      const owner = this.tasks.get(effect.task);
       assert.ok(owner, "cancellation identifies a pending scheduled task");
       this.event("cancelled", j({ taskId: String(effect.task) }), parent, [
         owner,
       ]);
-      this.tasks.delete(effect.task!);
-      this.agenda.cancel(effect.task!);
+      this.tasks.delete(effect.task);
+      this.agenda.cancel(effect.task);
       return;
     }
     if (effect.kind === "state") {
-      this.event("state", { envelope: parseJson(effect.wire!) }, parent);
+      this.event("state", { envelope: parseJson(effect.wire) }, parent);
       return;
     }
     this.sessionEffect(effect, parent, publication);

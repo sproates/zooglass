@@ -36,6 +36,7 @@ function resetFixture() {
 for (const message of [
   "locator.click: Target page, context or browser has been closed",
   "locator.click: Browser closed",
+  "keyboard.press: Browser closed",
 ]) {
   test(`reset accepts confirmed closure and waits for replacement: ${message}`, async () => {
     const fixture = resetFixture();
@@ -65,31 +66,42 @@ for (const message of [
   });
 }
 
-test("reset does not accept a closure message while the old page is open", async () => {
-  const fixture = resetFixture();
-  const error = new Error("locator.click: Browser closed");
+for (const message of [
+  "locator.click: Browser closed",
+  "keyboard.press: Browser closed",
+]) {
+  test(`reset does not accept a closure message while the old page is open: ${message}`, async () => {
+    const fixture = resetFixture();
+    const error = new Error(message);
 
-  try {
+    try {
+      await assert.rejects(
+        resetThroughBrowser(fixture.demo, async () => {
+          throw error;
+        }),
+        (actual) => actual === error,
+      );
+    } finally {
+      fixture.closePage();
+    }
+  });
+}
+
+for (const message of [
+  "locator.click: Timeout exceeded",
+  "keyboard.press: Timeout exceeded",
+  "keyboard.press: Browser closed unexpectedly during another operation",
+]) {
+  test(`reset propagates other input failures even after page closure: ${message}`, async () => {
+    const fixture = resetFixture();
+    const error = new Error(message);
+
     await assert.rejects(
       resetThroughBrowser(fixture.demo, async () => {
+        fixture.closePage();
         throw error;
       }),
       (actual) => actual === error,
     );
-  } finally {
-    fixture.closePage();
-  }
-});
-
-test("reset propagates other input failures even after page closure", async () => {
-  const fixture = resetFixture();
-  const error = new Error("locator.click: Timeout exceeded");
-
-  await assert.rejects(
-    resetThroughBrowser(fixture.demo, async () => {
-      fixture.closePage();
-      throw error;
-    }),
-    (actual) => actual === error,
-  );
-});
+  });
+}

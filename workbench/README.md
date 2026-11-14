@@ -886,6 +886,8 @@ The [Order/Sports compatibility assessment](docs/timeline-order-sports-assessmen
 records the next profile and control-transport gaps against the completed demos.
 The [Order host foundation](docs/timeline-order-host.md) now admits its bounded
 SQLite configuration and progress endpoint. [Order document controls](docs/timeline-order-controls.md)
-add explicit watermark sends, complete acknowledgement assertions and replay. Full
-Order scenarios, restart and qualification remain next; the real-service demos
-remain separate.
+add explicit watermark sends, complete acknowledgement assertions and replay.
+The [two-cycle Order scenario](docs/timeline-order-scenario.md) retains all six
+orders and the completed demo's source/control inputs with independent expected
+outcomes. Order restart, retention and qualification remain separate; the
+real-service demos remain available.

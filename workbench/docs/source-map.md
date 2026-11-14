@@ -892,3 +892,26 @@ watermark outcome. Workbench validates evidence and controls delivery; it does n
 calculate progress state. Profile/capability agreement prevents old hosts or other
 profiles from silently accepting the endpoint. Full Order scenario, restart and
 qualification gates remain separate from this transport foundation.
+
+## Authored Order scenario
+
+```mermaid
+flowchart LR
+  author["scenarios/timeline-order/author.ts"] -->|declare inputs and connection actions| inputs["timeline-order/inputs.ts"]
+  author -->|complete receipt and watermark expectations| receipts["timeline-order/receipts.ts"]
+  author -->|named complete snapshots| checks["timeline-order/checkpoints.ts"]
+  author -->|literal ordered client emissions| rows["timeline-order/order-one.ts"]
+  checks -->|reuse explicit order-1 states| rows
+  rows -->|serialize declared contributions and statuses| observations["timeline-order/observations.ts"]
+  author -->|write reproducible runnable document| scenario["timeline-order/scenario.json"]
+  tests["test/timeline/order-scenario.test.ts"] -->|check authored bytes and pinned input identity| author
+  tests -->|evaluate positive and wrong expected outcomes| run["timeline/run-document.ts"]
+  scenario -->|read exact configuration| config["timeline-order/runtime.json"]
+  run -->|execute declared scenario against prepared host| scenario
+```
+
+[The Order fixture](timeline-order-scenario.md) keeps input generation, literal
+outcome records and wire serialization separate. Expected selection, progress and
+freshness are declared in the records; no helper runs reconciliation or consumes
+recorded output. The existing executor and SQLite profile are unchanged. Runtime
+snapshots cover twelve targets while one viewer follows both order-1 views.

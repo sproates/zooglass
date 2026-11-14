@@ -3,8 +3,8 @@
 The prepared Java host now supports the bounded `sqlite-order-v1` configuration
 and progress controls through the real production runtime. The [Order document controls](timeline-order-controls.md) expose this foundation
 through typed progress actions, complete acknowledgement assertions, controlled
-links and replay. Full Order scenarios, restart and qualification remain separate
-stages of the [Order/Sports assessment](timeline-order-sports-assessment.md).
+links and replay. The [ordinary Order scenario](timeline-order-scenario.md) exercises two cycles;
+restart, retention and qualification remain separate stages of the [Order/Sports assessment](timeline-order-sports-assessment.md).
 
 ## Admitted configuration
 
@@ -76,6 +76,7 @@ Prepared-process tests exercise capability negotiation, role isolation, real
 watermark receipts, old-profile isolation and profile capability boundaries.
 Existing fleet/SQLite host tests and the earlier semantic-record comparison remain
 regression gates. All execution/tests consume prepared artifacts; preparation is a
-separate explicit command. Full Order scenarios, repeated qualification, ordinary
-service parity and lifecycle combinations remain outstanding. Document control
+separate explicit command. The [ordinary Order scenario](timeline-order-scenario.md)
+adds independently authored document evidence. Repeated qualification, ordinary
+service parity, retention and lifecycle combinations remain outstanding. Document control
 transport/replay checks are described in the control guide.

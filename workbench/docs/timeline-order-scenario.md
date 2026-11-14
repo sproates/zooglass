@@ -1,0 +1,90 @@
+# Order timeline scenario
+
+The [Order timeline document](../scenarios/timeline-order/scenario.json) adapts the
+completed Order demo at
+[`ad04db9`](https://github.com/sproates/zooglass/tree/ad04db982cf32e4f26919a7ffbbb042e48212a78/workbench/src/demos/orders)
+to the bounded [SQLite Order profile](timeline-order-host.md). It retains the real
+five-source configuration, six orders, two views and seven field definitions.
+ZooGlass performs reconciliation, progress and freshness decisions; Workbench
+supplies inputs and checks independently authored outcomes.
+
+From `workbench/`, using an already prepared simulation host:
+
+```sh
+npm run timeline:execute -- scenarios/timeline-order/scenario.json /tmp/order-run.json
+npm run timeline:bundle -- record scenarios/timeline-order/scenario.json /tmp/order-bundle
+npm run timeline:bundle -- replay /tmp/order-bundle /tmp/order-replay.json --require-passed
+```
+
+Use new output paths where required. These commands never build Java. Each execution
+and replay starts from a fresh private SQLite store; this is not a recovery test.
+
+## Preserved inputs and checkpoints
+
+Two cycles retain all 183 publication attempts, 36 watermarks, one omitted payment
+and two inventory disconnect/reconnect pairs from the pinned schedule. All five
+sources keep their own entity identities and sequence spaces. The second cycle
+includes an exact retry from the previous cycle. The unmapped payment remains a
+real durable publication with a rejected view target; it is not filtered out.
+
+The complete configuration is unchanged, including the 128-identity window and
+15-second freshness threshold. Its byte SHA-256 is
+`d3398885305dc27c409ad3cea3f9035d7c024e572ee2ee16354421a74fad1a33`.
+
+The observations distinguish:
+
+- Payment, inventory and courier references joining their order through lookup
+  mapping; the unmapped payment's null target entity.
+- Tracking withholding values until both order and inventory contribute.
+- Backup reporting first, then primary taking priority despite lower sequence
+  numbers; a fresh backup never displaces a stale selected primary.
+- Dispatch overtaking packing, the provisional gap, and a delayed packing report
+  closing that gap without replacing dispatch.
+- Exact retries retaining their original durable receipt version and targets.
+- The omitted payment remaining a gap, then becoming confirmed by a watermark.
+- Order 6 cancellation and refund, retained stale fields, reconnection without
+  refresh, and new inventory/primary reports restoring freshness.
+- Mixed first/second-cycle contributions and continued readiness after the initial
+  required-contribution gate opens.
+
+A single viewer follows both views for order 1. Complete runtime snapshots cover
+named checkpoints across all six orders and twelve view/entity pairs. This keeps
+client evidence focused while preserving every source/control input. It does not
+claim that every order has a separately qualified browser or socket subscription.
+
+## Explicit virtual time
+
+The epoch is `1700000000000`; each tick spans 3,000 virtual milliseconds. Within a
+tick, emitted inputs retain the producer's serial order at `tick * 3000 + 10 + slot`,
+with 1 ms between sends. The initial 10 ms lets subscriptions settle. Omitted
+inputs consume no send slot. Connection lifecycle uses phase zero at the tick
+boundary; it has no simulated handshake delay.
+Payload `observedAt` remains the pinned schedule's authored timestamp; freshness
+uses the actual virtual receipt time, not that payload field.
+
+This is an explicit adaptation of the ordinary demo's timing. Its interactive
+checkpoints advance inputs and poll real time for freshness; the deterministic
+document declares elapsed time and settled observations instead. Same-time
+expiry precedes input, and writer work settles through causal rounds. A checkpoint
+never repairs overdue expiry by reading a snapshot.
+
+Seven actors and nine connection generations fit the existing profile limits.
+No actor, turn, trace or retention bounds are widened to admit this fixture.
+The horizon ends after the second cycle while some selected values remain fresh,
+so future freshness tasks are explicitly allowed. Pending messages and held
+frames must still be zero.
+
+## Independent evidence and limits
+
+Expected receipts, snapshots and frames are authored before execution. Helpers
+serialize declared values and metadata; they do not read a run or invoke the
+runtime to generate expected results. The pinned input comparison is separate
+from these expected outcomes, so preserving inputs cannot conceal an incorrect
+reconciliation oracle.
+
+This fixture establishes ordinary Order execution and replay. Restart/recovery,
+identity-window retention, repeated qualification, deliberate wrong-policy/clock
+controls and ordinary-service parity remain separate gates in the
+[Order/Sports assessment](timeline-order-sports-assessment.md). Two cycles do not
+replace the ordinary demo's 50-cycle retention evidence. Protected transport,
+browser presentation and cross-platform determinism are not inferred here.

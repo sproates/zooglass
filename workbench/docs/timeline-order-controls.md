@@ -91,6 +91,7 @@ profiles retain their independently qualified lifecycle support.
 Transport tests cover delayed acknowledgements, exact repeats, abortive closure,
 malformed controls, admission boundaries and replay. The host tests separately
 exercise multiple views/clients, gap status, source priority and required
-contributions. Full authored Order scenarios, recovery, repeated campaigns and
-ordinary-service parity remain the next stages of the
+contributions. The [ordinary two-cycle Order scenario](timeline-order-scenario.md) adds complete
+independent receipts and named state/client observations. Recovery, retention,
+repeated campaigns and ordinary-service parity remain later stages of the
 [Order/Sports assessment](timeline-order-sports-assessment.md).

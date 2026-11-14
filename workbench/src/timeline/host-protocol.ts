@@ -1,6 +1,7 @@
 /** Private pipe metadata uses safe integers; domain payloads remain exact wire strings. */
 export type SessionEffect =
   | { kind: "receipt"; session: string; wire: string }
+  | { kind: "control-receipt"; session: string; wire: string }
   | { kind: "handoff"; session: string; wire: string }
   | { kind: "frame"; session: string; wire: string }
   | { kind: "close"; session: string; code: number };
@@ -63,6 +64,7 @@ export type Handshake = {
       protocol: 2;
       memoryLifecycle: 1;
       sqliteLifecycle?: 1;
+      sqliteOrder?: 1;
       installedObservations?: 1;
       memorySequenceFleet?: 1;
       wallClockAdjustments?: 1;
@@ -104,6 +106,8 @@ function strings(value: unknown, path: string) {
 export function decodeHandshake(value: unknown): Handshake {
   const data = record(value, "handshake");
   integer(data.protocol, "handshake.protocol", 1, 2);
+  if (data.protocol !== 2 && data.sqliteOrder !== undefined)
+    invalid("handshake.sqliteOrder requires protocol 2");
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);
@@ -126,6 +130,11 @@ export function decodeHandshake(value: unknown): Handshake {
       data.memorySequenceFleet !== 1
     )
       invalid("handshake.memorySequenceFleet");
+    if (
+      data.sqliteOrder !== undefined &&
+      (data.sqliteOrder !== 1 || data.sqliteLifecycle !== 1)
+    )
+      invalid("handshake.sqliteOrder requires SQLite lifecycle");
     if (data.memoryLifecycle !== 1) invalid("handshake.memoryLifecycle");
     if (!(data.storage as string[]).includes("memory"))
       invalid("handshake.memoryLifecycle requires memory storage");
@@ -178,6 +187,7 @@ function effect(value: unknown, index: number) {
     case "state":
       string(data.wire, `${path}.wire`);
       return;
+    case "control-receipt":
     case "receipt":
     case "handoff":
     case "frame":
@@ -206,6 +216,13 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
   integer(data.heldFrames, "response.heldFrames");
   if (!Array.isArray(data.effects)) invalid("response.effects");
   data.effects.forEach(effect);
+  if (
+    protocol === 1 &&
+    data.effects.some(
+      (entry) => record(entry, "effect").kind === "control-receipt",
+    )
+  )
+    invalid("response.control-receipt requires protocol 2");
   if (data.snapshots !== undefined) {
     if (protocol !== 2) invalid("response.snapshots requires protocol 2");
     strings(data.snapshots, "response.snapshots");

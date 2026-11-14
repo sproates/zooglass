@@ -50,8 +50,10 @@ delivery date:
   recovery clock. A [20-run fleet qualification](workbench/docs/timeline-fleet-qualification.md)
   now verifies a bounded multi-source sequence scenario, detects an incorrect
   production strategy and confirms ordinary-service parity. The [Order/Sports assessment](workbench/docs/timeline-order-sports-assessment.md)
-  defines staged progress, priority and fact-retirement extensions; those profiles
-  and broader fault support remain future work. The POC has not been promoted to main.
+  defines staged progress, priority and fact-retirement extensions. The
+  [Order host foundation](workbench/docs/timeline-order-host.md) now admits its
+  bounded configuration and real progress controls; document integration,
+  qualification and broader fault support remain future work. The POC has not been promoted to main.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

@@ -870,3 +870,16 @@ directory before launching the prepared service. Explicit configuration cannot b
 combined with generated views, sources or protected-access settings. HTTP and
 per-subscription comparisons preserve complete public snapshot semantics without
 claiming deterministic socket arrival timing or cross-subscription frame order.
+
+## Order host capability boundary
+
+```mermaid
+flowchart LR
+  tests["test/timeline/order-host.test.ts"] -->|prepared process commands| bridge["timeline/bridge.ts"]
+  bridge -->|validate sqliteOrder capability and control effects| protocol["timeline/host-protocol.ts"]
+  tests -->|confirm profile still rejected| contract["timeline/contract.ts"]
+```
+
+Only the private host bridge recognizes the Order capability and opaque control
+receipt wire. The document executor has no progress transport or replay contract
+yet. See [the host foundation](timeline-order-host.md).

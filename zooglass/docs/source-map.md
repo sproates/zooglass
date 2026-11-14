@@ -539,7 +539,6 @@ before state mutation; malformed UTF-8 is rejected before command dispatch.
 Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
 completion in phase 2; released handoffs complete in a later causal round.
 
-
 ## Installed recovery observations
 
 ```mermaid
@@ -554,7 +553,6 @@ The package-private installed snapshot seam reads state without expiry, clock
 samples or storage writes. Initialization reports it separately from ordinary
 state-change callbacks, so observation cannot repair missing recovery.
 
-
 ## Controlled wall-clock updates
 
 ```mermaid
@@ -566,3 +564,20 @@ flowchart LR
 
 Only protocol-2 initialization and explicit wall-clock-set may install an offset.
 Normal turn metadata must match it; the clock-only command does no reconciliation.
+
+## Order host and progress boundary
+
+```mermaid
+flowchart TB
+  host["simulation/TimelineHost.java"] -->|bounded configuration admission| profile["runtime/TimelineProfile.java"]
+  profile -->|SQLite Order combinations| order["runtime/OrderTimelineProfile.java"]
+  host -->|progress wire on typed session| progress["runtime/ProgressIngress.java (production)"]
+  progress -->|advance watermark and commit| runtime["runtime/ViewCoordinator.java (production)"]
+  host -->|check storage health after control| runtime
+  progress -->|complete acknowledgement| session["simulation/TimelineSession.java"]
+```
+
+Simulation paths belong to `simulation-host/src/main/java/io/zooglass/`; production
+paths belong to `src/main/java/io/zooglass/`. The session records a distinct
+control-receipt effect. This is a private host capability, not Workbench document
+progress/replay support. See [scope and gates](../../workbench/docs/timeline-order-host.md).

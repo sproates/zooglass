@@ -1,10 +1,12 @@
 # Order and Sports timeline assessment
 
-Neither completed demo configuration is currently admitted by the deterministic
-simulator. The runtime already implements their strategies; the missing work is
+At the assessment baseline, neither completed demo configuration was admitted by
+the deterministic simulator. The runtime already implements their strategies; the missing work is
 controlled execution of additional combinations and control endpoints, with
 independent evidence. This assessment defines the next bounded extensions. It
-adds no runtime support and does not convert the legacy JSON format.
+does not convert the legacy JSON format. The subsequent
+[Order host foundation](timeline-order-host.md) admits the bounded Order configuration
+and progress endpoint; document execution and qualification remain outstanding.
 
 ## Baseline and observed admission
 

@@ -884,4 +884,6 @@ the guide distinguishes smoke checks from clean-commit qualification.
 
 The [Order/Sports compatibility assessment](docs/timeline-order-sports-assessment.md)
 records the next profile and control-transport gaps against the completed demos.
-Neither configuration is admitted yet; their real-service demos remain separate.
+The [Order host foundation](docs/timeline-order-host.md) now admits its bounded
+SQLite configuration and progress endpoint. Document controls/replay are not yet
+implemented; the real-service demos remain separate.

@@ -1,6 +1,6 @@
 # SQLite restart qualification
 
-This campaign exercises three SQLite restart paths under the same recorded native
+This campaign exercises three abrupt SQLite restart paths under the same recorded native
 environment. It starts a new Node process for each run. Workbench opens an empty
 SQLite store before the first runtime generation and reuses it across the stop
 and restart within that run.
@@ -48,3 +48,32 @@ under its private `stores/` directory for diagnosis.
 This campaign qualifies the three cases in the recorded environment. It exercises
 stops between acknowledged turns. Physical power loss and cross-platform trace
 equality are outside this qualification.
+
+## Recorded result, 14 November 2026
+
+Tested commit `c5637500fb21f77eaf491067dd774bf295daf2d7` passed all 60 runs on
+macOS arm64, Node 26.0.0, Homebrew Java 25.0.5.0.2 and SQLite 3.53.2. Each group
+reproduced its baseline trace exactly across 20 fresh processes. All 240 literal
+assertions passed. The 57 perturbed runs recorded 95 generation 2 JVM pauses
+and 703 generation 2 Node command delays. The two modes requested Node/JVM
+70/90 ms with pacing and 90/70 ms without pacing. Measured delays exceeded
+the relevant freshness threshold; JVM pauses met their requested duration.
+
+The [recovery-clock control](timeline-recovery-clock-control.md) passed with the
+normal host and failed `unknown-after-recovery` with both mutant runs. The first
+difference was the generation 2 initialization at record 13; the named failed
+assertion was record 17 (zero-based). Both mutants reproduced the same wrong
+trace: fresh version 1 and an alarm at 60 instead of unknown version 2 with no
+alarm, while protocol clocks still reported the correct adjusted wall time.
+The paused control observed a generation 1 JVM state pause and a generation 2
+Node initialization delay; it fails before generation 2 JVM state work.
+
+Actual JAR inventories confirmed only the receipt-clock class changed, with the
+same embedded production runtime. The isolated hosts used Java source `898aa91`;
+the campaign and checker used the clean tested commit above. A fresh strict
+replay reproduced all 42 records of the downtime rollback and repair case.
+
+The [evidence manifest](../evidence/README.md) retains the download link, hashes
+and provenance for all raw runs, control inputs and audit. This closes the
+bounded SQLite restart and adjusted-clock gate on the recorded environment.
+Physical crash durability and cross-platform equivalence remain separate.

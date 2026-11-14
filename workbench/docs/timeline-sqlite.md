@@ -73,3 +73,7 @@ receipts, same-time recovery and new input, long host pauses, failed startup,
 cleanup failure, altered evidence and fresh-store replay. Complementary production
 SQLite crash/recovery tests remain necessary: between-turn stops do not model
 mid-commit crashes, torn writes or physical power loss.
+
+The [SQLite restart qualification](timeline-sqlite-qualification.md) records 60
+fresh-process runs, long host pauses, a recovery-clock negative control and
+retained raw evidence on one native environment.

@@ -2,7 +2,8 @@
 
 Raw qualification archives are downloadable GitHub Release assets. The original
 v1 campaigns use [timeline-evidence-20261113](https://github.com/sproates/zooglass/releases/tag/timeline-evidence-20261113);
-the v2 memory campaign uses [timeline-memory-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-memory-evidence-20261114).
+the v2 memory campaign uses [timeline-memory-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-memory-evidence-20261114),
+and SQLite uses [timeline-sqlite-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-sqlite-evidence-20261114).
 Git retains this manifest and [SHA256SUMS](SHA256SUMS). The archives contain no
 executables or dependencies. Release assets remain available until explicitly
 changed or deleted; their hashes below pin the exact published bytes.
@@ -12,6 +13,7 @@ changed or deleted; their hashes below pin the exact published bytes.
 | [macos-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/macos-timeline-20261113.tar.gz)             |   937 |         49,428,333 | `39b7cdc54d190e65c54e8e6422663101c24b90533b38c05de6e792953008f558` |
 | [linux-arm64-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/linux-arm64-timeline-20261113.tar.gz) |   916 |         49,915,765 | `3440a2bda91cd51dd4a149db12e19516ec8c9cdb3926f51d6cd8e065d4baa4ff` |
 | [macos-arm64-memory-lifecycle-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-memory-evidence-20261114/macos-arm64-memory-lifecycle-20261114.tar.gz) | 83 | 4,533,024 | `9e78cc90cd607146cec7448c9980e930d83bd2f211d659f377eb67a5d3d29e5c` |
+| [macos-arm64-sqlite-restart-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sqlite-evidence-20261114/macos-arm64-sqlite-restart-20261114.tar.gz) | 85 | 2,445,773 | `7462d391bc7fb4ccc89f11219e69cf12ffe9c7fb23dc8ac3de70ca7ca3b66cf2` |
 
 ## Provenance
 
@@ -35,6 +37,14 @@ runs, inputs, independent draw vectors, preparation provenance, focused validati
 logs, a fresh 108-record replay and the raw-evidence verification report.
 See [results and limits](../docs/timeline-memory-qualification.md).
 
+The SQLite release targets tested Workbench commit
+[`c5637500fb21f77eaf491067dd774bf295daf2d7`](https://github.com/sproates/zooglass/commit/c5637500fb21f77eaf491067dd774bf295daf2d7).
+Its isolated control hosts were prepared from Java source `898aa917e774b0e40bcd365ef2f6ab68858d2ed0`.
+The archive retains 60 runs across three abrupt restart cases, three recovery-clock
+control runs, exact inputs, preparation provenance, focused validation logs, a
+fresh 42-record strict replay and the independent raw-evidence audit and script.
+See [SQLite results and limits](../docs/timeline-sqlite-qualification.md).
+
 ## Download and verify
 
 Using GitHub CLI, from `workbench/`:
@@ -44,10 +54,12 @@ evidence_dir="$(mktemp -d)"
 checksums="$(pwd)/evidence/SHA256SUMS"
 gh release download timeline-evidence-20261113 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-memory-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
+gh release download timeline-sqlite-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 (cd "$evidence_dir" && shasum -a 256 -c "$checksums")
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-timeline-20261113.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/linux-arm64-timeline-20261113.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-memory-lifecycle-20261114.tar.gz"
+python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-sqlite-restart-20261114.tar.gz"
 ```
 
 The download links also work in a browser. Check the downloaded bytes against
@@ -71,8 +83,8 @@ logs, image metadata and Dockerfile. See the [results](../docs/timeline-linux.md
 
 The original prepared JARs are retained locally, not included in these archives.
 Matching executable/environment identities remain required for replay; archived
-evidence alone is not an executable environment. This does not qualify persistence
-or imply identical outputs across operating systems.
+evidence alone is not an executable environment. Each archive qualifies only its
+recorded scope; none implies identical outputs across operating systems.
 
 To create another archive, pass a new output path followed by evidence sources:
 

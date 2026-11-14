@@ -71,6 +71,24 @@ its checked-in document with:
 node --import tsx scenarios/timeline-order-retention/author.ts
 ```
 
+## Verification
+
+The authored inputs and expectations were reviewed and committed at `c16722e`
+before their first execution. All 60 assertions passed unchanged, including
+complete snapshots, all 15 publication receipts, six watermark acknowledgements
+and the viewer's 24 frames. Tests also check the initialization record's recovered
+snapshots before any new input can change them.
+
+Strict portable-bundle replay matches all 416 records. The trace is 813,636 bytes,
+within existing bounds, and ends with no pending tasks, messages or held frames.
+Three deliberately incorrect expectations fail at their intended assertions:
+count-based eviction, rejecting the inclusive lower edge, and ignoring a new
+publication below the watermark. These are oracle-sensitivity checks, not a
+wrong-runtime qualification campaign.
+
+No runtime, host, executor or configuration changes were needed. Execution used
+the already prepared host; fixture tests, type checks, lint and formatting passed.
+
 ## Scope
 
 This is a bounded identity/progress boundary case. The [ordinary Order scenario](timeline-order-scenario.md)

@@ -114,7 +114,8 @@ reconciliation oracle.
 
 This fixture establishes ordinary Order execution and replay.
 [Restart/recovery](timeline-order-recovery.md) has a separate bounded fixture.
-Identity-window retention, repeated qualification, deliberate wrong-policy/clock
+[Identity-window retention](timeline-order-retention.md) is also checked separately.
+Repeated qualification, deliberate wrong-policy/clock
 controls and ordinary-service parity remain separate gates in the
 [Order/Sports assessment](timeline-order-sports-assessment.md). Two cycles do not
 replace the ordinary demo's 50-cycle retention evidence. Protected transport,

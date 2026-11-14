@@ -17,3 +17,8 @@ scenarios/timeline-order-recovery/at.json
 scenarios/timeline-order-recovery/after.json
 # Byte-identical pinned Order configuration.
 scenarios/timeline-order-recovery/runtime.json
+
+# Generated sparse retention case; complete assertions stay on one line.
+scenarios/timeline-order-retention/scenario.json
+# Byte-identical pinned Order configuration.
+scenarios/timeline-order-retention/runtime.json

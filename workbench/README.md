@@ -890,5 +890,7 @@ add explicit watermark sends, complete acknowledgement assertions and replay.
 The [two-cycle Order scenario](docs/timeline-order-scenario.md) retains all six
 orders and the completed demo's source/control inputs with independent expected
 outcomes. [Order recovery](docs/timeline-order-recovery.md) separately admits
-restart and checks retained state and freshness continuity. Retention and full
-qualification remain separate; the real-service demos remain available.
+restart and checks retained state and freshness continuity.
+[Order retention](docs/timeline-order-retention.md) checks the identity-window
+boundary and durable progress. Full qualification remains separate; the
+real-service demos remain available.

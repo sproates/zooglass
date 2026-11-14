@@ -97,6 +97,6 @@ Transport tests cover delayed acknowledgements, exact repeats, abortive closure,
 malformed controls, admission boundaries and replay. The host tests separately
 exercise multiple views/clients, gap status, source priority and required
 contributions. The [ordinary two-cycle Order scenario](timeline-order-scenario.md) adds complete
-independent receipts and named state/client observations. [Recovery](timeline-order-recovery.md) has a separate bounded fixture. Retention,
-repeated campaigns and ordinary-service parity remain later stages of the
+independent receipts and named state/client observations. [Recovery](timeline-order-recovery.md) and [retention](timeline-order-retention.md)
+have separate bounded fixtures. Repeated campaigns and ordinary-service parity remain later stages of the
 [Order/Sports assessment](timeline-order-sports-assessment.md).

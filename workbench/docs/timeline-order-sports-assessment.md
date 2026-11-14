@@ -8,7 +8,9 @@ does not convert the legacy JSON format. The subsequent
 [Order host foundation](timeline-order-host.md) admits the bounded Order configuration
 and progress endpoint. [Document controls and replay](timeline-order-controls.md)
 now expose that foundation. The [ordinary Order scenario](timeline-order-scenario.md)
-retains two complete cycles; recovery, retention and qualification remain outstanding.
+retains two complete cycles. Separate [recovery](timeline-order-recovery.md) and
+[retention](timeline-order-retention.md) fixtures cover restart and identity-window
+boundaries; full Order qualification remains outstanding.
 
 ## Baseline and observed admission
 

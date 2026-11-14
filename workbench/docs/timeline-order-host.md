@@ -5,7 +5,8 @@ and progress controls through the real production runtime. The [Order document c
 through typed progress actions, complete acknowledgement assertions, controlled
 links and replay. The [ordinary Order scenario](timeline-order-scenario.md) exercises two cycles;
 [Order recovery](timeline-order-recovery.md) adds an explicit lifecycle profile;
-retention and qualification remain separate stages of the [Order/Sports assessment](timeline-order-sports-assessment.md).
+[retention](timeline-order-retention.md) checks the identity-window boundary.
+Full qualification remains a separate stage of the [Order/Sports assessment](timeline-order-sports-assessment.md).
 
 ## Admitted configuration
 
@@ -81,5 +82,5 @@ Existing fleet/SQLite host tests and the earlier semantic-record comparison rema
 regression gates. All execution/tests consume prepared artifacts; preparation is a
 separate explicit command. The [ordinary Order scenario](timeline-order-scenario.md)
 adds independently authored document evidence. Repeated qualification, ordinary
-service parity, retention and broader lifecycle combinations remain outstanding. Document control
+service parity and broader lifecycle combinations remain outstanding. Document control
 transport/replay checks are described in the control guide.

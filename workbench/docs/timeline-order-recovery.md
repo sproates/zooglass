@@ -113,8 +113,9 @@ runtime without shipping simulation hooks in the service JAR.
 The [ordinary two-cycle scenario](timeline-order-scenario.md) remains a separate
 input-preservation test. Recovery checks use smaller ready and gated entities to
 make retained contributions, duplicate identities, source priority and deadline
-boundaries explicit. They do not replace the identity-window retention work or
-repeatability and ordinary-service parity qualification.
+boundaries explicit. [Identity-window retention](timeline-order-retention.md) has
+its own fixture. Repeatability and ordinary-service parity qualification remain
+separate.
 
 All execution and replay consume a prepared simulation host. No timeline test or
 run command builds Java. Protected transport, browser behaviour, wall-clock

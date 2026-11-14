@@ -28,6 +28,8 @@ export interface ZooGlassSessionOptions {
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
   protectedAccess?: ProtectedSessionSettings;
+  /** Exact runtime document; mutually exclusive with generated/protected configuration. */
+  runtimeConfigurationPath?: string;
 }
 
 /** Start one owned service. A failed start cleans up before rejecting. */
@@ -123,6 +125,20 @@ export async function startZooGlassSession(
 
   try {
     signal.throwIfAborted();
+    if (
+      options.runtimeConfigurationPath !== undefined &&
+      (options.views !== undefined ||
+        options.sources !== undefined ||
+        options.protectedAccess !== undefined)
+    ) {
+      throw new Error(
+        "runtimeConfigurationPath cannot be combined with views, sources or protectedAccess.",
+      );
+    }
+    const explicitConfiguration =
+      options.runtimeConfigurationPath === undefined
+        ? undefined
+        : await readFile(options.runtimeConfigurationPath);
 
     const serviceDirectory =
       options.serviceDirectory ??
@@ -142,7 +158,11 @@ export async function startZooGlassSession(
     const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
-    if (options.views !== undefined) {
+    if (explicitConfiguration !== undefined) {
+      const configPath = join(configDirectory, "runtime.json");
+      await writeFile(configPath, explicitConfiguration);
+      configLocation = pathToFileURL(configPath).href;
+    } else if (options.views !== undefined) {
       const configPath = join(configDirectory, "views.json");
 
       await writeFile(

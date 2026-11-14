@@ -748,7 +748,6 @@ isolated copy. See [memory qualification](timeline-memory-qualification.md),
 [SQLite qualification](timeline-sqlite-qualification.md), and the
 [recovery-clock control](timeline-recovery-clock-control.md).
 
-
 ## SQLite host foundation
 
 ```mermaid
@@ -763,7 +762,6 @@ This private boundary does not allocate scenario stores or admit SQLite document
 The caller retains database files through replacement and owns cleanup. Paths are
 operational parameters, not semantic trace data.
 
-
 ## SQLite document storage and observations
 
 ```mermaid
@@ -777,7 +775,6 @@ flowchart LR
 
 Database files are local diagnostic state; only logical observations enter traces.
 A portable bundle cannot select or carry a previous writable store.
-
 
 ## Wall-clock ownership
 
@@ -807,3 +804,69 @@ flowchart LR
 The authoring module imports no runtime code and does not compute reconciliation.
 The generated document runs through the existing executor; application-specific
 expectations do not enter the shared runtime. See [the fleet scenario](timeline-fleet-scenario.md).
+
+## Qualify the fleet scenario
+
+The [fleet qualification guide](timeline-fleet-qualification.md) separates the
+controlled repeatability campaign, wrong-strategy control and ordinary-service
+parity. Each command consumes prepared artifacts; Java preparation is explicit.
+Paths starting with `scripts/`, `scenarios/` or `test/` are relative to `workbench/`.
+
+```mermaid
+flowchart TB
+  campaign["scripts/fleet-repeat.ts<br/>Fleet campaign entry point"]
+  checks["scripts/fleet-campaign-checks.ts<br/>Authored semantics and pause checks"]
+  runner["scripts/restart-campaign.ts<br/>Own fresh processes and evidence"]
+  child["scripts/document-campaign-child.ts<br/>Execute one prepared-host run"]
+  evidence["scripts/restart-campaign-evidence.ts<br/>Read complete runs and compare traces"]
+  author["scenarios/timeline-fleet/author.ts<br/>Independent receipt and frame expectations"]
+  execution["timeline/run-document.ts<br/>Execute the bounded document"]
+  campaign -->|delegate process and evidence ownership| runner
+  campaign -->|supply fleet validation callback| checks
+  runner -->|launch each fresh Node process| child
+  child -->|run with prepared host| execution
+  checks -->|compare literal authored outcomes| author
+  checks -->|load evidence and check trace equality| evidence
+```
+
+The campaign copies the generated scenario and exact runtime configuration into
+its evidence directory. The checker compares complete receipts, frames, assertions
+and traces, and checks measured host pauses separately from virtual time.
+
+```mermaid
+flowchart TB
+  control["scripts/fleet-strategy-check.ts<br/>Normal and wrong-strategy comparison"]
+  helpers["scripts/generation-clock-check.ts<br/>Shared input and JAR inspection helpers"]
+  execution["timeline/run-document.ts<br/>Execute the unchanged fleet document"]
+  prepare["scripts/prepare-fleet-strategy-mutation.py<br/>Explicit isolated artifact preparation"]
+  preparation["scripts/prepare-generation-clock-mutation.py<br/>Shared archive and build helpers"]
+  strategy["zooglass/src/main/java/io/zooglass/<br/>strategy/update/LatestBySequence.java"]
+  control -->|capture exact inputs and inspect nested JARs| helpers
+  control -->|execute normal and perturbed mutant runs| execution
+  prepare -->|reuse isolated preparation helpers| preparation
+  prepare -->|change only sequence replacement in copied source| strategy
+```
+
+The Java path above is repository-relative. Preparation changes a copied source
+file and builds isolated artifacts. The control verifies that preparation's
+provenance and class differences; it never invokes the preparation script.
+
+```mermaid
+flowchart TB
+  parity["scripts/fleet-service-parity.ts<br/>Real WebSocket and HTTP comparison"]
+  author["scenarios/timeline-fleet/author.ts<br/>Independent inputs and outcomes"]
+  session["service/zooglass-session.ts<br/>Own service readiness and cleanup"]
+  config["scenarios/timeline-fleet/runtime.json<br/>Exact bounded configuration bytes"]
+  tests["test/zooglass-session.test.ts<br/>Configuration and lifecycle checks"]
+  parity -->|serialize expected receipts and public snapshots| author
+  parity -->|read and retain exact configuration| config
+  parity -->|start with runtimeConfigurationPath| session
+  tests -->|verify byte preservation and incompatible options| session
+```
+
+The parity command owns its observed sockets and receipt/state barriers. The
+shared service session copies the supplied configuration bytes into its temporary
+directory before launching the prepared service. Explicit configuration cannot be
+combined with generated views, sources or protected-access settings. HTTP and
+per-subscription comparisons preserve complete public snapshot semantics without
+claiming deterministic socket arrival timing or cross-subscription frame order.

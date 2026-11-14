@@ -27,6 +27,7 @@ export type RestartCampaignGroup<Expectation> = {
 type RestartCampaign<Expectation> = {
   format: string;
   command: string;
+  profile?: string;
   files: string[];
   sqlite?: boolean;
   inputs: (directory: string) => Promise<{
@@ -256,7 +257,7 @@ export async function runRestartCampaign<Expectation>(
       assert.deepEqual(
         result.execution,
         {
-          profile: evidenceV2.profile,
+          profile: campaign.profile ?? evidenceV2.profile,
           artifactSha256,
           workbenchSha256,
           configurationSha256: retained.sha256,
@@ -287,7 +288,7 @@ export async function runRestartCampaign<Expectation>(
       rows.push(row);
       if (rows.length % 10 === 0)
         console.log(
-          `Verified ${rows.length}/${groups.length * repetitions} fresh Node/JVM lifecycle runs`,
+          `Verified ${rows.length}/${groups.length * repetitions} fresh Node/JVM timeline runs`,
         );
     } catch (cause) {
       const failure = { ...row, error: String(cause) } as Row & {

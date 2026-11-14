@@ -58,7 +58,11 @@
     "timeline:lifecycle-repeat": "node --import tsx scripts/lifecycle-repeat.ts",
     "timeline:sqlite-repeat": "node --import tsx scripts/sqlite-repeat.ts",
     "prepare:generation-clock-control": "python3 scripts/prepare-generation-clock-mutation.py",
-    "timeline:generation-clock-control": "node --import tsx scripts/generation-clock-check.ts"
+    "timeline:generation-clock-control": "node --import tsx scripts/generation-clock-check.ts",
+    "timeline:fleet-repeat": "node --import tsx scripts/fleet-repeat.ts",
+    "prepare:fleet-strategy-control": "python3 scripts/prepare-fleet-strategy-mutation.py",
+    "timeline:fleet-strategy-control": "node --import tsx scripts/fleet-strategy-check.ts",
+    "timeline:fleet-service-parity": "node --import tsx scripts/fleet-service-parity.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

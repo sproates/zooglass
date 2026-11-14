@@ -874,3 +874,9 @@ read-only runtime assertions and replay from a fresh private store.
 
 [Controlled wall-clock adjustments](docs/timeline-wall-clock.md) exercise production
 rollback uncertainty and recovery while monotonic deadlines remain unchanged.
+
+The [fleet qualification guide](docs/timeline-fleet-qualification.md) describes
+repeatability checks for the authored sequence fleet, an isolated wrong-strategy
+control, and ordinary-service WebSocket/HTTP parity with the same bounded
+configuration. These commands consume prepared artifacts and retain raw evidence;
+the guide distinguishes smoke checks from clean-commit qualification.

@@ -107,3 +107,48 @@ test(
     );
   },
 );
+
+test(
+  "explicit runtime configuration preserves bytes and rejects generated configuration",
+  processTestOptions,
+  async (t) => {
+    const fixture = await serviceFixture(t, "healthy");
+    const runtimeConfigurationPath = fileURLToPath(
+      new URL("../scenarios/timeline-fleet/runtime.json", import.meta.url),
+    );
+    const session = await startZooGlassSession({
+      serviceDirectory: fixture.directory,
+      javaExecutable: fixture.javaExecutable,
+      runtimeConfigurationPath,
+    });
+    t.after(() => session.close());
+    const { config } = await fixture.started();
+    assert.deepEqual(
+      await readFile(fileURLToPath(config)),
+      await readFile(runtimeConfigurationPath),
+    );
+    await session.close();
+    await assert.rejects(access(fileURLToPath(config)), { code: "ENOENT" });
+    for (const generated of [
+      { views },
+      { sources: [] },
+      { protectedAccess: {} },
+    ]) {
+      await assert.rejects(
+        startZooGlassSession({
+          runtimeConfigurationPath,
+          ...generated,
+        } as Parameters<typeof startZooGlassSession>[0]),
+        /cannot be combined/,
+      );
+    }
+    await assert.rejects(
+      startZooGlassSession({
+        runtimeConfigurationPath: "/nonexistent/runtime.json",
+        serviceDirectory: fixture.directory,
+        javaExecutable: fixture.javaExecutable,
+      }),
+      { code: "ENOENT" },
+    );
+  },
+);

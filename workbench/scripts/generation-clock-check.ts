@@ -126,7 +126,7 @@ export async function captureControlInput(path: string) {
   };
 }
 
-async function jarInventory(jar: Buffer) {
+export async function jarInventory(jar: Buffer) {
   const archive = await fromBufferPromise(jar, { decodeStrings: false });
   const entries = new Map<string, string>();
   const names = new Set<string>();
@@ -153,6 +153,22 @@ async function jarInventory(jar: Buffer) {
       entries.set(name, digest(bytes));
     }
     return entries;
+  } finally {
+    archive.close();
+  }
+}
+
+/** Read an entry only after validating the complete bounded archive inventory. */
+export async function jarEntry(jar: Buffer, name: string) {
+  const inventory = await jarInventory(jar);
+  assert.ok(inventory.has(name), `missing prepared JAR entry: ${name}`);
+  const archive = await fromBufferPromise(jar, { decodeStrings: false });
+  try {
+    for await (const entry of archive.eachEntry()) {
+      if (entry.fileNameRaw.toString("latin1") === name)
+        return await buffer(await archive.openReadStreamPromise(entry));
+    }
+    throw new Error(`missing prepared JAR entry: ${name}`);
   } finally {
     archive.close();
   }
@@ -206,7 +222,7 @@ export function verifyClockInventories(
   );
 }
 
-async function readJar(path: string) {
+export async function readJar(path: string) {
   const file = await open(path, "r");
   try {
     const stat = await file.stat();
@@ -309,7 +325,7 @@ async function readPreparation(directory: string, recovery: boolean) {
   return { provenance, original, mutated, manifest };
 }
 
-function comparableRuns(
+export function comparableRuns(
   normal: DocumentRun,
   mutant: DocumentRun,
   paused: DocumentRun,

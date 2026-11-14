@@ -12,6 +12,8 @@ import {
   loadDocument,
 } from "../src/timeline/admission.js";
 import type { DocumentRun } from "../src/timeline/campaign-checks.js";
+import { parseTimelineDocument } from "../src/timeline/contract.js";
+import { workbenchIdentity } from "../src/timeline/manifest.js";
 import { executeDocument } from "../src/timeline/run-document.js";
 import { parseReplay } from "../src/timeline/replay-document.js";
 
@@ -27,6 +29,10 @@ const buildProperties =
 const before = "return generation.wallMillis(turns.now());";
 const after =
   "return Math.addExact(generation.epochMillis(), monotonicMillis());";
+const recoveryAfter =
+  "return Math.addExact(generation.epochMillis(), turns.now());";
+const recoveryAssertion = "unknown-after-recovery";
+const recipe = new URL("prepare-generation-clock-mutation.py", import.meta.url);
 const digest = (value: Buffer | string) =>
   createHash("sha256").update(value).digest("hex");
 
@@ -50,6 +56,74 @@ function git(args: string[]) {
     timeout: 15_000,
     maxBuffer: 16 * 1024 * 1024,
   });
+}
+
+async function captureSource() {
+  // The tracked diff hash also detects changes while the checkout remains dirty.
+  const sourceRevision = git(["rev-parse", "HEAD"]).toString().trim();
+  const status = git(["status", "--porcelain", "--untracked-files=no"]);
+  const trackedDiffSha256 = digest(
+    git([
+      "diff",
+      "--binary",
+      "--no-ext-diff",
+      "--no-textconv",
+      sourceRevision,
+      "--",
+    ]),
+  );
+  const relevantUntracked = git([
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+    "--",
+    "workbench/scripts/generation-clock-check.ts",
+    "workbench/scripts/prepare-generation-clock-mutation.py",
+    "workbench/scenarios/simulation",
+    "workbench/src/timeline",
+  ])
+    .toString()
+    .trim();
+  const [checker, preparation, lock, workbenchSha256] = await Promise.all([
+    readFile(new URL(import.meta.url)),
+    readFile(recipe),
+    readFile(new URL("../package-lock.json", import.meta.url)),
+    workbenchIdentity(),
+  ]);
+  assert.equal(
+    git(["rev-parse", "HEAD"]).toString().trim(),
+    sourceRevision,
+    "source revision changed while capturing control provenance",
+  );
+  return {
+    sourceRevision,
+    trackedChanges: status.length > 0,
+    trackedStatusSha256: digest(status),
+    trackedDiffSha256,
+    relevantUntracked: relevantUntracked ? relevantUntracked.split("\n") : [],
+    checkerSha256: digest(checker),
+    preparationRecipeSha256: digest(preparation),
+    dependencyLockSha256: digest(lock),
+    workbenchSha256,
+  };
+}
+
+export async function captureControlInput(path: string) {
+  const bytes = await boundedFile(path);
+  const input = await loadDocument(path);
+  assert.equal(
+    parseTimelineDocument(decode(bytes)).canonical,
+    input.scenario.canonical,
+    "scenario changed while capturing control input",
+  );
+  return {
+    input,
+    identities: {
+      scenarioSourceSha256: digest(bytes),
+      scenarioSha256: digest(input.scenario.canonical),
+      configurationSha256: input.configurationHash,
+    },
+  };
 }
 
 async function jarInventory(jar: Buffer) {
@@ -163,20 +237,17 @@ async function readJar(path: string) {
   }
 }
 
-async function readPreparation(directory: string) {
-  const provenance = JSON.parse(
-    decode(await boundedFile(join(directory, "preparation.json"))),
-  ) as Preparation;
-  assert.equal(provenance.format, "timeline-generation-clock-preparation/v1");
-  assert.match(provenance.revision, /^[0-9a-f]{40}$/);
+async function readPreparation(directory: string, recovery: boolean) {
+  const manifest = await boundedFile(join(directory, "preparation.json"));
+  const provenance = JSON.parse(decode(manifest)) as Preparation;
   assert.equal(
-    provenance.recipeSha256,
-    digest(
-      await readFile(
-        new URL("prepare-generation-clock-mutation.py", import.meta.url),
-      ),
-    ),
+    provenance.format,
+    recovery
+      ? "timeline-recovery-clock-preparation/v1"
+      : "timeline-generation-clock-preparation/v1",
   );
+  assert.match(provenance.revision, /^[0-9a-f]{40}$/);
+  assert.equal(provenance.recipeSha256, digest(await readFile(recipe)));
   assert.equal(
     provenance.sourceArchiveSha256,
     digest(git(["archive", "--format=tar", provenance.revision, "zooglass"])),
@@ -196,12 +267,13 @@ async function readPreparation(directory: string) {
     2,
     "mutation must replace exactly one wall clock expression",
   );
-  assert.equal(mutated, original.replace(before, after));
+  const replacement = recovery ? recoveryAfter : after;
+  assert.equal(mutated, original.replace(before, replacement));
   const mutation = provenance.mutation;
   assert.deepEqual(mutation, {
     file: clockFile,
     before,
-    after,
+    after: replacement,
     originalSha256: digest(original),
     mutatedSha256: digest(mutated),
     class: clockClass,
@@ -234,13 +306,14 @@ async function readPreparation(directory: string) {
     await inventory("mutant"),
     provenance,
   );
-  return { provenance, original, mutated };
+  return { provenance, original, mutated, manifest };
 }
 
-export function checkClockControl(
+function comparableRuns(
   normal: DocumentRun,
   mutant: DocumentRun,
   paused: DocumentRun,
+  expectedFailure: string,
 ) {
   assert.equal(
     normal.outcome,
@@ -253,7 +326,7 @@ export function checkClockControl(
       "assertion-failed",
       "mutant must fail semantically after executing the scenario",
     );
-    assert.equal(run.message, `assertion-failed: ${assertion}`);
+    assert.equal(run.message, `assertion-failed: ${expectedFailure}`);
     assert.equal(run.scenario, normal.scenario);
     assert.equal(run.configuration, normal.configuration);
     assert.deepEqual(run.environment, normal.environment);
@@ -276,6 +349,23 @@ export function checkClockControl(
   const mutantLines = parseReplay(JSON.stringify(mutant)).lines;
   const good = normalLines.map((line) => JSON.parse(line));
   const bad = mutantLines.map((line) => JSON.parse(line));
+  const mismatchIndex = normalLines.findIndex(
+    (line, index) => index > 0 && line !== mutantLines[index],
+  );
+  return { good, bad, mismatchIndex };
+}
+
+export function checkClockControl(
+  normal: DocumentRun,
+  mutant: DocumentRun,
+  paused: DocumentRun,
+) {
+  const { good, bad, mismatchIndex } = comparableRuns(
+    normal,
+    mutant,
+    paused,
+    assertion,
+  );
   const starts = (events: typeof good) =>
     events.filter((record) => record.kind === "runtime-initialized");
   assert.deepEqual(
@@ -327,9 +417,6 @@ export function checkClockControl(
     "the wrong receipt wall timestamp is the only frame change",
   );
 
-  const mismatchIndex = normalLines.findIndex(
-    (line, index) => index > 0 && line !== mutantLines[index],
-  );
   assert.equal(good[mismatchIndex]?.kind, "state");
   assert.equal(good[mismatchIndex]?.runtimeGeneration, 2);
   assert.equal(good[mismatchIndex]?.key[0], 50);
@@ -375,11 +462,129 @@ export function checkClockControl(
   };
 }
 
+export function checkRecoveryClockControl(
+  normal: DocumentRun,
+  mutant: DocumentRun,
+  paused: DocumentRun,
+) {
+  const { good, bad, mismatchIndex } = comparableRuns(
+    normal,
+    mutant,
+    paused,
+    recoveryAssertion,
+  );
+  const normalRecovery = good[mismatchIndex];
+  const mutantRecovery = bad[mismatchIndex];
+  assert.equal(normalRecovery?.kind, "runtime-initialized");
+  assert.equal(normalRecovery.runtimeGeneration, 2);
+  assert.equal(normalRecovery.key[0], 21);
+  assert.deepEqual(
+    { ...normalRecovery.data, snapshots: undefined },
+    {
+      startTimeMs: 21,
+      monotonicMs: 0,
+      wallMillis: epoch + 6,
+      snapshots: undefined,
+    },
+    "normal recovery uses the admitted adjusted wall clock",
+  );
+  assert.equal(normalRecovery.data.snapshots.length, 1);
+  const expectedSnapshot = normalRecovery.data.snapshots[0];
+  const expectedAge = expectedSnapshot.status.fields.reading;
+  assert.equal(expectedSnapshot.version, 2);
+  assert.equal(expectedAge.freshness, "ageUnknown");
+  assert.equal(expectedAge.receivedAtMillis, null);
+
+  const incorrectRecovery = structuredClone(normalRecovery);
+  const incorrectSnapshot = incorrectRecovery.data.snapshots[0];
+  incorrectSnapshot.version = 1;
+  incorrectSnapshot.status.fields.reading.freshness = "fresh";
+  incorrectSnapshot.status.fields.reading.receivedAtMillis = epoch + 10;
+  assert.deepEqual(
+    mutantRecovery,
+    incorrectRecovery,
+    "mutant protocol clocks and restored publication match; only recovered age and version differ",
+  );
+
+  const schedules = (events: typeof good) =>
+    events.filter(
+      (record) =>
+        record.kind === "scheduled" &&
+        record.parentId === normalRecovery.eventId,
+    );
+  assert.deepEqual(schedules(good), [], "uncertain recovered age has no alarm");
+  assert.deepEqual(
+    schedules(bad).map((record) => record.data),
+    [{ atMs: 60, phase: 1, taskId: "1", taskKind: "alarm" }],
+    "mutant arms the original global expiry as if no adjustment occurred",
+  );
+
+  const oracle = (record: (typeof good)[number]) =>
+    record.kind === "assertion" &&
+    record.data.assertionId === recoveryAssertion;
+  assert.equal(good.find(oracle)?.data.passed, true);
+  const failedAssertionIndex = bad.findIndex(oracle);
+  const failed = bad[failedAssertionIndex];
+  assert.equal(failed?.data.passed, false);
+  assert.equal(failed.key[0], 21);
+  assert.deepEqual(failed.data.expected, {
+    outcome: "available",
+    snapshot: expectedSnapshot,
+  });
+  assert.deepEqual(failed.data.actual, {
+    outcome: "available",
+    snapshot: incorrectSnapshot,
+  });
+
+  const generations = paused.diagnostics.generations;
+  const first = generations?.find((entry) => entry.runtimeGeneration === 1);
+  const second = generations?.find((entry) => entry.runtimeGeneration === 2);
+  assert.ok(
+    first?.jvm?.pauses.some(
+      (pause) =>
+        pause.site === "state-effect" &&
+        pause.virtualMs === 10 &&
+        pause.requestedMillis === mode.jvmPauseMs &&
+        pause.elapsedNanos >= mode.jvmPauseMs * 1_000_000,
+    ),
+    "observe the JVM pause during the original publication",
+  );
+  assert.ok(
+    second?.node.some(
+      (pause) =>
+        pause.operation === "initialize-document" &&
+        pause.timeMs === 21 &&
+        pause.requestedMillis === mode.hostDelay &&
+        pause.elapsedNanos >= 50_000_000,
+    ),
+    "observe the Node pause before generation 2 recovery",
+  );
+
+  return {
+    mismatchIndex,
+    failedAssertionIndex,
+    protocolRecoveryWallMillis: epoch + 6,
+    expectedFreshness: "ageUnknown",
+    actualFreshness: "fresh",
+    expectedVersion: 2,
+    actualVersion: 1,
+    mutantAlarmTimeMs: 60,
+  };
+}
+
 async function main() {
-  const [prepared, output, ...extra] = process.argv.slice(2);
-  if (!prepared || !output || extra.length)
+  const args = process.argv.slice(2);
+  const recovery = args[0] === "--recovery";
+  if (recovery) args.shift();
+  const [prepared, output, ...extra] = args;
+  if (
+    !prepared ||
+    !output ||
+    extra.length ||
+    args.some((arg) => arg.startsWith("--"))
+  )
     throw new Error(
-      "Usage: generation-clock-check PREPARED_DIRECTORY NEW_EVIDENCE_DIRECTORY",
+      "Usage: generation-clock-check [--recovery] PREPARED_DIRECTORY NEW_EVIDENCE_DIRECTORY",
     );
   const directory = resolve(output);
   await mkdir(directory);
@@ -387,18 +592,32 @@ async function main() {
   const rows = [];
   let details;
   let error: string | undefined;
+  let source: Awaited<ReturnType<typeof captureSource>> | undefined;
+  let inputs:
+    Awaited<ReturnType<typeof captureControlInput>>["identities"] | undefined;
+  let manifestSha256: string | undefined;
 
   try {
+    source = await captureSource();
     const preparation = resolve(prepared);
-    const { provenance, original, mutated } =
-      await readPreparation(preparation);
+    const preparedControl = await readPreparation(preparation, recovery);
+    const { provenance, original, mutated } = preparedControl;
+    manifestSha256 = digest(preparedControl.manifest);
+    assert.equal(provenance.recipeSha256, source.preparationRecipeSha256);
     const inputPath = fileURLToPath(
-      new URL("../scenarios/simulation/memory-restart.json", import.meta.url),
+      new URL(
+        recovery
+          ? "../scenarios/simulation/sqlite-wall-rollback.json"
+          : "../scenarios/simulation/memory-restart.json",
+        import.meta.url,
+      ),
     );
-    const input = await loadDocument(inputPath);
+    const captured = await captureControlInput(inputPath);
+    const { input } = captured;
+    inputs = captured.identities;
     await Promise.all(
       Object.entries({
-        "preparation.json": JSON.stringify(provenance, null, 2) + "\n",
+        "preparation.json": preparedControl.manifest,
         "clock-original.java": original,
         "clock-mutant.java": mutated,
         "scenario.json": input.scenario.canonical,
@@ -432,12 +651,40 @@ async function main() {
         run.execution.artifactSha256,
         provenance.artifacts[artifact],
       );
+      assert.equal(
+        run.execution.workbenchSha256,
+        source.workbenchSha256,
+        "run Workbench identity changed after control admission",
+      );
+      assert.equal(
+        run.environment.dependencyLockSha256,
+        source.dependencyLockSha256,
+        "dependency lock changed after control admission",
+      );
     }
-    details = checkClockControl(
-      results.normal,
-      results.mutant,
-      results["paused-mutant"],
+    const check = recovery ? checkRecoveryClockControl : checkClockControl;
+    details = check(results.normal, results.mutant, results["paused-mutant"]);
+    assert.deepEqual(
+      await captureSource(),
+      source,
+      "control source provenance changed during execution",
     );
+    assert.deepEqual(
+      (await captureControlInput(inputPath)).identities,
+      inputs,
+      "control inputs changed during execution",
+    );
+    assert.equal(
+      digest(await boundedFile(join(preparation, "preparation.json"))),
+      manifestSha256,
+      "preparation manifest changed during execution",
+    );
+    for (const artifact of ["normal", "mutant"] as const)
+      assert.equal(
+        digest(await readJar(join(preparation, `${artifact}.jar`))),
+        provenance.artifacts[artifact],
+        `${artifact} artifact changed during execution`,
+      );
   } catch (cause) {
     error = cause instanceof Error ? cause.message : String(cause);
   }
@@ -445,18 +692,18 @@ async function main() {
     join(directory, "summary.json"),
     JSON.stringify(
       {
-        format: "timeline-generation-clock-control/v1",
+        format: recovery
+          ? "timeline-recovery-clock-control/v1"
+          : "timeline-generation-clock-control/v1",
         verified: !error,
         command: [
           process.execPath,
-          "--import",
-          "tsx",
+          ...process.execArgv,
           ...process.argv.slice(1),
         ],
-        sourceRevision: git(["rev-parse", "HEAD"]).toString().trim(),
-        trackedChanges:
-          git(["status", "--porcelain", "--untracked-files=no"]).length > 0,
-        checkerSha256: digest(await readFile(new URL(import.meta.url))),
+        ...source,
+        inputs,
+        preparationManifestSha256: manifestSha256,
         runs: rows,
         ...(details ?? {}),
         ...(error ? { error } : {}),
@@ -467,7 +714,9 @@ async function main() {
     { flag: "wx" },
   );
   if (error) throw new Error(error);
-  console.log(`Verified wrong-generation wall clock control at ${assertion}`);
+  console.log(
+    `Verified wrong ${recovery ? "recovery" : "generation"} wall clock at ${recovery ? recoveryAssertion : assertion}`,
+  );
 }
 
 if (

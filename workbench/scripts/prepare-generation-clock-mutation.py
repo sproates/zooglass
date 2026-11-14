@@ -17,7 +17,8 @@ SOURCE_FILE = (
 )
 CLASS_FILE = "BOOT-INF/classes/io/zooglass/runtime/ControlledReceiptClock.class"
 BEFORE = b"return generation.wallMillis(turns.now());"
-AFTER = b"return Math.addExact(generation.epochMillis(), monotonicMillis());"
+GENERATION_ORIGIN = b"return Math.addExact(generation.epochMillis(), monotonicMillis());"
+RECOVERY_OFFSET = b"return Math.addExact(generation.epochMillis(), turns.now());"
 
 
 def digest(data):
@@ -57,7 +58,8 @@ def jar_inventory(path):
     return inventory
 
 
-def prepare(root):
+def prepare(root, recovery=False):
+    replacement = RECOVERY_OFFSET if recovery else GENERATION_ORIGIN
     checkout = pathlib.Path(__file__).resolve().parents[2]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout,
                                        text=True, timeout=10).strip()
@@ -72,7 +74,7 @@ def prepare(root):
     original = rule.read_bytes()
     if original.count(BEFORE) != 1:
         raise ValueError("Clock mutation target changed; inspect before preparing")
-    mutant = original.replace(BEFORE, AFTER)
+    mutant = original.replace(BEFORE, replacement)
     for name, payload in [("clock-original.java", original), ("clock-mutant.java", mutant)]:
         (root / name).write_bytes(payload)
 
@@ -106,7 +108,8 @@ def prepare(root):
         raise ValueError("Prepared hosts must embed the newly built production runtime")
 
     manifest = {
-        "format": "timeline-generation-clock-preparation/v1",
+        "format": ("timeline-recovery-clock-preparation/v1" if recovery
+                   else "timeline-generation-clock-preparation/v1"),
         "revision": revision,
         "sourceArchiveSha256": digest(source_archive),
         "recipeSha256": file_digest(pathlib.Path(__file__)),
@@ -114,7 +117,7 @@ def prepare(root):
                                         text=True, timeout=10).strip(),
         "commands": commands,
         "mutation": {
-            "file": SOURCE_FILE, "before": BEFORE.decode(), "after": AFTER.decode(),
+            "file": SOURCE_FILE, "before": BEFORE.decode(), "after": replacement.decode(),
             "originalSha256": digest(original), "mutatedSha256": digest(mutant),
             "class": CLASS_FILE,
             "originalClassSha256": normal_entries[CLASS_FILE],
@@ -129,6 +132,10 @@ def prepare(root):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit("Usage: python3 scripts/prepare-generation-clock-mutation.py NEW_DIRECTORY")
-    prepare(pathlib.Path(sys.argv[1]).resolve())
+    args = sys.argv[1:]
+    recovery = args[:1] == ["--recovery"]
+    if recovery:
+        args = args[1:]
+    if len(args) != 1 or args[0].startswith("--"):
+        raise SystemExit("Usage: python3 scripts/prepare-generation-clock-mutation.py [--recovery] NEW_DIRECTORY")
+    prepare(pathlib.Path(args[0]).resolve(), recovery)

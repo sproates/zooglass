@@ -56,6 +56,7 @@
     "timeline:clock-leak": "node --import tsx scripts/clock-leak-check.ts",
     "timeline:document-repeat": "node --import tsx scripts/document-repeat.ts",
     "timeline:lifecycle-repeat": "node --import tsx scripts/lifecycle-repeat.ts",
+    "timeline:sqlite-repeat": "node --import tsx scripts/sqlite-repeat.ts",
     "prepare:generation-clock-control": "python3 scripts/prepare-generation-clock-mutation.py",
     "timeline:generation-clock-control": "node --import tsx scripts/generation-clock-check.ts"
   },

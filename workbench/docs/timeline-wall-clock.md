@@ -63,4 +63,5 @@ The literal tests cover forward jumps, downtime rollback, duplicate-only live
 rollback, a new commit persisting uncertainty after wall time catches up,
 new-input repair and same-time startup ordering. Paused execution and replay
 check selected cases. These are implementation checks; the broader repeated
-SQLite restart campaign and deliberate recovery-clock control remain separate.
+[SQLite restart campaign](timeline-sqlite-qualification.md) and deliberate
+[recovery-clock control](timeline-recovery-clock-control.md) remain separate.

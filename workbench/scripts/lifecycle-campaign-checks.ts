@@ -3,11 +3,11 @@ import type {
   CampaignMode,
   DocumentRun,
 } from "../src/timeline/campaign-checks.js";
-import { evidenceV2 } from "../src/timeline/evidence-versions.js";
-import { encodeJson, parseJson } from "../src/timeline/json.js";
-import { parseReplay } from "../src/timeline/replay-document.js";
+import { encodeJson } from "../src/timeline/json.js";
 import { integer, list, object } from "../src/timeline/validation.js";
 import type { LifecycleExpectation } from "./lifecycle-campaign-inputs.js";
+
+import { restartEvidence } from "./restart-campaign-evidence.js";
 
 const epoch = 1_700_000_000_000;
 const freshnessThresholdMs = 30;
@@ -18,62 +18,7 @@ export function checkLifecycleCampaignRun(
   mode: CampaignMode,
   expected: LifecycleExpectation,
 ) {
-  const run: DocumentRun = JSON.parse(raw);
-  assert.equal(run.outcome, "passed", run.message ?? "scenario failed");
-  if (baseline) {
-    assert.deepEqual(
-      run.execution,
-      baseline.execution,
-      "execution identity drift",
-    );
-    assert.deepEqual(
-      run.environment,
-      baseline.environment,
-      "environment drift",
-    );
-    assert.equal(run.scenario, baseline.scenario, "scenario drift");
-    assert.equal(
-      run.configuration,
-      baseline.configuration,
-      "configuration drift",
-    );
-    if (run.trace !== baseline.trace) {
-      const actual = run.trace.split("\n");
-      const prior = baseline.trace.split("\n");
-      const firstDifference = actual.findIndex((line, i) => line !== prior[i]);
-      throw new Error(
-        `semantic trace divergence at record ${firstDifference < 0 ? actual.length : firstDifference}`,
-      );
-    }
-  }
-
-  const parsed = parseReplay(raw);
-  assert.equal(
-    parsed.versions,
-    evidenceV2,
-    "memory qualification requires v2 evidence",
-  );
-  const events = parsed.lines.slice(1, -1).map((line) => {
-    const record = object(parseJson(line), "event");
-    return {
-      kind: record.kind,
-      id: record.eventId,
-      parent: record.parentId,
-      causes: record.causes === undefined ? [] : list(record.causes, "causes"),
-      generation:
-        record.runtimeGeneration === null
-          ? null
-          : integer(record.runtimeGeneration, "runtimeGeneration"),
-      connection:
-        record.connectionGeneration === null
-          ? null
-          : integer(record.connectionGeneration, "connectionGeneration"),
-      time: integer(list(record.key, "key")[0], "time"),
-      data: object(record.data, "data"),
-    };
-  });
-  const byKind = (kind: string) =>
-    events.filter((entry) => entry.kind === kind);
+  const { run, parsed, byKind } = restartEvidence(raw, baseline, "memory");
   assert.deepEqual(
     byKind("runtime-initialized").map((event) => [
       event.generation,

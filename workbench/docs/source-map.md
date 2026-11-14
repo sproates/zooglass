@@ -702,15 +702,21 @@ flowchart TB
 The archive command operates on saved evidence only. It neither executes scenarios
 nor rebuilds artifacts. Linux qualification has its own baselines and manifest.
 
-## Memory lifecycle qualification
+## Restart qualification
 
 ```mermaid
-flowchart LR
+flowchart TB
   campaign["scripts/lifecycle-repeat.ts"] -->|authored variants and expected outcomes| inputs["scripts/lifecycle-campaign-inputs.ts"]
-  campaign -->|fresh Node process per run| child["scripts/document-campaign-child.ts"]
+  campaign -->|shared process and evidence ownership| runner["scripts/restart-campaign.ts"]
+  sqlite["scripts/sqlite-repeat.ts"] -->|shared process and evidence ownership| runner
+  sqlite -->|literal recovery expectations| sqlinputs["scripts/sqlite-campaign-inputs.ts"]
+  sqlite -->|recovery, pauses and exact parity| sqlchecks["scripts/sqlite-campaign-checks.ts"]
+  runner -->|fresh Node process per run| child["scripts/document-campaign-child.ts"]
   child -->|fresh runtime generations| run["timeline/run-document.ts"]
   campaign -->|independent semantics, pauses and exact parity| checks["scripts/lifecycle-campaign-checks.ts"]
-  checks -->|complete versioned evidence admission| replay["timeline/replay-document.ts"]
+  checks -->|load complete evidence| evidence["scripts/restart-campaign-evidence.ts"]
+  sqlchecks -->|load complete evidence| evidence
+  evidence -->|complete versioned evidence admission| replay["timeline/replay-document.ts"]
 ```
 
 ```mermaid
@@ -724,7 +730,9 @@ Campaign checking is outside the runtime executor. Authored expectations decide
 correctness; exact within-group traces independently establish repeatability.
 The control checker consumes separately prepared JARs and verifies the mutation's
 actual artifact contents. Only the explicit preparation script builds Java, in an
-isolated copy. See [memory qualification](timeline-memory-qualification.md).
+isolated copy. See [memory qualification](timeline-memory-qualification.md),
+[SQLite qualification](timeline-sqlite-qualification.md), and the
+[recovery-clock control](timeline-recovery-clock-control.md).
 
 
 ## SQLite host foundation
@@ -764,7 +772,8 @@ flowchart LR
   execution["timeline/document-execution.ts"] -->|declared phase-zero setting| turns["timeline/runtime-turns.ts"]
   turns -->|live or stopped clock update| owner["timeline/runtime-generations.ts"]
   owner -->|acknowledged clock-only command| bridge["timeline/bridge.ts"]
-  replay["timeline/replay-document.ts"] -->|bind authored clock and lifecycle order| trace["timeline/trace-generations.ts"]
+  replay["timeline/replay-document.ts"] -->|validate complete trace| contract["timeline/trace-contract.ts"]
+  contract -->|bind authored clock and lifecycle order| trace["timeline/trace-generations.ts"]
 ```
 
 The generation owner retains wall offset through downtime. Global agenda and

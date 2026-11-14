@@ -86,6 +86,28 @@ Regenerate documents only after reviewing their authored inputs and expectations
 node --import tsx scenarios/timeline-order-recovery/author.ts
 ```
 
+## Verification
+
+The fixtures and literal expectations were committed at `520ae3d` before their
+first prepared-host execution. All 26/26/44 assertions passed unchanged. Tests
+also inspect all four installed snapshots directly in the initialization record,
+before subsequent input, and compare both viewers' complete frame lists.
+
+Strict replay matches 649 records for each boundary variant and 865 for the after
+variant, including a portable bundle recorded at that clean commit. The largest
+trace is 1,559,271 bytes; existing bounds are unchanged. Each horizon ends with
+zero pending messages and held frames, and one explicitly allowed future freshness
+task. Deliberately refreshed duplicate age and a missing recovery commit fail
+their intended assertions.
+
+Focused checks cover capability/profile admission, both stop modes at request and
+reply arrival ties, generation isolation, and exact complete acknowledgements.
+Disabling the stopped-generation traffic guard makes its regression fail; restoring
+it passes. The ordinary Order trace's 1,908 records and the three older proofs'
+228 semantic records remain unchanged apart from declared artifact/code identities.
+Packaging checks verify the simulation host still embeds the matching production
+runtime without shipping simulation hooks in the service JAR.
+
 ## Scope
 
 The [ordinary two-cycle scenario](timeline-order-scenario.md) remains a separate

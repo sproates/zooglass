@@ -345,8 +345,10 @@ acknowledged turn, so the simulator knows which state transitions completed.
 The bounded memory POC implements the current private protocol in a separate
 [simulation host](../../zooglass/simulation-host/README.md), prepared explicitly
 with `npm run prepare:timeline` from Workbench. The production service JAR excludes
-that host. The generation/recovery extensions described above remain planned;
-execution and tests must never invoke a Java build.
+that host. The [memory lifecycle profile](../../workbench/docs/timeline-lifecycle.md)
+implements fresh runtime generations and has [bounded native qualification](../../workbench/docs/timeline-memory-qualification.md).
+SQLite recovery and wall adjustments remain planned; execution and tests must
+never invoke a Java build.
 
 ### Run results do not blur failures
 

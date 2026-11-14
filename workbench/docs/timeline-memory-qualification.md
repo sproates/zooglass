@@ -73,3 +73,28 @@ Durable qualification evidence belongs in GitHub Release assets, with provenance
 SHA-256 and download links in the [evidence manifest](../evidence/README.md).
 Archive verification checks bytes and inventory; replay additionally needs matching
 executables and environment. These archives do not contain JARs or dependencies.
+
+## Recorded result, 14 November 2026
+
+Commit `2236a3563c4722a4eda4899445ab9ec30e7e7da7` passed all 60 fresh-process
+runs on macOS arm64, Node 26.0.0 and Homebrew Java 25.0.5.0.2. Each of the three
+cases reproduced its baseline trace exactly across 20 runs. The 57 perturbed
+runs recorded all 171 expected generation-2 JVM pauses, plus measured Node
+command delays exceeding the 30 ms freshness threshold. No runs failed.
+A separate fresh replay verified all 108 records of the abrupt-restart case.
+
+The normal clock-control host passed. Both mutant runs failed
+`fresh-after-restart`, with the same wrong trace under long pauses: the receipt
+at global time 50 reported `1700000000000` instead of `1700000000050`.
+The first semantic difference was record 64; the failed assertion was record 90
+(zero-based indices). Actual JAR inventories confirmed that only the runtime
+receipt-clock class differed, with the same embedded production runtime.
+The control hosts were prepared from Java source at `397d39a`; the checker and
+campaign ran from the clean commit above. Preparation provenance retains exact
+source and artifact hashes.
+
+The [evidence manifest](../evidence/README.md) links the complete raw campaign,
+three clock-control runs, inputs, independent draw vectors and replay report.
+This qualifies the bounded memory lifecycle on the recorded environment.
+SQLite recovery, wall-clock adjustments and cross-platform v2 qualification
+remain future work.

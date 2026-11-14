@@ -101,5 +101,6 @@ they are not signatures. [Release manifests](../evidence/README.md) retain hashe
 and download links; archived data excludes executable dependencies.
 
 The [completion contract](timeline-completion.md) defines the bounded guarantee.
-CLI completion does not replace final combined acceptance or authorise promotion
-to main. Ordinary live Workbench demos continue to serve their real-time purpose.
+The [acceptance candidate](timeline-acceptance.md) records completed aggregate checks;
+owner acceptance and promotion to main remain separate decisions. Ordinary live
+Workbench demos continue to serve their real-time purpose.

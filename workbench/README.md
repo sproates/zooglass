@@ -898,7 +898,8 @@ real-service demos remain available.
 The [timeline completion contract](docs/timeline-completion.md) consolidates current
 evidence, the remaining delivery sequence and the first bounded release's explicit
 limits. The [CLI and capability guide](docs/timeline-guide.md) covers prepared
-setup, comparison and strict-default replay. Final aggregate acceptance remains.
+setup, comparison and strict-default replay. [Aggregate checks](docs/timeline-acceptance.md)
+are complete; the bounded candidate awaits owner acceptance and separate main promotion.
 
 [Order qualification](docs/timeline-order-qualification.md) provides the finite
 ordinary/recovery/retention campaign, actual wrong-priority/clock controls and

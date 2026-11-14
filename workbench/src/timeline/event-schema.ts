@@ -21,11 +21,12 @@ export const actionFields = {
   "writer-release": ["fail"],
 };
 export type ActorActionKind = keyof typeof actionFields;
-export const serviceActionFields = {
+export const runtimeActionFields = {
   "service-stop": ["mode"],
   "service-start": [],
+  "wall-clock-set": ["wallMillis"],
 };
-export type ServiceActionKind = keyof typeof serviceActionFields;
+export type RuntimeActionKind = keyof typeof runtimeActionFields;
 export const stopModes = ["orderly", "abrupt"] as const;
 export const lifecycleEventKinds = [
   "runtime-initialized",
@@ -34,8 +35,8 @@ export const lifecycleEventKinds = [
   "attempt-outcome",
 ] as const;
 
-export function isServiceAction(kind: string): kind is ServiceActionKind {
-  return Object.hasOwn(serviceActionFields, kind);
+export function isRuntimeAction(kind: string): kind is RuntimeActionKind {
+  return Object.hasOwn(runtimeActionFields, kind);
 }
 
 /** Closed event wrappers; arbitrary domain values live only inside full envelopes. */
@@ -60,12 +61,7 @@ export function eventData(
     ]);
     if (integer(data.startTimeMs, `${path}.startTimeMs`, until) !== time)
       invalid(path, "runtime start time differs from agenda key");
-    integer(
-      data.wallMillis,
-      `${path}.wallMillis`,
-      Number.MAX_SAFE_INTEGER,
-      time,
-    );
+    integer(data.wallMillis, `${path}.wallMillis`);
     integer(data.monotonicMs, `${path}.monotonicMs`, 0);
     const targets = new Set<string>();
     list(data.snapshots, `${path}.snapshots`, 64).forEach((value, index) => {
@@ -193,11 +189,11 @@ export function eventData(
       data.actionKind,
       `${path}.actionKind`,
       version === 2
-        ? [...Object.keys(actionFields), ...Object.keys(serviceActionFields)]
+        ? [...Object.keys(actionFields), ...Object.keys(runtimeActionFields)]
         : Object.keys(actionFields),
-    ) as ActorActionKind | ServiceActionKind;
-    const fields = isServiceAction(actionKind)
-      ? serviceActionFields[actionKind]
+    ) as ActorActionKind | RuntimeActionKind;
+    const fields = isRuntimeAction(actionKind)
+      ? runtimeActionFields[actionKind]
       : actionFields[actionKind];
     object(data, path, ["actionId", "actionKind", ...fields]);
     text(data.actionId, `${path}.actionId`);
@@ -207,6 +203,8 @@ export function eventData(
           invalid(`${path}.fail`, "expected boolean");
       } else if (field === "mode") {
         choice(data.mode, `${path}.mode`, stopModes);
+      } else if (field === "wallMillis") {
+        integer(data.wallMillis, `${path}.wallMillis`);
       } else text(data[field], `${path}.${field}`);
     }
   } else if (kind === "scheduled") {

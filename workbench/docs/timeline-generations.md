@@ -11,7 +11,8 @@ fresh-store replay; see [SQLite timeline documents](timeline-sqlite.md).
 `RuntimeGenerations` owns one active JVM and an immutable handle for its generation.
 Generation 1 starts at global time zero; each later start launches a fresh JVM.
 For global time `T`, generation start `S` and fixed epoch `E`, the runtime reads
-monotonic time `T − S` and wall time `E + T`. Alarms remain scheduled at global
+monotonic time `T − S` and wall time `E + T + A`, where A defaults to zero and
+changes only through [explicit wall settings](timeline-wall-clock.md). Alarms remain scheduled at global
 `T + delay`. Clocks are installed before constructing the production runtime.
 No elapsed process startup or shutdown time contributes to these values.
 

@@ -1,4 +1,8 @@
-import { eventData, lifecycleEventKinds } from "./event-schema.js";
+import {
+  eventData,
+  isRuntimeAction,
+  lifecycleEventKinds,
+} from "./event-schema.js";
 import type { ObservationTarget } from "./envelopes.js";
 import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
 import { TraceGenerations } from "./trace-generations.js";
@@ -49,6 +53,7 @@ export function parseTrace(
   const ids = new Set<string>();
   const runtimeAssertions: { atMs: number; data: { [key: string]: Json } }[] =
     [];
+  const runtimeActions: typeof runtimeAssertions = [];
   let previous = [0, 0, 0, -1];
   let failedAssertion = false;
   let remainingBytes = jsonLimits.bytes;
@@ -71,7 +76,7 @@ export function parseTrace(
   const kinds =
     version === 2 ? [...eventKinds, ...lifecycleEventKinds] : eventKinds;
   const generations =
-    version === 2 ? new TraceGenerations(observationTargets) : undefined;
+    version === 2 ? new TraceGenerations(until, observationTargets) : undefined;
   for (let index = 1; index < lines.length - 1; index++) {
     const record = readRecord(index);
     const path = `trace[${index}]`;
@@ -166,6 +171,12 @@ export function parseTrace(
       if (data.assertionKind === "runtime-snapshot")
         runtimeAssertions.push({ atMs: key[0], data });
     }
+    if (
+      kind === "action" &&
+      typeof data.actionKind === "string" &&
+      isRuntimeAction(data.actionKind)
+    )
+      runtimeActions.push({ atMs: key[0], data });
   }
   const last = lines.length - 1;
   const outcome = traceOutcome(
@@ -182,6 +193,7 @@ export function parseTrace(
     outcome,
     epochMillis,
     runtimeAssertions,
+    runtimeActions,
   };
 }
 

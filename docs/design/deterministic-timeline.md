@@ -348,7 +348,8 @@ with `npm run prepare:timeline` from Workbench. The production service JAR exclu
 that host. The [memory lifecycle profile](../../workbench/docs/timeline-lifecycle.md)
 implements fresh runtime generations and has [bounded native qualification](../../workbench/docs/timeline-memory-qualification.md).
 SQLite documents now support private per-run stores, read-only recovery observations
-and fresh-store replay. Wall adjustments remain planned. Execution and tests must
+and fresh-store replay. [Controlled wall adjustments](../../workbench/docs/timeline-wall-clock.md) are implemented;
+broader restart qualification remains planned. Execution and tests must
 never invoke a Java build.
 
 ### Run results do not blur failures

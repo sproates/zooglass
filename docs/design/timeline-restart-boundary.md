@@ -5,8 +5,8 @@ next POC increments. **Host isolation and executor ownership separation are now
 implemented, along with the private memory generation/process foundation.**
 V2 memory documents now integrate stop/start, downtime retry and versioned replay
 evidence, with bounded native memory qualification. SQLite documents now integrate private storage, installed recovery observations
-and fresh-store replay. Wall adjustments and broader restart qualification remain
-unimplemented. The separate host is
+and fresh-store replay. Wall adjustments and literal rollback/repair cases are implemented; broader
+restart qualification remains outstanding. The separate host is
 described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
@@ -333,6 +333,5 @@ mid-commit termination and physical durability are not simulated here.
 
 Each increment needs focused validation and independent review before the next.
 These gates refine the existing POC scope. Memory lifecycle is implemented on the
-POC; SQLite document recovery is implemented. Wall adjustments and broader
-restart qualification remain pending. No main
+POC; SQLite document recovery is implemented. Wall adjustments are implemented; broader restart qualification remains pending. No main
 promotion is implied.

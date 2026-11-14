@@ -1,6 +1,7 @@
 package io.zooglass.simulation;
 
 import static io.zooglass.simulation.HostProtocol.integer;
+import static io.zooglass.simulation.HostProtocol.signedInteger;
 
 import tools.jackson.databind.JsonNode;
 
@@ -26,6 +27,9 @@ final class HostTurns {
         long at = integer(command, "timeMs");
         boolean inspection = operation.equals("inspect-configuration");
         boolean initializing = operation.equals("initialize") || operation.equals("initialize-document");
+        boolean adjusting = operation.equals("wall-clock-set");
+        if (adjusting && protocol != HostProtocol.V2)
+            throw new IllegalArgumentException("Wall adjustments require protocol 2");
         RuntimeGeneration clock;
         if (inspection) {
             if (protocol != HostProtocol.V1 || generation != null || at != 0)
@@ -43,11 +47,14 @@ final class HostTurns {
                 || ((protocol == HostProtocol.V1 || commands != 0) && id != nextTurn)
                 || at < lastTimeMs || at > TurnContext.MAX_TIME_MS
                 || integer(command, "runtimeGeneration") != clock.number()
-                || integer(command, "monotonicMs") != clock.monotonicMillis(at)
-                || integer(command, "wallMillis") != clock.wallMillis(at))
+                || integer(command, "monotonicMs") != clock.monotonicMillis(at))
             throw new IllegalArgumentException("Invalid command identity or clocks");
         if (protocol == HostProtocol.V1 && id == 0 && at != 0)
             throw new IllegalArgumentException("Initial elapsed time must be zero");
+        long wallMillis = integer(command, "wallMillis");
+        if (adjusting) clock.setWallMillis(at, wallMillis);
+        else if (wallMillis != clock.wallMillis(at))
+            throw new IllegalArgumentException("Invalid command identity or clocks");
 
         commands++;
         nextTurn = id + 1;
@@ -66,9 +73,10 @@ final class HostTurns {
             throw new IllegalArgumentException("Protocol 2 requires document initialization");
         long number = integer(command, "runtimeGeneration");
         long start = integer(command, "startTimeMs");
+        long offset = command.has("wallOffsetMillis") ? signedInteger(command, "wallOffsetMillis") : 0;
         if (number < 1 || number > GENERATION_LIMIT
-                || start != at || (number == 1 && start != 0))
+                || start != at || (number == 1 && (start != 0 || offset != 0)))
             throw new IllegalArgumentException("Invalid generation origin");
-        return new RuntimeGeneration(number, start, integer(command, "epochMillis"));
+        return new RuntimeGeneration(number, start, integer(command, "epochMillis"), offset);
     }
 }

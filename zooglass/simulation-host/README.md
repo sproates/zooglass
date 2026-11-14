@@ -7,7 +7,7 @@ open a socket listener. A private protocol 2 additionally supports the
 [runtime generation foundation](../../workbench/docs/timeline-generations.md).
 Workbench now uses it for [v2 memory stop/start documents](../../workbench/docs/timeline-lifecycle.md).
 Private protocol 2 also supports [SQLite document recovery](../../workbench/docs/timeline-sqlite.md),
-with installed snapshots and read-only observations. Protected access remains planned.
+with installed snapshots, read-only observations and [controlled wall adjustments](../../workbench/docs/timeline-wall-clock.md). Protected access remains planned.
 
 ## Prepare and run
 

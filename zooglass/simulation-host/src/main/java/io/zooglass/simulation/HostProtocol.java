@@ -114,6 +114,7 @@ enum HostProtocol {
         if (this == V1) return handshake;
         var capabilities = new LinkedHashMap<String, Object>(handshake);
         capabilities.put("installedObservations", 1);
+        capabilities.put("wallClockAdjustments", 1);
         if (sqliteVersion != null) capabilities.put("sqliteLifecycle", 1);
         return capabilities;
     }
@@ -161,7 +162,11 @@ enum HostProtocol {
                     case "initialize-document" -> this == V1
                             ? Set.of("wire", "epochMillis")
                             : Set.of("wire", "epochMillis", "startTimeMs", "database",
-                                    "observationTargets");
+                                    "observationTargets", "wallOffsetMillis");
+                    case "wall-clock-set" -> {
+                        if (this != V2) throw new IllegalArgumentException("Wall adjustments require protocol 2");
+                        yield Set.of();
+                    }
                     case "observe-installed" -> {
                         if (this != V2) throw new IllegalArgumentException("Installed observations require protocol 2");
                         yield Set.of("observationTargets");
@@ -185,10 +190,18 @@ enum HostProtocol {
     }
 
     static long integer(JsonNode node, String key) {
+        return boundedInteger(node, key, 0);
+    }
+
+    static long signedInteger(JsonNode node, String key) {
+        return boundedInteger(node, key, -PublicationJson.MAX_SEQUENCE);
+    }
+
+    private static long boundedInteger(JsonNode node, String key, long min) {
         var value = node.path(key);
         if (!value.isIntegralNumber()
                 || !value.canConvertToLong()
-                || value.longValue() < 0
+                || value.longValue() < min
                 || value.longValue() > PublicationJson.MAX_SEQUENCE)
             throw new IllegalArgumentException("Expected bounded integer " + key);
         return value.longValue();

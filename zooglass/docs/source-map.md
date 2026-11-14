@@ -553,3 +553,16 @@ flowchart LR
 The package-private installed snapshot seam reads state without expiry, clock
 samples or storage writes. Initialization reports it separately from ordinary
 state-change callbacks, so observation cannot repair missing recovery.
+
+
+## Controlled wall-clock updates
+
+```mermaid
+flowchart LR
+  turns["simulation/HostTurns.java"] -->|validate then change wall offset| generation["simulation/RuntimeGeneration.java"]
+  clock["runtime/ControlledReceiptClock.java"] -->|sample shared admitted offset| generation
+  runtime["runtime/TimelineRuntime.java"] -->|inject into real runtime| clock
+```
+
+Only protocol-2 initialization and explicit wall-clock-set may install an offset.
+Normal turn metadata must match it; the clock-only command does no reconciliation.

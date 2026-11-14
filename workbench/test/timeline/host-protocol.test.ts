@@ -140,6 +140,7 @@ test("SQLite capability requires a native version and snapshots remain protocol-
   assert.deepEqual(decodeHandshake(sqlite), sqlite);
   for (const changed of [
     { ...sqlite, sqliteLifecycle: 2 },
+    { ...sqlite, wallClockAdjustments: 2 },
     { ...sqlite, environment: { javaRuntime: "25" } },
     { ...sqlite, storage: ["memory"] },
     { ...sqlite, storage: ["sqlite"] },

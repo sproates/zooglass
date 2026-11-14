@@ -3,7 +3,8 @@
 `timeline-simulation/v2` can start with an empty SQLite store and restart the
 real production runtime under controlled generation clocks. The profile remains
 bounded to one source, view and receipt-age field. Protected access, imported
-storage fixtures and wall-clock adjustments are not admitted.
+storage fixtures are not admitted. [Controlled wall-clock adjustments](timeline-wall-clock.md)
+are available in v2.
 
 From `workbench/`, after explicitly preparing the host:
 

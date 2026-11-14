@@ -42,6 +42,7 @@ export class Bridge {
   private failure?: Error;
   private turn: number;
   private epoch = 1_000_000;
+  private wallOffset = 0;
   private acknowledged?: { operation: unknown; timeMs: number };
   environment?: Record<string, string>;
   timing?: TimingDiagnostics;
@@ -55,6 +56,7 @@ export class Bridge {
   configurationAdmission = 0;
   sqliteLifecycle: 0 | 1 = 0;
   installedObservations: 0 | 1 = 0;
+  wallClockAdjustments: 0 | 1 = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
   private readonly child: ChildProcessWithoutNullStreams;
@@ -171,6 +173,7 @@ export class Bridge {
       if (handshake.protocol === 2) {
         bridge.sqliteLifecycle = handshake.sqliteLifecycle ?? 0;
         bridge.installedObservations = handshake.installedObservations ?? 0;
+        bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
       bridge.environment = handshake.environment;
       return { bridge, artifact };
@@ -297,8 +300,38 @@ export class Bridge {
       const monotonicMs = this.generation
         ? timeMs - this.generation.startTimeMs
         : timeMs;
-      const wallMillis = commandEpoch + timeMs;
-      if (this.generation && !Number.isSafeInteger(wallMillis))
+      const baseWall = commandEpoch + timeMs;
+      let offset = this.wallOffset;
+      if (
+        operation.op === "initialize-document" &&
+        operation.wallOffsetMillis !== undefined
+      ) {
+        if (
+          !this.generation ||
+          this.wallClockAdjustments !== 1 ||
+          !Number.isSafeInteger(operation.wallOffsetMillis)
+        )
+          throw new Error("Unsupported or invalid initial wall offset");
+        offset = Number(operation.wallOffsetMillis);
+      }
+      if (operation.op === "wall-clock-set") {
+        if (
+          !this.generation ||
+          this.wallClockAdjustments !== 1 ||
+          !Number.isSafeInteger(operation.wallMillis) ||
+          Number(operation.wallMillis) < 0
+        )
+          throw new Error("Unsupported or invalid wall adjustment");
+        offset = Number(operation.wallMillis) - baseWall;
+      }
+      const wallMillis = baseWall + offset;
+      if (
+        this.generation &&
+        (!Number.isSafeInteger(baseWall) ||
+          !Number.isSafeInteger(offset) ||
+          !Number.isSafeInteger(wallMillis) ||
+          wallMillis < 0)
+      )
         throw new Error("Invalid generation wall clock");
       const bytes = Buffer.from(
         JSON.stringify({
@@ -351,6 +384,7 @@ export class Bridge {
         } else if (value.snapshots !== undefined) {
           throw new Error("Unrequested initialization snapshots");
         }
+        this.wallOffset = offset;
         if (value.diagnostics) this.timing = value.diagnostics;
         if (this.generation)
           this.acknowledged = { operation: operation.op, timeMs };

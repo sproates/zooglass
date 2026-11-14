@@ -2,8 +2,8 @@ import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules } from "./receipt-faults.js";
 import {
   actionFields,
-  isServiceAction,
-  serviceActionFields,
+  isRuntimeAction,
+  runtimeActionFields,
   stopModes,
   type ActorActionKind,
 } from "./event-schema.js";
@@ -48,6 +48,7 @@ export const lifecycleCapabilities = [
   ...capabilities,
   "memory-lifecycle",
   "runtime-observations",
+  "wall-clock-adjustments",
 ] as const;
 export const sqliteLifecycleCapabilities = [
   ...lifecycleCapabilities,
@@ -195,23 +196,33 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     object(publication.body, `${path}.body`);
   });
   const eventIds = new Set<string>();
+  const wallSettings: { atMs: number; wallMillis: number; path: string }[] = [];
   const kinds = [
     ...Object.keys(actionFields),
-    ...(lifecycle ? Object.keys(serviceActionFields) : []),
+    ...(lifecycle ? Object.keys(runtimeActionFields) : []),
   ];
   list(doc.actions, "$.actions").forEach((value, i) => {
     const path = `$.actions[${i}]`;
     const entry = object(value, path);
     const kind = choice(entry.kind, `${path}.kind`, kinds);
-    const fields = isServiceAction(kind)
-      ? serviceActionFields[kind]
+    const fields = isRuntimeAction(kind)
+      ? runtimeActionFields[kind]
       : ["actor", ...actionFields[kind as ActorActionKind]];
     object(entry, path, ["id", "atMs", "kind", ...fields]);
     unique(text(entry.id, `${path}.id`), eventIds, `${path}.id`);
-    integer(entry.atMs, `${path}.atMs`, until);
-    if (isServiceAction(kind)) {
+    const atMs = integer(entry.atMs, `${path}.atMs`, until);
+    if (isRuntimeAction(kind)) {
       if (kind === "service-stop")
         choice(entry.mode, `${path}.mode`, stopModes);
+      if (kind === "wall-clock-set") {
+        const clockPath = `${path}.wallMillis`;
+        wallSettings.push({
+          atMs,
+          wallMillis: integer(entry.wallMillis, clockPath),
+          path: clockPath,
+        });
+        required.add("wall-clock-adjustments");
+      }
       return;
     }
     reference(
@@ -236,6 +247,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
         invalid(`${path}.fail`, "expected boolean");
     } else required.add("client-lifecycle");
   });
+  validateWallSchedule(until, wallSettings);
   list(doc.assertions, "$.assertions").forEach((value, i) => {
     const path = `$.assertions[${i}]`;
     const record = object(value, path);
@@ -286,6 +298,22 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     admittedActions: admitLifecycle(doc, lifecycle, policies),
     retryPolicies: policies,
   };
+}
+
+function validateWallSchedule(
+  until: number,
+  settings: { atMs: number; wallMillis: number; path: string }[],
+) {
+  // Sorting is stable. Equal-time settings are applied in declared order.
+  settings.sort((a, b) => a.atMs - b.atMs);
+  for (const [index, anchor] of settings.entries()) {
+    const end = settings[index + 1]?.atMs ?? until;
+    if (!Number.isSafeInteger(anchor.wallMillis + (end - anchor.atMs)))
+      invalid(
+        anchor.path,
+        "wall-clock-set overflows safe integer before the next setting or horizon",
+      );
+  }
 }
 
 /** Default deny: callers must explicitly supply capabilities after runtime/profile admission. */

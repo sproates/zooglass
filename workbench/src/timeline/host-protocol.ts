@@ -64,6 +64,7 @@ export type Handshake = {
       memoryLifecycle: 1;
       sqliteLifecycle?: 1;
       installedObservations?: 1;
+      wallClockAdjustments?: 1;
       documentFormats: [];
       environment: Record<string, string>;
     }
@@ -109,6 +110,11 @@ export function decodeHandshake(value: unknown): Handshake {
   if (typeof data.protectedAccess !== "boolean")
     invalid("handshake.protectedAccess");
   if (data.protocol === 2) {
+    if (
+      data.wallClockAdjustments !== undefined &&
+      data.wallClockAdjustments !== 1
+    )
+      invalid("handshake.wallClockAdjustments");
     if (
       data.installedObservations !== undefined &&
       data.installedObservations !== 1

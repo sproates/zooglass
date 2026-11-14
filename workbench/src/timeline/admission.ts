@@ -88,6 +88,13 @@ export async function probeLifecycle(
       throw new Error(
         "unsupported-execution: prepared artifact does not support installed runtime observations",
       );
+    if (
+      scenario.requiredCapabilities.includes("wall-clock-adjustments") &&
+      opened.bridge.wallClockAdjustments !== 1
+    )
+      throw new Error(
+        "unsupported-execution: prepared artifact does not support wall clock adjustments",
+      );
     if (!opened.bridge.environment)
       throw new Error(
         "unsupported-execution: lifecycle host lacks environment identity",

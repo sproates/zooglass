@@ -1,4 +1,5 @@
 import { observationTarget, type ObservationTarget } from "./envelopes.js";
+import { isRuntimeAction } from "./event-schema.js";
 import { encodeJson, type Json } from "./json.js";
 import { integer, invalid, list, object, text } from "./validation.js";
 
@@ -32,6 +33,7 @@ export class TraceGenerations {
   private generation = 0;
   private active: number | null = null;
   private epoch?: number;
+  private wallOffset = 0;
   private starting?: Event;
   private stop?: Event;
   private readonly tasks = new Map<string, Event>();
@@ -41,7 +43,10 @@ export class TraceGenerations {
   private observedTargets?: string[];
   private pendingObservation?: Event;
 
-  constructor(targets?: readonly ObservationTarget[]) {
+  constructor(
+    private readonly untilMs: number,
+    targets?: readonly ObservationTarget[],
+  ) {
     this.observedTargets = targets?.map(targetKey);
   }
 
@@ -56,12 +61,18 @@ export class TraceGenerations {
       connectionGeneration,
       data,
     } = event;
+    if (this.epoch !== undefined) this.wallMillis(event.timeMs, path);
     const snapshotAssertion =
       kind === "assertion" && data.assertionKind === "runtime-snapshot";
     if (this.pendingObservation && !snapshotAssertion)
       invalid(
         path,
         "runtime observation must be immediately followed by its assertion",
+      );
+    if (this.starting && kind !== "runtime-initialized")
+      invalid(
+        path,
+        "runtime start must be immediately followed by initialization",
       );
 
     if (kind === "runtime-initialized") {
@@ -77,20 +88,20 @@ export class TraceGenerations {
       if (
         !this.starting ||
         parent !== this.starting.id ||
-        event.timeMs !== this.starting.timeMs
+        !sameKey(event.key, this.starting.key)
       )
         invalid(
           path,
-          "initialization must identify its start at the same time",
+          "initialization must identify its start at the same agenda key",
         );
       if (
         this.epoch === undefined ||
         integer(data.wallMillis, `${path}.data.wallMillis`) !==
-          this.epoch + event.timeMs
+          this.wallMillis(event.timeMs, path)
       )
         invalid(
           path,
-          "initialization wall clock must equal epoch plus global time",
+          "initialization wall clock must equal epoch plus global time and the declared wall offset",
         );
       if (
         [...this.tasks.values()].some((task) => isRuntimeTask(task.data.taskId))
@@ -163,6 +174,10 @@ export class TraceGenerations {
         this.starting ||
         actor !== "@runtime" ||
         connectionGeneration !== null ||
+        parent !== null ||
+        causes.length > 0 ||
+        event.key[1] !== 0 ||
+        event.key[2] !== 0 ||
         event.timeMs !== 0
       )
         invalid(
@@ -170,6 +185,8 @@ export class TraceGenerations {
           "initial command must belong to the unstarted runtime at time zero",
         );
       this.epoch = integer(data.epochMillis, `${path}.data.epochMillis`);
+      if (!Number.isSafeInteger(this.epoch + this.untilMs))
+        invalid(path, "epoch plus horizon overflows safe integer");
       this.starting = event;
     }
 
@@ -181,11 +198,32 @@ export class TraceGenerations {
       )
         this.attemptParents.set(id, event);
       if (
+        typeof data.actionKind === "string" &&
+        isRuntimeAction(data.actionKind) &&
+        (actor !== "@runtime" ||
+          connectionGeneration !== null ||
+          parent !== null ||
+          causes.length > 0 ||
+          event.key[1] !== 0 ||
+          event.key[2] !== 0)
+      )
+        invalid(
+          path,
+          "runtime control must be a declared round-zero phase-zero root action",
+        );
+      if (data.actionKind === "wall-clock-set") {
+        if (this.generation === 0 || (runtimeGeneration === null && !this.stop))
+          invalid(
+            path,
+            "wall-clock-set requires an initialized or stopped runtime",
+          );
+        this.wallOffset =
+          integer(data.wallMillis, `${path}.data.wallMillis`) -
+          (this.epoch! + event.timeMs);
+      } else if (
         data.actionKind === "service-stop" ||
         data.actionKind === "service-start"
       ) {
-        if (actor !== "@runtime" || connectionGeneration !== null)
-          invalid(path, "service lifecycle actions belong to the runtime");
         if (data.actionKind === "service-stop") {
           if (this.active === null)
             invalid(path, "cannot stop an unavailable runtime");
@@ -193,7 +231,7 @@ export class TraceGenerations {
           this.stop = event;
           this.stopClosures.clear();
         } else {
-          if (this.active !== null || !this.stop || this.starting)
+          if (this.active !== null || !this.stop)
             invalid(path, "service start requires a stopped runtime");
           this.starting = event;
         }
@@ -270,7 +308,7 @@ export class TraceGenerations {
           path,
           "runtime snapshot assertion must identify its matching observation",
         );
-      if (event.key.some((part, index) => part !== observation.key[index]))
+      if (!sameKey(event.key, observation.key))
         invalid(
           path,
           "runtime snapshot assertion must share its observation's same agenda key",
@@ -345,12 +383,22 @@ export class TraceGenerations {
       outcome !== "infrastructure-failed"
     )
       invalid("trace result", "trace has an unasserted runtime observation");
+    if (
+      this.starting &&
+      outcome !== "limit-exceeded" &&
+      outcome !== "infrastructure-failed"
+    )
+      invalid(
+        "trace result",
+        "trace requires completed runtime initialization after start",
+      );
     if (outcome !== "passed") return this.epoch;
-    if (this.generation === 0 || this.starting)
+    if (this.generation === 0)
       invalid(
         "trace result",
         "passing trace requires completed runtime initialization",
       );
+    this.wallMillis(this.untilMs, "trace result");
     if (
       this.active === null &&
       [...this.tasks.values()].some((task) => isRuntimeTask(task.data.taskId))
@@ -360,6 +408,15 @@ export class TraceGenerations {
         "a stopped runtime cannot retain generation tasks",
       );
     return this.epoch;
+  }
+
+  private wallMillis(atMs: number, path: string) {
+    if (this.epoch === undefined)
+      invalid(path, "runtime wall clock has no epoch");
+    const value = this.epoch + atMs + this.wallOffset;
+    if (!Number.isSafeInteger(value) || value < 0)
+      invalid(path, "runtime wall clock is outside the safe integer range");
+    return value;
   }
 
   private task(event: Event, path: string) {
@@ -401,4 +458,8 @@ function targetKey({ viewId, entityId }: ObservationTarget) {
 
 function isRuntimeTask(taskId: Json | undefined) {
   return typeof taskId === "string" && !taskId.startsWith("-");
+}
+
+function sameKey(left: readonly number[], right: readonly number[]) {
+  return left.every((coordinate, index) => coordinate === right[index]);
 }

@@ -167,6 +167,59 @@ class SqliteTimelineHostTests {
         call(host, turn("shutdown", 4, 1, 0, 100));
     }
 
+    @Test
+    void applyingTheDowntimeOffsetBeforeConstructionMakesRecoveredAgeUnknown() throws Exception {
+        var database = directory.resolve("downtime-offset.db");
+        var first = new TimelineHost(HostProtocol.V2, true);
+        start(first, database, 1, 0, 0);
+        connect(first, 1, 1, 0, 0);
+        publish(first, 2, 1, 0, 10);
+        call(first, turn("shutdown", 3, 1, 0, 11));
+
+        var second = new TimelineHost(HostProtocol.V2, true);
+        var recovered = call(second, initialization(database, 2, 4, 21)
+                .put("wallOffsetMillis", -15).put("wallMillis", EPOCH + 6));
+        var installed = JSON.readTree(recovered.path("snapshots").get(0).asString());
+        assertThat(installed.path("version").longValue()).isEqualTo(2);
+        var age = installed.path("status").path("fields").path("position");
+        assertThat(age.path("freshness").asString()).isEqualTo("ageUnknown");
+        assertThat(age.path("receivedAtMillis").isNull()).isTrue();
+        assertThat(recovered.path("pendingTasks").intValue()).isZero();
+        assertThat(recovered.path("effects").size()).isZero();
+        call(second, turn("shutdown", 5, 2, 21, 21).put("wallMillis", EPOCH + 6));
+    }
+
+    @Test
+    void liveClockSetLeavesCommittedStateAndExistingDeadlineAlone() throws Exception {
+        var database = directory.resolve("live-offset.db");
+        var host = new TimelineHost(HostProtocol.V2, true);
+        start(host, database, 1, 0, 0);
+        connect(host, 1, 1, 0, 0);
+        publish(host, 2, 1, 0, 10);
+
+        var adjusted = call(host, turn("wall-clock-set", 3, 1, 0, 20)
+                .put("wallMillis", EPOCH + 5));
+        assertThat(adjusted.path("monotonicMs").longValue()).isEqualTo(20);
+        assertThat(adjusted.path("wallMillis").longValue()).isEqualTo(EPOCH + 5);
+        assertThat(adjusted.path("effects").size()).isZero();
+        assertThat(adjusted.path("pendingTasks").intValue()).isOne();
+        assertThat(adjusted.path("heldFrames").intValue()).isZero();
+        call(host, turn("shutdown", 4, 1, 0, 21).put("wallMillis", EPOCH + 6));
+
+        // A restart at wall E+36 is above the prior durable high-water mark.
+        // No production commit observed the rollback, so retained age stays known.
+        var next = new TimelineHost(HostProtocol.V2, true);
+        var recovered = call(next, initialization(database, 2, 5, 51)
+                .put("wallOffsetMillis", -15).put("wallMillis", EPOCH + 36));
+        var installed = JSON.readTree(recovered.path("snapshots").get(0).asString());
+        assertThat(installed.path("version").longValue()).isOne();
+        var age = installed.path("status").path("fields").path("position");
+        assertThat(age.path("freshness").asString()).isEqualTo("fresh");
+        assertThat(age.path("receivedAtMillis").longValue()).isEqualTo(EPOCH + 10);
+        assertThat(recovered.path("effects").get(0).path("at").longValue()).isEqualTo(75);
+        call(next, turn("shutdown", 6, 2, 51, 51).put("wallMillis", EPOCH + 36));
+    }
+
     private static void execute(Path database, String sql) throws Exception {
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database);
                 var statement = connection.createStatement()) {

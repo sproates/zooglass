@@ -2,8 +2,8 @@
 
 `timeline-simulation/v2` runs a bounded memory lifecycle through fresh JVMs. It
 keeps the v1 configuration boundary: one source, view and field, receipt-age
-freshness and unprotected empty memory storage. Read-only runtime snapshot assertions are also available; wall adjustments
-remain unsupported. This is POC functionality;
+freshness and unprotected empty memory storage. Read-only runtime snapshot assertions and [wall-clock adjustments](timeline-wall-clock.md)
+are also available. This is POC functionality;
 the earlier 900-run campaigns qualify v1. V2 has a separate bounded
 [memory lifecycle qualification](timeline-memory-qualification.md) procedure.
 

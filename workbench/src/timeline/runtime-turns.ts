@@ -112,6 +112,16 @@ export class RuntimeTurns {
       target,
     );
   }
+  async setWall(wallMillis: number) {
+    assert.ok(this.bridge instanceof RuntimeGenerations);
+    this.consumeExecutionTurn();
+    const response = await this.bridge.setWall(
+      this.agenda.current[0],
+      wallMillis,
+    );
+    if (response) this.last = response;
+  }
+
   async stop(parent: string, mode: "orderly" | "abrupt") {
     assert.ok(this.bridge instanceof RuntimeGenerations && this.bridge.current);
     this.consumeExecutionTurn();

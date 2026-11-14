@@ -866,3 +866,6 @@ qualification.
 
 [SQLite timeline documents](docs/timeline-sqlite.md) add controlled durable recovery,
 read-only runtime assertions and replay from a fresh private store.
+
+[Controlled wall-clock adjustments](docs/timeline-wall-clock.md) exercise production
+rollback uncertainty and recovery while monotonic deadlines remain unchanged.

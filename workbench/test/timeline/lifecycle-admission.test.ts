@@ -146,7 +146,9 @@ test("v2 never admits service controls or recovery fields through the v1 contrac
   );
   assert.throws(
     () =>
-      admit([{ id: "wall", atMs: 1, kind: "wall-clock-set", wallMillis: 5 }]),
+      admit([{ id: "wall", atMs: 1, kind: "wall-clock-set", wallMillis: 5 }], {
+        format: "timeline-simulation/v1",
+      }),
     /\.kind: supported values/,
   );
   const { document } = fixture();

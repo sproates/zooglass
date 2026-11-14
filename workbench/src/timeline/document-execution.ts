@@ -98,7 +98,8 @@ export class DocumentExecution {
         async () => {
           if (
             action.kind === "service-start" ||
-            action.kind === "service-stop"
+            action.kind === "service-stop" ||
+            action.kind === "wall-clock-set"
           ) {
             this.runtime.consumeExecutionTurn();
             const cause = this.event(
@@ -106,6 +107,9 @@ export class DocumentExecution {
               j({
                 actionId: action.id,
                 actionKind: action.kind,
+                ...(action.kind === "wall-clock-set"
+                  ? { wallMillis: integer(action.wallMillis, "wallMillis") }
+                  : {}),
                 ...(action.kind === "service-stop"
                   ? { mode: action.mode }
                   : {}),
@@ -114,6 +118,10 @@ export class DocumentExecution {
             );
             if (action.kind === "service-start")
               await this.runtime.start(cause);
+            else if (action.kind === "wall-clock-set")
+              await this.runtime.setWall(
+                integer(action.wallMillis, "wallMillis"),
+              );
             else {
               await this.runtime.stop(
                 cause,

@@ -38,6 +38,8 @@ export class RuntimeGenerations {
   private generation = 0;
   private nextTurn = 0;
   private timeMs = 0;
+  private wallOffset = 0;
+  private lastResponse?: Pick<Response, "pendingTasks" | "heldFrames">;
   private busy = false;
   private closed = false;
   private cleanup?: Promise<void>;
@@ -178,6 +180,10 @@ export class RuntimeGenerations {
     if (response.turnId !== this.nextTurn)
       throw new Error("Global runtime turn mismatch");
     this.nextTurn++;
+    this.lastResponse = {
+      pendingTasks: response.pendingTasks,
+      heldFrames: response.heldFrames,
+    };
     return response;
   }
 
@@ -243,6 +249,7 @@ export class RuntimeGenerations {
         op: "initialize-document",
         wire: this.options.configuration,
         epochMillis: this.options.epochMillis,
+        ...(this.wallOffset !== 0 ? { wallOffsetMillis: this.wallOffset } : {}),
         ...(this.options.database ? { database: this.options.database } : {}),
         ...(this.options.observationTargets !== undefined
           ? { observationTargets: this.options.observationTargets }
@@ -268,10 +275,45 @@ export class RuntimeGenerations {
         "initialize-document",
         "inspect-configuration",
         "shutdown",
+        "wall-clock-set",
       ].includes(String(command.op))
     )
       throw new Error("Command belongs to runtime lifecycle ownership");
     return this.perform(timeMs, () => this.send(bridge, timeMs, command));
+  }
+
+  async setWall(
+    timeMs: number,
+    wallMillis: number,
+  ): Promise<Response | undefined> {
+    this.admit(timeMs);
+    if (this.generation === 0)
+      throw new Error("Wall adjustment requires initialized lifecycle");
+    const offset = wallMillis - (this.options.epochMillis + timeMs);
+    if (
+      !Number.isSafeInteger(wallMillis) ||
+      wallMillis < 0 ||
+      !Number.isSafeInteger(offset)
+    )
+      throw new Error("Invalid wall clock adjustment");
+    return this.perform(timeMs, async () => {
+      const previous = this.lastResponse;
+      const response = this.bridge
+        ? await this.send(this.bridge, timeMs, {
+            op: "wall-clock-set",
+            wallMillis,
+          })
+        : undefined;
+      if (
+        response &&
+        (response.effects.length ||
+          response.pendingTasks !== previous?.pendingTasks ||
+          response.heldFrames !== previous?.heldFrames)
+      )
+        throw new Error("Wall adjustment changed runtime work");
+      this.wallOffset = offset;
+      return response;
+    });
   }
 
   async stop(

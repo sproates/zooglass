@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { boundedFile, decode } from "./admission.js";
-import { parseTimelineDocument } from "./contract.js";
+import { parseTimelineDocument, type TimelineDocument } from "./contract.js";
+import { isRuntimeAction } from "./event-schema.js";
 import {
   documentEvidenceVersions,
   evidenceV1,
@@ -69,35 +70,7 @@ export function parseReplay(raw: string) {
     throw new Error("invalid-replay: run/trace version mismatch");
   if (trace.canonical !== saved.trace)
     throw new Error("invalid-replay: noncanonical trace");
-  if (versions.protocol === 2) {
-    const declared = list(scenario.document.assertions, "assertions")
-      .map((value) => object(value, "assertion"))
-      .filter((assertion) => assertion.kind === "runtime-snapshot")
-      .map((assertion) => ({
-        assertion,
-        atMs: integer(assertion.atMs, "assertion.atMs"),
-      }))
-      .sort((a, b) => a.atMs - b.atMs);
-    if (
-      trace.outcome === "passed" &&
-      trace.runtimeAssertions.length !== declared.length
-    )
-      throw new Error("invalid-replay: missing runtime snapshot assertions");
-    for (const [index, { atMs, data }] of trace.runtimeAssertions.entries()) {
-      const expected = declared[index];
-      if (
-        !expected ||
-        atMs !== expected.atMs ||
-        data.assertionId !== expected.assertion.id ||
-        data.viewId !== expected.assertion.viewId ||
-        data.entityId !== expected.assertion.entityId ||
-        encodeJson(data.expected) !== encodeJson(expected.assertion.expected)
-      )
-        throw new Error(
-          "invalid-replay: runtime snapshot assertion differs from scenario",
-        );
-    }
-  }
+  if (versions.protocol === 2) checkRuntimeDeclarations(scenario, trace);
   if (
     trace.header.scenarioSha256 !== sha(scenario.canonical) ||
     trace.header.untilMs !== integer(scenario.document.untilMs, "untilMs") ||
@@ -132,6 +105,67 @@ export function parseReplay(raw: string) {
     lines: trace.lines,
     outcome,
   };
+}
+
+function checkRuntimeDeclarations(
+  scenario: TimelineDocument,
+  trace: ReturnType<typeof parseTrace>,
+) {
+  const actions = list(scenario.document.actions, "actions");
+  const runtimeActions = scenario.admittedActions.filter((action) =>
+    isRuntimeAction(action.kind),
+  );
+  if (
+    trace.outcome === "passed" &&
+    trace.runtimeActions.length !== runtimeActions.length
+  )
+    throw new Error("invalid-replay: missing runtime actions");
+  for (const [index, { atMs, data }] of trace.runtimeActions.entries()) {
+    const admitted = runtimeActions[index];
+    if (
+      !admitted ||
+      admitted.id !== data.actionId ||
+      admitted.kind !== data.actionKind ||
+      admitted.atMs !== atMs
+    )
+      throw new Error("invalid-replay: runtime action differs from scenario");
+    const declaredAction = object(actions[admitted.declaration], "action");
+    if (
+      data.mode !== declaredAction.mode ||
+      (data.wallMillis !== undefined &&
+        integer(data.wallMillis, "wallMillis") !==
+          integer(declaredAction.wallMillis, "wallMillis"))
+    )
+      throw new Error("invalid-replay: runtime action differs from scenario");
+  }
+
+  const declared = list(scenario.document.assertions, "assertions")
+    .map((value) => object(value, "assertion"))
+    .filter((assertion) => assertion.kind === "runtime-snapshot")
+    .map((assertion) => ({
+      assertion,
+      atMs: integer(assertion.atMs, "assertion.atMs"),
+    }))
+    .sort((a, b) => a.atMs - b.atMs);
+  if (
+    trace.outcome === "passed" &&
+    trace.runtimeAssertions.length !== declared.length
+  )
+    throw new Error("invalid-replay: missing runtime snapshot assertions");
+  for (const [index, { atMs, data }] of trace.runtimeAssertions.entries()) {
+    const expected = declared[index];
+    if (
+      !expected ||
+      atMs !== expected.atMs ||
+      data.assertionId !== expected.assertion.id ||
+      data.viewId !== expected.assertion.viewId ||
+      data.entityId !== expected.assertion.entityId ||
+      encodeJson(data.expected) !== encodeJson(expected.assertion.expected)
+    )
+      throw new Error(
+        "invalid-replay: runtime snapshot assertion differs from scenario",
+      );
+  }
 }
 
 export type Divergence = {

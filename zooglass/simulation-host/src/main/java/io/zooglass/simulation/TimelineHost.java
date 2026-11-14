@@ -101,7 +101,8 @@ public final class TimelineHost {
                     throw new IllegalArgumentException("Installed observations require an initialized v2 document");
                 snapshots = installed(observationTargets(command.get("observationTargets"), documentConfiguration));
             }
-            case "observe" -> {} // No snapshot read: observations cannot repair a missing alarm.
+            // Neither operation invokes the runtime. HostTurns owns wall-clock changes.
+            case "observe", "wall-clock-set" -> {}
             case "shutdown" -> shutdown();
             default -> throw new IllegalArgumentException("Unsupported POC operation");
         }

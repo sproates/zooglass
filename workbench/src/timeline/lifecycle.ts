@@ -1,7 +1,7 @@
 import {
-  isServiceAction,
+  isRuntimeAction,
   type ActorActionKind,
-  type ServiceActionKind,
+  type RuntimeActionKind,
 } from "./event-schema.js";
 import type { Json } from "./json.js";
 import type { RetryPolicy } from "./retry-policy.js";
@@ -20,7 +20,7 @@ export type AdmittedAction = {
       connectionGeneration?: number;
     }
   | {
-      kind: ServiceActionKind;
+      kind: RuntimeActionKind;
       actor?: never;
       runtimeGeneration?: never;
       connectionGeneration?: never;
@@ -61,11 +61,11 @@ export function admitLifecycle(
       const path = `$.actions[${declaration}]`;
       const action = object(value, path);
       const kind = text(action.kind, `${path}.kind`) as
-        ActorActionKind | ServiceActionKind;
+        ActorActionKind | RuntimeActionKind;
       const phase: 0 | 2 =
         ["connect", "disconnect", "writer-stall", "writer-release"].includes(
           kind,
-        ) || isServiceAction(kind)
+        ) || isRuntimeAction(kind)
           ? 0
           : 2;
       return {
@@ -91,12 +91,12 @@ export function admitLifecycle(
       phase,
       declaration,
     };
-    if (isServiceAction(kind)) {
+    if (isRuntimeAction(kind)) {
       if (kind === "service-stop") {
         if (!running) invalid(path, "service-stop requires a running service");
         running = false;
         for (const state of states.values()) disconnect(state);
-      } else {
+      } else if (kind === "service-start") {
         if (running) invalid(path, "service-start requires a stopped service");
         if (++generations > 16) invalid(path, "at most 16 runtime generations");
         running = true;

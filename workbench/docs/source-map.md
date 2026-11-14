@@ -755,3 +755,17 @@ flowchart LR
 
 Database files are local diagnostic state; only logical observations enter traces.
 A portable bundle cannot select or carry a previous writable store.
+
+
+## Wall-clock ownership
+
+```mermaid
+flowchart LR
+  execution["timeline/document-execution.ts"] -->|declared phase-zero setting| turns["timeline/runtime-turns.ts"]
+  turns -->|live or stopped clock update| owner["timeline/runtime-generations.ts"]
+  owner -->|acknowledged clock-only command| bridge["timeline/bridge.ts"]
+  replay["timeline/replay-document.ts"] -->|bind authored clock and lifecycle order| trace["timeline/trace-generations.ts"]
+```
+
+The generation owner retains wall offset through downtime. Global agenda and
+monotonic age are unchanged; production owns persisted rollback uncertainty.

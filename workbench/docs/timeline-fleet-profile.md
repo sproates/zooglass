@@ -71,8 +71,9 @@ client frames. Focused checks exercise one input affecting both views, declarati
 permutations and two clients; they do not establish arbitrary production thread
 or socket ordering.
 
-The next slice authors the complete fleet scenario and independent expectations
-for late input, history insertion, duplicates, conflicts and entity isolation.
+The [fleet timeline scenario](timeline-fleet-scenario.md) supplies the complete
+fixture and independent expectations for late input, history insertion, duplicates,
+conflicts and entity isolation.
 Repeated fleet runs, a wrong-strategy control, strict replay and ordinary-service
 parity follow before the fleet qualification claim is made.
 

@@ -80,3 +80,7 @@ records outgoing commands to verify selection creates no subscriptions.
 The [fleet acceptance record](../../docs/verification/2026-10-27-fleet-state.md)
 collects the evidence, including keyboard playback, enlarged-text layout and
 catch-up after the sources advance while the browser is disconnected.
+
+The separate [fleet timeline scenario](timeline-fleet-scenario.md) adapts these
+publication and observation intents to controlled execution with a bounded
+configuration. It does not replace the socket/HTTP evidence described here.

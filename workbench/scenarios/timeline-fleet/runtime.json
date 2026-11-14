@@ -1,0 +1,49 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "epoch": "run"
+    },
+    {
+      "id": "operations-feed",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "fleet-state",
+      "fields": {
+        "position": {
+          "sourceId": "vehicle-feed",
+          "type": "vehicle.location.updated",
+          "mode": "latestBySequence"
+        },
+        "operation": {
+          "sourceId": "operations-feed",
+          "type": "vehicle.operation.updated",
+          "mode": "latestBySequence"
+        }
+      }
+    },
+    {
+      "id": "received-journey",
+      "fields": {
+        "positions": {
+          "sourceId": "vehicle-feed",
+          "type": "vehicle.location.updated",
+          "mode": "historyBySequence"
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "slowClient": "disconnectOnOverflow",
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 65536
+  }
+}

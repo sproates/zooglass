@@ -7,7 +7,8 @@ fleet's latest-position and ordered-history behaviour.
 
 This assessment defines a bounded memory-backed sequence extension. The
 [host/admission foundation](timeline-fleet-profile.md) now implements that profile;
-the full fleet adaptation and qualification remain outstanding. This does not
+the [fleet adaptation and oracles](timeline-fleet-scenario.md) are now implemented,
+while repeated execution and real-service parity remain outstanding. This does not
 convert the legacy format or change the browser demo.
 
 ## What must survive adaptation

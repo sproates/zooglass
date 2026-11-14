@@ -89,6 +89,8 @@ class OrderTimelineHostTests {
             fixture.advance(14999);
             assertThat(fixture.snapshot("order-summary", "order-1").at("/status/fields/delivery/freshness").asString()).isEqualTo("fresh");
             fixture.advance(15000);
+            assertThat(fixture.snapshot("order-summary", "order-1").at("/status/fields/delivery/freshness").asString())
+                    .isEqualTo("stale");
             fixture.publish(15000, "courier-backup", "tracking-1", "delivery.state", 21);
             var selected = fixture.snapshot("order-summary", "order-1");
             assertThat(selected.at("/status/fields/delivery/freshness").asString()).isEqualTo("stale");

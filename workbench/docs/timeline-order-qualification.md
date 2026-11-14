@@ -92,3 +92,32 @@ runtime controls, real-service parity, strict replay and one independent raw-evi
 audit. Raw artifacts are retained outside Git; release asset hashes belong in the
 [evidence manifest](../evidence/README.md). Native environment identity and measured
 counts are recorded with the results; no cross-platform equality is inferred.
+
+## Recorded results
+
+The clean campaign at `e577289` passed all 15 fresh executions on macOS arm64.
+Across five groups it checked 855 authored assertions and 13,461 trace records,
+with exact per-group trace equality. The ten perturbed executions recorded
+2,884 Node command pauses and 38 JVM pauses. No seed dimension was added.
+
+Both actual incorrect-runtime controls failed the intended assertions, identically
+with and without pauses; the isolated normal runtime passed. The ordinary service
+comparison passed 18 barriers and four spontaneous expiry observations. All 204
+production classes matched byte-for-byte between the service, simulation runtime
+and isolated normal control runtime.
+
+Strict replay verified all five baseline traces (1,908, 649, 649, 865 and 416 records)
+and a fresh 1,908-record portable bundle. Focused shared/service/control regressions,
+Order campaign checks, type checking, lint and formatting passed.
+
+The preliminary smoke exposed two checker metadata errors: recovery command
+counts included a request cancelled before host ingress, and the ordinary case
+omitted its first alarm-dispatch pause at 24,010 ms. Corrected checks and focused
+regressions passed before the clean campaign. Scenario expectations and runtime
+semantics were unchanged.
+
+Independent raw-evidence audit passed, including exact identities, complete
+assertions, pause evidence, mutation deltas, service observations and replay.
+The [retained archive](../evidence/README.md) includes the audit script/report and
+all qualification runs. Prepared executable artifacts and diagnostic SQLite
+stores remain outside the archive; hashes do not make it a runnable environment.

@@ -20,7 +20,7 @@ network timing.
 | Bounded faults, retries and exact replay            | [Receipt loss](timeline-faults.md), [retries](timeline-retries.md), [FIFO links](timeline-links.md), [replay](timeline-replay.md), [portable evidence](timeline-artifacts.md) | CLI completion and final aggregate checks; fault boundary below is frozen.                                                                               |
 | Memory and SQLite lifecycle                         | [Memory qualification](timeline-memory-qualification.md), [SQLite qualification](timeline-sqlite-qualification.md), [wall-clock behaviour](timeline-wall-clock.md)            | Preserve generation ownership and explicit profile restrictions. No arbitrary mid-commit crashes.                                                        |
 | Fleet representative behaviour                      | [Fleet qualification and parity](timeline-fleet-qualification.md)                                                                                                             | Included in final regression acceptance.                                                                                                                 |
-| Order representative behaviour                      | [Ordinary scenario](timeline-order-scenario.md), [recovery](timeline-order-recovery.md), [retention](timeline-order-retention.md)                                             | Finite repeatability campaign, targeted wrong-policy/clock controls, scoped real-service parity and retained evidence audit.                             |
+| Order representative behaviour                      | [Ordinary scenario](timeline-order-scenario.md), [recovery](timeline-order-recovery.md), [retention](timeline-order-retention.md)                                             | [Qualification](timeline-order-qualification.md) complete; preserve it in final regression acceptance.                                                   |
 | Sports representative behaviour                     | [Assessed scope](timeline-order-sports-assessment.md); implementation outstanding                                                                                             | Explicit fact/retirement profile, complete acknowledgements, authored ordinary/retention cases, wrong-revision control, repeatability and scoped parity. |
 | Usable command-line product                         | Run, inspect, replay and bundles already exist                                                                                                                                | Compare command, strict-default replay with explicit verification-only mode, integrated capability/environment matrix and fresh-setup guide.             |
 | Final accepted guarantee                            | Prior bounded evidence remains valid within its recorded limits                                                                                                               | Freeze a candidate; complete-diff checks, combined evidence audit and clean-checkout setup; publish the exact supported guarantee after acceptance.      |
@@ -41,8 +41,8 @@ No implied lossy WebSocket transport or graceful-close guarantee is introduced.
 
 ## Remaining delivery sequence
 
-1. **Freeze this contract.** Record evidence, remaining work and approved deferrals.
-2. **Qualify Order.** Declare the finite matrix before running it; audit and retain
+1. **Freeze this contract — complete.** Record evidence, remaining work and approved deferrals.
+2. **Qualify Order — complete.** Declare the finite matrix before running it; audit and retain
    results once. No further Order capability expansion.
 3. **Implement bounded Sports support.** Reuse real strategies and existing
    transport/ownership boundaries. No generic endpoint framework or inferred

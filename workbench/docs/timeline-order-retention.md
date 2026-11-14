@@ -98,6 +98,7 @@ retained required contributions. These fixtures have different purposes.
 
 This case crosses the numeric sequence window using sparse inputs. It does not
 fill 128 receipt entries, reproduce the ordinary demo's 50-cycle run or establish a
-memory/storage growth bound. Repeated fresh-process qualification, deliberate
-wrong-runtime controls and ordinary-service parity remain separate work. Tests
-and replay consume an already prepared host and never build Java.
+memory/storage growth bound. [Order qualification](timeline-order-qualification.md)
+records repeated fresh-process execution, deliberate wrong-runtime controls and
+scoped ordinary-service parity separately. Tests and replay consume an already
+prepared host and never build Java.

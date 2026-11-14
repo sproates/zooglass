@@ -10,7 +10,9 @@ and progress endpoint. [Document controls and replay](timeline-order-controls.md
 now expose that foundation. The [ordinary Order scenario](timeline-order-scenario.md)
 retains two complete cycles. Separate [recovery](timeline-order-recovery.md) and
 [retention](timeline-order-retention.md) fixtures cover restart and identity-window
-boundaries; full Order qualification remains outstanding.
+boundaries. [Order qualification](timeline-order-qualification.md) now records
+the finite campaign, runtime controls, strict replay and scoped service parity.
+Bounded Sports support and qualification remain outstanding.
 
 ## Baseline and observed admission
 

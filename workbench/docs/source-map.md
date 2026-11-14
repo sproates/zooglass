@@ -1,8 +1,9 @@
 # Workbench source map
 
-The proposed [deterministic timeline design](../../docs/design/deterministic-timeline.md)
-contains a separate planned component diagram. Its scheduler and controlled runtime
-adapters do not exist yet; the map below describes the current implementation.
+The accepted [deterministic timeline design](../../docs/design/deterministic-timeline.md)
+contains the wider planned component diagram. The implemented
+[bounded timeline](timeline-guide.md) runs through explicit commands alongside
+the existing live demos.
 
 This is a reading guide to the current TypeScript modules. Start with the command
 being run, then follow its dependencies to the code that does the work.
@@ -612,3 +613,612 @@ adds a score-only first-fact view through the same startup configuration. It use
 `test/browser/sports-acceptance.test.ts` verifies all nine first returning/late baselines
 after three completed cycles with no subsequent source publication. See the
 [acceptance record](../../docs/verification/2026-11-13-sports-acceptance.md).
+
+## Timeline artifact preparation
+
+```mermaid
+flowchart LR
+  prepare["scripts/prepare-timeline.js"] -->|explicit install| core["Production service and runtime classifier"]
+  prepare -->|explicit package| host["Separate simulation host JAR"]
+  prepare -->|verify outputs| check["scripts/check-timeline-artifacts.js"]
+  check -->|exclude simulation classes| core
+  check -->|check entry point and embedded runtime hash| host
+  bridge["timeline/bridge.ts"] -->|validate before Java launch| guard["timeline/host-artifact.ts"]
+  guard -->|bounded manifest decoding| zip["yauzl dependency"]
+```
+
+Preparation is the only path here that invokes Maven. The artifact checker verifies
+production isolation and that the host embeds the freshly prepared runtime
+classifier. At execution time, `host-artifact.ts` validates the bounded ZIP directory,
+inflates only the manifest and requires the fixed host entry point before the
+bridge launches Java.
+It does not certify arbitrary JAR contents; executable hashes and replay admission
+remain separate identity checks. Tests and scenario execution never prepare a JAR.
+
+## Fixed-fixture timeline proof
+
+```mermaid
+flowchart LR
+  cli["timeline/run.ts"] -->|run literal fixture| proof["timeline/proof.ts"]
+  proof -->|execute and verify replay turns| execution["timeline/execution.ts"]
+  proof -->|literal expected outputs| oracle["timeline/oracle.ts"]
+  proof -->|keyed receipt-loss choice| random["timeline/random.ts"]
+  proof -->|module identity| manifest["timeline/manifest.ts"]
+  execution -->|ordered turns| agenda["timeline/agenda.ts"]
+  execution -->|framed commands| bridge["timeline/bridge.ts"]
+  bridge -->|prepared JAR only| host["simulation-host: TimelineHost.java"]
+  repeat["scripts/timeline-repeat.ts"] -->|fresh Node and JVM pairs| cli
+```
+
+Wire payloads remain exact strings across Node. Java canonicalises object keys and
+exact decimal values; the transcript retains ordered effects before comparison.
+The fixture oracle compares complete client frames, receipts and state transitions
+against hand-authored expectations, with exact wire checks for lossless payload
+numbers. Replay compares each fresh turn before processing its effects and stops
+at the first difference. No Java build is invoked by proof execution or tests.
+
+## Experimental timeline contracts
+
+```mermaid
+flowchart LR
+  inspect["timeline/inspect.ts"] -->|validate document only| contract["timeline/contract.ts"]
+  inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
+  inspect -->|bounded UTF-8 reads; optional artifact validation| admission["timeline/admission.ts"]
+  admission -->|configuration hash and full production parser| bridge["timeline/bridge.ts"]
+  inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
+  inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
+```
+
+Document and trace admission share lossless values and explicit structural checks:
+
+```mermaid
+flowchart TB
+  contract["timeline/contract.ts"] -->|lifecycle admission| lifecycle["timeline/lifecycle.ts"]
+  contract -->|lossless JSON| json["timeline/json.ts"]
+  trace["timeline/trace-contract.ts"] -->|event data| event["timeline/event-schema.ts"]
+  event -->|runtime envelopes| envelopes["timeline/envelopes.ts"]
+  contract -->|observations| envelopes
+  contract -->|action fields| event
+  trace -->|lossless JSON| json
+  contract -->|field checks| validation["timeline/validation.ts"]
+  trace -->|causal checks| validation
+```
+
+All inspection modes use bounded reads and reject malformed UTF-8. Ordinary
+inspection does not invoke Java. Explicit admission inspection invokes
+the prepared artifact solely for configuration validation, without runtime actions.
+A valid document or configuration is not an executable-capability claim. See [contracts and compatibility](timeline-format.md).
+
+## Explicit sequence profile identity
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|profile names and format defaults| versions["timeline/evidence-versions.ts"]
+  trace["timeline/trace-contract.ts"] -->|allowed format/profile pair| versions
+  replay["timeline/replay-document.ts"] -->|saved scenario profile| contract
+  replay -->|matching trace execution identity| trace
+```
+
+The v2 sequence profile is explicit; old documents retain their default identity.
+Admission checks the host capability and configuration before initialization.
+See [the bounded sequence profile](timeline-fleet-profile.md).
+
+## Bounded document execution
+
+```mermaid
+flowchart TB
+  cli["timeline/document-cli.ts"] --> run["timeline/run-document.ts"]
+  run --> admission["timeline/admission.ts"]
+  run --> profile["timeline/document-profile.ts"]
+  run --> execution["timeline/document-execution.ts"]
+  execution -->|declared actions and assertions| agenda["timeline/agenda.ts"]
+  execution -->|connections and publication attempts| actors["timeline/document-actors.ts"]
+  actors -->|external deadlines| retries["timeline/retry-controller.ts"]
+  retries -->|source-owned timers| agenda
+  actors -->|runtime operations| turns
+  actors -->|input delivery| transport
+  execution -->|commands and shared execution budget| turns["timeline/runtime-turns.ts"]
+  execution -->|sessions and cumulative observations| transport["timeline/document-transport.ts"]
+  turns -->|positive runtime task ownership| agenda
+  turns -->|v1 framed commands| bridge["timeline/bridge.ts"]
+  turns -->|v2 runtime replacement| generations["timeline/runtime-generations.ts"]
+  generations -->|fresh processes| bridge
+  transport -->|delayed messages and closure| links["timeline/delayed-links.ts"]
+  execution --> trace["timeline/semantic-trace.ts"]
+  turns --> trace
+  transport --> trace
+  run --> validation["timeline/trace-contract.ts"]
+  run -->|matching evidence versions| versions["timeline/evidence-versions.ts"]
+  validation -->|v2 generation and connection ownership| traceGenerations["timeline/trace-generations.ts"]
+  bridge -->|validate entry point before launch| artifact["timeline/host-artifact.ts"]
+  bridge -->|typed frame metadata; opaque wire payloads| protocol["timeline/host-protocol.ts"]
+  bridge --> host["simulation-host: HostProtocol.java / TimelineHost.java"]
+```
+
+`DocumentExecution` preloads declared actions, handles runtime stop/start and
+checks scenario assertions. `DocumentActors` owns connections, publication attempts
+and external retry orchestration. `RuntimeTurns` owns bridge
+responses, positive runtime task IDs and the shared execution-turn budget; transport
+callbacks and assertions consume that same budget. `DocumentTransport` owns
+session-bound effects, writer handoffs, receipt-loss decisions, delayed traffic and
+cumulative delivered observations. The modules exchange explicit commands and
+effect callbacks; they do not reconstruct runtime output from expected assertions.
+
+The v2 memory generation owner retains command identity and budget while
+replacing the JVM:
+
+```mermaid
+flowchart LR
+  generations["timeline/runtime-generations.ts"] -->|fresh process and verified stop| bridge["timeline/bridge.ts"]
+  bridge -->|explicit protocol 2 admission| protocol["timeline/host-protocol.ts"]
+```
+
+The bridge decodes UTF-8 strictly and admits handshake/response metadata through
+`host-protocol.ts`. Discriminated effect types tell each consumer which fields are
+present; task ownership and causal-time checks remain with the execution owner.
+Domain envelopes stay exact wire strings until the lossless domain parser reads them.
+
+Trace records are appended as effects occur. Scheduling and handoff causes retain
+their own event identities, and assertions wait for real scheduled work to settle.
+The prepared host JAR is separate from the production service. See
+[execution and limits](timeline-execution.md).
+
+## Document verification replay
+
+```mermaid
+flowchart LR
+  cli["timeline/replay-cli.ts"] --> replay["timeline/replay-document.ts"]
+  replay -->|validate saved inputs and complete trace| contract["timeline/trace-contract.ts"]
+  replay -->|retained inputs, fresh JVM| run["timeline/run-document.ts"]
+  run --> environment["timeline/replay-environment.ts"]
+  run --> trace["timeline/semantic-trace.ts"]
+  trace -->|compare each freshly emitted record| replay
+```
+
+Saved output is comparison evidence only. Identity/environment admission precedes
+runtime initialization; trace comparison stops at the first mismatch. See
+[verification replay](timeline-replay.md) for result meanings and artifact bounds.
+
+## Receipt-loss rules
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|validate rule targets and probabilities| faults["timeline/receipt-faults.ts"]
+  transport["timeline/document-transport.ts"] -->|derive keyed receipt-loss draws| faults
+  transport -->|append decisions, closes and dropped receipts| trace["timeline/semantic-trace.ts"]
+  validation["timeline/trace-contract.ts"] -->|validate draw and disconnect records| schema["timeline/event-schema.ts"]
+```
+
+`timeline/receipt-faults.ts` validates explicit rules and derives versioned integer
+draws. `contract.ts` admits references; `document-transport.ts` invokes draws only
+for actual runtime receipts, records decisions and schedules a real host disconnect
+in the next causal round. Connection generations invalidate queued receipts and
+later sends; declared reconnect actions establish fresh sessions.
+`event-schema.ts` validates the draw record and sample/probability consistency.
+The Java runtime does not implement these link faults. See [receipt loss](timeline-faults.md).
+
+## Automatic receipt deadlines and retries
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit actor ownership and policy bounds| policy["timeline/retry-policy.ts"]
+  profile["timeline/document-profile.ts"] -->|reserve worst-case connection generations| policy
+  execution["timeline/document-execution.ts"] -->|arm deadlines| retries["timeline/retry-controller.ts"]
+  transport["timeline/document-transport.ts"] -->|actual delivered receipt via callback| retries
+  retries -->|schedule and cancel virtual timers| agenda["timeline/agenda.ts"]
+  retries -->|request fresh connection and identical ingress| execution
+  execution -->|emit lifecycle and attempt records| trace["timeline/semantic-trace.ts"]
+  retries -->|emit timer and status records via callback| trace
+```
+
+The controller decides when a retry is needed; the executor owns real connection
+commands and retained publication bytes. Runtime receipts remain the sole transport
+acknowledgement. See [bounded retry actors](timeline-retries.md).
+
+## Delayed connection delivery
+
+```mermaid
+flowchart LR
+  transport["timeline/document-transport.ts"] -->|queue exact requests and return envelopes| links["timeline/delayed-links.ts"]
+  transport -->|invalidate old-generation packets on actual close| links
+  links -->|allocate IDs, schedule arrivals, cancel closed packets| agenda["timeline/agenda.ts"]
+  retries["timeline/retry-controller.ts"] -->|allocate distinct timer IDs| agenda
+  links -->|emit sends, arrivals and causal drops through transport| transport
+  schema["timeline/event-schema.ts"] -->|validate request and return envelopes| envelopes["timeline/envelopes.ts"]
+```
+
+Positive latency is transport transit after source send or completed writer handoff.
+It does not replace the runtime's bounded writer or implement backpressure. See
+[link ordering and interruption](timeline-links.md).
+
+## Document repeatability evidence
+
+```mermaid
+flowchart LR
+  campaign["scripts/document-repeat.ts"] -->|write independently specified seeded inputs| inputs["scripts/document-campaign-inputs.ts"]
+  campaign -->|launch fresh Node process| child["scripts/document-campaign-child.ts"]
+  child -->|execute prepared JVM with host-only perturbations| run["timeline/run-document.ts"]
+  campaign -->|check literal vectors, trace equality and pause coverage| checks["timeline/campaign-checks.ts"]
+  campaign -->|retain full runs, hashes and matrix| evidence["campaign output directory"]
+```
+
+See [document campaigns](timeline-campaign.md). Host timing diagnostics are separate
+from semantic output and must not be used to choose runtime behaviour.
+
+## Clock-leak detection control
+
+```mermaid
+flowchart LR
+  prep["scripts/prepare-clock-leak.py"] -->|copy, mutate and explicitly build| mutant["isolated FreshnessRuntime mutant JAR"]
+  check["scripts/clock-leak-check.ts"] -->|prepared normal and mutant artifacts| run["src/timeline/run-document.ts"]
+  run -->|framed commands and measured Node pauses| bridge["src/timeline/bridge.ts"]
+  check -->|normal trace and failing mutant qualification| checks["src/timeline/campaign-checks.ts"]
+  check -->|full runs, outcomes and hashes| evidence["local clock-leak evidence"]
+```
+
+The preparation command is separate from the check. The mutant remains outside
+the normal source tree and JAR; it deliberately lets host elapsed time affect
+freshness expiry.
+
+## Portable run bundles
+
+```mermaid
+flowchart LR
+  cli["timeline/bundle-cli.ts"] -->|record or replay command| bundle["timeline/artifact-bundle.ts"]
+  bundle -->|read exact admitted inputs| admission["timeline/admission.ts"]
+  bundle -->|execute and append live records| execute["timeline/run-document.ts"]
+  bundle -->|write result then completeness manifest| files["new evidence directory"]
+  files -->|bounded files, hashes and consistency checks| bundle
+  bundle -->|validated retained envelope| replay["timeline/replay-document.ts"]
+  replay -->|fresh execution and record comparison| execute
+```
+
+The bundle loader checks completeness before the shared replay executor starts
+Java. It passes the already parsed, validated in-memory envelope, avoiding a
+second path read or decode after file-hash validation. Trace admission retains
+canonical lines and parsed header/result metadata for replay. Failure-marker and
+cleanup errors cannot replace the original recording failure.
+
+## Environment qualification and evidence retention
+
+```mermaid
+flowchart TB
+  image["scripts/linux-timeline.Dockerfile"] -->|separate checkout; explicit JAR preparation| linux["Linux Node/JVM environment"]
+  linux -->|execute unchanged campaign| campaign["scripts/document-repeat.ts"]
+  campaign -->|full runs, identities and hashes| raw["raw qualification directory"]
+  raw -->|exact bytes and bounded inventory| archive["scripts/evidence-archive.py"]
+  archive -->|pack or verify without extracting| retained["GitHub Release archive assets"]
+  retained -->|downloaded bytes checked against| hashes["evidence/README.md and SHA256SUMS"]
+```
+
+The archive command operates on saved evidence only. It neither executes scenarios
+nor rebuilds artifacts. Linux qualification has its own baselines and manifest.
+
+## Restart qualification
+
+```mermaid
+flowchart TB
+  campaign["scripts/lifecycle-repeat.ts"] -->|authored variants and expected outcomes| inputs["scripts/lifecycle-campaign-inputs.ts"]
+  campaign -->|shared process and evidence ownership| runner["scripts/restart-campaign.ts"]
+  sqlite["scripts/sqlite-repeat.ts"] -->|shared process and evidence ownership| runner
+  sqlite -->|literal recovery expectations| sqlinputs["scripts/sqlite-campaign-inputs.ts"]
+  sqlite -->|recovery, pauses and exact parity| sqlchecks["scripts/sqlite-campaign-checks.ts"]
+  runner -->|fresh Node process per run| child["scripts/document-campaign-child.ts"]
+  child -->|fresh runtime generations| run["timeline/run-document.ts"]
+  campaign -->|independent semantics, pauses and exact parity| checks["scripts/lifecycle-campaign-checks.ts"]
+  checks -->|load complete evidence| evidence["scripts/restart-campaign-evidence.ts"]
+  sqlchecks -->|load complete evidence| evidence
+  evidence -->|complete versioned evidence admission| replay["timeline/replay-document.ts"]
+```
+
+```mermaid
+flowchart LR
+  control["scripts/generation-clock-check.ts"] -->|normal and wrong-clock executions| run["timeline/run-document.ts"]
+  control -->|validate retained semantic failure| replay["timeline/replay-document.ts"]
+  prepare["scripts/prepare-generation-clock-mutation.py"] -->|copies committed source then changes one clock method| clock["simulation-host: runtime/ControlledReceiptClock.java"]
+```
+
+Campaign checking is outside the runtime executor. Authored expectations decide
+correctness; exact within-group traces independently establish repeatability.
+The control checker consumes separately prepared JARs and verifies the mutation's
+actual artifact contents. Only the explicit preparation script builds Java, in an
+isolated copy. See [memory qualification](timeline-memory-qualification.md),
+[SQLite qualification](timeline-sqlite-qualification.md), and the
+[recovery-clock control](timeline-recovery-clock-control.md).
+
+## SQLite host foundation
+
+```mermaid
+flowchart LR
+  owner["timeline/runtime-generations.ts"] -->|caller-owned database path and copied targets| bridge["timeline/bridge.ts"]
+  bridge -->|native capability and snapshot wire validation| protocol["timeline/host-protocol.ts"]
+  bridge -->|initialize before ordinary commands| host["simulation/TimelineHost.java"]
+  host -->|read installed recovery state| adapter["runtime/TimelineRuntime.java"]
+```
+
+This private boundary does not allocate scenario stores or admit SQLite documents.
+The caller retains database files through replacement and owns cleanup. Paths are
+operational parameters, not semantic trace data.
+
+## SQLite document storage and observations
+
+```mermaid
+flowchart LR
+  run["timeline/run-document.ts"] -->|complete admission before allocation| admission["timeline/admission.ts"]
+  run -->|private store lifetime and retention| store["timeline/run-store.ts"]
+  execution["timeline/document-execution.ts"] -->|read installed state| turns["timeline/runtime-turns.ts"]
+  turns -->|observe-installed request| bridge["timeline/bridge.ts"]
+  replay["timeline/replay-document.ts"] -->|fresh empty execution| run
+```
+
+Database files are local diagnostic state; only logical observations enter traces.
+A portable bundle cannot select or carry a previous writable store.
+
+## Wall-clock ownership
+
+```mermaid
+flowchart LR
+  execution["timeline/document-execution.ts"] -->|declared phase-zero setting| turns["timeline/runtime-turns.ts"]
+  turns -->|live or stopped clock update| owner["timeline/runtime-generations.ts"]
+  owner -->|acknowledged clock-only command| bridge["timeline/bridge.ts"]
+  replay["timeline/replay-document.ts"] -->|validate complete trace| contract["timeline/trace-contract.ts"]
+  contract -->|bind authored clock and lifecycle order| trace["timeline/trace-generations.ts"]
+```
+
+The generation owner retains wall offset through downtime. Global agenda and
+monotonic age are unchanged; production owns persisted rollback uncertainty.
+
+## Authored fleet timeline fixture
+
+```mermaid
+flowchart LR
+  author["scenarios/timeline-fleet/author.ts"] -->|serialize explicit configuration| config["scenarios/timeline-fleet/runtime.json"]
+  author -->|serialize input and literal outcome tables| document["scenarios/timeline-fleet/scenario.json"]
+  test["test/timeline/fleet-scenario.test.ts"] -->|verify generated bytes and intent coverage| author
+  test -->|compare original publication and checkpoint intents| legacy["scenarios/vehicle-fleet-contracts.json"]
+  test -->|execute independent assertions with prepared host| run["timeline/run-document.ts"]
+```
+
+The authoring module imports no runtime code and does not compute reconciliation.
+The generated document runs through the existing executor; application-specific
+expectations do not enter the shared runtime. See [the fleet scenario](timeline-fleet-scenario.md).
+
+## Qualify the fleet scenario
+
+The [fleet qualification guide](timeline-fleet-qualification.md) separates the
+controlled repeatability campaign, wrong-strategy control and ordinary-service
+parity. Each command consumes prepared artifacts; Java preparation is explicit.
+Paths starting with `scripts/`, `scenarios/` or `test/` are relative to `workbench/`.
+
+```mermaid
+flowchart TB
+  campaign["scripts/fleet-repeat.ts<br/>Fleet campaign entry point"]
+  checks["scripts/fleet-campaign-checks.ts<br/>Authored semantics and pause checks"]
+  runner["scripts/restart-campaign.ts<br/>Own fresh processes and evidence"]
+  child["scripts/document-campaign-child.ts<br/>Execute one prepared-host run"]
+  evidence["scripts/restart-campaign-evidence.ts<br/>Read complete runs and compare traces"]
+  author["scenarios/timeline-fleet/author.ts<br/>Independent receipt and frame expectations"]
+  execution["timeline/run-document.ts<br/>Execute the bounded document"]
+  campaign -->|delegate process and evidence ownership| runner
+  campaign -->|supply fleet validation callback| checks
+  runner -->|launch each fresh Node process| child
+  child -->|run with prepared host| execution
+  checks -->|compare literal authored outcomes| author
+  checks -->|load evidence and check trace equality| evidence
+```
+
+The campaign copies the generated scenario and exact runtime configuration into
+its evidence directory. The checker compares complete receipts, frames, assertions
+and traces, and checks measured host pauses separately from virtual time.
+
+```mermaid
+flowchart TB
+  control["scripts/fleet-strategy-check.ts<br/>Normal and wrong-strategy comparison"]
+  helpers["scripts/generation-clock-check.ts<br/>Shared input and JAR inspection helpers"]
+  execution["timeline/run-document.ts<br/>Execute the unchanged fleet document"]
+  prepare["scripts/prepare-fleet-strategy-mutation.py<br/>Explicit isolated artifact preparation"]
+  preparation["scripts/prepare-generation-clock-mutation.py<br/>Shared archive and build helpers"]
+  strategy["zooglass/src/main/java/io/zooglass/<br/>strategy/update/LatestBySequence.java"]
+  control -->|capture exact inputs and inspect nested JARs| helpers
+  control -->|execute normal and perturbed mutant runs| execution
+  prepare -->|reuse isolated preparation helpers| preparation
+  prepare -->|change only sequence replacement in copied source| strategy
+```
+
+The Java path above is repository-relative. Preparation changes a copied source
+file and builds isolated artifacts. The control verifies that preparation's
+provenance and class differences; it never invokes the preparation script.
+
+```mermaid
+flowchart TB
+  parity["scripts/fleet-service-parity.ts<br/>Real WebSocket and HTTP comparison"]
+  author["scenarios/timeline-fleet/author.ts<br/>Independent inputs and outcomes"]
+  session["service/zooglass-session.ts<br/>Own service readiness and cleanup"]
+  config["scenarios/timeline-fleet/runtime.json<br/>Exact bounded configuration bytes"]
+  tests["test/zooglass-session.test.ts<br/>Configuration and lifecycle checks"]
+  parity -->|serialize expected receipts and public snapshots| author
+  parity -->|read and retain exact configuration| config
+  parity -->|start with runtimeConfigurationPath| session
+  tests -->|verify byte preservation and incompatible options| session
+```
+
+The parity command owns its observed sockets and receipt/state barriers. The
+shared service session copies the supplied configuration bytes into its temporary
+directory before launching the prepared service. Explicit configuration cannot be
+combined with generated views, sources or protected-access settings. HTTP and
+per-subscription comparisons preserve complete public snapshot semantics without
+claiming deterministic socket arrival timing or cross-subscription frame order.
+
+## Order controls and evidence
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit explicit Order profile and progress actors| controls["timeline/progress-contract.ts"]
+  admission["timeline/admission.ts"] -->|require sqliteOrder capability| bridge["timeline/bridge.ts"]
+  actors["timeline/document-actors.ts"] -->|send control on its progress session| transport["timeline/document-transport.ts"]
+  transport -->|delay and cancel requests and acknowledgements| links["timeline/delayed-links.ts"]
+  transport -->|dispatch real progress command| turns["timeline/runtime-turns.ts"]
+  turns -->|receive complete control effects| bridge
+  schema["timeline/event-schema.ts"] -->|validate complete watermark envelopes| controls
+  trace["timeline/trace-contract.ts"] -->|validate event shape| schema
+  trace -->|bind controls and replies to their request and session| lineage["timeline/trace-controls.ts"]
+```
+
+The [Order document profile](timeline-order-controls.md) uses the existing actor,
+transport and runtime ownership boundaries. Production ProgressIngress owns the
+watermark outcome. Workbench validates evidence and controls delivery; it does not
+calculate progress state. Profile/capability agreement prevents old hosts or other
+profiles from silently accepting the endpoint. Broader Order qualification remains separate from this transport foundation.
+
+## Authored Order scenario
+
+```mermaid
+flowchart LR
+  author["scenarios/timeline-order/author.ts"] -->|declare inputs and connection actions| inputs["timeline-order/inputs.ts"]
+  author -->|complete receipt and watermark expectations| receipts["timeline-order/receipts.ts"]
+  author -->|named complete snapshots| checks["timeline-order/checkpoints.ts"]
+  author -->|literal ordered client emissions| rows["timeline-order/order-one.ts"]
+  checks -->|reuse explicit order-1 states| rows
+  rows -->|serialize declared contributions and statuses| observations["timeline-order/observations.ts"]
+  author -->|write reproducible runnable document| scenario["timeline-order/scenario.json"]
+  tests["test/timeline/order-scenario.test.ts"] -->|check authored bytes and pinned input identity| author
+  tests -->|evaluate positive and wrong expected outcomes| run["timeline/run-document.ts"]
+  scenario -->|read exact configuration| config["timeline-order/runtime.json"]
+  run -->|execute declared scenario against prepared host| scenario
+```
+
+[The Order fixture](timeline-order-scenario.md) keeps input generation, literal
+outcome records and wire serialization separate. Expected selection, progress and
+freshness are declared in the records; no helper runs reconciliation or consumes
+recorded output. The existing executor and SQLite profile are unchanged. Runtime
+snapshots cover twelve targets while one viewer follows both order-1 views.
+
+## Order lifecycle profile
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit explicit restart profile| admission["timeline/admission.ts"]
+  admission -->|identify Order execution profiles| profiles["timeline/evidence-versions.ts"]
+  run["timeline/run-document.ts"] -->|require lifecycle capability before allocation| bridge["timeline/bridge.ts"]
+  run -->|own fresh JVMs and same database| generations["timeline/runtime-generations.ts"]
+  generations -->|initialize requested profile and virtual time| bridge
+  trace["timeline/trace-contract.ts"] -->|verify stop and connection ownership| controls["timeline/trace-controls.ts"]
+  trace -->|validate generation availability| lineage["timeline/trace-generations.ts"]
+```
+
+[Order recovery](timeline-order-recovery.md) keeps the configuration classifier
+separate from the explicit lifecycle execution profile. Existing generation and
+database ownership are reused; control evidence accounts for abrupt stops without
+requiring a host close callback. No reconciliation moves into Workbench.
+
+```mermaid
+flowchart LR
+  author["scenarios/timeline-order-recovery/author.ts"] -->|fixed publications and restart boundaries| inputs["timeline-order-recovery/inputs.ts"]
+  author -->|literal states and durable receipts| oracle["timeline-order-recovery/oracle.ts"]
+  author -->|serialize three runnable variants| documents["timeline-order-recovery/before.json, at.json, after.json"]
+  tests["test/timeline/order-recovery-scenario.test.ts"] -->|verify generated bytes and installed recovery observations| author
+  tests -->|execute with prepared host| run["timeline/run-document.ts"]
+```
+
+## Authored Order retention boundary
+
+```mermaid
+flowchart LR
+  author["scenarios/timeline-order-retention/author.ts"] -->|declare sparse sequence inputs and restart| inputs["timeline-order-retention/inputs.ts"]
+  author -->|serialize literal receipts, progress and snapshots| oracle["timeline-order-retention/oracle.ts"]
+  author -->|write runnable boundary case| scenario["timeline-order-retention/scenario.json"]
+  tests["test/timeline/order-retention-scenario.test.ts"] -->|check authored bytes and retained identities| author
+  tests -->|verify real runtime with prepared artifact| run["timeline/run-document.ts"]
+```
+
+[Order retention](timeline-order-retention.md) isolates sequence-window semantics
+without widening the profile or implementing retention in Workbench. Sparse inputs
+cross the configured numeric window; they do not claim receipt-count pressure or
+long-running resource qualification.
+
+## Order qualification
+
+```mermaid
+flowchart LR
+  campaign["scripts/order-repeat.ts"] -->|reuse bounded fresh-process scheduling| runner["scripts/restart-campaign.ts"]
+  campaign -->|check literal scenarios and measured perturbations| checks["scripts/order-campaign-checks.ts"]
+  controls["scripts/order-control-check.ts"] -->|verify actual class changes and semantic failures| preparation["scripts/prepare-order-controls.py"]
+  controls -->|reuse artifact and run comparison checks| evidence["scripts/generation-clock-check.ts"]
+  parity["scripts/order-service-parity.ts"] -->|independent projected states| oracle["scripts/order-parity-oracle.ts"]
+  parity -->|observe raw socket frames| socket["scripts/service-parity-socket.ts"]
+  fleet["scripts/fleet-service-parity.ts"] -->|same observation helper| socket
+  parity -->|own service with explicit SQLite path| session["service/zooglass-session.ts"]
+```
+
+[Order qualification](timeline-order-qualification.md) reuses the campaign owner
+with explicit bounded workload settings. Preparation is a separate command;
+execution never builds artifacts. Service parity preserves raw observations and
+compares only declared common semantics, with spontaneous alarm evidence before
+HTTP snapshots. The temporary SQLite path belongs to the parity runner.
+
+## Sports retirement controls
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit bounded Sports roles and actions| versions["timeline/evidence-versions.ts"]
+  contract -->|validate complete observations| observations["timeline/envelopes.ts"]
+  observations -->|validate control acknowledgements| envelope["timeline/control-contract.ts"]
+  actors["timeline/document-actors.ts"] -->|dispatch retirement request| transport["timeline/document-transport.ts"]
+  transport -->|preserve request and acknowledgement links| links["timeline/delayed-links.ts"]
+  transport -->|validate production acknowledgement| envelope
+  trace["timeline/trace-controls.ts"] -->|check request identity and normalized response| envelope
+  replay["timeline/replay-document.ts"] -->|validate retained trace| parser["timeline/trace-contract.ts"]
+  parser -->|check control lineage| trace
+```
+
+[Sports execution](timeline-sports-host.md) reuses connection ownership and delayed
+links. `control-contract.ts` validates the two explicit control envelopes; it does
+not implement progress or fact retirement.
+
+## Sports qualification
+
+```mermaid
+flowchart LR
+  ordinary["scenarios/timeline-sports/author.ts"] -->|serialize explicit versions, facts and observations| states["timeline-sports/states.ts"]
+  ordinary -->|preserve pinned inputs with a fixed source clock| inputs["timeline-sports/inputs.ts"]
+  retention["scenarios/timeline-sports-retention/author.ts"] -->|serialize independent boundary rows| oracle["timeline-sports-retention/oracle.ts"]
+  oracle -->|share wire shape, not reconciliation| wire["timeline-sports/wire.ts"]
+  campaign["scripts/sports-repeat.ts"] -->|fresh-process matrix| runner["scripts/restart-campaign.ts"]
+  campaign -->|complete authored outcomes and measured pauses| checks["scripts/sports-campaign-checks.ts"]
+  controls["scripts/sports-strategy-check.ts"] -->|inspect actual prepared class differences| preparation["scripts/prepare-sports-strategy-mutation.py"]
+  parity["scripts/sports-service-parity.ts"] -->|independent public projections| serviceOracle["scripts/sports-parity-oracle.ts"]
+  parity -->|retain real socket frames| socket["scripts/service-parity-socket.ts"]
+```
+
+The [Sports qualification guide](timeline-sports-qualification.md) separates the
+pinned producer schedule, independent expected values and actual runtime evidence.
+
+## Timeline command-line evidence tools
+
+```mermaid
+flowchart LR
+  comparecli["timeline/compare-cli.ts"] -->|validate and compare saved evidence| compare["timeline/compare.ts"]
+  compare -->|validate run| replay["timeline/replay-document.ts"]
+  compare -->|validate bundle inventory| bundle["timeline/artifact-bundle.ts"]
+  replaycli["timeline/replay-cli.ts"] -->|re-execute and compare| replay
+  bundlecli["timeline/bundle-cli.ts"] -->|record or re-execute bundle| bundle
+  replaycli -->|strict or verification-only exit| policy["timeline/replay-policy.ts"]
+  bundlecli -->|same replay exit policy| policy
+```
+
+## Service configuration ownership
+
+```mermaid
+flowchart LR
+  session["service/zooglass-session.ts"] -->|generate from scenario views and sources| generated["service/runtime-configuration.ts"]
+  session -->|preserve protected startup settings| protected["service/protected-session.ts"]
+  session -.->|accept complete typed configuration| contract["service/runtime-contract.ts"]
+  parity["scripts/fleet-service-parity.ts<br/>scripts/order-service-parity.ts<br/>scripts/sports-service-parity.ts"] -->|use a session with exact file bytes and caller-owned database| session
+```
+
+Typed demo configuration, generated scenario configuration and exact-file parity
+configuration have explicit admission rules. The session copies exact-file bytes
+without reserializing them. Demo-owned temporary SQLite state is cleaned with its
+session; an explicitly supplied database remains caller-owned on close or startup
+failure. Live demos and parity runners share process ownership without sharing
+configuration serialization policy.

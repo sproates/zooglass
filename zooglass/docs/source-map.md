@@ -213,11 +213,22 @@ flowchart LR
   unspecified -.->|implements| policy
   candidate["SelectedContribution.java"] -->|retains| receipt["ReceiptAge.java"]
   runtime["ViewCoordinator.java"] -->|serialises expiry with source commits| timing["FreshnessRuntime.java"]
-  timing -->|indexes selected fields| queue["FreshnessDeadlines.java"]
+  timing -->|indexes selected fields in stable expiry order| queue["FreshnessDeadlines.java"]
+  timing -->|owns deferred wakeups| alarms["AlarmScheduler.java"]
+  production["SystemAlarmScheduler.java"] -.->|production driver| alarms
+  runtime -->|creates driver when freshness is first configured| production
   runtime -->|samples wall and elapsed time| clock["ReceiptClock.java"]
   timing -->|marks retained receipts on a backwards clock step| rollback["ClockRollback.java"]
   timing -->|rebases stored ages| policy
 ```
+
+The coordinator accepts a receipt clock and an alarm-driver factory internally.
+Ordinary service construction uses the system clock and a daemon scheduler; tests
+can dispatch expiry explicitly without snapshot polling. The driver is created
+only when receipt-age freshness is configured, including dynamic view registration,
+and closed with the runtime. Due fields are enumerated by deadline, view, entity
+and field before transitions and notifications. This seam is not yet a complete
+deterministic simulator.
 
 ## Decide when to publish an entity
 
@@ -258,9 +269,22 @@ flowchart LR
   queue -->|key for a waiting update| policy["delivery/SlowClientPolicy"]
   policy -->|keep each update| fifo["delivery/DisconnectOnOverflow"]
   policy -->|replace by generation| latest["delivery/CoalesceLatestState"]
-  writer -->|outside coordinator monitor| socket["Client socket"]
+  writer -->|deferred turns and handoff completion| driver["delivery/DeliveryDriver"]
+  broadcaster -->|close and access-failure effects| driver
+  native["delivery/SocketDeliveryDriver"] -.->|production implementation| driver
+  native -->|outside coordinator monitor| socket["Client socket"]
   http --> dto
 ```
+
+`OutboundWriter` selects one waiting frame per turn and owns it until the driver
+reports completion or failure. Only waiting frames count towards the queue budget;
+coalescing never replaces a frame already handed off. Stopping invalidates queued
+turns and late completions. `SocketDeliveryDriver` runs turns on virtual threads,
+uses the existing protected transport checks, and owns asynchronous session close.
+The internal driver seam also permits explicit test turns and held handoffs without
+blocking the coordinator. Subscription recipients retain admission order before
+writer turns are scheduled; shutdown cancels writers in session registration order.
+This is a delivery seam, not the complete simulator.
 
 The coordinator owns state and installation. Delivery owns subscriptions and
 writers, with no independent projection store. Registration uses
@@ -455,3 +479,136 @@ registration, read `RuntimeConfiguration.java`, `ConfigurationValidation.java`
 and `ViewCoordinator.define`.
 
 Replay and authorisation remain outside the implemented contracts.
+
+## Controlled timeline proof host
+
+The host-side files below live under
+`simulation-host/src/main/java/io/zooglass/`; production files remain under
+`src/main/java/io/zooglass/`. The projects share Java packages and one application
+classloader, while the production artifacts exclude every simulation adapter.
+
+```mermaid
+flowchart TB
+  protocol["simulation/HostProtocol.java"] -->|framing and validated commands| host["simulation/TimelineHost.java"]
+  host -->|runtime composition| runtime["runtime/TimelineRuntime.java"]
+  host -->|receipt-age or explicit sequence qualification| profile["runtime/TimelineProfile.java"]
+  host -->|modelled connections| session["simulation/TimelineSession.java"]
+  host -->|controlled delivery driver| driver["delivery/TimelineDelivery.java"]
+  host -->|real source handler| ingress["core: runtime/EventIngress.java"]
+  host -->|real subscription handler| subscriptions["core: delivery/SnapshotSubscriptions.java"]
+  runtime -->|shared decoder and validation| configuration["core: runtime/RuntimeConfiguration.java"]
+  runtime -->|clock and alarm injection| coordinator["core: runtime/ViewCoordinator.java"]
+  driver -->|same writer and queue| broadcaster["core: delivery/SnapshotBroadcaster.java"]
+```
+
+Boxes prefixed `core:` belong to the production runtime dependency; the others
+belong to the host project. Controlled timing and delivery share one turn owner:
+
+```mermaid
+flowchart LR
+  runtime["runtime/TimelineRuntime.java"] -->|wall and elapsed time| clock["runtime/ControlledReceiptClock.java"]
+  runtime -->|deferred wakeups| alarm["runtime/ControlledAlarmScheduler.java"]
+  clock -->|global turn coordinate| turn["simulation/TurnContext.java"]
+  clock -->|generation-local monotonic and continuous wall time| generation["simulation/RuntimeGeneration.java"]
+  host -->|admits consecutive turn identities| admission["simulation/HostTurns.java"]
+  admission -->|owns immutable clock origin| generation
+  alarm -->|schedules owned alarm tasks| turn
+  driver["delivery/TimelineDelivery.java"] -->|callbacks and writer handoff probe| turn
+  host["simulation/TimelineHost.java"] -->|opens and closes command turn| turn
+  turn -->|host-only pause diagnostics| probe["simulation/HostTimingProbe.java"]
+```
+
+The prepared `simulation-host/target/zooglass-simulation.jar` uses framed
+stdin/stdout. It does not start Spring, bind a network listener or expose controls
+through normal endpoints. Production `target/zooglass.jar` and the ordinary
+`target/zooglass-runtime.jar` contain no host, pause probe or simulation adapters.
+The [host guide](../simulation-host/README.md) explains explicit preparation and
+artifact checks.
+
+The fixed memory/unprotected proofs and the explicitly qualified `memory-arrival-v1`
+document profile are supported. Initial clocks are installed before runtime
+construction; effects and callbacks require the owning thread's active turn.
+Arbitrary configuration, restart and protected access remain outside this POC
+capability boundary; unsupported command fields fail explicitly. The handshake
+identifies the actual JVM environment for bounded replay admission.
+The driver owns deferred lifecycle callbacks; each writer owns and cancels its
+writer/transport callbacks, stall state and held handoff. Stopped writers leave
+the registry. Deferred closure still identifies the original connection even if
+a session name is later reused. Turn ownership and dispatch timing are checked
+before state mutation; malformed UTF-8 is rejected before command dispatch.
+Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
+completion in phase 2; released handoffs complete in a later causal round.
+
+## Installed recovery observations
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|validate targets before opening store| adapter["runtime/TimelineRuntime.java"]
+  adapter -->|controlled clocks and private database| coordinator["runtime/ViewCoordinator.java"]
+  coordinator -->|production recovery and durable receipts| sqlite["runtime/SqliteState.java"]
+  adapter -->|read-only installedSnapshot projection| coordinator
+```
+
+The package-private installed snapshot seam reads state without expiry, clock
+samples or storage writes. Initialization reports it separately from ordinary
+state-change callbacks, so observation cannot repair missing recovery.
+
+## Controlled wall-clock updates
+
+```mermaid
+flowchart LR
+  turns["simulation/HostTurns.java"] -->|validate then change wall offset| generation["simulation/RuntimeGeneration.java"]
+  clock["runtime/ControlledReceiptClock.java"] -->|sample shared admitted offset| generation
+  runtime["runtime/TimelineRuntime.java"] -->|inject into real runtime| clock
+```
+
+Only protocol-2 initialization and explicit wall-clock-set may install an offset.
+Normal turn metadata must match it; the clock-only command does no reconciliation.
+
+## Order host and progress boundary
+
+```mermaid
+flowchart TB
+  host["simulation/TimelineHost.java"] -->|bounded configuration admission| profile["runtime/TimelineProfile.java"]
+  profile -->|SQLite Order combinations| order["runtime/OrderTimelineProfile.java"]
+  host -->|progress wire on typed session| progress["runtime/ProgressIngress.java (production)"]
+  progress -->|advance watermark and commit| runtime["runtime/ViewCoordinator.java (production)"]
+  host -->|check storage health after control| runtime
+  progress -->|complete acknowledgement| session["simulation/TimelineSession.java"]
+```
+
+Simulation paths belong to `simulation-host/src/main/java/io/zooglass/`; production
+paths belong to `src/main/java/io/zooglass/`. The session records a distinct
+control-receipt effect. This is a private host capability, not Workbench document
+progress/replay support. See [scope and gates](../../workbench/docs/timeline-order-host.md).
+
+### Order lifecycle admission
+
+```mermaid
+flowchart LR
+  protocol["simulation/HostProtocol.java"] -->|advertise SQLite Order lifecycle capability| host["simulation/TimelineHost.java"]
+  host -->|inspect configuration separately from requested execution profile| profile["runtime/TimelineProfile.java"]
+  host -->|validate generation and database boundary| generation["simulation/RuntimeGeneration.java"]
+  host -->|recover retained production state| runtime["runtime/TimelineRuntime.java"]
+```
+
+These files belong to the separate simulation-host module. The explicit
+`sqlite-order-restart-v1` execution profile reuses the bounded `sqlite-order-v1`
+configuration and production SQLite recovery. Ordinary Order remains restricted
+to a new database in generation 1. Both reject wall-clock adjustment.
+
+### Sports fact and retirement admission
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|require explicit profile agreement| profiles["runtime/TimelineProfile.java"]
+  profiles -->|classify bounded Sports configuration| profile["runtime/SportsTimelineProfile.java"]
+  host -->|dispatch control under virtual turn| retirement["runtime/FactRetirementIngress.java (production)"]
+  host -->|verify storage health after dispatch| runtime["runtime/TimelineRuntime.java"]
+  retirement -->|complete normalized acknowledgement| session["simulation/TimelineSession.java"]
+```
+
+The simulation-host module owns admission and controlled dispatch; the production
+retirement handler owns parsing and per-view atomicity. Sports admits a new SQLite
+database in generation 1, with no restart or wall-clock adjustment. See the
+[Sports execution boundary](../../workbench/docs/timeline-sports-host.md).

@@ -1,0 +1,259 @@
+{
+  "contractVersion": 2,
+  "storage": "sqlite",
+  "maxStreams": 64,
+  "identityWindow": 128,
+  "maxHistoryEntries": 64,
+  "sources": [
+    {
+      "id": "orders",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 64,
+        "maxMissingRanges": 64
+      }
+    },
+    {
+      "id": "payments",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 64,
+        "maxMissingRanges": 64
+      }
+    },
+    {
+      "id": "inventory",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 64,
+        "maxMissingRanges": 64
+      }
+    },
+    {
+      "id": "courier-primary",
+      "epoch": "run"
+    },
+    {
+      "id": "courier-backup",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "order-summary",
+      "entities": {
+        "orders": {
+          "mode": "envelopeEntity"
+        },
+        "payments": {
+          "mode": "lookupEntity",
+          "keys": {
+            "payment-1": "order-1",
+            "payment-2": "order-2",
+            "payment-3": "order-3",
+            "payment-4": "order-4",
+            "payment-5": "order-5",
+            "payment-6": "order-6"
+          }
+        },
+        "inventory": {
+          "mode": "lookupEntity",
+          "keys": {
+            "reservation-1": "order-1",
+            "reservation-2": "order-2",
+            "reservation-3": "order-3",
+            "reservation-4": "order-4",
+            "reservation-5": "order-5",
+            "reservation-6": "order-6"
+          }
+        },
+        "courier-primary": {
+          "mode": "lookupEntity",
+          "keys": {
+            "shipment-1": "order-1",
+            "shipment-2": "order-2",
+            "shipment-3": "order-3",
+            "shipment-4": "order-4",
+            "shipment-5": "order-5",
+            "shipment-6": "order-6"
+          }
+        },
+        "courier-backup": {
+          "mode": "lookupEntity",
+          "keys": {
+            "tracking-1": "order-1",
+            "tracking-2": "order-2",
+            "tracking-3": "order-3",
+            "tracking-4": "order-4",
+            "tracking-5": "order-5",
+            "tracking-6": "order-6"
+          }
+        }
+      },
+      "fields": {
+        "order": {
+          "sourceId": "orders",
+          "type": "order.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "payment": {
+          "sourceId": "payments",
+          "type": "payment.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "inventory": {
+          "sourceId": "inventory",
+          "type": "inventory.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 15000
+          }
+        },
+        "delivery": {
+          "inputs": [
+            {
+              "sourceId": "courier-primary",
+              "type": "delivery.state"
+            },
+            {
+              "sourceId": "courier-backup",
+              "type": "delivery.state"
+            }
+          ],
+          "mode": "latestBySequence",
+          "conflict": {
+            "mode": "sourcePriority",
+            "sources": [
+              "courier-primary",
+              "courier-backup"
+            ]
+          },
+          "late": {
+            "mode": "acceptLate"
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 15000
+          }
+        }
+      },
+      "publication": {
+        "mode": "publishPartial"
+      }
+    },
+    {
+      "id": "order-tracking",
+      "entities": {
+        "orders": {
+          "mode": "envelopeEntity"
+        },
+        "inventory": {
+          "mode": "lookupEntity",
+          "keys": {
+            "reservation-1": "order-1",
+            "reservation-2": "order-2",
+            "reservation-3": "order-3",
+            "reservation-4": "order-4",
+            "reservation-5": "order-5",
+            "reservation-6": "order-6"
+          }
+        },
+        "courier-primary": {
+          "mode": "lookupEntity",
+          "keys": {
+            "shipment-1": "order-1",
+            "shipment-2": "order-2",
+            "shipment-3": "order-3",
+            "shipment-4": "order-4",
+            "shipment-5": "order-5",
+            "shipment-6": "order-6"
+          }
+        },
+        "courier-backup": {
+          "mode": "lookupEntity",
+          "keys": {
+            "tracking-1": "order-1",
+            "tracking-2": "order-2",
+            "tracking-3": "order-3",
+            "tracking-4": "order-4",
+            "tracking-5": "order-5",
+            "tracking-6": "order-6"
+          }
+        }
+      },
+      "fields": {
+        "order": {
+          "sourceId": "orders",
+          "type": "order.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "inventory": {
+          "sourceId": "inventory",
+          "type": "inventory.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 15000
+          }
+        },
+        "delivery": {
+          "inputs": [
+            {
+              "sourceId": "courier-primary",
+              "type": "delivery.state"
+            },
+            {
+              "sourceId": "courier-backup",
+              "type": "delivery.state"
+            }
+          ],
+          "mode": "latestBySequence",
+          "conflict": {
+            "mode": "sourcePriority",
+            "sources": [
+              "courier-primary",
+              "courier-backup"
+            ]
+          },
+          "late": {
+            "mode": "acceptLate"
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 15000
+          }
+        }
+      },
+      "publication": {
+        "mode": "requireContributions",
+        "fields": [
+          "order",
+          "inventory"
+        ],
+        "maxPendingEntities": 6
+      }
+    }
+  ]
+}

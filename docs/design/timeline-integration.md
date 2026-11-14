@@ -1,8 +1,8 @@
 # Integrating the deterministic timeline into Workbench
 
-Status: proposed integration plan, 15 November 2026. Planning does not modify main,
-accept the POC on the owner's behalf or authorise a merge. Implementation starts
-when this plan is accepted; final promotion requires separate owner authorisation.
+Status: accepted integration plan, implementation underway on
+`integration/deterministic-timeline`, 15 November 2026. Main and the frozen POC
+remain unchanged; final promotion requires separate owner authorisation.
 
 The outcome is one Workbench checkout containing the existing Vehicle, Order and
 Sports live demos plus the completed bounded timeline. Existing demo commands keep

@@ -13,7 +13,7 @@ import type { TestContext } from "node:test";
 // A tiny wrapper fixture exercises real child-process ownership without starting a JVM.
 export async function serviceFixture(
   t: TestContext,
-  mode: "healthy" | "unhealthy" | "exit" | "stubborn",
+  mode: "healthy" | "unhealthy" | "exit" | "stubborn" | "database-exit",
 ) {
   const directory = await mkdtemp(join(tmpdir(), "workbench-service-test-"));
 
@@ -48,6 +48,7 @@ export async function serviceFixture(
         requestedPort: number;
         config: string;
         database?: string;
+        databaseExists: boolean;
       };
     },
   };

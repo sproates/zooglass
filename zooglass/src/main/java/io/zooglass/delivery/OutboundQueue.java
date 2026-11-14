@@ -1,7 +1,7 @@
 package io.zooglass.delivery;
 
-import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 import io.zooglass.access.ActiveViewGrants;
+import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 
 import org.springframework.web.socket.TextMessage;
 
@@ -85,7 +85,12 @@ final class OutboundQueue {
         while (waiting.isEmpty() && !stopped) {
             wait();
         }
-        if (stopped) {
+        return poll();
+    }
+
+    /** Transfer one waiting frame to the writer without blocking a controlled turn. */
+    synchronized Frame poll() {
+        if (stopped || waiting.isEmpty()) {
             return null;
         }
         var frame = waiting.pollFirstEntry().getValue();

@@ -1,7 +1,9 @@
 package io.zooglass.runtime;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -33,9 +35,18 @@ final class FreshnessDeadlines {
         return byTime.isEmpty() ? null : byTime.firstKey();
     }
 
-    Set<Key> due(long now) {
-        var keys = new HashSet<Key>();
-        byTime.headMap(now, true).values().forEach(keys::addAll);
-        return keys;
+    List<Key> due(long now) {
+        // Stable enumeration must precede state transitions and subscriber notifications.
+        return byTime.headMap(now, true).entrySet().stream()
+                .flatMap(
+                        entry ->
+                                entry.getValue().stream()
+                                        .sorted(
+                                                Comparator.comparing(
+                                                                (Key key) -> key.entity().viewId())
+                                                        .thenComparing(
+                                                                key -> key.entity().entityId())
+                                                        .thenComparing(key -> key.field().name())))
+                .toList();
     }
 }

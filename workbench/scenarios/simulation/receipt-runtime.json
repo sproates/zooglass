@@ -1,0 +1,29 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "feed",
+      "epoch": "v1"
+    }
+  ],
+  "views": [
+    {
+      "id": "position",
+      "fields": {
+        "position": {
+          "sourceId": "feed",
+          "type": "position",
+          "mode": "arrival",
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 100
+          }
+        }
+      }
+    }
+  ]
+}

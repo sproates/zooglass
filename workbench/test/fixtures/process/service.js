@@ -1,8 +1,14 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 
 // A small stand-in for the Java service process, used only by ownership tests.
 const mode = process.argv[2];
+const database = process.argv
+  .find((arg) => arg.startsWith("--zooglass.database="))
+  ?.slice("--zooglass.database=".length);
+if (mode === "database-exit" && database && !existsSync(database)) {
+  writeFileSync(database, "created before failed startup");
+}
 writeFileSync(
   new URL("started.json", import.meta.url),
   JSON.stringify({
@@ -13,12 +19,11 @@ writeFileSync(
         ?.split("=")[1],
     ),
     config: process.env.ZOOGLASS_CONFIG,
-    database: process.argv
-      .find((arg) => arg.startsWith("--zooglass.database="))
-      ?.slice("--zooglass.database=".length),
+    database,
+    databaseExists: database !== undefined && existsSync(database),
   }),
 );
-if (mode === "exit") {
+if (mode === "exit" || mode === "database-exit") {
   process.kill(process.pid, "SIGTERM");
 }
 if (mode === "stubborn") {

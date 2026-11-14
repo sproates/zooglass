@@ -1,8 +1,14 @@
 # Workbench deterministic timeline simulation
 
-Status: accepted design, 13 November 2026. No simulator implementation is
-delivered by this document. The current `simulate` command still prints an
-ordered trace; `integrate` still runs against real processes and sockets.
+Status: accepted design, 13 November 2026, with the
+[bounded completion contract](../../workbench/docs/timeline-completion.md) accepted
+14 November. The bounded implementation includes controlled time/delivery, exact
+replay, memory/SQLite lifecycle, qualified Fleet/Order/Sports profiles and the CLI.
+[POC acceptance checks](../../workbench/docs/timeline-acceptance.md) are complete;
+[integration with the live demos](timeline-integration.md) is under review.
+The completion contract is authoritative for explicit first-release deferrals;
+broader mechanisms below remain design direction. Existing `simulate`, `integrate`
+and live-demo commands retain their separate roles.
 
 ## The outcome we want
 
@@ -257,20 +263,23 @@ separate links/connections, rather than pretending TCP reordered complete
 frames. An application-level duplicate is a second send of the same publication.
 It does not mean the transport invented a second WebSocket frame.
 
-| Fault/action                | Precise effect                                                                                                                                                                                                                  |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Delay before send           | Keep an application publication in the source actor; later publications can be sent first if the scenario says so.                                                                                                              |
-| Drop before send            | The runtime receives nothing. A later source watermark may establish the gap.                                                                                                                                                   |
-| Delay link delivery         | Hold delivery and preserve that connection's FIFO ordering. No runtime change until ingress.                                                                                                                                    |
-| Lose acknowledgement        | Apply the publication normally, then prevent its receipt reaching the source by closing that bidirectional source connection. Invalidate both directions and retry through a fresh generation with identical publication bytes. |
+| Fault/action                | Precise effect                                                                                                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delay before send           | Keep an application publication in the source actor; later publications can be sent first if the scenario says so.                                                                                                               |
+| Drop before send            | The runtime receives nothing. A later source watermark may establish the gap.                                                                                                                                                    |
+| Delay link delivery         | Hold delivery and preserve that connection's FIFO ordering. No runtime change until ingress.                                                                                                                                     |
+| Lose acknowledgement        | Apply the publication normally, then prevent its receipt reaching the source by closing that bidirectional source connection. Invalidate both directions and retry through a fresh generation with identical publication bytes.  |
 | Duplicate/retry publication | Preserve identity and payload; check the actual retained-identity outcome, including recorded targets and version. A memory restart can admit it anew. A conflicting payload is a separate intentional identity-conflict action. |
-| Disconnect/reconnect viewer | Invalidate the old connection generation and its pending delivery. Reconnect goes through real subscription/baseline logic. No replay buffer is invented.                                                                       |
-| Stall writer handoff        | Keep one frame in flight and let the real queue accumulate updates. Release or fail the handoff at a declared time.                                                                                                             |
-| Source silence              | Schedule no reports for a bounded interval. Receipt-age expiry comes from the runtime's timer, not an injected stale label.                                                                                                     |
-| Stop/start service          | Explicit phase-zero actions bound downtime. Stop invalidates runtime-owned tasks and old connections; start creates a new generation at its declared time. External actors and their timers continue.                          |
+| Disconnect/reconnect viewer | Invalidate the old connection generation and its pending delivery. Reconnect goes through real subscription/baseline logic. No replay buffer is invented.                                                                        |
+| Stall writer handoff        | Keep one frame in flight and let the real queue accumulate updates. Release or fail the handoff at a declared time.                                                                                                              |
+| Source silence              | Schedule no reports for a bounded interval. Receipt-age expiry comes from the runtime's timer, not an injected stale label.                                                                                                      |
+| Stop/start service          | Explicit phase-zero actions bound downtime. Stop invalidates runtime-owned tasks and old connections; start creates a new generation at its declared time. External actors and their timers continue.                            |
 
 Do not label arbitrary post-send frame loss as normal WebSocket behaviour. If a
 future lossy message transport is added, give it a separate named contract.
+The broader fault-rule design below is not the first bounded release contract.
+Directional link stalls and interval-based selectors are explicitly deferred by
+the [completion contract](../../workbench/docs/timeline-completion.md).
 Fault rules declare their boundary, direction, selector, active time interval
 and occurrence count. Overlapping rules at one boundary are rejected unless an
 explicit composition order is supplied. Use half-open intervals
@@ -339,10 +348,15 @@ implicitly: if the process dies without completing a turn, that run is an
 infrastructure failure. A supported abrupt stop occurs only after an
 acknowledged turn, so the simulator knows which state transitions completed.
 
-Runtime changes needed for this protocol are proposed work. The existing
-prepared server JAR does not currently provide it. Add an explicit preparation
-command for the simulation artifact; execution and tests must never invoke a
-Java build.
+The bounded memory POC implements the current private protocol in a separate
+[simulation host](../../zooglass/simulation-host/README.md), prepared explicitly
+with `npm run prepare:timeline` from Workbench. The production service JAR excludes
+that host. The [memory lifecycle profile](../../workbench/docs/timeline-lifecycle.md)
+implements fresh runtime generations and has [bounded native qualification](../../workbench/docs/timeline-memory-qualification.md).
+SQLite documents now support private per-run stores, read-only recovery observations
+and fresh-store replay. [Controlled wall adjustments](../../workbench/docs/timeline-wall-clock.md) are implemented;
+broader restart qualification remains planned. Execution and tests must
+never invoke a Java build.
 
 ### Run results do not blur failures
 
@@ -406,14 +420,17 @@ An in-memory restart loses state; SQLite retains committed state.
 For a literal acceptance case, use empty initial storage, one receipt-age field,
 zero-latency links and one publication with a 30 ms freshness threshold. Allow
 at least three source attempts: a 10 ms receipt timeout triggers an immediate retry;
-an unavailable attempt retries 30 ms later.
+an unavailable attempt retries 30 ms later. The v2 policy refinement makes these
+separate intervals explicit: `receiptTimeoutMs: 10`, `retryIntervalMs: 0`,
+`unavailableRetryIntervalMs: 30`, `maxAttempts: 3`. Existing v1 retry semantics
+remain unchanged; see the [restart implementation design](timeline-restart-boundary.md).
 
-| Time | Action and required observation |
-| --- | --- |
-| 10 | Commit the publication as version 1 and lose its receipt. Retain the exact publication bytes in the source. |
-| 11 | Abruptly stop the service. Invalidate its alarm due at 40 and all old connections; retain the source timeout due at 20. |
-| 20 | The timeout triggers a retry. Observe `connection-unavailable`, no IPC and no startup. Schedule the next attempt for 50. |
-| 50 | Start the new generation before the retry timer. SQLite recovery marks the retained value stale as version 2; the identical retry returns the original version-1 duplicate receipt without refreshing age. With memory storage, the retry is newly applied as version 1, fresh at 50 and due to expire at 80. |
+| Time | Action and required observation                                                                                                                                                                                                                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10   | Commit the publication as version 1 and lose its receipt. Retain the exact publication bytes in the source.                                                                                                                                                                                                   |
+| 11   | Abruptly stop the service. Invalidate its alarm due at 40 and all old connections; retain the source timeout due at 20.                                                                                                                                                                                       |
+| 20   | The timeout triggers a retry. Observe `connection-unavailable`, no IPC and no startup. Schedule the next attempt for 50.                                                                                                                                                                                      |
+| 50   | Start the new generation before the retry timer. SQLite recovery marks the retained value stale as version 2; the identical retry returns the original version-1 duplicate receipt without refreshing age. With memory storage, the retry is newly applied as version 1, fresh at 50 and due to expire at 80. |
 
 Assert that no runtime reconciliation or delivery occurred between completed
 stop and start, and no old-generation callback or frame was delivered after
@@ -712,18 +729,18 @@ unrelated demo branches as a side effect of this design.
 
 ## Acceptance that earns the description
 
-| Check                           | Required evidence                                                                                                                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reproducibility                 | Same manifest/scenario/seed repeated 100 times in fresh Java/Node processes with injected bridge response delays and different pacing gives identical semantic trace hashes. Repeat with several fixed seeds; record their identities. |
-| Exact ordering                  | Hand-written traces for same-time roots, zero-delay descendants, timer/action ties, duplicate IDs, cancellation and zero-time runaway. Reversing a meaningful declaration order changes the expected trace.                            |
-| Real time-independent freshness | Boundary checks at threshold minus one, threshold and plus one; duplicate retries do not refresh age; no scenario sleep. A missing alarm driver fails rather than a polling read repairing the result.                                 |
-| Delivery fidelity               | Baseline before update on a new subscription, old-generation delivery rejected, stalled writer plus queue overflow/coalescing, cancellation and write failure. Use the production queue code.                                          |
-| Fault fidelity                  | Delay versus pre-send reorder distinguished; drop receipt then exact retry; rejected/malformed/conflicting inputs; gaps confirmed by watermark rather than silence.                                                                    |
+| Check                           | Required evidence                                                                                                                                                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reproducibility                 | Same manifest/scenario/seed repeated 100 times in fresh Java/Node processes with injected bridge response delays and different pacing gives identical semantic trace hashes. Repeat with several fixed seeds; record their identities.                      |
+| Exact ordering                  | Hand-written traces for same-time roots, zero-delay descendants, timer/action ties, duplicate IDs, cancellation and zero-time runaway. Reversing a meaningful declaration order changes the expected trace.                                                 |
+| Real time-independent freshness | Boundary checks at threshold minus one, threshold and plus one; duplicate retries do not refresh age; no scenario sleep. A missing alarm driver fails rather than a polling read repairing the result.                                                      |
+| Delivery fidelity               | Baseline before update on a new subscription, old-generation delivery rejected, stalled writer plus queue overflow/coalescing, cancellation and write failure. Use the production queue code.                                                               |
+| Fault fidelity                  | Delay versus pre-send reorder distinguished; drop receipt then exact retry; rejected/malformed/conflicting inputs; gaps confirmed by watermark rather than silence.                                                                                         |
 | Persistence                     | Memory loses state on restart; SQLite retains values and receipts. Verify the stop-at-11, unavailable-retry-at-20, start-at-50 trace above, including clock reset, recovery versions and inert old tasks. Extra intervening assertions cannot move startup. |
-| Independent checks              | Literal expected envelopes for ordering, required contributions, priority, corrections, withdrawals and retirement. A deliberately broken production strategy must fail an assertion, even if both repeated runs are equally wrong.    |
-| Replay honesty                  | Modified seed/config/artifact rejected for exact replay; corrupt/incomplete transcript rejected; injected runtime divergence reported at its first cause. Inspection never claims re-execution.                                        |
-| Resource bounds                 | Run-horizon termination, pending-work checks, event/trace/round limits, bounded connection queues and storage windows; no silent truncation.                                                                                           |
-| Isolation                       | No public simulation endpoint; unrecognised features and protected configuration fail closed. Existing real-interface, browser, TLS, crash and concurrency checks still run where applicable.                                          |
+| Independent checks              | Literal expected envelopes for ordering, required contributions, priority, corrections, withdrawals and retirement. A deliberately broken production strategy must fail an assertion, even if both repeated runs are equally wrong.                         |
+| Replay honesty                  | Modified seed/config/artifact rejected for exact replay; corrupt/incomplete transcript rejected; injected runtime divergence reported at its first cause. Inspection never claims re-execution.                                                             |
+| Resource bounds                 | Run-horizon termination, pending-work checks, event/trace/round limits, bounded connection queues and storage windows; no silent truncation.                                                                                                                |
+| Isolation                       | No public simulation endpoint; unrecognised features and protected configuration fail closed. Existing real-interface, browser, TLS, crash and concurrency checks still run where applicable.                                                               |
 
 Semantic parity is checked at declared processing and delivery barriers. An
 ordinary socket run can have different inter-view delivery order or extra
@@ -758,3 +775,8 @@ seam and the lossless trace encoding together. Those choices affect the claims
 we can make and the compatibility surface we will have to maintain. Accepting
 the design authorises a scoped implementation plan, not a claim that determinism
 has already been achieved.
+
+The [boundary and restart implementation design](timeline-restart-boundary.md)
+records the packaging, clock continuity and recovery design implemented by the
+bounded timeline. The [capability guide](../../workbench/docs/timeline-guide.md)
+defines its delivered restart support and limits.

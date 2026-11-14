@@ -37,7 +37,8 @@ Gibraltar, not observations of real vehicles or verified road routes.
 | `fleet-state`      | `operation` | `operations-feed` / `vehicle.operation.updated` | `latestBySequence`  |
 | `received-journey` | `positions` | `vehicle-feed` / `vehicle.location.updated`     | `historyBySequence` |
 
-Every policy reads the numeric payload field `sequence`. Location sequences
+Every policy orders by the envelope `publicationSequence`. The fixture also
+includes a payload `sequence` for presentation; it does not select the update. Location sequences
 start at 40; operational sequences start at 100. They are independent domains:
 a location at 42 is not older than an operation at 100. Sequence state is scoped
 to the view field and entity. All three vehicles deliberately start with the same
@@ -49,13 +50,13 @@ subscriptions. The browser loads the manifest as descriptive metadata only.
 
 ## What the scenario establishes
 
-| Phase                     | Evidence                                                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initial state             | Each vehicle receives its own position, operation and one-point history.                                                                                |
-| Independent contributions | Only car-17 advances to position 42; only car-28 changes operation to 102. Each retains its other field.                                                |
-| Late arrivals             | Position 41 fills car-17's history without regressing its marker. Operation 101 cannot replace car-28's 102.                                            |
-| Duplicates                | Identical repeats and changed payloads at an accepted sequence preserve the first accepted payload. History retains one entry per sequence.             |
-| Final isolation           | Exact HTTP snapshots cover both views for all three vehicles after the barriers. Client receipts establish initial state and each changed contribution. |
+| Phase                     | Evidence                                                                                                                                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Initial state             | Each vehicle receives its own position, operation and one-point history.                                                                                                                                                                   |
+| Independent contributions | Only car-17 advances to position 42; only car-28 changes operation to 102. Each retains its other field.                                                                                                                                   |
+| Late arrivals             | Position 41 fills car-17's history without regressing its marker. Operation 101 cannot replace car-28's 102.                                                                                                                               |
+| Duplicates                | Identical repeats return duplicate receipts retaining the original version and targets; changed payloads at the same publication identity are rejected as `identityConflict`. Both preserve state. History retains one entry per sequence. |
+| Final isolation           | Exact HTTP snapshots cover both views for all three vehicles after the barriers. Client receipts establish initial state and each changed contribution.                                                                                    |
 
 An unchanged-state assertion can pass too early. After the late and duplicate
 events, the scenario sends a new car-39 event on **each** source connection.
@@ -69,8 +70,8 @@ The fixture test protects this barrier ordering and the manifest/subscription
 coverage; the functional suite checks actual ZooGlass results.
 
 These checks do not establish atomic snapshots across views, source freshness,
-history completeness, correction support or durable recovery. Equal-sequence
-changed payloads remain duplicates. The short fixture does not implement the
+history completeness, correction support or durable recovery. Changed content at the same publication identity is rejected, rather than
+accepted as a duplicate. The short fixture does not implement the
 planned six-vehicle presentation. The optional fleet observer adds checks of
 visible fleet rows and selected history; unselected histories are receipt-checked.
 The browser test independently selects each vehicle, checks its detail and
@@ -79,3 +80,7 @@ records outgoing commands to verify selection creates no subscriptions.
 The [fleet acceptance record](../../docs/verification/2026-10-27-fleet-state.md)
 collects the evidence, including keyboard playback, enlarged-text layout and
 catch-up after the sources advance while the browser is disconnected.
+
+The separate [fleet timeline scenario](timeline-fleet-scenario.md) adapts these
+publication and observation intents to controlled execution with a bounded
+configuration. It does not replace the socket/HTTP evidence described here.

@@ -21,7 +21,9 @@ export interface ZooGlassSession {
 
 export interface ZooGlassSessionOptions {
   configuration?: RuntimeConfiguration;
-  /** Caller-owned absolute database path; omitted SQLite paths are session-owned. */
+  /** Copy exact bytes; exclusive with typed/generated configuration and protected access. */
+  runtimeConfigurationPath?: string;
+  /** Caller-owned absolute path; typed SQLite configurations otherwise use owned storage. */
   databasePath?: string;
   views?: ScenarioView[];
   sources?: ScenarioSource[];
@@ -39,10 +41,21 @@ export async function startZooGlassSession(
   options: ZooGlassSessionOptions = {},
 ): Promise<ZooGlassSession> {
   if (
-    options.configuration &&
+    options.configuration !== undefined &&
     (options.views !== undefined || options.sources !== undefined)
   ) {
     throw new Error("Use configuration or scenario views/sources, not both.");
+  }
+  if (
+    options.runtimeConfigurationPath !== undefined &&
+    (options.configuration !== undefined ||
+      options.views !== undefined ||
+      options.sources !== undefined ||
+      options.protectedAccess !== undefined)
+  ) {
+    throw new Error(
+      "runtimeConfigurationPath cannot be combined with configuration, views, sources or protectedAccess.",
+    );
   }
   if (options.databasePath !== undefined && !isAbsolute(options.databasePath)) {
     throw new Error("Database path must be absolute.");
@@ -136,6 +149,10 @@ export async function startZooGlassSession(
 
   try {
     signal.throwIfAborted();
+    const explicitConfiguration =
+      options.runtimeConfigurationPath === undefined
+        ? undefined
+        : await readFile(options.runtimeConfigurationPath);
 
     const serviceDirectory =
       options.serviceDirectory ??
@@ -155,7 +172,14 @@ export async function startZooGlassSession(
     const portFile = join(configDirectory, "service.port");
     let configLocation: string | undefined;
 
-    if (options.configuration !== undefined || options.views !== undefined) {
+    if (explicitConfiguration !== undefined) {
+      const configPath = join(configDirectory, "runtime.json");
+      await writeFile(configPath, explicitConfiguration);
+      configLocation = pathToFileURL(configPath).href;
+    } else if (
+      options.configuration !== undefined ||
+      options.views !== undefined
+    ) {
       const configPath = join(configDirectory, "views.json");
 
       await writeFile(

@@ -1218,7 +1218,7 @@ flowchart LR
 
 Typed demo configuration, generated scenario configuration and exact-file parity
 configuration have explicit admission rules. The session copies exact-file bytes
-without reserializing them. Demo-owned temporary SQLite state is cleaned with its
+without reserializing them. Session-owned temporary SQLite state is cleaned with its
 session; an explicitly supplied database remains caller-owned on close or startup
 failure. Live demos and parity runners share process ownership without sharing
 configuration serialization policy.

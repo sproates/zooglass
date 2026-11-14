@@ -538,3 +538,18 @@ a session name is later reused. Turn ownership and dispatch timing are checked
 before state mutation; malformed UTF-8 is rejected before command dispatch.
 Lifecycle changes run in phase 0, alarms and writer tasks in phase 1, and transport
 completion in phase 2; released handoffs complete in a later causal round.
+
+
+## Installed recovery observations
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|validate targets before opening store| adapter["runtime/TimelineRuntime.java"]
+  adapter -->|controlled clocks and private database| coordinator["runtime/ViewCoordinator.java"]
+  coordinator -->|production recovery and durable receipts| sqlite["runtime/SqliteState.java"]
+  adapter -->|read-only installedSnapshot projection| coordinator
+```
+
+The package-private installed snapshot seam reads state without expiry, clock
+samples or storage writes. Initialization reports it separately from ordinary
+state-change callbacks, so observation cannot repair missing recovery.

@@ -8,20 +8,36 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 class HostProtocolTests {
     @Test
     void advertisesMemoryLifecycleWithoutClaimingADocumentFormat() {
-        assertThat(HostProtocol.V1.handshake("artifact"))
+        assertThat(HostProtocol.V1.handshake("artifact", null))
                 .containsEntry("protocol", 1)
                 .containsEntry("configurationAdmission", 1)
                 .containsEntry("documentFormats", List.of("timeline-simulation/v1"))
                 .doesNotContainKey("memoryLifecycle");
-        assertThat(HostProtocol.V2.handshake("artifact"))
+        assertThat(HostProtocol.V2.handshake("artifact", null))
                 .containsEntry("protocol", 2)
                 .containsEntry("memoryLifecycle", 1)
                 .containsEntry("documentFormats", List.of())
-                .doesNotContainKey("configurationAdmission");
+                .containsEntry("storage", List.of("memory"))
+                .doesNotContainKeys("configurationAdmission", "sqliteLifecycle");
+    }
+
+    @Test
+    void sqliteCapabilityIncludesTheNativeVersion() {
+        String version = HostProtocol.availableSqliteVersion();
+        assertThat(version).matches("[0-9]+\\.[0-9]+\\.[0-9]+");
+        var handshake = HostProtocol.V2.handshake("artifact", version);
+
+        assertThat(handshake)
+                .containsEntry("sqliteLifecycle", 1)
+                .containsEntry("storage", List.of("memory", "sqlite"));
+        assertThat(handshake.get("environment"))
+                .isInstanceOfSatisfying(Map.class, environment ->
+                        assertThat(environment.get("sqliteVersion")).isEqualTo(version));
     }
 
     @Test

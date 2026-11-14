@@ -4,7 +4,9 @@ This refines the [accepted simulator design](deterministic-timeline.md) for the
 next POC increments. **Host isolation and executor ownership separation are now
 implemented, along with the private memory generation/process foundation.**
 V2 memory documents now integrate stop/start, downtime retry and versioned replay
-evidence. SQLite recovery and broader lifecycle qualification remain unimplemented. The separate host is
+evidence, with bounded native memory qualification. The private SQLite host
+foundation now supports direct recovery observations; SQLite document integration
+and broader restart qualification remain unimplemented. The separate host is
 described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
@@ -45,7 +47,8 @@ See the [foundation contract](../../workbench/docs/timeline-generations.md).
 Global agenda time, execution budgets and source retry timers survive replacement.
 The [lifecycle guide](../../workbench/docs/timeline-lifecycle.md) describes the
 implemented memory subset; observation targets and recovery snapshots below are
-still part of the SQLite increment.
+available at the private host boundary; document observations remain part of the
+next SQLite integration checkpoint.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact

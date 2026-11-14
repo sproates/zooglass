@@ -440,6 +440,11 @@ public final class ViewCoordinator implements AutoCloseable {
         return snapshotOf(storage.current(), viewId, entityId);
     }
 
+    /** Project the installed state without reconciling freshness or sampling the clock. */
+    synchronized Optional<Snapshot> installedSnapshot(String viewId, String entityId) {
+        return snapshotOf(storage.current(), viewId, entityId);
+    }
+
     private Optional<Snapshot> snapshotOf(StateImage state, String viewId, String entityId) {
         StoredView stored = state.views().get(new ViewEntity(viewId, entityId));
         var status = views.status(viewId, entityId, stored, state.streams());

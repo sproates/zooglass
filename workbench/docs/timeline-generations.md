@@ -1,9 +1,10 @@
-# Memory generation foundation
+# Runtime generation foundation
 
-The private host protocol supports fresh memory runtime generations. The
+The private host protocol supports fresh memory and SQLite runtime generations. The
 [document lifecycle executor](timeline-lifecycle.md) now uses this foundation for
-v2 stop/start actions, downtime retries and recorded/replayed evidence. SQLite
-recovery, runtime snapshot observations and wall adjustments remain planned.
+v2 memory stop/start actions, downtime retries and recorded/replayed evidence.
+SQLite is currently a private host foundation, verified directly; document storage
+ownership, snapshot assertions and replay integration remain planned.
 
 ## Clock and process ownership
 
@@ -28,7 +29,8 @@ does not count as a simulated stop or permit restarting the failed run.
 
 ## Private protocol admission
 
-Protocol 1 is unchanged. Selecting protocol 2 requires the host handshake capability
+Protocol 1 keeps its memory execution, handshake and environment unchanged. Its
+metadata inspection now identifies eligible SQLite configurations for protocol 2. Selecting protocol 2 requires the host handshake capability
 `memoryLifecycle:1`; its `documentFormats` is empty. The first command is
 `initialize-document`, carrying configuration, epoch and generation start, with
 explicit generation, global turn ID and all three clock coordinates. Subsequent
@@ -53,3 +55,48 @@ completion failures. Tests consume the prepared JAR and never build Java.
 The document lifecycle suite separately covers generation-qualified tasks and
 connections, external retry continuity and v2 evidence. Broader repeated lifecycle
 qualification remains separate from these direct process-boundary tests.
+
+## SQLite host foundation
+
+Protocol 2 advertises `sqliteLifecycle:1`, `storage:["memory","sqlite"]` and
+`environment.sqliteVersion` when the native SQLite metadata probe succeeds.
+The probe uses an isolated in-memory connection; it opens no scenario database.
+Without native SQLite, memory remains available and SQLite is not advertised.
+Protocol 1's handshake and environment remain unchanged.
+
+A direct `RuntimeGenerations` caller supplies an absolute `database` path inside
+its own private directory and an optional ordered `observationTargets` array of
+at most 64 distinct `{viewId, entityId}` pairs. The same database survives that
+owner's stops and starts; a missing database on replacement is an error. Direct
+callers may supply an existing generation-1 store, but document fixture import is
+not admitted. The caller owns allocation, cleanup and diagnostic
+retention; this low-level API does not admit arbitrary database paths in scenario
+files. SQLite configuration, native capability and targets are validated before
+opening the database. Memory and protocol 1 reject database parameters.
+
+Initialization returns one opaque snapshot wire string per target, in declaration
+order. Known views with absent entities return their version-zero snapshot;
+unknown views reject initialization. The adapter reads production installed state
+without sampling clocks, expiring values, scheduling work or committing storage.
+Recovery runs first with the generation's clocks already installed. Recovery
+snapshots are separate from state callbacks; any returned alarms retain global
+agenda deadlines. Durable duplicate receipts retain their original version and
+targets, even when recovery has advanced the current view's freshness/version.
+
+The owner pins full protocol-2 environment identity across generations. An initial
+memory comparison against protocol-1 preflight excludes only the new SQLite-version
+field, then pins the complete identity. SQLite callers supplying an expected
+environment must include the admitted native version. Failed startup or unavailable
+storage is a terminal infrastructure failure; the owner never silently substitutes
+memory or reopens after failure, and it does not remove diagnostic database files.
+
+Run the direct prepared-host SQLite checks with:
+
+```sh
+node --import tsx --test test/timeline/sqlite-generations.test.ts
+```
+
+These checks exercise ordinary and abrupt recovery, remaining freshness, deadline
+ties, stale recovery, durable duplicate receipts, target ordering, failed startup
+and long host pauses. They do not qualify SQLite document execution, replay,
+wall-clock adjustments, mid-commit crashes or physical durability.

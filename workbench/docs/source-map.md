@@ -725,3 +725,18 @@ correctness; exact within-group traces independently establish repeatability.
 The control checker consumes separately prepared JARs and verifies the mutation's
 actual artifact contents. Only the explicit preparation script builds Java, in an
 isolated copy. See [memory qualification](timeline-memory-qualification.md).
+
+
+## SQLite host foundation
+
+```mermaid
+flowchart LR
+  owner["timeline/runtime-generations.ts"] -->|caller-owned database path and copied targets| bridge["timeline/bridge.ts"]
+  bridge -->|native capability and snapshot wire validation| protocol["timeline/host-protocol.ts"]
+  bridge -->|initialize before ordinary commands| host["simulation/TimelineHost.java"]
+  host -->|read installed recovery state| adapter["runtime/TimelineRuntime.java"]
+```
+
+This private boundary does not allocate scenario stores or admit SQLite documents.
+The caller retains database files through replacement and owns cleanup. Paths are
+operational parameters, not semantic trace data.

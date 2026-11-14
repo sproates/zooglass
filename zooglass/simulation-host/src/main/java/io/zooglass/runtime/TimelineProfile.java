@@ -3,12 +3,21 @@ package io.zooglass.runtime;
 /** Explicit qualification boundary, applied after production configuration validation. */
 public final class TimelineProfile {
     public static final String NAME = "memory-arrival-v1";
+    public static final String SQLITE_RESTART = "receipt-age-restart-v1";
 
     private TimelineProfile() {}
 
-    public static boolean supports(RuntimeConfiguration config) {
-        if (!"memory".equals(config.storage())
-                || config.sources().size() != 1
+    public static String inspect(RuntimeConfiguration config) {
+        if (!supportsReceiptAge(config)) return "unsupported";
+        return switch (config.storage()) {
+            case "memory" -> NAME;
+            case "sqlite" -> SQLITE_RESTART;
+            default -> "unsupported";
+        };
+    }
+
+    private static boolean supportsReceiptAge(RuntimeConfiguration config) {
+        if (config.sources().size() != 1
                 || config.views().size() != 1
                 || config.maxStreams() > 20
                 || config.identityWindow() > 20

@@ -34,6 +34,7 @@ export type Response = {
   effects: Effect[];
   pendingTasks: number;
   heldFrames: number;
+  snapshots?: string[];
   configuration?: {
     contractVersion: number;
     storage: string;
@@ -61,6 +62,7 @@ export type Handshake = {
   | {
       protocol: 2;
       memoryLifecycle: 1;
+      sqliteLifecycle?: 1;
       documentFormats: [];
       environment: Record<string, string>;
     }
@@ -107,6 +109,21 @@ export function decodeHandshake(value: unknown): Handshake {
     invalid("handshake.protectedAccess");
   if (data.protocol === 2) {
     if (data.memoryLifecycle !== 1) invalid("handshake.memoryLifecycle");
+    if (!(data.storage as string[]).includes("memory"))
+      invalid("handshake.memoryLifecycle requires memory storage");
+    if (data.sqliteLifecycle !== undefined && data.sqliteLifecycle !== 1)
+      invalid("handshake.sqliteLifecycle");
+    const environment = record(data.environment, "handshake.environment");
+    if (data.sqliteLifecycle === 1) {
+      if (!(data.storage as string[]).includes("sqlite"))
+        invalid("handshake.sqliteLifecycle requires sqlite storage");
+      string(environment.sqliteVersion, "handshake.environment.sqliteVersion");
+    } else if (
+      (data.storage as string[]).includes("sqlite") ||
+      environment.sqliteVersion !== undefined
+    ) {
+      invalid("handshake.sqlite storage/version requires sqliteLifecycle");
+    }
     if (data.configurationAdmission !== undefined)
       invalid("handshake.configurationAdmission is v1 only");
     if (!Array.isArray(data.documentFormats) || data.documentFormats.length)
@@ -171,6 +188,12 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
   integer(data.heldFrames, "response.heldFrames");
   if (!Array.isArray(data.effects)) invalid("response.effects");
   data.effects.forEach(effect);
+  if (data.snapshots !== undefined) {
+    if (protocol !== 2) invalid("response.snapshots requires protocol 2");
+    strings(data.snapshots, "response.snapshots");
+    if ((data.snapshots as string[]).length > 64)
+      invalid("response.snapshots limit");
+  }
   if (data.configuration !== undefined) {
     const config = record(data.configuration, "response.configuration");
     integer(

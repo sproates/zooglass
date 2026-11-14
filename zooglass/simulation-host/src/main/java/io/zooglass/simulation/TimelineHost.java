@@ -4,6 +4,7 @@ import static io.zooglass.simulation.HostProtocol.JSON;
 import static io.zooglass.simulation.HostProtocol.integer;
 import static io.zooglass.simulation.HostProtocol.text;
 
+import io.zooglass.access.ViewResource;
 import io.zooglass.delivery.SlowClientPolicy;
 import io.zooglass.delivery.SnapshotBroadcaster;
 import io.zooglass.delivery.SnapshotSubscriptions;
@@ -20,6 +21,11 @@ import org.springframework.web.socket.TextMessage;
 
 import tools.jackson.databind.JsonNode;
 
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +36,7 @@ import java.util.TreeMap;
 public final class TimelineHost {
     private final TurnContext turns = new TurnContext();
     private final HostProtocol protocol;
+    private final boolean sqliteAvailable;
     private final HostTurns identities;
     private final Map<String, Connection> sessions = new LinkedHashMap<>();
     private ViewCoordinator runtime;
@@ -39,19 +46,21 @@ public final class TimelineHost {
     private EventIngress ingress;
     private boolean stopped;
     private boolean documentMode;
+    private boolean durable;
 
     private enum Role { CLIENT, SOURCE }
 
     private record Connection(TimelineSession session, Role role) {}
 
-    TimelineHost(HostProtocol protocol) {
+    TimelineHost(HostProtocol protocol, boolean sqliteAvailable) {
         this.protocol = protocol;
+        this.sqliteAvailable = sqliteAvailable;
         identities = new HostTurns(protocol);
     }
 
     public static void main(String[] args) throws Exception {
         var protocol = HostProtocol.selected();
-        protocol.serve(new TimelineHost(protocol)::command);
+        protocol.serve(sqliteAvailable -> new TimelineHost(protocol, sqliteAvailable)::command);
     }
 
     Map<String, Object> command(JsonNode command) throws Exception {
@@ -62,23 +71,21 @@ public final class TimelineHost {
         if (op.equals("inspect-configuration")) return inspectConfiguration(command, turn);
 
         turns.begin(turn.timeMs());
+        List<String> snapshots = null;
         switch (op) {
             case "initialize" -> initialize(text(command, "policy"), turn.generation());
-            case "initialize-document" -> {
-                var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
-                if (!TimelineProfile.supports(config))
-                    throw new IllegalArgumentException("Unsupported document configuration profile");
-                documentMode = true;
-                compose(config, turn.generation());
-            }
+            case "initialize-document" -> snapshots = initializeDocument(command, turn.generation());
             case "connect" -> connect(command);
             case "ingress" -> {
                 var session = session(command, Role.SOURCE);
                 ingress.handleMessage(session, new TextMessage(text(command, "wire")));
+                if (durable) TimelineRuntime.verifyStorageAvailable(runtime);
             }
-            case "subscribe" ->
-                    subscriptions.handleMessage(
-                            session(command, Role.CLIENT), new TextMessage(text(command, "wire")));
+            case "subscribe" -> {
+                subscriptions.handleMessage(
+                        session(command, Role.CLIENT), new TextMessage(text(command, "wire")));
+                if (durable) TimelineRuntime.verifyStorageAvailable(runtime);
+            }
             case "disconnect" -> disconnect(text(command, "session"));
             case "stall" -> delivery.stall(session(command, Role.CLIENT).getId());
             case "release" -> {
@@ -89,15 +96,10 @@ public final class TimelineHost {
             }
             case "task" -> turns.dispatch(integer(command, "task"));
             case "observe" -> {} // No snapshot read: observations cannot repair a missing alarm.
-            case "shutdown" -> {
-                broadcaster.close();
-                runtime.close();
-                sessions.clear();
-                stopped = true;
-            }
+            case "shutdown" -> shutdown();
             default -> throw new IllegalArgumentException("Unsupported POC operation");
         }
-        return response(turn);
+        return response(turn, snapshots);
     }
 
     private Map<String, Object> inspectConfiguration(JsonNode command, HostTurns.Turn turn) {
@@ -112,11 +114,10 @@ public final class TimelineHost {
                 "configuration", Map.of(
                         "contractVersion", config.contractVersion(),
                         "storage", config.storage(),
-                        "documentProfile", TimelineProfile.supports(config)
-                                ? TimelineProfile.NAME : "unsupported"));
+                        "documentProfile", TimelineProfile.inspect(config)));
     }
 
-    private Map<String, Object> response(HostTurns.Turn turn) {
+    private Map<String, Object> response(HostTurns.Turn turn, List<String> snapshots) {
         int pending = turns.pendingCount();
         int held = delivery.heldCount();
         var effects =
@@ -141,7 +142,80 @@ public final class TimelineHost {
         var clocks = new LinkedHashMap<>(response);
         clocks.put("monotonicMs", turn.generation().monotonicMillis(turn.timeMs()));
         clocks.put("wallMillis", turn.generation().wallMillis(turn.timeMs()));
+        if (snapshots != null) clocks.put("snapshots", snapshots);
         return clocks;
+    }
+
+    private List<String> initializeDocument(JsonNode command, RuntimeGeneration generation) {
+        var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+        String profile = TimelineProfile.inspect(config);
+        if (!TimelineProfile.NAME.equals(profile)
+                && !(protocol == HostProtocol.V2 && TimelineProfile.SQLITE_RESTART.equals(profile)))
+            throw new IllegalArgumentException("Unsupported document configuration profile");
+        if (TimelineProfile.SQLITE_RESTART.equals(profile) && !sqliteAvailable)
+            throw new IllegalArgumentException("SQLite lifecycle is unavailable");
+
+        Path database = database(command, config.storage(), generation);
+        var targets = command.has("observationTargets")
+                ? observationTargets(command.get("observationTargets"), config) : null;
+        documentMode = true;
+        durable = database != null;
+        compose(config, generation, database);
+        if (targets == null) return null;
+        try {
+            return TimelineRuntime.installedSnapshots(runtime, targets).stream()
+                    .map(snapshot -> canonical(JSON.writeValueAsString(snapshot)))
+                    .toList();
+        } catch (RuntimeException failure) {
+            try {
+                shutdown();
+            } catch (RuntimeException cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
+        }
+    }
+
+    private static Path database(JsonNode command, String storage, RuntimeGeneration generation) {
+        if (!storage.equals("sqlite")) {
+            if (command.has("database"))
+                throw new IllegalArgumentException("Memory runtime does not accept a database path");
+            return null;
+        }
+        var path = Path.of(text(command, "database"));
+        if (!path.isAbsolute() || path.getFileName() == null)
+            throw new IllegalArgumentException("SQLite requires an absolute database file path");
+        if (generation.number() > 1 && !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+            throw new IllegalArgumentException("SQLite restart requires an existing regular database file");
+        return path;
+    }
+
+    private static List<ViewResource> observationTargets(JsonNode value, RuntimeConfiguration config) {
+        if (!value.isArray() || value.size() > 64)
+            throw new IllegalArgumentException("Expected at most 64 observation targets");
+        var targets = new ArrayList<ViewResource>();
+        var seen = new HashSet<ViewResource>();
+        String configuredView = config.views().getFirst().id();
+        for (var node : value) {
+            if (!node.isObject() || node.size() != 2 || !node.has("viewId") || !node.has("entityId"))
+                throw new IllegalArgumentException("Expected viewId and entityId observation target");
+            var target = new ViewResource(text(node, "viewId"), text(node, "entityId"));
+            if (!configuredView.equals(target.viewId()) || target.entityId().length() > 1024)
+                throw new IllegalArgumentException("Invalid observation target view or entity");
+            if (!seen.add(target)) throw new IllegalArgumentException("Duplicate observation target");
+            targets.add(target);
+        }
+        return targets;
+    }
+
+    private void shutdown() {
+        try (var closingRuntime = runtime) {
+            if (broadcaster != null) broadcaster.close();
+            else if (delivery != null) delivery.close();
+        } finally {
+            sessions.clear();
+            stopped = true;
+        }
     }
 
     private void initialize(String policy, RuntimeGeneration generation) {
@@ -169,23 +243,30 @@ public final class TimelineHost {
                                         "position", Map.of("position", field))),
                         new RuntimeConfiguration.Delivery(
                                 null, SlowClientPolicy.select(policy), 3, 65536L));
-        compose(config, generation);
+        compose(config, generation, null);
     }
 
-    private void compose(RuntimeConfiguration config, RuntimeGeneration generation) {
-        runtime = TimelineRuntime.create(config, turns, generation);
-        runtime.listen(
-                snapshot ->
-                        turns.effect(
-                                Map.of(
-                                        "kind",
-                                        "state",
-                                        "wire",
-                                        JSON.writeValueAsString(snapshot))));
-        delivery = new TimelineDelivery(turns);
-        broadcaster = delivery.broadcaster(JSON, runtime);
-        subscriptions = new SnapshotSubscriptions(JSON, broadcaster);
-        ingress = new EventIngress(runtime, JSON);
+    private void compose(RuntimeConfiguration config, RuntimeGeneration generation, Path database) {
+        runtime = TimelineRuntime.create(config, turns, generation, database);
+        try {
+            runtime.listen(
+                    snapshot ->
+                            turns.effect(
+                                    Map.of(
+                                            "kind", "state", "wire",
+                                            JSON.writeValueAsString(snapshot))));
+            delivery = new TimelineDelivery(turns);
+            broadcaster = delivery.broadcaster(JSON, runtime);
+            subscriptions = new SnapshotSubscriptions(JSON, broadcaster);
+            ingress = new EventIngress(runtime, JSON);
+        } catch (RuntimeException failure) {
+            try {
+                shutdown();
+            } catch (RuntimeException cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
+        }
     }
 
     private void connect(JsonNode command) {

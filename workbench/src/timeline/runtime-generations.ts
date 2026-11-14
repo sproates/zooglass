@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import { Bridge, type Response, type TimingDiagnostics } from "./bridge.js";
 
 export type RuntimeGeneration = Readonly<{
@@ -10,6 +11,11 @@ export type GenerationOptions = Readonly<{
   configuration: string;
   epochMillis: number;
   commandLimit: number;
+  database?: string;
+  observationTargets?: readonly Readonly<{
+    viewId: string;
+    entityId: string;
+  }>[];
   hostDelay?: number;
   jvmPauseMs?: number;
   expectedArtifact?: string;
@@ -75,7 +81,42 @@ export class RuntimeGenerations {
       options.commandLimit > 10000
     )
       throw new Error("Invalid runtime generation limits or epoch");
-    this.options = Object.freeze({ ...options });
+    if (options.database !== undefined && !isAbsolute(options.database))
+      throw new Error("SQLite database requires an absolute private path");
+    const targets = options.observationTargets?.map((target) =>
+      Object.freeze({ ...target }),
+    );
+    if (
+      targets &&
+      (targets.length > 64 ||
+        targets.some(
+          (target) =>
+            Object.keys(target).length !== 2 ||
+            typeof target.viewId !== "string" ||
+            !target.viewId.length ||
+            typeof target.entityId !== "string" ||
+            !target.entityId.length,
+        ) ||
+        new Set(
+          targets.map((target) =>
+            JSON.stringify([target.viewId, target.entityId]),
+          ),
+        ).size !== targets.length)
+    )
+      throw new Error("Invalid runtime observation targets");
+    if (
+      options.database &&
+      options.expectedEnvironment &&
+      !options.expectedEnvironment.sqliteVersion
+    )
+      throw new Error("SQLite requires native version admission");
+    this.options = Object.freeze({
+      ...options,
+      expectedEnvironment:
+        options.expectedEnvironment &&
+        Object.freeze({ ...options.expectedEnvironment }),
+      observationTargets: targets && Object.freeze(targets),
+    });
     this.artifact = options.expectedArtifact;
     this.environment =
       options.expectedEnvironment &&
@@ -170,10 +211,28 @@ export class RuntimeGenerations {
         !Object.keys(opened.bridge.environment).length
       )
         throw new Error("Runtime environment identity is missing");
+      if (this.options.database && opened.bridge.sqliteLifecycle !== 1)
+        throw new Error("Prepared artifact does not support SQLite lifecycle");
       const environment = environmentKey(opened.bridge.environment);
+      // Memory document preflight uses protocol 1, which has no SQLite metadata.
+      // Only that initial comparison projects the one new field; later generations pin all fields.
+      const expectedEnvironment =
+        this.generation === 0 &&
+        !this.options.database &&
+        this.options.expectedEnvironment &&
+        !Object.hasOwn(this.options.expectedEnvironment, "sqliteVersion")
+          ? environmentKey(
+              Object.fromEntries(
+                Object.entries(opened.bridge.environment).filter(
+                  ([key]) => key !== "sqliteVersion",
+                ),
+              ),
+            )
+          : environment;
       if (
-        this.artifact !== undefined &&
-        (this.artifact !== opened.artifact || this.environment !== environment)
+        (this.artifact !== undefined && this.artifact !== opened.artifact) ||
+        (this.environment !== undefined &&
+          this.environment !== expectedEnvironment)
       )
         throw new Error(
           "Runtime artifact or environment changed between generations",
@@ -184,6 +243,10 @@ export class RuntimeGenerations {
         op: "initialize-document",
         wire: this.options.configuration,
         epochMillis: this.options.epochMillis,
+        ...(this.options.database ? { database: this.options.database } : {}),
+        ...(this.options.observationTargets !== undefined
+          ? { observationTargets: this.options.observationTargets }
+          : {}),
       });
       this.generation = identity.number;
       this.identity = identity;

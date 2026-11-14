@@ -53,6 +53,7 @@ export class Bridge {
     elapsedNanos: number;
   }[] = [];
   configurationAdmission = 0;
+  sqliteLifecycle: 0 | 1 = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
   private readonly child: ChildProcessWithoutNullStreams;
@@ -166,6 +167,8 @@ export class Bridge {
         bridge.configurationAdmission = 1;
         bridge.documentFormats = Object.freeze([...handshake.documentFormats]);
       }
+      if (handshake.protocol === 2)
+        bridge.sqliteLifecycle = handshake.sqliteLifecycle ?? 0;
       bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {
@@ -257,6 +260,11 @@ export class Bridge {
     this.commandActive = true;
     try {
       const operation = { ...requested };
+      if (Array.isArray(requested.observationTargets))
+        operation.observationTargets = requested.observationTargets.map(
+          (target: unknown) =>
+            target && typeof target === "object" ? { ...target } : target,
+        );
       this.admitGenerationCommand(timeMs, operation);
       if (this.hostDelay) {
         const before = process.hrtime.bigint();
@@ -326,6 +334,19 @@ export class Bridge {
           (value.monotonicMs !== monotonicMs || value.wallMillis !== wallMillis)
         )
           throw new Error("Mismatched generation response clocks");
+        const targets =
+          operation.op === "initialize-document"
+            ? operation.observationTargets
+            : undefined;
+        if (targets !== undefined) {
+          if (
+            !Array.isArray(targets) ||
+            value.snapshots?.length !== targets.length
+          )
+            throw new Error("Mismatched initialization snapshots");
+        } else if (value.snapshots !== undefined) {
+          throw new Error("Unrequested initialization snapshots");
+        }
         if (value.diagnostics) this.timing = value.diagnostics;
         if (this.generation)
           this.acknowledged = { operation: operation.op, timeMs };

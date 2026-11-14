@@ -125,3 +125,42 @@ test("host configuration and timing diagnostics are validated separately from pa
       /Invalid host protocol/,
     );
 });
+
+test("SQLite capability requires a native version and snapshots remain protocol-2 opaque wires", () => {
+  const sqlite = {
+    ...handshake,
+    protocol: 2,
+    configurationAdmission: undefined,
+    memoryLifecycle: 1,
+    sqliteLifecycle: 1,
+    documentFormats: [],
+    storage: ["memory", "sqlite"],
+    environment: { javaRuntime: "25", sqliteVersion: "3.51.1" },
+  };
+  assert.deepEqual(decodeHandshake(sqlite), sqlite);
+  for (const changed of [
+    { ...sqlite, sqliteLifecycle: 2 },
+    { ...sqlite, environment: { javaRuntime: "25" } },
+    { ...sqlite, storage: ["memory"] },
+    { ...sqlite, storage: ["sqlite"] },
+    { ...sqlite, sqliteLifecycle: undefined },
+  ])
+    assert.throws(() => decodeHandshake(changed), /Invalid host protocol/);
+  const wire = '{"amount":900719925474099312345678901234567890}';
+  const initialized = {
+    ...response,
+    monotonicMs: 0,
+    wallMillis: 10,
+    snapshots: [wire],
+  };
+  assert.deepEqual(decodeResponse(initialized, 2).snapshots, [wire]);
+  assert.throws(
+    () => decodeResponse(initialized),
+    /snapshots requires protocol 2/,
+  );
+  for (const snapshots of [null, [1], Array(65).fill(wire)])
+    assert.throws(
+      () => decodeResponse({ ...initialized, snapshots }, 2),
+      /snapshots/,
+    );
+});

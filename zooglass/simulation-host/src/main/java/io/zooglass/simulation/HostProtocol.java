@@ -1,6 +1,7 @@
 package io.zooglass.simulation;
 
 import io.zooglass.runtime.PublicationJson;
+import io.zooglass.runtime.TimelineRuntime;
 
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
@@ -19,11 +20,13 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.function.Function;
 
 /** Owns the framed process boundary and capability handshake, never runtime state. */
 enum HostProtocol {
@@ -57,7 +60,7 @@ enum HostProtocol {
                     .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                     .build();
 
-    void serve(CommandHandler handler) throws Exception {
+    void serve(Function<Boolean, CommandHandler> createHandler) throws Exception {
         var output = new DataOutputStream(System.out);
         System.setOut(System.err); // Libraries may log; stdout belongs exclusively to framing.
         String artifactPath = System.getProperty("zooglass.simulation.artifact");
@@ -70,7 +73,9 @@ enum HostProtocol {
                         .formatHex(
                                 MessageDigest.getInstance("SHA-256")
                                         .digest(Files.readAllBytes(artifact)));
-        write(output, handshake(digest));
+        String sqliteVersion = this == V2 ? availableSqliteVersion() : null;
+        var handler = createHandler.apply(sqliteVersion != null);
+        write(output, handshake(digest, sqliteVersion));
         var input = new DataInputStream(System.in);
         while (true) {
             int first = input.read();
@@ -87,24 +92,38 @@ enum HostProtocol {
         }
     }
 
-    Map<String, Object> handshake(String digest) {
-        var environment = Map.of(
+    Map<String, Object> handshake(String digest, String sqliteVersion) {
+        var environment = new LinkedHashMap<>(Map.of(
                 "javaRuntime", System.getProperty("java.runtime.version"),
                 "javaVendor", System.getProperty("java.vendor"),
                 "os", System.getProperty("os.name"),
                 "arch", System.getProperty("os.arch"),
                 "locale", Locale.getDefault().toLanguageTag(),
-                "timezone", TimeZone.getDefault().getID());
-        return Map.of(
+                "timezone", TimeZone.getDefault().getID()));
+        if (sqliteVersion != null) environment.put("sqliteVersion", sqliteVersion);
+        var handshake = Map.of(
                 "protocol", version,
                 "fixture", "timeline-proof-v1",
                 "artifact", digest,
                 "frameCap", CAP,
-                "storage", List.of("memory"),
+                "storage", sqliteVersion == null ? List.of("memory") : List.of("memory", "sqlite"),
                 "protectedAccess", false,
                 this == V1 ? "configurationAdmission" : "memoryLifecycle", 1,
                 "documentFormats", this == V1 ? List.of("timeline-simulation/v1") : List.of(),
                 "environment", environment);
+        if (sqliteVersion == null) return handshake;
+        var capabilities = new LinkedHashMap<String, Object>(handshake);
+        capabilities.put("sqliteLifecycle", 1);
+        return capabilities;
+    }
+
+    static String availableSqliteVersion() {
+        try {
+            return TimelineRuntime.sqliteVersion();
+        } catch (IllegalStateException | LinkageError unavailable) {
+            System.err.println("SQLite lifecycle unavailable: " + unavailable.getClass().getSimpleName());
+            return null;
+        }
     }
 
     static JsonNode decodeCommand(byte[] bytes) throws IOException {
@@ -140,7 +159,8 @@ enum HostProtocol {
                     case "inspect-configuration" -> Set.of("wire");
                     case "initialize-document" -> this == V1
                             ? Set.of("wire", "epochMillis")
-                            : Set.of("wire", "epochMillis", "startTimeMs");
+                            : Set.of("wire", "epochMillis", "startTimeMs", "database",
+                                    "observationTargets");
                     case "connect" -> Set.of("session", "role");
                     case "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");

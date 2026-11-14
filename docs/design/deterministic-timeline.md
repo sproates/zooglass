@@ -347,7 +347,8 @@ The bounded memory POC implements the current private protocol in a separate
 with `npm run prepare:timeline` from Workbench. The production service JAR excludes
 that host. The [memory lifecycle profile](../../workbench/docs/timeline-lifecycle.md)
 implements fresh runtime generations and has [bounded native qualification](../../workbench/docs/timeline-memory-qualification.md).
-SQLite recovery and wall adjustments remain planned; execution and tests must
+The private host also supports directly tested SQLite recovery observations;
+SQLite document integration and wall adjustments remain planned. Execution and tests must
 never invoke a Java build.
 
 ### Run results do not blur failures

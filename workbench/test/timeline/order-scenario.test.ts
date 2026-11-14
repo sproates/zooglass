@@ -218,7 +218,10 @@ test("Order oracles reject wrong priority, late replacement, gap completion and 
       );
       const path = join(temporary, `${wrong.id}.json`);
       await writeFile(path, JSON.stringify(document));
-      const run = await runDocument(path, { jar });
+      const run = await runDocument(path, {
+        jar,
+        diagnosticDirectory: temporary,
+      });
       assert.equal(run.outcome, "assertion-failed");
       assert.equal(run.message, `assertion-failed: ${wrong.id}`);
     }

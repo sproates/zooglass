@@ -142,17 +142,13 @@
           "provenance": {},
           "status": {
             "publication": "partial",
-            "missingFields": [
-              "reading"
-            ],
+            "missingFields": ["reading"],
             "missingRequiredFields": [],
             "fields": {
               "reading": {
                 "freshness": "absent",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -220,9 +216,7 @@
               "reading": {
                 "freshness": "stale",
                 "receivedAtMillis": 1700000000010,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -280,9 +274,7 @@
               "reading": {
                 "freshness": "stale",
                 "receivedAtMillis": 1700000000010,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -321,18 +313,14 @@
           },
           "publicationSequence": 1,
           "version": 1,
-          "changedViews": [
-            "stock-view"
-          ],
+          "changedViews": ["stock-view"],
           "targets": [
             {
               "viewId": "stock-view",
               "entityId": "sku-4",
               "status": "accepted",
               "reason": null,
-              "changedFields": [
-                "reading"
-              ],
+              "changedFields": ["reading"],
               "fields": [
                 {
                   "field": "reading",
@@ -361,9 +349,7 @@
               "entityId": "sku-4",
               "status": "accepted",
               "reason": null,
-              "changedFields": [
-                "reading"
-              ],
+              "changedFields": ["reading"],
               "fields": [
                 {
                   "field": "reading",

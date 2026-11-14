@@ -22,3 +22,7 @@ scenarios/timeline-order-recovery/runtime.json
 scenarios/timeline-order-retention/scenario.json
 # Byte-identical pinned Order configuration.
 scenarios/timeline-order-retention/runtime.json
+
+# Generated Sports fixtures; preserve authored serialization and qualified bytes.
+scenarios/timeline-sports/scenario.json
+scenarios/timeline-sports-retention/scenario.json

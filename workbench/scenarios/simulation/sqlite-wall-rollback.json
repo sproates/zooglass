@@ -174,9 +174,7 @@
               "reading": {
                 "freshness": "ageUnknown",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -234,9 +232,7 @@
               "reading": {
                 "freshness": "ageUnknown",
                 "receivedAtMillis": null,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -294,9 +290,7 @@
               "reading": {
                 "freshness": "fresh",
                 "receivedAtMillis": 1700000000015,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -354,9 +348,7 @@
               "reading": {
                 "freshness": "fresh",
                 "receivedAtMillis": 1700000000015,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {
@@ -414,9 +406,7 @@
               "reading": {
                 "freshness": "stale",
                 "receivedAtMillis": 1700000000015,
-                "inputs": [
-                  "warehouse-feed"
-                ]
+                "inputs": ["warehouse-feed"]
               }
             },
             "inputs": {

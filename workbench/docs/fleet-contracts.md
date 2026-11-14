@@ -50,13 +50,13 @@ subscriptions. The browser loads the manifest as descriptive metadata only.
 
 ## What the scenario establishes
 
-| Phase                     | Evidence                                                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initial state             | Each vehicle receives its own position, operation and one-point history.                                                                                |
-| Independent contributions | Only car-17 advances to position 42; only car-28 changes operation to 102. Each retains its other field.                                                |
-| Late arrivals             | Position 41 fills car-17's history without regressing its marker. Operation 101 cannot replace car-28's 102.                                            |
-| Duplicates                | Identical repeats return duplicate receipts retaining the original version and targets; changed payloads at the same publication identity are rejected as `identityConflict`. Both preserve state. History retains one entry per sequence.             |
-| Final isolation           | Exact HTTP snapshots cover both views for all three vehicles after the barriers. Client receipts establish initial state and each changed contribution. |
+| Phase                     | Evidence                                                                                                                                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Initial state             | Each vehicle receives its own position, operation and one-point history.                                                                                                                                                                   |
+| Independent contributions | Only car-17 advances to position 42; only car-28 changes operation to 102. Each retains its other field.                                                                                                                                   |
+| Late arrivals             | Position 41 fills car-17's history without regressing its marker. Operation 101 cannot replace car-28's 102.                                                                                                                               |
+| Duplicates                | Identical repeats return duplicate receipts retaining the original version and targets; changed payloads at the same publication identity are rejected as `identityConflict`. Both preserve state. History retains one entry per sequence. |
+| Final isolation           | Exact HTTP snapshots cover both views for all three vehicles after the barriers. Client receipts establish initial state and each changed contribution.                                                                                    |
 
 An unchanged-state assertion can pass too early. After the late and duplicate
 events, the scenario sends a new car-39 event on **each** source connection.

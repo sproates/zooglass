@@ -97,3 +97,11 @@ scenario `warehouse-retry-and-expiry`, rule `lose-first`, actor
 | 64 twos                                                            | 1/2           |     0 | `2fd34016cde71843be30a1efc8a9b90bbe7a60c8a649a016dcc8e6ec891ef3ab` | lost             |
 | `00000000000000000000000000000000000000000000000000000000000125f6` | 999983/999983 |     0 | `ffffc34eef22cca575ad652474aa24098cc8f4e109b18fa195afa815b5f4b736` | rejected         |
 | same seed                                                          | 999983/999983 |     1 | `85d4d619cc14d73aaa3cceff6aad20ce7683a7b696ff8c4839fc9c86d2776e48` | lost             |
+
+## First bounded release
+
+The [completion contract](timeline-completion.md) retains this action-selected
+receipt-loss model. Directional link stalls and interval-based fault selectors
+are explicitly deferred; they are not missing prerequisites for that release.
+Writer handoff stalls and abortive connection interruption retain their existing
+contracts. No general lossy transport is implied.

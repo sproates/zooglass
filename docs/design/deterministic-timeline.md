@@ -1,11 +1,13 @@
 # Workbench deterministic timeline simulation
 
-Status: accepted design, 13 November 2026. The POC branch now contains shared
-clock/alarm and writer seams plus a fixed-fixture controlled host and agenda.
-See the [bounded proof](../../workbench/docs/timeline-proof.md) for execution,
-validation and limits. The complete simulator described below is not delivered.
-The existing `simulate` command still prints an ordered trace; `integrate` still
-runs against real processes and sockets.
+Status: accepted design, 13 November 2026, with the
+[bounded completion contract](../../workbench/docs/timeline-completion.md) accepted
+14 November. The POC executes versioned documents through the real runtime with
+controlled time/delivery, exact replay, memory/SQLite lifecycle, qualified Fleet
+and authored Order cases. Order qualification, Sports and final CLI/acceptance
+remain outstanding. The completion contract is authoritative for the first bounded
+release's explicit deferrals; broader mechanisms below remain design direction.
+Existing `simulate` and `integrate` commands retain their separate roles.
 
 ## The outcome we want
 
@@ -274,6 +276,9 @@ It does not mean the transport invented a second WebSocket frame.
 
 Do not label arbitrary post-send frame loss as normal WebSocket behaviour. If a
 future lossy message transport is added, give it a separate named contract.
+The broader fault-rule design below is not the first bounded release contract.
+Directional link stalls and interval-based selectors are explicitly deferred by
+the [completion contract](../../workbench/docs/timeline-completion.md).
 Fault rules declare their boundary, direction, selector, active time interval
 and occurrence count. Overlapping rules at one boundary are rejected unless an
 explicit composition order is supplied. Use half-open intervals

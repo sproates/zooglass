@@ -81,3 +81,8 @@ qualification are outside this slice.
 
 [Run bundles](timeline-artifacts.md) add a complete file inventory and manifest
 check before this same re-executing replay path.
+
+The [completion contract](timeline-completion.md) adopts strict-by-default replay
+with an explicit verification-only option for the stable CLI. That policy change
+is pending implementation. Until then, use `--require-passed` when success must
+mean both verified replay and a passed scenario.

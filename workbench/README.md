@@ -894,3 +894,7 @@ restart and checks retained state and freshness continuity.
 [Order retention](docs/timeline-order-retention.md) checks the identity-window
 boundary and durable progress. Full qualification remains separate; the
 real-service demos remain available.
+
+The [timeline completion contract](docs/timeline-completion.md) consolidates current
+evidence, the remaining delivery sequence and the first bounded release's explicit
+limits. Order qualification, Sports and final CLI/acceptance remain outstanding.

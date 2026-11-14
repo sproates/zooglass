@@ -5,7 +5,8 @@ v1 campaigns use [timeline-evidence-20261113](https://github.com/sproates/zoogla
 the v2 memory campaign uses [timeline-memory-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-memory-evidence-20261114),
 SQLite uses [timeline-sqlite-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-sqlite-evidence-20261114),
 fleet uses [timeline-fleet-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-fleet-evidence-20261114),
-and Order uses [timeline-order-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-order-evidence-20261114).
+Order uses [timeline-order-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-order-evidence-20261114),
+and Sports uses [timeline-sports-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-sports-evidence-20261114).
 Git retains this manifest and [SHA256SUMS](SHA256SUMS). The archives contain no
 executables or dependencies. Release assets remain available until explicitly
 changed or deleted; their hashes below pin the exact published bytes.
@@ -18,6 +19,7 @@ changed or deleted; their hashes below pin the exact published bytes.
 | [macos-arm64-sqlite-restart-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sqlite-evidence-20261114/macos-arm64-sqlite-restart-20261114.tar.gz)     |    85 |          2,445,773 | `7462d391bc7fb4ccc89f11219e69cf12ffe9c7fb23dc8ac3de70ca7ca3b66cf2` |
 | [macos-arm64-fleet-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-fleet-evidence-20261114/macos-arm64-fleet-20261114.tar.gz)                        |    50 |         41,306,112 | `5ae53aa66c232c33c53ce409cf0cce5110fbc0ff9f40338d6a2a3111b87fba11` |
 | [macos-arm64-order-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-order-evidence-20261114/macos-arm64-order-20261114.tar.gz)                        |    78 |         79,200,269 | `833a0415701e098faebac4d2395eee6eeb1db77aa336580e05baa27af2a8372a` |
+| [macos-arm64-sports-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sports-evidence-20261114/macos-arm64-sports-20261114.tar.gz)                     |    52 |         58,665,716 | `012db06c1c7c537eea65a1eaebe3c55eabde9d4d362f13df068d91e978d822e4` |
 
 ## Provenance
 
@@ -69,6 +71,16 @@ independent audit script/report. The audit also checks locally retained executab
 artifacts; it is not an archive-only replay command. Preliminary smoke logs remain
 labelled separately from qualification. See [Order results and limits](../docs/timeline-order-qualification.md).
 
+The Sports release targets tested Workbench commit
+[`f45cbed3da1b01b22069d294b9535051a672d587`](https://github.com/sproates/zooglass/commit/f45cbed3da1b01b22069d294b9535051a672d587).
+Its isolated control uses unchanged Java sources from `bf51047`.
+The archive retains all six campaign runs, three actual-runtime control executions,
+ordinary-service observations, pinned inputs and independent pre-execution ledger,
+validation logs, both portable bundles and strict replays, and the independent
+audit script/report. The audit also checks the matching checkout and locally
+retained executable artifacts; it is not an archive-only replay command.
+See [Sports results and limits](../docs/timeline-sports-qualification.md).
+
 ## Download and verify
 
 Using GitHub CLI, from `workbench/`:
@@ -81,6 +93,7 @@ gh release download timeline-memory-evidence-20261114 --repo sproates/zooglass -
 gh release download timeline-sqlite-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-fleet-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-order-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
+gh release download timeline-sports-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 (cd "$evidence_dir" && shasum -a 256 -c "$checksums")
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-timeline-20261113.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/linux-arm64-timeline-20261113.tar.gz"
@@ -88,6 +101,7 @@ python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-memory-lif
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-sqlite-restart-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-fleet-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-order-20261114.tar.gz"
+python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-sports-20261114.tar.gz"
 ```
 
 The download links also work in a browser. Check the downloaded bytes against

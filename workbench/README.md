@@ -892,12 +892,12 @@ orders and the completed demo's source/control inputs with independent expected
 outcomes. [Order recovery](docs/timeline-order-recovery.md) separately admits
 restart and checks retained state and freshness continuity.
 [Order retention](docs/timeline-order-retention.md) checks the identity-window
-boundary and durable progress. Full qualification remains separate; the
+boundary and durable progress. Qualification evidence is linked below; the
 real-service demos remain available.
 
 The [timeline completion contract](docs/timeline-completion.md) consolidates current
 evidence, the remaining delivery sequence and the first bounded release's explicit
-limits. Sports qualification and final CLI/acceptance remain outstanding.
+limits. Final CLI/guarantee work and aggregate acceptance remain outstanding.
 
 [Order qualification](docs/timeline-order-qualification.md) provides the finite
 ordinary/recovery/retention campaign, actual wrong-priority/clock controls and
@@ -905,4 +905,6 @@ scoped ordinary-service comparison. See its acceptance section for evidence stat
 
 [Bounded Sports execution](docs/timeline-sports-host.md) admits the fact strategies
 and real retirement endpoint with complete acknowledgements, cancellation and
-replay. Representative Sports scenarios and qualification remain a separate gate.
+replay. [Sports qualification](docs/timeline-sports-qualification.md) covers the
+full pinned two-cycle inputs, separate retention boundaries, six fresh-process
+runs, an actual wrong-revision runtime control and scoped ordinary-service parity.

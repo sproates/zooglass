@@ -13,8 +13,10 @@ retains two complete cycles. Separate [recovery](timeline-order-recovery.md) and
 boundaries. [Order qualification](timeline-order-qualification.md) now records
 the finite campaign, runtime controls, strict replay and scoped service parity.
 [Bounded Sports support](timeline-sports-host.md) now admits fact strategies and
-the retirement endpoint. Representative Sports scenarios and qualification remain
-outstanding.
+the retirement endpoint. [Sports qualification](timeline-sports-qualification.md)
+now records the authored ordinary/retention scenarios, finite campaign, wrong-revision
+control, strict replays and scoped service parity. The gates below are historical
+requirements now satisfied within the documented bounded profiles.
 
 ## Baseline and observed admission
 

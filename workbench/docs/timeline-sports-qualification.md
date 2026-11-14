@@ -81,3 +81,27 @@ Strict replay, an independent raw-evidence audit and a retained release archive
 complete the qualification. [Evidence hashes](../evidence/README.md) pin downloadable
 raw data; matching executable artifacts and the recorded environment are still
 required for replay. No cross-platform trace equality is inferred.
+
+## Qualification results
+
+Tested tooling commit `f45cbed` passed the declared six-run campaign on macOS arm64:
+801 authored assertions and 6,948 trace records, with exact equality within each
+group under 1,520 measured Node pauses and eight JVM pauses. Ordinary Sports has
+1,973 records per run; retention has 343. Expectations were independently reviewed
+and committed at `b982c5c` before execution; both fixtures passed unchanged on their
+first run.
+
+The actual wrong-revision runtime failed the frozen correction receipt at virtual
+54,010 ms in both timing modes; the normal runtime passed. Service parity passed
+22 barriers and 66 HTTP projections, with complete source/control receipts and a
+spontaneous expiry after the original 15-second deadline, within the five-second
+observation bound. All 204 production classes
+match across the service, timeline host and prepared normal control runtime.
+Strict portable replays verified all 1,973 and 343 records with passing outcomes.
+
+The [retained evidence manifest](../evidence/README.md) links the six raw runs,
+control executions, service observations, portable bundles, strict replays and
+independent audit. Focused fixture, control, parity and campaign checks pass, as
+do type, lint, formatting and source-map checks. This closes representative Sports
+qualification within the stated profile; it does not extend restart admission,
+qualify browser behaviour or claim cross-platform equality.

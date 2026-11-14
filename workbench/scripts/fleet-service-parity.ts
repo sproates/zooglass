@@ -7,6 +7,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import WebSocket from "ws";
+import { ObservedSocket } from "./service-parity-socket.js";
 import { unzipSync } from "fflate";
 import { startZooGlassSession } from "../src/service/zooglass-session.js";
 import {
@@ -28,76 +29,6 @@ export function httpSnapshot(name: StateName) {
   const { type: _type, ...snapshot } = frame(name);
   void _type;
   return snapshot;
-}
-
-/** Event-driven socket barrier with bounded cancellation and raw wire retention. */
-class ObservedSocket {
-  readonly socket: WebSocket;
-  readonly raw: string[] = [];
-  readonly sent: string[] = [];
-  readonly messages: unknown[] = [];
-  constructor(url: string) {
-    this.socket = new WebSocket(url);
-    this.socket.on("message", (bytes) => {
-      const raw = bytes.toString();
-      this.raw.push(raw);
-      try {
-        this.messages.push(JSON.parse(raw));
-      } catch {
-        this.messages.push(raw);
-      }
-    });
-    this.socket.on("error", () => {});
-  }
-  async wait(predicate: () => boolean, signal: AbortSignal, label: string) {
-    signal.throwIfAborted();
-    if (predicate()) return;
-    await new Promise<void>((done, fail) => {
-      const cleanup = () => {
-        clearTimeout(timer);
-        this.socket
-          .off("message", check)
-          .off("open", check)
-          .off("close", closed)
-          .off("error", failed);
-        signal.removeEventListener("abort", aborted);
-      };
-      const failed = (error: unknown) => {
-        cleanup();
-        fail(error);
-      };
-      const check = () => {
-        try {
-          if (predicate()) {
-            cleanup();
-            done();
-          }
-        } catch (error) {
-          failed(error);
-        }
-      };
-      const closed = () =>
-        failed(new Error(`Socket closed waiting for ${label}`));
-      const aborted = () => failed(signal.reason);
-      const timer = setTimeout(
-        () => failed(new Error(`Timed out waiting for ${label}`)),
-        5000,
-      );
-      this.socket
-        .on("message", check)
-        .on("open", check)
-        .on("close", closed)
-        .on("error", failed);
-      signal.addEventListener("abort", aborted, { once: true });
-      if (signal.aborted) aborted();
-      else check();
-    });
-  }
-  send(body: unknown) {
-    const raw = JSON.stringify(body);
-    this.sent.push(raw);
-    this.socket.send(raw);
-  }
 }
 
 export async function runFleetServiceParity(
@@ -166,6 +97,7 @@ export async function runFleetServiceParity(
   }
   const provenancePaths = [
     fileURLToPath(import.meta.url),
+    fileURLToPath(new URL("service-parity-socket.ts", import.meta.url)),
     fileURLToPath(
       new URL("../scenarios/timeline-fleet/author.ts", import.meta.url),
     ),

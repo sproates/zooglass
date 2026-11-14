@@ -43,7 +43,12 @@ export async function serviceFixture(
     async started() {
       return JSON.parse(
         await readFile(join(directory, "started.json"), "utf8"),
-      ) as { pid: number; requestedPort: number; config: string };
+      ) as {
+        pid: number;
+        requestedPort: number;
+        config: string;
+        database?: string;
+      };
     },
   };
 }

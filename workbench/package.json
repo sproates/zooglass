@@ -62,7 +62,11 @@
     "timeline:fleet-repeat": "node --import tsx scripts/fleet-repeat.ts",
     "prepare:fleet-strategy-control": "python3 scripts/prepare-fleet-strategy-mutation.py",
     "timeline:fleet-strategy-control": "node --import tsx scripts/fleet-strategy-check.ts",
-    "timeline:fleet-service-parity": "node --import tsx scripts/fleet-service-parity.ts"
+    "timeline:fleet-service-parity": "node --import tsx scripts/fleet-service-parity.ts",
+    "timeline:order-repeat": "node --import tsx scripts/order-repeat.ts",
+    "prepare:order-controls": "python3 scripts/prepare-order-controls.py",
+    "timeline:order-controls": "node --import tsx scripts/order-control-check.ts",
+    "timeline:order-service-parity": "node --import tsx scripts/order-service-parity.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

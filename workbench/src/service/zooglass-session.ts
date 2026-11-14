@@ -1,6 +1,6 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
@@ -30,6 +30,8 @@ export interface ZooGlassSessionOptions {
   protectedAccess?: ProtectedSessionSettings;
   /** Exact runtime document; mutually exclusive with generated/protected configuration. */
   runtimeConfigurationPath?: string;
+  /** Explicit caller-owned SQLite file; the caller owns its directory lifetime. */
+  databasePath?: string;
 }
 
 /** Start one owned service. A failed start cleans up before rejecting. */
@@ -126,6 +128,12 @@ export async function startZooGlassSession(
   try {
     signal.throwIfAborted();
     if (
+      options.databasePath !== undefined &&
+      !isAbsolute(options.databasePath)
+    ) {
+      throw new Error("databasePath must be absolute.");
+    }
+    if (
       options.runtimeConfigurationPath !== undefined &&
       (options.views !== undefined ||
         options.sources !== undefined ||
@@ -197,6 +205,9 @@ export async function startZooGlassSession(
       "--server.address=127.0.0.1",
       "--server.port=0",
       "--zooglass.report-port=true",
+      ...(options.databasePath === undefined
+        ? []
+        : [`--zooglass.database=${options.databasePath}`]),
     ];
 
     const startedChild = spawn(java, args, {

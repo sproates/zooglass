@@ -53,6 +53,7 @@ export function restartEvidence(
     const record = object(parseJson(line), "event");
     return {
       kind: record.kind,
+      actor: record.actor,
       id: record.eventId,
       parent: record.parentId,
       causes: record.causes === undefined ? [] : list(record.causes, "causes"),

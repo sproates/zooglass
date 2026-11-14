@@ -957,3 +957,23 @@ flowchart LR
 without widening the profile or implementing retention in Workbench. Sparse inputs
 cross the configured numeric window; they do not claim receipt-count pressure or
 long-running resource qualification.
+
+## Order qualification
+
+```mermaid
+flowchart LR
+  campaign["scripts/order-repeat.ts"] -->|reuse bounded fresh-process scheduling| runner["scripts/restart-campaign.ts"]
+  campaign -->|check literal scenarios and measured perturbations| checks["scripts/order-campaign-checks.ts"]
+  controls["scripts/order-control-check.ts"] -->|verify actual class changes and semantic failures| preparation["scripts/prepare-order-controls.py"]
+  controls -->|reuse artifact and run comparison checks| evidence["scripts/generation-clock-check.ts"]
+  parity["scripts/order-service-parity.ts"] -->|independent projected states| oracle["scripts/order-parity-oracle.ts"]
+  parity -->|observe raw socket frames| socket["scripts/service-parity-socket.ts"]
+  fleet["scripts/fleet-service-parity.ts"] -->|same observation helper| socket
+  parity -->|own service with explicit SQLite path| session["service/zooglass-session.ts"]
+```
+
+[Order qualification](timeline-order-qualification.md) reuses the campaign owner
+with explicit bounded workload settings. Preparation is a separate command;
+execution never builds artifacts. Service parity preserves raw observations and
+compares only declared common semantics, with spontaneous alarm evidence before
+HTTP snapshots. The temporary SQLite path belongs to the parity runner.

@@ -12,7 +12,6 @@ import type {
 import { workbenchIdentity } from "../src/timeline/manifest.js";
 import { evidenceV2 } from "../src/timeline/evidence-versions.js";
 
-const qualificationRepetitions = 20;
 const concurrency = 3;
 const cwd = fileURLToPath(new URL("../", import.meta.url));
 const childScript = "scripts/document-campaign-child.ts";
@@ -22,12 +21,15 @@ export type RestartCampaignGroup<Expectation> = {
   path: string;
   bytes: string;
   configuration?: string;
+  profile?: string;
   expected: Expectation;
 };
 type RestartCampaign<Expectation> = {
   format: string;
   command: string;
   profile?: string;
+  qualificationRepetitions?: 3;
+  watchdogMs?: 120_000;
   files: string[];
   sqlite?: boolean;
   inputs: (directory: string) => Promise<{
@@ -63,7 +65,7 @@ function campaignMode(iteration: number): CampaignMode {
     : { hostDelay: 90, paced: false, idlePauseMs: 0, jvmPauseMs: 70 };
 }
 
-async function freshRun(args: string[]) {
+async function freshRun(args: string[], watchdogMs: number) {
   await new Promise<void>((resolveRun, reject) => {
     const child = spawn(process.execPath, args, {
       cwd,
@@ -89,7 +91,7 @@ async function freshRun(args: string[]) {
       timedOut = true;
       killGroup();
       child.stderr.destroy();
-    }, 30_000);
+    }, watchdogMs);
     child.once("error", (error) => {
       processError = error;
       killGroup();
@@ -115,6 +117,8 @@ async function freshRun(args: string[]) {
 export async function runRestartCampaign<Expectation>(
   campaign: RestartCampaign<Expectation>,
 ) {
+  const qualificationRepetitions = campaign.qualificationRepetitions ?? 20;
+  const watchdogMs = campaign.watchdogMs ?? 30_000;
   const runnerFiles = [
     ...campaign.files,
     "scripts/restart-campaign.ts",
@@ -126,7 +130,7 @@ export async function runRestartCampaign<Expectation>(
   const [
     folder,
     jarPath = "../zooglass/simulation-host/target/zooglass-simulation.jar",
-    count = "20",
+    count = String(qualificationRepetitions),
     ...extra
   ] = process.argv.slice(2);
   if (
@@ -135,7 +139,7 @@ export async function runRestartCampaign<Expectation>(
     (count !== "2" && count !== String(qualificationRepetitions))
   )
     throw new Error(
-      `Usage: ${campaign.command} NEW_DIRECTORY [PREPARED_JAR] [20|2(smoke)]`,
+      `Usage: ${campaign.command} NEW_DIRECTORY [PREPARED_JAR] [${qualificationRepetitions}|2(smoke)]`,
     );
   if (process.platform === "win32")
     throw new Error(
@@ -200,6 +204,7 @@ export async function runRestartCampaign<Expectation>(
   const rows: Row[] = [];
   const failures: (Row & { error: string; evidenceError?: string })[] = [];
   let environment: DocumentRun["environment"] | undefined;
+  const environments = new Map<string, DocumentRun["environment"]>();
   let error: string | undefined;
 
   async function run({ group, iteration }: Job) {
@@ -229,7 +234,7 @@ export async function runRestartCampaign<Expectation>(
     let raw: string | undefined;
     try {
       if (diagnosticDirectory) await mkdir(diagnosticDirectory);
-      await freshRun(args);
+      await freshRun(args, watchdogMs);
       raw = decode(await boundedFile(output));
       row.runSha256 = sha(raw);
       const result = campaign.check(
@@ -254,10 +259,11 @@ export async function runRestartCampaign<Expectation>(
         retained.wire,
         "retained configuration identity drift",
       );
+      const profile = group.profile ?? campaign.profile ?? evidenceV2.profile;
       assert.deepEqual(
         result.execution,
         {
-          profile: campaign.profile ?? evidenceV2.profile,
+          profile,
           artifactSha256,
           workbenchSha256,
           configurationSha256: retained.sha256,
@@ -277,13 +283,19 @@ export async function runRestartCampaign<Expectation>(
         );
         await rmdir(diagnosticDirectory);
       }
+      assert.equal(
+        result.environment.executor,
+        `${profile}/1`,
+        "campaign executor identity drift",
+      );
       if (environment)
         assert.deepEqual(
           result.environment,
-          environment,
+          { ...environment, executor: result.environment.executor },
           "campaign environment drift",
         );
       else environment = result.environment;
+      environments.set(profile, result.environment);
       if (iteration === 0) baselines.set(group.id, result);
       rows.push(row);
       if (rows.length % 10 === 0)
@@ -385,18 +397,24 @@ export async function runRestartCampaign<Expectation>(
     workbenchSha256,
     toolFiles,
     environment,
+    ...(environments.size > 1
+      ? { environments: Object.fromEntries(environments) }
+      : {}),
     ...(typeof configuration === "string"
       ? { configuration: configurationEvidence[0] }
       : { configurations: configurationEvidence }),
     repetitions,
+    qualificationRepetitions,
+    watchdogMs,
     concurrency,
     expectedRuns,
     completedRuns: rows.length,
     complete,
     qualified,
     ...(error ? { error } : {}),
-    groups: groups.map(({ id, filename, bytes, expected }) => ({
+    groups: groups.map(({ id, filename, bytes, expected, profile }) => ({
       id,
+      profile: profile ?? campaign.profile ?? evidenceV2.profile,
       input: `inputs/${filename}`,
       inputSha256: sha(bytes),
       expected,

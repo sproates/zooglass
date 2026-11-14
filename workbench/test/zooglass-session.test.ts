@@ -152,3 +152,23 @@ test(
     );
   },
 );
+
+test(
+  "explicit database path is absolute and passed as one argument",
+  processTestOptions,
+  async (t) => {
+    await assert.rejects(
+      startZooGlassSession({ databasePath: "relative.sqlite" }),
+      /databasePath must be absolute/,
+    );
+    const fixture = await serviceFixture(t, "healthy");
+    const databasePath = `${fixture.directory}/store with spaces.sqlite`;
+    const session = await startZooGlassSession({
+      serviceDirectory: fixture.directory,
+      javaExecutable: fixture.javaExecutable,
+      databasePath,
+    });
+    t.after(() => session.close());
+    assert.equal((await fixture.started()).database, databasePath);
+  },
+);

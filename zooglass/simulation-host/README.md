@@ -6,8 +6,8 @@ and the bounded `memory-arrival-v1` document profile. It does not start Spring o
 open a socket listener. A private protocol 2 additionally supports the
 [runtime generation foundation](../../workbench/docs/timeline-generations.md).
 Workbench now uses it for [v2 memory stop/start documents](../../workbench/docs/timeline-lifecycle.md).
-Private protocol 2 also exposes the directly tested SQLite recovery foundation.
-SQLite document integration/replay and protected access remain planned.
+Private protocol 2 also supports [SQLite document recovery](../../workbench/docs/timeline-sqlite.md),
+with installed snapshots and read-only observations. Protected access remains planned.
 
 ## Prepare and run
 

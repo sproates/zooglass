@@ -1,0 +1,34 @@
+{
+  "contractVersion": 2,
+  "storage": "sqlite",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "warehouse-feed",
+      "epoch": "day-1"
+    }
+  ],
+  "views": [
+    {
+      "id": "stock-view",
+      "fields": {
+        "reading": {
+          "sourceId": "warehouse-feed",
+          "type": "stock",
+          "mode": "arrival",
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 30
+          }
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "slowClient": "disconnectOnOverflow",
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 65536
+  }
+}

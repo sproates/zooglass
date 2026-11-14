@@ -11,7 +11,7 @@ import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
 import { parseTrace } from "./trace-contract.js";
-import { choice, integer, object, text } from "./validation.js";
+import { choice, integer, list, object, text } from "./validation.js";
 
 const sha = (text: string | Buffer) =>
   createHash("sha256").update(text).digest("hex");
@@ -60,11 +60,44 @@ export function parseReplay(raw: string) {
   const configurationHash = sha(wire);
   if (object(scenario.document.runtime, "runtime").sha256 !== configurationHash)
     throw new Error("invalid-replay: configuration hash mismatch");
-  const trace = parseTrace(string(saved.trace, "trace"));
+  const trace = parseTrace(
+    string(saved.trace, "trace"),
+    scenario.observationTargets,
+    scenario.storage,
+  );
   if (trace.header.format !== versions.trace)
     throw new Error("invalid-replay: run/trace version mismatch");
   if (trace.canonical !== saved.trace)
     throw new Error("invalid-replay: noncanonical trace");
+  if (versions.protocol === 2) {
+    const declared = list(scenario.document.assertions, "assertions")
+      .map((value) => object(value, "assertion"))
+      .filter((assertion) => assertion.kind === "runtime-snapshot")
+      .map((assertion) => ({
+        assertion,
+        atMs: integer(assertion.atMs, "assertion.atMs"),
+      }))
+      .sort((a, b) => a.atMs - b.atMs);
+    if (
+      trace.outcome === "passed" &&
+      trace.runtimeAssertions.length !== declared.length
+    )
+      throw new Error("invalid-replay: missing runtime snapshot assertions");
+    for (const [index, { atMs, data }] of trace.runtimeAssertions.entries()) {
+      const expected = declared[index];
+      if (
+        !expected ||
+        atMs !== expected.atMs ||
+        data.assertionId !== expected.assertion.id ||
+        data.viewId !== expected.assertion.viewId ||
+        data.entityId !== expected.assertion.entityId ||
+        encodeJson(data.expected) !== encodeJson(expected.assertion.expected)
+      )
+        throw new Error(
+          "invalid-replay: runtime snapshot assertion differs from scenario",
+        );
+    }
+  }
   if (
     trace.header.scenarioSha256 !== sha(scenario.canonical) ||
     trace.header.untilMs !== integer(scenario.document.untilMs, "untilMs") ||
@@ -84,7 +117,11 @@ export function parseReplay(raw: string) {
     execution.configurationSha256 !== configurationHash
   )
     throw new Error("invalid-replay: execution identity mismatch");
-  object(saved.environment, "environment");
+  const environment = object(saved.environment, "environment");
+  if (scenario.storage === "sqlite") {
+    const java = object(environment.java, "environment.java");
+    text(java.sqliteVersion, "environment.java.sqliteVersion");
+  }
   return {
     saved,
     scenario,

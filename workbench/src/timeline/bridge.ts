@@ -54,6 +54,7 @@ export class Bridge {
   }[] = [];
   configurationAdmission = 0;
   sqliteLifecycle: 0 | 1 = 0;
+  installedObservations: 0 | 1 = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
   private readonly child: ChildProcessWithoutNullStreams;
@@ -167,8 +168,10 @@ export class Bridge {
         bridge.configurationAdmission = 1;
         bridge.documentFormats = Object.freeze([...handshake.documentFormats]);
       }
-      if (handshake.protocol === 2)
+      if (handshake.protocol === 2) {
         bridge.sqliteLifecycle = handshake.sqliteLifecycle ?? 0;
+        bridge.installedObservations = handshake.installedObservations ?? 0;
+      }
       bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {
@@ -335,7 +338,8 @@ export class Bridge {
         )
           throw new Error("Mismatched generation response clocks");
         const targets =
-          operation.op === "initialize-document"
+          operation.op === "initialize-document" ||
+          operation.op === "observe-installed"
             ? operation.observationTargets
             : undefined;
         if (targets !== undefined) {

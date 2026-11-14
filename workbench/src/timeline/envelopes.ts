@@ -29,7 +29,11 @@ function stream(value: Json | undefined, path: string) {
   for (const name of Object.keys(data)) text(data[name], `${path}.${name}`);
 }
 
-export function receiptEnvelope(value: Json | undefined, path: string) {
+export function receiptEnvelope(
+  value: Json | undefined,
+  path: string,
+  storage?: "memory" | "sqlite",
+) {
   const data = object(value, path, [
     "status",
     "reason",
@@ -40,7 +44,11 @@ export function receiptEnvelope(value: Json | undefined, path: string) {
     "targets",
   ]);
   const status = choice(data.status, `${path}.status`, [
-    "applied",
+    ...(storage === "memory"
+      ? ["applied"]
+      : storage === "sqlite"
+        ? ["committed"]
+        : ["applied", "committed"]),
     "duplicate",
     "rejected",
     "failed",
@@ -49,7 +57,11 @@ export function receiptEnvelope(value: Json | undefined, path: string) {
   if (data.stream !== null) stream(data.stream, `${path}.stream`);
   counter(data.publicationSequence, `${path}.publicationSequence`, true);
   counter(data.version, `${path}.version`, true);
-  if (status === "applied" || status === "duplicate") {
+  if (
+    status === "applied" ||
+    status === "committed" ||
+    status === "duplicate"
+  ) {
     stream(data.stream, `${path}.stream`);
     counter(data.publicationSequence, `${path}.publicationSequence`);
     counter(data.version, `${path}.version`);
@@ -210,7 +222,55 @@ export function snapshotEnvelope(
       );
     }
   }
+  return data;
 }
+
+export type ObservationTarget = { viewId: string; entityId: string };
+
+export function observationTarget(
+  value: { [key: string]: Json },
+  path: string,
+): ObservationTarget {
+  return {
+    viewId: text(value.viewId, `${path}.viewId`),
+    entityId: text(value.entityId, `${path}.entityId`),
+  };
+}
+
+export function installedSnapshot(
+  value: Json | undefined,
+  path: string,
+  target?: ObservationTarget,
+) {
+  const snapshot = snapshotEnvelope(value, path);
+  if (
+    target &&
+    (snapshot.viewId !== target.viewId || snapshot.entityId !== target.entityId)
+  )
+    invalid(path, "installed snapshot does not match observation target");
+  return snapshot;
+}
+
+export function runtimeObservation(
+  value: Json | undefined,
+  path: string,
+  target?: ObservationTarget,
+) {
+  const observation = object(value, path);
+  const outcome = choice(observation.outcome, `${path}.outcome`, [
+    "available",
+    "runtime-unavailable",
+  ]);
+  object(
+    observation,
+    path,
+    outcome === "available" ? ["outcome", "snapshot"] : ["outcome"],
+  );
+  if (outcome === "available")
+    installedSnapshot(observation.snapshot, `${path}.snapshot`, target);
+  return observation;
+}
+
 export function clientEnvelope(value: Json | undefined, path: string) {
   const data = object(value, path);
   const type = choice(data.type, `${path}.type`, [
@@ -240,11 +300,11 @@ export function observationList(
   value: Json | undefined,
   path: string,
   kind: string,
+  storage?: "memory" | "sqlite",
 ) {
-  list(value, path).forEach((item, i) =>
-    (kind === "client-frames" ? clientEnvelope : receiptEnvelope)(
-      item,
-      `${path}[${i}]`,
-    ),
-  );
+  list(value, path).forEach((item, i) => {
+    const itemPath = `${path}[${i}]`;
+    if (kind === "client-frames") clientEnvelope(item, itemPath);
+    else receiptEnvelope(item, itemPath, storage);
+  });
 }

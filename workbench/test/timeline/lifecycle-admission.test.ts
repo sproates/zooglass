@@ -140,7 +140,8 @@ test("v2 never admits service controls or recovery fields through the v1 contrac
     /\.mode: required field/,
   );
   assert.throws(
-    () => admit([], { observationTargets: [] }),
+    () =>
+      admit([], { format: "timeline-simulation/v1", observationTargets: [] }),
     /observationTargets: unknown field/,
   );
   assert.throws(
@@ -152,6 +153,7 @@ test("v2 never admits service controls or recovery fields through the v1 contrac
   assert.throws(
     () =>
       admit([], {
+        format: "timeline-simulation/v1",
         runtime: {
           ...document.runtime,
           sha256: "a".repeat(64),
@@ -284,7 +286,7 @@ test("lifecycle trace data is versioned, closed and carries only actual initiali
   );
   assert.throws(
     () => validate("runtime-initialized", { ...initialized, snapshots: [{}] }),
-    /snapshots: expected array with at most 0/,
+    /snapshots\[0\]\.data: required field/,
   );
   assert.throws(
     () =>

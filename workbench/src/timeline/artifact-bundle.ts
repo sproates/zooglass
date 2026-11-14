@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { closeSync, openSync, writeSync } from "node:fs";
-import { lstat, mkdir, readdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { lstat, mkdir, readdir, realpath, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { boundedFile, decode, loadDocument } from "./admission.js";
 import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
@@ -75,16 +76,45 @@ async function writeFailure(directory: string, message: string) {
   }
 }
 
+async function bundleStoreParent(
+  directory: string,
+  storage: "memory" | "sqlite",
+) {
+  if (storage === "memory") return undefined;
+  const [bundle, temporary] = await Promise.all([
+    realpath(directory),
+    realpath(tmpdir()),
+  ]);
+  const difference = relative(bundle, temporary);
+  if (
+    !difference ||
+    (!isAbsolute(difference) &&
+      difference !== ".." &&
+      !difference.startsWith(`..${sep}`))
+  )
+    throw new Error(
+      "SQLite temporary directory must be outside the evidence bundle",
+    );
+  return temporary;
+}
+
 /** Exclusive destination; trace is appended live and manifest is the last completeness marker. */
 export async function recordBundle(
   scenarioPath: string,
   directory: string,
-  options: Omit<DocumentOptions, "observeRecord" | "admitReplay">,
+  options: Omit<
+    DocumentOptions,
+    "observeRecord" | "admitReplay" | "diagnosticDirectory"
+  >,
 ) {
   await mkdir(directory);
   let traceFile: number | undefined;
   try {
     const input = await loadDocument(scenarioPath);
+    const diagnosticDirectory = await bundleStoreParent(
+      directory,
+      input.scenario.storage,
+    );
     await writeFile(
       join(directory, "scenario.json"),
       input.scenario.canonical,
@@ -97,6 +127,7 @@ export async function recordBundle(
     traceFile = fd;
     const result = await executeDocument(input, {
       ...options,
+      diagnosticDirectory,
       observeRecord: (line) => appendTrace(fd, line),
     });
     traceFile = undefined;
@@ -122,7 +153,7 @@ export async function recordBundle(
           format: versions.bundle,
           versions: bundleVersions(versions),
           source: provenance(),
-          initialState: { storage: "memory", state: "empty" },
+          initialState: { storage: input.scenario.storage, state: "empty" },
           outcome: result.outcome,
           execution: result.execution,
           environment: result.environment,
@@ -186,11 +217,6 @@ export async function readBundle(directory: string) {
     parseJson(JSON.stringify(bundleVersions(versions))),
     "versions",
   );
-  same(
-    manifest.initialState,
-    { storage: "memory", state: "empty" },
-    "initial state",
-  );
   const source = object(manifest.source, "source", [
     "revision",
     "trackedChanges",
@@ -214,6 +240,11 @@ export async function readBundle(directory: string) {
   const run = parseReplay(decode(bytes["run.json"]));
   if (run.versions.bundle !== manifest.format)
     throw new Error("invalid-bundle: manifest/run version mismatch");
+  same(
+    manifest.initialState,
+    { storage: run.scenario.storage, state: "empty" },
+    "initial state",
+  );
   same(manifest.outcome, run.outcome, "outcome");
   // Lossless parsed metadata is compared directly, without converting Decimal objects.
   if (
@@ -232,7 +263,12 @@ export async function readBundle(directory: string) {
 
 export async function replayBundle(
   directory: string,
-  options: DocumentOptions,
+  options: Omit<DocumentOptions, "diagnosticDirectory">,
 ) {
-  return replaySaved(await readBundle(directory), options);
+  const run = await readBundle(directory);
+  const diagnosticDirectory = await bundleStoreParent(
+    directory,
+    run.scenario.storage,
+  );
+  return replaySaved(run, { ...options, diagnosticDirectory });
 }

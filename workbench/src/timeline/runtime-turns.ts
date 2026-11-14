@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
 import type { Bridge, Effect, Response, SessionEffect } from "./bridge.js";
 import { RuntimeGenerations } from "./runtime-generations.js";
+import { installedSnapshot, type ObservationTarget } from "./envelopes.js";
 import { parseJson, type Json } from "./json.js";
 import { SemanticTrace, metadataJson as j } from "./semantic-trace.js";
+import { object } from "./validation.js";
 
 export type PublicationAttempt = { action: string; attempt: number };
 
@@ -25,6 +27,7 @@ export class RuntimeTurns {
       parent: string,
       publication?: PublicationAttempt,
     ) => void,
+    private readonly observationTargets: readonly ObservationTarget[] = [],
   ) {}
   get lifecycle() {
     return this.bridge instanceof RuntimeGenerations;
@@ -41,19 +44,73 @@ export class RuntimeTurns {
     assert.ok(this.bridge instanceof RuntimeGenerations);
     this.consumeExecutionTurn();
     const response = await this.bridge.start(this.agenda.current[0]);
+    const snapshots = response.snapshots ?? [];
+    assert.equal(
+      snapshots.length,
+      this.observationTargets.length,
+      "initialized snapshots match the count of declared observation targets",
+    );
     const initialized = this.event(
       "runtime-initialized",
-      j({
-        startTimeMs: response.timeMs,
-        wallMillis: response.wallMillis,
-        monotonicMs: response.monotonicMs,
-        snapshots: [],
-      }),
+      {
+        ...object(
+          j({
+            startTimeMs: response.timeMs,
+            wallMillis: response.wallMillis,
+            monotonicMs: response.monotonicMs,
+          }),
+          "runtime initialization",
+        ),
+        snapshots: snapshots.map((wire, index) =>
+          installedSnapshot(
+            parseJson(wire),
+            `initialized snapshot[${index}]`,
+            this.observationTargets[index],
+          ),
+        ),
+      },
       parent,
       [],
       response.runtimeGeneration,
     );
     this.accept(response, initialized);
+  }
+  async observeInstalled(target: ObservationTarget) {
+    assert.ok(this.bridge instanceof RuntimeGenerations && this.bridge.current);
+    this.consumeExecutionTurn();
+    const response = await this.bridge.command(
+      this.bridge.current,
+      this.agenda.current[0],
+      {
+        op: "observe-installed",
+        observationTargets: [target],
+      },
+    );
+    assert.deepEqual(
+      response.effects,
+      [],
+      "installed observation must not emit runtime effects",
+    );
+    assert.equal(
+      response.pendingTasks,
+      this.last?.pendingTasks ?? 0,
+      "installed observation must not change pending tasks",
+    );
+    assert.equal(
+      response.heldFrames,
+      this.last?.heldFrames ?? 0,
+      "installed observation must not change held frames",
+    );
+    assert.equal(
+      response.snapshots?.length,
+      1,
+      "installed observation returns its sole target",
+    );
+    return installedSnapshot(
+      parseJson(response.snapshots![0]),
+      "installed snapshot",
+      target,
+    );
   }
   async stop(parent: string, mode: "orderly" | "abrupt") {
     assert.ok(this.bridge instanceof RuntimeGenerations && this.bridge.current);

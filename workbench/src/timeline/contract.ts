@@ -7,7 +7,12 @@ import {
   stopModes,
   type ActorActionKind,
 } from "./event-schema.js";
-import { observationList } from "./envelopes.js";
+import {
+  observationList,
+  observationTarget,
+  runtimeObservation,
+  type ObservationTarget,
+} from "./envelopes.js";
 import {
   documentEvidenceVersions,
   evidenceV1,
@@ -42,9 +47,16 @@ export const capabilities = [
 export const lifecycleCapabilities = [
   ...capabilities,
   "memory-lifecycle",
+  "runtime-observations",
+] as const;
+export const sqliteLifecycleCapabilities = [
+  ...lifecycleCapabilities,
+  "sqlite",
 ] as const;
 export type TimelineDocument = {
   format: typeof format | typeof lifecycleFormat;
+  storage: "memory" | "sqlite";
+  observationTargets: ObservationTarget[];
   canonical: string;
   document: { [key: string]: Json };
   requiredCapabilities: string[];
@@ -55,6 +67,8 @@ export type TimelineDocument = {
 /** Syntax, references and declared lifecycle admission. Does not certify runtime configuration or execution. */
 export function parseTimelineDocument(raw: string): TimelineDocument {
   const rawDocument = object(parseJson(raw), "$");
+  const versions = documentEvidenceVersions(rawDocument.format);
+  const lifecycle = versions.protocol === 2;
   const doc = object(rawDocument, "$", [
     "format",
     "id",
@@ -71,9 +85,10 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "end",
     ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
     ...(Object.hasOwn(rawDocument, "retries") ? ["retries"] : []),
+    ...(lifecycle && Object.hasOwn(rawDocument, "observationTargets")
+      ? ["observationTargets"]
+      : []),
   ]);
-  const versions = documentEvidenceVersions(doc.format);
-  const lifecycle = versions.protocol === 2;
   text(doc.id, "$.id");
   const clock = object(doc.clock, "$.clock", ["epochMillis"]);
   const epoch = integer(clock.epochMillis, "$.clock.epochMillis");
@@ -89,7 +104,11 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   text(runtime.configuration, "$.runtime.configuration");
   if (!/^[a-f0-9]{64}$/.test(text(runtime.sha256, "$.runtime.sha256")))
     invalid("$.runtime.sha256", "expected lowercase SHA-256");
-  choice(runtime.storage, "$.runtime.storage", ["memory"]);
+  const storage = choice(
+    runtime.storage,
+    "$.runtime.storage",
+    lifecycle ? ["memory", "sqlite"] : ["memory"],
+  ) as TimelineDocument["storage"];
   choice(runtime.access, "$.runtime.access", ["unprotected"]);
   choice(runtime.initialState, "$.runtime.initialState", ["empty"]);
   const limits = object(doc.limits, "$.limits", [
@@ -122,8 +141,28 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   integer(end.pendingMessages, "$.end.pendingMessages", 0);
   integer(end.heldFrames, "$.end.heldFrames", 0);
 
-  const required = new Set<string>(["memory"]);
+  const required = new Set<string>([storage]);
   if (lifecycle) required.add("memory-lifecycle");
+  const targets = new Set<string>();
+  const observationTargets =
+    doc.observationTargets === undefined
+      ? []
+      : list(doc.observationTargets, "$.observationTargets", 64).map(
+          (value, index) => {
+            const path = `$.observationTargets[${index}]`;
+            const target = observationTarget(
+              object(value, path, ["viewId", "entityId"]),
+              path,
+            );
+            unique(
+              JSON.stringify([target.viewId, target.entityId]),
+              targets,
+              path,
+            );
+            return target;
+          },
+        );
+  if (observationTargets.length) required.add("runtime-observations");
   const actors = new Set<string>();
   const sources = new Set<string>();
   const clients = new Set<string>();
@@ -199,25 +238,39 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   });
   list(doc.assertions, "$.assertions").forEach((value, i) => {
     const path = `$.assertions[${i}]`;
+    const record = object(value, path);
+    const kind = choice(
+      record.kind,
+      `${path}.kind`,
+      lifecycle
+        ? ["client-frames", "source-receipts", "runtime-snapshot"]
+        : ["client-frames", "source-receipts"],
+    );
     const assertion = object(value, path, [
       "id",
       "atMs",
       "kind",
-      "actor",
+      ...(kind === "runtime-snapshot" ? ["viewId", "entityId"] : ["actor"]),
       "expected",
     ]);
     unique(text(assertion.id, `${path}.id`), eventIds, `${path}.id`);
     integer(assertion.atMs, `${path}.atMs`, until);
-    const kind = choice(assertion.kind, `${path}.kind`, [
-      "client-frames",
-      "source-receipts",
-    ]);
+    if (kind === "runtime-snapshot") {
+      const target = observationTarget(assertion, path);
+      if (!targets.has(JSON.stringify([target.viewId, target.entityId])))
+        invalid(
+          path,
+          "runtime snapshot assertion requires a declared observation target",
+        );
+      runtimeObservation(assertion.expected, `${path}.expected`, target);
+      return;
+    }
     reference(
       assertion.actor,
       kind === "client-frames" ? clients : sources,
       `${path}.actor`,
     );
-    observationList(assertion.expected, `${path}.expected`, kind);
+    observationList(assertion.expected, `${path}.expected`, kind, storage);
     required.add("observations");
   });
   const policies = retryPolicies(doc);
@@ -225,6 +278,8 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   if (receiptRules(doc).length) required.add("receipt-loss");
   return {
     format: versions.scenario,
+    storage,
+    observationTargets,
     canonical: encodeJson(doc),
     document: doc,
     requiredCapabilities: [...required].sort(),

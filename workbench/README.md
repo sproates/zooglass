@@ -863,3 +863,6 @@ The [memory qualification campaign](docs/timeline-memory-qualification.md) check
 three distinct lifecycle cases in fresh processes, with long Node/JVM pauses and
 an isolated wrong-generation-clock control. It is separate from v1 and SQLite
 qualification.
+
+[SQLite timeline documents](docs/timeline-sqlite.md) add controlled durable recovery,
+read-only runtime assertions and replay from a fresh private store.

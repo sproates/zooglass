@@ -1,8 +1,11 @@
 import { encodeJson, type Json } from "./json.js";
 import {
   clientEnvelope,
+  installedSnapshot,
   observationList,
+  observationTarget,
   receiptEnvelope,
+  runtimeObservation,
   snapshotEnvelope,
 } from "./envelopes.js";
 import { choice, integer, invalid, list, object, text } from "./validation.js";
@@ -26,6 +29,7 @@ export type ServiceActionKind = keyof typeof serviceActionFields;
 export const stopModes = ["orderly", "abrupt"] as const;
 export const lifecycleEventKinds = [
   "runtime-initialized",
+  "runtime-observation",
   "connection-outcome",
   "attempt-outcome",
 ] as const;
@@ -42,6 +46,9 @@ export function eventData(
   time: number,
   until: number,
   version: 1 | 2 = 1,
+  storage: "memory" | "sqlite" | undefined = version === 1
+    ? "memory"
+    : undefined,
 ) {
   const data = object(value, path);
   if (kind === "runtime-initialized" && version === 2) {
@@ -60,7 +67,22 @@ export function eventData(
       time,
     );
     integer(data.monotonicMs, `${path}.monotonicMs`, 0);
-    list(data.snapshots, `${path}.snapshots`, 0);
+    const targets = new Set<string>();
+    list(data.snapshots, `${path}.snapshots`, 64).forEach((value, index) => {
+      const snapshotPath = `${path}.snapshots[${index}]`;
+      const snapshot = installedSnapshot(value, snapshotPath);
+      const id = JSON.stringify([snapshot.viewId, snapshot.entityId]);
+      if (targets.has(id))
+        invalid(snapshotPath, "duplicate observation target");
+      targets.add(id);
+    });
+  } else if (kind === "runtime-observation" && version === 2) {
+    const { viewId, entityId, ...result } = data;
+    runtimeObservation(
+      result,
+      path,
+      observationTarget({ viewId, entityId }, path),
+    );
   } else if (
     (kind === "connection-outcome" || kind === "attempt-outcome") &&
     version === 2
@@ -229,11 +251,9 @@ export function eventData(
       ]);
       text(envelope.viewId, `${path}.envelope.viewId`);
       text(envelope.entityId, `${path}.envelope.entityId`);
-    } else
-      (channel === "source-receipt" ? receiptEnvelope : clientEnvelope)(
-        data.envelope,
-        `${path}.envelope`,
-      );
+    } else if (channel === "source-receipt")
+      receiptEnvelope(data.envelope, `${path}.envelope`, storage);
+    else clientEnvelope(data.envelope, `${path}.envelope`);
     if (kind === "link-send")
       integer(
         data.deliverAtMs,
@@ -243,6 +263,13 @@ export function eventData(
       );
     if (kind === "dropped") text(data.reason, `${path}.reason`);
   } else if (kind === "assertion") {
+    const assertionKind = choice(
+      data.assertionKind,
+      `${path}.assertionKind`,
+      version === 2
+        ? ["client-frames", "source-receipts", "runtime-snapshot"]
+        : ["client-frames", "source-receipts"],
+    );
     object(data, path, [
       "assertionId",
       "assertionKind",
@@ -250,18 +277,26 @@ export function eventData(
       "passed",
       "expected",
       "actual",
+      ...(assertionKind === "runtime-snapshot" ? ["viewId", "entityId"] : []),
     ]);
     text(data.assertionId, `${path}.assertionId`);
-    const assertionKind = choice(data.assertionKind, `${path}.assertionKind`, [
-      "client-frames",
-      "source-receipts",
-    ]);
     if (integer(data.atMs, `${path}.atMs`, until) !== time)
       invalid(path, "assertion time differs from agenda key");
     if (typeof data.passed !== "boolean")
       invalid(`${path}.passed`, "expected boolean");
-    observationList(data.expected, `${path}.expected`, assertionKind);
-    observationList(data.actual, `${path}.actual`, assertionKind);
+    if (assertionKind === "runtime-snapshot") {
+      const target = observationTarget(data, path);
+      runtimeObservation(data.expected, `${path}.expected`, target);
+      runtimeObservation(data.actual, `${path}.actual`, target);
+    } else {
+      observationList(
+        data.expected,
+        `${path}.expected`,
+        assertionKind,
+        storage,
+      );
+      observationList(data.actual, `${path}.actual`, assertionKind, storage);
+    }
     if (data.passed !== (encodeJson(data.expected) === encodeJson(data.actual)))
       invalid(
         path,
@@ -273,12 +308,10 @@ export function eventData(
       ...(Object.hasOwn(data, "messageId") ? ["messageId"] : []),
     ]);
     if (data.messageId !== undefined) text(data.messageId, `${path}.messageId`);
-    const validate =
-      kind === "receipt"
-        ? receiptEnvelope
-        : kind === "frame"
-          ? clientEnvelope
-          : snapshotEnvelope;
-    validate(data.envelope, `${path}.envelope`);
+    if (kind === "receipt")
+      receiptEnvelope(data.envelope, `${path}.envelope`, storage);
+    else if (kind === "frame")
+      clientEnvelope(data.envelope, `${path}.envelope`);
+    else snapshotEnvelope(data.envelope, `${path}.envelope`);
   }
 }

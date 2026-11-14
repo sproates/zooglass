@@ -740,3 +740,18 @@ flowchart LR
 This private boundary does not allocate scenario stores or admit SQLite documents.
 The caller retains database files through replacement and owns cleanup. Paths are
 operational parameters, not semantic trace data.
+
+
+## SQLite document storage and observations
+
+```mermaid
+flowchart LR
+  run["timeline/run-document.ts"] -->|complete admission before allocation| admission["timeline/admission.ts"]
+  run -->|private store lifetime and retention| store["timeline/run-store.ts"]
+  execution["timeline/document-execution.ts"] -->|read installed state| turns["timeline/runtime-turns.ts"]
+  turns -->|observe-installed request| bridge["timeline/bridge.ts"]
+  replay["timeline/replay-document.ts"] -->|fresh empty execution| run
+```
+
+Database files are local diagnostic state; only logical observations enter traces.
+A portable bundle cannot select or carry a previous writable store.

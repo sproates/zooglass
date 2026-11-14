@@ -111,9 +111,10 @@ enum HostProtocol {
                 this == V1 ? "configurationAdmission" : "memoryLifecycle", 1,
                 "documentFormats", this == V1 ? List.of("timeline-simulation/v1") : List.of(),
                 "environment", environment);
-        if (sqliteVersion == null) return handshake;
+        if (this == V1) return handshake;
         var capabilities = new LinkedHashMap<String, Object>(handshake);
-        capabilities.put("sqliteLifecycle", 1);
+        capabilities.put("installedObservations", 1);
+        if (sqliteVersion != null) capabilities.put("sqliteLifecycle", 1);
         return capabilities;
     }
 
@@ -161,6 +162,10 @@ enum HostProtocol {
                             ? Set.of("wire", "epochMillis")
                             : Set.of("wire", "epochMillis", "startTimeMs", "database",
                                     "observationTargets");
+                    case "observe-installed" -> {
+                        if (this != V2) throw new IllegalArgumentException("Installed observations require protocol 2");
+                        yield Set.of("observationTargets");
+                    }
                     case "connect" -> Set.of("session", "role");
                     case "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");

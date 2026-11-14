@@ -47,6 +47,7 @@ public final class TimelineHost {
     private boolean stopped;
     private boolean documentMode;
     private boolean durable;
+    private RuntimeConfiguration documentConfiguration;
 
     private enum Role { CLIENT, SOURCE }
 
@@ -95,6 +96,11 @@ public final class TimelineHost {
                 delivery.release(session.getId(), command.path("fail").asBoolean());
             }
             case "task" -> turns.dispatch(integer(command, "task"));
+            case "observe-installed" -> {
+                if (protocol != HostProtocol.V2 || documentConfiguration == null)
+                    throw new IllegalArgumentException("Installed observations require an initialized v2 document");
+                snapshots = installed(observationTargets(command.get("observationTargets"), documentConfiguration));
+            }
             case "observe" -> {} // No snapshot read: observations cannot repair a missing alarm.
             case "shutdown" -> shutdown();
             default -> throw new IllegalArgumentException("Unsupported POC operation");
@@ -159,13 +165,12 @@ public final class TimelineHost {
         var targets = command.has("observationTargets")
                 ? observationTargets(command.get("observationTargets"), config) : null;
         documentMode = true;
+        documentConfiguration = config;
         durable = database != null;
         compose(config, generation, database);
         if (targets == null) return null;
         try {
-            return TimelineRuntime.installedSnapshots(runtime, targets).stream()
-                    .map(snapshot -> canonical(JSON.writeValueAsString(snapshot)))
-                    .toList();
+            return installed(targets);
         } catch (RuntimeException failure) {
             try {
                 shutdown();
@@ -174,6 +179,12 @@ public final class TimelineHost {
             }
             throw failure;
         }
+    }
+
+    private List<String> installed(List<ViewResource> targets) {
+        return TimelineRuntime.installedSnapshots(runtime, targets).stream()
+                .map(snapshot -> canonical(JSON.writeValueAsString(snapshot)))
+                .toList();
     }
 
     private static Path database(JsonNode command, String storage, RuntimeGeneration generation) {
@@ -191,7 +202,7 @@ public final class TimelineHost {
     }
 
     private static List<ViewResource> observationTargets(JsonNode value, RuntimeConfiguration config) {
-        if (!value.isArray() || value.size() > 64)
+        if (value == null || !value.isArray() || value.size() > 64)
             throw new IllegalArgumentException("Expected at most 64 observation targets");
         var targets = new ArrayList<ViewResource>();
         var seen = new HashSet<ViewResource>();

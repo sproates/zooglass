@@ -21,6 +21,7 @@ export class DocumentExecution {
   private readonly runtime: RuntimeTurns;
   private readonly transport: DocumentTransport;
   private readonly actors: DocumentActors;
+  private stopCause?: string;
   constructor(
     readonly bridge: Bridge | RuntimeGenerations,
     readonly scenario: TimelineDocument,
@@ -35,6 +36,7 @@ export class DocumentExecution {
       limits.turns,
       (effect, parent, publication) =>
         this.transport.effect(effect, parent, publication),
+      scenario.observationTargets,
     );
     this.transport = new DocumentTransport(
       this.agenda,
@@ -119,6 +121,7 @@ export class DocumentExecution {
               );
               this.transport.stop(cause);
               this.actors.stopped(cause);
+              this.stopCause = cause;
             }
           } else await this.actors.action(admitted, action);
         },
@@ -138,8 +141,12 @@ export class DocumentExecution {
       "settled observation cannot repair overdue work",
     );
   }
-  assertObservation(assertion: { [key: string]: Json }) {
+  async assertObservation(assertion: { [key: string]: Json }) {
     this.runtime.consumeExecutionTurn();
+    if (assertion.kind === "runtime-snapshot") {
+      await this.assertRuntimeSnapshot(assertion);
+      return;
+    }
     const actor = text(assertion.actor, "actor");
     const actual = this.transport.observed(actor);
     const passed = encodeJson(assertion.expected) === encodeJson(actual);
@@ -165,6 +172,55 @@ export class DocumentExecution {
       },
       [],
       this.runtime.generation,
+    );
+    if (!passed)
+      throw new Error(`assertion-failed: ${text(assertion.id, "id")}`);
+  }
+
+  private async assertRuntimeSnapshot(assertion: { [key: string]: Json }) {
+    const viewId = text(assertion.viewId, "viewId");
+    const entityId = text(assertion.entityId, "entityId");
+    const generation = this.runtime.generation;
+    assert.ok(
+      generation !== null || this.stopCause,
+      "unavailable observation has a stop cause",
+    );
+    const actual: { [key: string]: Json } =
+      generation === null
+        ? { outcome: "runtime-unavailable" }
+        : {
+            outcome: "available",
+            snapshot: await this.runtime.observeInstalled({ viewId, entityId }),
+          };
+    const observation = this.trace.event(
+      "runtime-observation",
+      this.agenda.current,
+      "@runtime",
+      null,
+      null,
+      { viewId, entityId, ...actual },
+      generation === null ? [this.stopCause!] : [],
+      generation,
+    );
+    const passed = encodeJson(assertion.expected) === encodeJson(actual);
+    this.event(
+      "assertion",
+      {
+        ...object(
+          j({
+            assertionId: assertion.id,
+            assertionKind: assertion.kind,
+            atMs: integer(assertion.atMs, "atMs"),
+            passed,
+            viewId,
+            entityId,
+          }),
+          "assertion",
+        ),
+        expected: assertion.expected,
+        actual,
+      },
+      observation,
     );
     if (!passed)
       throw new Error(`assertion-failed: ${text(assertion.id, "id")}`);

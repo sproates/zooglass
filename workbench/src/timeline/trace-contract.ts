@@ -1,7 +1,8 @@
 import { eventData, lifecycleEventKinds } from "./event-schema.js";
+import type { ObservationTarget } from "./envelopes.js";
 import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
 import { TraceGenerations } from "./trace-generations.js";
-import { encodeJson, jsonLimits, parseJson } from "./json.js";
+import { encodeJson, jsonLimits, parseJson, type Json } from "./json.js";
 import {
   choice,
   integer,
@@ -34,7 +35,11 @@ const eventKinds = [
 ];
 
 /** Parse complete semantic JSONL artifacts and retain the canonical lines used for replay. */
-export function parseTrace(raw: string) {
+export function parseTrace(
+  raw: string,
+  observationTargets?: readonly ObservationTarget[],
+  storage?: "memory" | "sqlite",
+) {
   if (Buffer.byteLength(raw) > jsonLimits.bytes)
     throw new Error("invalid-trace: byte limit");
   const lines = raw.trimEnd().split("\n");
@@ -42,6 +47,8 @@ export function parseTrace(raw: string) {
     throw new Error("invalid-trace: record count");
   const canonical: string[] = [];
   const ids = new Set<string>();
+  const runtimeAssertions: { atMs: number; data: { [key: string]: Json } }[] =
+    [];
   let previous = [0, 0, 0, -1];
   let failedAssertion = false;
   let remainingBytes = jsonLimits.bytes;
@@ -63,7 +70,8 @@ export function parseTrace(raw: string) {
   const version = header.format === evidenceV2.trace ? 2 : 1;
   const kinds =
     version === 2 ? [...eventKinds, ...lifecycleEventKinds] : eventKinds;
-  const generations = version === 2 ? new TraceGenerations() : undefined;
+  const generations =
+    version === 2 ? new TraceGenerations(observationTargets) : undefined;
   for (let index = 1; index < lines.length - 1; index++) {
     const record = readRecord(index);
     const path = `trace[${index}]`;
@@ -128,7 +136,16 @@ export function parseTrace(raw: string) {
             Number.MAX_SAFE_INTEGER,
             1,
           );
-    eventData(kind, record.data, `${path}.data`, key[0], until, version);
+    eventData(
+      kind,
+      record.data,
+      `${path}.data`,
+      key[0],
+      until,
+      version,
+      storage,
+    );
+    const data = object(record.data, `${path}.data`);
     generations?.accept(
       {
         kind,
@@ -137,17 +154,18 @@ export function parseTrace(raw: string) {
         causes,
         actor,
         timeMs: key[0],
+        key,
         runtimeGeneration,
         connectionGeneration,
-        data: object(record.data, `${path}.data`),
+        data,
       },
       path,
     );
-    if (
-      kind === "assertion" &&
-      object(record.data, `${path}.data`).passed === false
-    )
-      failedAssertion = true;
+    if (kind === "assertion") {
+      if (data.passed === false) failedAssertion = true;
+      if (data.assertionKind === "runtime-snapshot")
+        runtimeAssertions.push({ atMs: key[0], data });
+    }
   }
   const last = lines.length - 1;
   const outcome = traceOutcome(
@@ -163,6 +181,7 @@ export function parseTrace(raw: string) {
     header,
     outcome,
     epochMillis,
+    runtimeAssertions,
   };
 }
 
@@ -249,6 +268,10 @@ function traceOutcome(
   return outcome;
 }
 
-export function validateTrace(raw: string): string {
-  return parseTrace(raw).canonical;
+export function validateTrace(
+  raw: string,
+  observationTargets?: readonly ObservationTarget[],
+  storage?: "memory" | "sqlite",
+): string {
+  return parseTrace(raw, observationTargets, storage).canonical;
 }

@@ -4,9 +4,9 @@ This refines the [accepted simulator design](deterministic-timeline.md) for the
 next POC increments. **Host isolation and executor ownership separation are now
 implemented, along with the private memory generation/process foundation.**
 V2 memory documents now integrate stop/start, downtime retry and versioned replay
-evidence, with bounded native memory qualification. The private SQLite host
-foundation now supports direct recovery observations; SQLite document integration
-and broader restart qualification remain unimplemented. The separate host is
+evidence, with bounded native memory qualification. SQLite documents now integrate private storage, installed recovery observations
+and fresh-store replay. Wall adjustments and broader restart qualification remain
+unimplemented. The separate host is
 described in its [guide](../../zooglass/simulation-host/README.md).
 
 ## Assessment and chosen boundary
@@ -22,7 +22,7 @@ directly against prepared hosts before integration into document execution.
 | Production clock/alarm/delivery interfaces | Retain the small existing interfaces and production defaults.                                                                                                          |
 | Simulation classes in `src/main`           | Move to a separate host build; the service must not ship pause switches or simulation adapters.                                                                        |
 | Java host                                  | Separate framed protocol/validation from generation composition and sessions.                                                                                          |
-| TypeScript executor                        | Separate turn/task and transport ownership. Memory document integration implemented; memory qualification precedes SQLite recovery.                       |
+| TypeScript executor                        | Separate turn/task and transport ownership. Memory and SQLite documents integrate generation ownership; broader restart qualification follows wall adjustments.                       |
 | Nested Java clock/alarm implementations    | Give the controlled clock and alarm driver named host-side classes.                                                                                                    |
 | Sorted agenda and internal assertions      | Keep the current bounded implementation. Profile a demonstrated bottleneck before changing algorithms; user-input validation must continue to produce explicit errors. |
 
@@ -47,8 +47,7 @@ See the [foundation contract](../../workbench/docs/timeline-generations.md).
 Global agenda time, execution budgets and source retry timers survive replacement.
 The [lifecycle guide](../../workbench/docs/timeline-lifecycle.md) describes the
 implemented memory subset; observation targets and recovery snapshots below are
-available at the private host boundary; document observations remain part of the
-next SQLite integration checkpoint.
+implemented through the private host and SQLite document executor.
 
 The production project attaches an ordinary `runtime` classifier JAR and keeps
 its existing executable service JAR. The host depends on that ordinary artifact
@@ -334,5 +333,6 @@ mid-commit termination and physical durability are not simulated here.
 
 Each increment needs focused validation and independent review before the next.
 These gates refine the existing POC scope. Memory lifecycle is implemented on the
-POC; SQLite recovery and broader restart qualification remain pending. No main
+POC; SQLite document recovery is implemented. Wall adjustments and broader
+restart qualification remain pending. No main
 promotion is implied.

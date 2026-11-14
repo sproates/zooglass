@@ -23,7 +23,7 @@ export class SemanticTrace {
   ) {
     this.append(metadataJson(header));
   }
-  private append(value: Json, terminal = false) {
+  private encodeRecord(value: Json, terminal: boolean) {
     const line = encodeJson(value) + "\n";
     if (
       this.bytes + Buffer.byteLength(line) >
@@ -32,6 +32,10 @@ export class SemanticTrace {
       throw new Error("limit-exceeded: trace bytes");
     // Validate the wrapped representation before it can enter the retained prefix.
     parseJson(line);
+    return line;
+  }
+  private append(value: Json, terminal = false) {
+    const line = this.encodeRecord(value, terminal);
     this.bytes += Buffer.byteLength(line);
     this.lines.push(line);
     this.observe?.(line);
@@ -64,16 +68,28 @@ export class SemanticTrace {
     this.events++;
     return id;
   }
-  finish(outcome: Exclude<Outcome, "infrastructure-failed">, counts: Counts) {
-    this.append(
-      metadataJson({
-        kind: "result",
-        outcome,
-        eventCount: this.events,
-        ...counts,
-      }),
-      true,
+  private resultRecord(
+    outcome: Exclude<Outcome, "infrastructure-failed">,
+    counts: Counts,
+  ) {
+    return metadataJson({
+      kind: "result",
+      outcome,
+      eventCount: this.events,
+      ...counts,
+    });
+  }
+  previewFinish(
+    outcome: Exclude<Outcome, "infrastructure-failed">,
+    counts: Counts,
+  ) {
+    return (
+      this.prefix() +
+      this.encodeRecord(this.resultRecord(outcome, counts), true)
     );
+  }
+  finish(outcome: Exclude<Outcome, "infrastructure-failed">, counts: Counts) {
+    this.append(this.resultRecord(outcome, counts), true);
     return this.prefix();
   }
   prefix() {

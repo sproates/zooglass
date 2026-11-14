@@ -147,6 +147,26 @@ class SqliteTimelineHostTests {
         call(recovered, turn("shutdown", 7, 3, 4, 4));
     }
 
+    @Test
+    void installedObservationDoesNotDispatchOverdueExpiry() throws Exception {
+        var host = new TimelineHost(HostProtocol.V2, true);
+        start(host, directory.resolve("read-only.db"), 1, 0, 0);
+        connect(host, 1, 1, 0, 0);
+        publish(host, 2, 1, 0, 10);
+        var observation = turn("observe-installed", 3, 1, 0, 100);
+        observation.set("observationTargets", JSON.readTree("""
+                [{"viewId":"position","entityId":"bus"}]
+                """));
+        var result = call(host, observation);
+        assertThat(result.path("effects").size()).isZero();
+        assertThat(result.path("pendingTasks").intValue()).isOne();
+        var snapshot = JSON.readTree(result.path("snapshots").get(0).asString());
+        assertThat(snapshot.path("version").longValue()).isOne();
+        assertThat(snapshot.path("status").path("fields").path("position")
+                .path("freshness").asString()).isEqualTo("fresh");
+        call(host, turn("shutdown", 4, 1, 0, 100));
+    }
+
     private static void execute(Path database, String sql) throws Exception {
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database);
                 var statement = connection.createStatement()) {

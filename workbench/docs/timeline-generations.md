@@ -3,8 +3,8 @@
 The private host protocol supports fresh memory and SQLite runtime generations. The
 [document lifecycle executor](timeline-lifecycle.md) now uses this foundation for
 v2 memory stop/start actions, downtime retries and recorded/replayed evidence.
-SQLite is currently a private host foundation, verified directly; document storage
-ownership, snapshot assertions and replay integration remain planned.
+SQLite documents now integrate private store ownership, snapshot assertions and
+fresh-store replay; see [SQLite timeline documents](timeline-sqlite.md).
 
 ## Clock and process ownership
 
@@ -96,7 +96,7 @@ Run the direct prepared-host SQLite checks with:
 node --import tsx --test test/timeline/sqlite-generations.test.ts
 ```
 
-These checks exercise ordinary and abrupt recovery, remaining freshness, deadline
+These direct checks exercise ordinary and abrupt recovery, remaining freshness, deadline
 ties, stale recovery, durable duplicate receipts, target ordering, failed startup
-and long host pauses. They do not qualify SQLite document execution, replay,
-wall-clock adjustments, mid-commit crashes or physical durability.
+and long host pauses. The document suite separately checks SQLite execution and replay. These direct
+checks do not qualify wall-clock adjustments, mid-commit crashes or physical durability.

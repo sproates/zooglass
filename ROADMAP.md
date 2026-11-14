@@ -43,7 +43,9 @@ delivery date:
   stop/start, downtime retries and v2 replay evidence. A [60-run native memory
   qualification](workbench/docs/timeline-memory-qualification.md) verifies repeated
   restarts under long host pauses and detects an incorrect runtime receipt clock.
-  SQLite recovery and wall-clock adjustments remain future work. The POC has not been promoted to main.
+  [SQLite document recovery](workbench/docs/timeline-sqlite.md), read-only
+  observations and fresh-store replay are implemented. Wall-clock adjustments and
+  broader restart qualification remain future work. The POC has not been promoted to main.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

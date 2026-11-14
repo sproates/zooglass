@@ -1,13 +1,14 @@
 # Fleet timeline assessment
 
 The existing [three-vehicle fleet fixture](../scenarios/vehicle-fleet-contracts.json)
-is a useful next test of the deterministic simulator. It is **not currently
-supported**. Giving the receipt-age example vehicle names would not preserve the
+is a useful next test of the deterministic simulator. Its unchanged legacy
+format is **not supported**. Giving the receipt-age example vehicle names would not preserve the
 fleet's latest-position and ordered-history behaviour.
 
-This assessment selects a bounded memory-backed sequence profile as the next
-extension. It does not admit that profile, convert the legacy format, qualify
-fleet execution, or change the browser demo.
+This assessment defines a bounded memory-backed sequence extension. The
+[host/admission foundation](timeline-fleet-profile.md) now implements that profile;
+the full fleet adaptation and qualification remain outstanding. This does not
+convert the legacy format or change the browser demo.
 
 ## What must survive adaptation
 
@@ -16,7 +17,7 @@ six subscriptions and 16 publications. Its 42 timeline entries include 11 client
 checks and nine HTTP checks. The runtime configuration uses publication sequence,
 not the similarly named field inside the payload, for ordering.
 
-| Behaviour | Existing fleet contract | Current simulator gap |
+| Behaviour | Existing fleet contract | Gap at assessment baseline (`6e33990`) |
 | --- | --- | --- |
 | Independent contributions | `fleet-state.position` and `.operation` retain values from separate sources | Configuration profile admits only one source and one field |
 | Latest position | Sequence 42 stays current when 41 arrives later | Only arrival replacement is admitted |

@@ -15,6 +15,7 @@ import {
 } from "./envelopes.js";
 import {
   documentEvidenceVersions,
+  fleetProfile,
   evidenceV1,
   evidenceV2,
 } from "./evidence-versions.js";
@@ -57,6 +58,7 @@ export const sqliteLifecycleCapabilities = [
 export type TimelineDocument = {
   format: typeof format | typeof lifecycleFormat;
   storage: "memory" | "sqlite";
+  profile: string;
   observationTargets: ObservationTarget[];
   canonical: string;
   document: { [key: string]: Json };
@@ -101,6 +103,9 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "storage",
     "access",
     "initialState",
+    ...(lifecycle && Object.hasOwn(object(doc.runtime, "$.runtime"), "profile")
+      ? ["profile"]
+      : []),
   ]);
   text(runtime.configuration, "$.runtime.configuration");
   if (!/^[a-f0-9]{64}$/.test(text(runtime.sha256, "$.runtime.sha256")))
@@ -110,6 +115,15 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "$.runtime.storage",
     lifecycle ? ["memory", "sqlite"] : ["memory"],
   ) as TimelineDocument["storage"];
+  const profile =
+    runtime.profile === undefined
+      ? versions.profile
+      : choice(runtime.profile, "$.runtime.profile", [fleetProfile]);
+  if (profile === fleetProfile && storage !== "memory")
+    invalid(
+      "$.runtime.storage",
+      "memory sequence fleet requires memory storage",
+    );
   choice(runtime.access, "$.runtime.access", ["unprotected"]);
   choice(runtime.initialState, "$.runtime.initialState", ["empty"]);
   const limits = object(doc.limits, "$.limits", [
@@ -205,6 +219,11 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     const path = `$.actions[${i}]`;
     const entry = object(value, path);
     const kind = choice(entry.kind, `${path}.kind`, kinds);
+    if (profile === fleetProfile && isRuntimeAction(kind))
+      invalid(
+        `${path}.kind`,
+        "memory sequence fleet does not support runtime lifecycle or wall clock actions",
+      );
     const fields = isRuntimeAction(kind)
       ? runtimeActionFields[kind]
       : ["actor", ...actionFields[kind as ActorActionKind]];
@@ -291,6 +310,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   return {
     format: versions.scenario,
     storage,
+    profile,
     observationTargets,
     canonical: encodeJson(doc),
     document: doc,

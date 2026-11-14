@@ -34,3 +34,8 @@ still fail an eligible run.
 The ordinary `scenario`, `legacy` and `trace` inspection commands remain local
 parsing/assessment operations and do not start Java. The separate [verification replay](timeline-replay.md) command re-executes saved
 versioned runs within its explicit identity/environment boundary.
+
+V2 can explicitly select the [memory sequence profile](timeline-fleet-profile.md).
+Admission checks the selected configuration profile and `memorySequenceFleet:1`
+capability together. The reported execution profile remains distinct from the
+document format; a v2 document alone does not select fleet strategies.

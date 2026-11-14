@@ -491,7 +491,7 @@ classloader, while the production artifacts exclude every simulation adapter.
 flowchart TB
   protocol["simulation/HostProtocol.java"] -->|framing and validated commands| host["simulation/TimelineHost.java"]
   host -->|runtime composition| runtime["runtime/TimelineRuntime.java"]
-  host -->|configuration qualification| profile["runtime/TimelineProfile.java"]
+  host -->|receipt-age or explicit sequence qualification| profile["runtime/TimelineProfile.java"]
   host -->|modelled connections| session["simulation/TimelineSession.java"]
   host -->|controlled delivery driver| driver["delivery/TimelineDelivery.java"]
   host -->|real source handler| ingress["core: runtime/EventIngress.java"]

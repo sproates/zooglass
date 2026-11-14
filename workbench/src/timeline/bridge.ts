@@ -56,6 +56,7 @@ export class Bridge {
   configurationAdmission = 0;
   sqliteLifecycle: 0 | 1 = 0;
   installedObservations: 0 | 1 = 0;
+  memorySequenceFleet: 0 | 1 = 0;
   wallClockAdjustments: 0 | 1 = 0;
   documentFormats: readonly string[] = [];
   private diagnostics = "";
@@ -173,6 +174,7 @@ export class Bridge {
       if (handshake.protocol === 2) {
         bridge.sqliteLifecycle = handshake.sqliteLifecycle ?? 0;
         bridge.installedObservations = handshake.installedObservations ?? 0;
+        bridge.memorySequenceFleet = handshake.memorySequenceFleet ?? 0;
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
       bridge.environment = handshake.environment;

@@ -13,6 +13,7 @@ import {
   executionSettings,
   lifecycleDocumentProfile,
 } from "./document-profile.js";
+import { fleetProfile } from "./evidence-versions.js";
 import { jsonLimits, parseJson } from "./json.js";
 import { list, object, text } from "./validation.js";
 
@@ -77,6 +78,13 @@ export async function probeLifecycle(
       throw new Error(
         "unsupported-execution: prepared artifact does not support memory lifecycle",
       );
+    if (
+      scenario.profile === fleetProfile &&
+      opened.bridge.memorySequenceFleet !== 1
+    )
+      throw new Error(
+        "unsupported-execution: prepared artifact does not support memory sequence fleet",
+      );
     if (scenario.storage === "sqlite" && opened.bridge.sqliteLifecycle !== 1)
       throw new Error(
         "unsupported-execution: prepared artifact does not support SQLite lifecycle",
@@ -138,9 +146,12 @@ export async function inspectRuntimeConfiguration(
 }
 
 export function requiredConfigurationProfile(
-  storage: TimelineDocument["storage"],
+  scenario: Pick<TimelineDocument, "storage" | "profile">,
 ) {
-  return storage === "sqlite" ? lifecycleDocumentProfile : documentProfile;
+  if (scenario.profile === fleetProfile) return fleetProfile;
+  return scenario.storage === "sqlite"
+    ? lifecycleDocumentProfile
+    : documentProfile;
 }
 
 /** Production validated the wire configuration; only its declared view IDs are needed here. */
@@ -191,7 +202,7 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
       wire,
       scenario.storage,
     );
-    const requiredProfile = requiredConfigurationProfile(scenario.storage);
+    const requiredProfile = requiredConfigurationProfile(scenario);
     let reason: string | undefined;
     if (
       !bridge.documentFormats.includes(format) ||
@@ -220,7 +231,7 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
       configurationHash,
       configuration: "valid" as const,
       documentProfile: artifactMemoryLifecycle
-        ? lifecycleDocumentProfile
+        ? scenario.profile
         : configuration.documentProfile,
       format: scenario.format,
       artifactDocumentFormats: bridge.documentFormats,

@@ -511,6 +511,20 @@ inspection does not invoke Java. Explicit admission inspection invokes
 the prepared artifact solely for configuration validation, without runtime actions.
 A valid document or configuration is not an executable-capability claim. See [contracts and compatibility](timeline-format.md).
 
+## Explicit sequence profile identity
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|profile names and format defaults| versions["timeline/evidence-versions.ts"]
+  trace["timeline/trace-contract.ts"] -->|allowed format/profile pair| versions
+  replay["timeline/replay-document.ts"] -->|saved scenario profile| contract
+  replay -->|matching trace execution identity| trace
+```
+
+The v2 sequence profile is explicit; old documents retain their default identity.
+Admission checks the host capability and configuration before initialization.
+See [the bounded sequence profile](timeline-fleet-profile.md).
+
 ## Bounded document execution
 
 ```mermaid

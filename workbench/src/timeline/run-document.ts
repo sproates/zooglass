@@ -15,7 +15,7 @@ import {
 } from "./contract.js";
 import { Bridge } from "./bridge.js";
 import { RuntimeGenerations } from "./runtime-generations.js";
-import { documentEvidenceVersions } from "./evidence-versions.js";
+import { documentEvidenceVersions, fleetProfile } from "./evidence-versions.js";
 import { executionSettings } from "./document-profile.js";
 import { DocumentExecution } from "./document-execution.js";
 import { SemanticTrace, type Counts, type Outcome } from "./semantic-trace.js";
@@ -68,7 +68,7 @@ export async function executeDocument(
       wire,
       scenario.storage,
     );
-    const profile = requiredConfigurationProfile(scenario.storage);
+    const profile = requiredConfigurationProfile(scenario);
     if (inspected.documentProfile !== profile)
       throw new Error(
         `unsupported-execution: configuration is outside ${profile}`,
@@ -87,14 +87,13 @@ export async function executeDocument(
         ? await probeLifecycle(options.jar, artifact, scenario)
         : undefined;
     const identity = {
-      profile: evidence.profile,
+      profile: scenario.profile,
       artifactSha256: artifact,
       configurationSha256: configurationHash,
       workbenchSha256: await workbenchIdentity(),
     };
     const environment = await captureEnvironment(bridge);
-    if (evidence.protocol === 2)
-      environment.executor = "receipt-age-restart-v1/1";
+    if (evidence.protocol === 2) environment.executor = `${scenario.profile}/1`;
     if (scenario.storage === "sqlite") environment.java = hostEnvironment!;
     options.admitReplay?.(identity, environment);
     const until = integer(scenario.document.untilMs, "untilMs");
@@ -126,6 +125,9 @@ export async function executeDocument(
         generations = new RuntimeGenerations({
           jar: options.jar,
           configuration: wire,
+          ...(scenario.profile === fleetProfile
+            ? { profile: fleetProfile }
+            : {}),
           epochMillis,
           commandLimit: settings.turns,
           hostDelay: options.hostDelay,

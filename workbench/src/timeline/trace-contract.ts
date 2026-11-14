@@ -4,7 +4,7 @@ import {
   lifecycleEventKinds,
 } from "./event-schema.js";
 import type { ObservationTarget } from "./envelopes.js";
-import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
+import { evidenceV1, evidenceV2, fleetProfile } from "./evidence-versions.js";
 import { TraceGenerations } from "./trace-generations.js";
 import { encodeJson, jsonLimits, parseJson, type Json } from "./json.js";
 import {
@@ -220,7 +220,13 @@ function traceHeader(value: ReturnType<typeof object>) {
       "configurationSha256",
       "workbenchSha256",
     ]);
-    choice(execution.profile, `${path}.execution.profile`, [versions.profile]);
+    choice(
+      execution.profile,
+      `${path}.execution.profile`,
+      versions === evidenceV2
+        ? [versions.profile, fleetProfile]
+        : [versions.profile],
+    );
     for (const name of [
       "artifactSha256",
       "configurationSha256",

@@ -47,6 +47,7 @@ public final class TimelineHost {
     private boolean stopped;
     private boolean documentMode;
     private boolean durable;
+    private boolean sequenceFleet;
     private RuntimeConfiguration documentConfiguration;
 
     private enum Role { CLIENT, SOURCE }
@@ -68,6 +69,8 @@ public final class TimelineHost {
         if (stopped) throw new IllegalStateException("Runtime already stopped");
         String op = text(command, "op");
         protocol.validateFields(command, op);
+        if (sequenceFleet && op.equals("wall-clock-set"))
+            throw new IllegalArgumentException("Sequence fleet does not support wall-clock adjustments");
         var turn = identities.admit(command, op);
         if (op.equals("inspect-configuration")) return inspectConfiguration(command, turn);
 
@@ -156,9 +159,16 @@ public final class TimelineHost {
     private List<String> initializeDocument(JsonNode command, RuntimeGeneration generation) {
         var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
         String profile = TimelineProfile.inspect(config);
+        boolean fleet = TimelineProfile.MEMORY_SEQUENCE_FLEET.equals(profile);
         if (!TimelineProfile.NAME.equals(profile)
-                && !(protocol == HostProtocol.V2 && TimelineProfile.SQLITE_RESTART.equals(profile)))
+                && !(protocol == HostProtocol.V2
+                        && (TimelineProfile.SQLITE_RESTART.equals(profile) || fleet)))
             throw new IllegalArgumentException("Unsupported document configuration profile");
+        if ((command.has("profile") && !profile.equals(text(command, "profile")))
+                || (fleet && !command.has("profile")))
+            throw new IllegalArgumentException("Document profile agreement is required");
+        if (fleet && generation.number() != 1)
+            throw new IllegalArgumentException("Sequence fleet requires runtime generation 1");
         if (TimelineProfile.SQLITE_RESTART.equals(profile) && !sqliteAvailable)
             throw new IllegalArgumentException("SQLite lifecycle is unavailable");
 
@@ -166,6 +176,7 @@ public final class TimelineHost {
         var targets = command.has("observationTargets")
                 ? observationTargets(command.get("observationTargets"), config) : null;
         documentMode = true;
+        sequenceFleet = fleet;
         documentConfiguration = config;
         durable = database != null;
         compose(config, generation, database);
@@ -207,12 +218,12 @@ public final class TimelineHost {
             throw new IllegalArgumentException("Expected at most 64 observation targets");
         var targets = new ArrayList<ViewResource>();
         var seen = new HashSet<ViewResource>();
-        String configuredView = config.views().getFirst().id();
+        var configuredViews = config.views().stream().map(RuntimeConfiguration.View::id).toList();
         for (var node : value) {
             if (!node.isObject() || node.size() != 2 || !node.has("viewId") || !node.has("entityId"))
                 throw new IllegalArgumentException("Expected viewId and entityId observation target");
             var target = new ViewResource(text(node, "viewId"), text(node, "entityId"));
-            if (!configuredView.equals(target.viewId()) || target.entityId().length() > 1024)
+            if (!configuredViews.contains(target.viewId()) || target.entityId().length() > 1024)
                 throw new IllegalArgumentException("Invalid observation target view or entity");
             if (!seen.add(target)) throw new IllegalArgumentException("Duplicate observation target");
             targets.add(target);

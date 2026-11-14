@@ -87,10 +87,16 @@ export function parseReplay(raw: string) {
   if (
     !trace.header.execution ||
     encodeJson(trace.header.execution) !== encodeJson(execution) ||
-    execution.configurationSha256 !== configurationHash
+    execution.configurationSha256 !== configurationHash ||
+    execution.profile !== scenario.profile
   )
     throw new Error("invalid-replay: execution identity mismatch");
   const environment = object(saved.environment, "environment");
+  if (
+    versions.protocol === 2 &&
+    environment.executor !== `${scenario.profile}/1`
+  )
+    throw new Error("invalid-replay: executor profile mismatch");
   if (scenario.storage === "sqlite") {
     const java = object(environment.java, "environment.java");
     text(java.sqliteVersion, "environment.java.sqliteVersion");

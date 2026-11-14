@@ -177,7 +177,7 @@ function evidence(records: object[], outcome = "passed") {
     trace,
     run: JSON.stringify({
       format: "timeline-run/v2",
-      environment: {},
+      environment: { executor: "receipt-age-restart-v1/1" },
       outcome,
       execution,
       scenario: declaration.canonical,

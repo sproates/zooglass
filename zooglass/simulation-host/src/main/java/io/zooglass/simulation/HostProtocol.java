@@ -114,6 +114,7 @@ enum HostProtocol {
         if (this == V1) return handshake;
         var capabilities = new LinkedHashMap<String, Object>(handshake);
         capabilities.put("installedObservations", 1);
+        capabilities.put("memorySequenceFleet", 1);
         capabilities.put("wallClockAdjustments", 1);
         if (sqliteVersion != null) capabilities.put("sqliteLifecycle", 1);
         return capabilities;
@@ -162,7 +163,7 @@ enum HostProtocol {
                     case "initialize-document" -> this == V1
                             ? Set.of("wire", "epochMillis")
                             : Set.of("wire", "epochMillis", "startTimeMs", "database",
-                                    "observationTargets", "wallOffsetMillis");
+                                    "observationTargets", "wallOffsetMillis", "profile");
                     case "wall-clock-set" -> {
                         if (this != V2) throw new IllegalArgumentException("Wall adjustments require protocol 2");
                         yield Set.of();

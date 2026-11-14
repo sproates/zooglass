@@ -4,7 +4,10 @@ This POC adds a strict **document admission contract**, an encoding contract and
 compatibility inspector. The [bounded executor](timeline-execution.md) runs admitted
 documents for the explicit `memory-arrival-v1` configuration profile.
 V2 adds [memory lifecycle](timeline-lifecycle.md), with matching v2 trace, run and
-bundle contracts. Both versions are experimental contracts on the
+bundle contracts. Its optional `runtime.profile: "memory-sequence-fleet-v1"`
+selects the [bounded memory sequence profile](timeline-fleet-profile.md); omitted
+profiles retain the existing receipt-age identity. V1 rejects this field.
+Both versions are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
 retain their private format and existing commands.
 

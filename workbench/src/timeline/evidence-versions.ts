@@ -1,6 +1,8 @@
 import { type Json } from "./json.js";
 import { choice } from "./validation.js";
 
+export const fleetProfile = "memory-sequence-fleet-v1";
+
 export const evidenceV1 = {
   scenario: "timeline-simulation/v1",
   trace: "timeline-trace/v1",

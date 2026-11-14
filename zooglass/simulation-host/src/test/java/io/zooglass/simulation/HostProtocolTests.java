@@ -17,10 +17,11 @@ class HostProtocolTests {
                 .containsEntry("protocol", 1)
                 .containsEntry("configurationAdmission", 1)
                 .containsEntry("documentFormats", List.of("timeline-simulation/v1"))
-                .doesNotContainKeys("memoryLifecycle", "wallClockAdjustments");
+                .doesNotContainKeys("memoryLifecycle", "wallClockAdjustments", "memorySequenceFleet");
         assertThat(HostProtocol.V2.handshake("artifact", null))
                 .containsEntry("protocol", 2)
                 .containsEntry("memoryLifecycle", 1)
+                .containsEntry("memorySequenceFleet", 1)
                 .containsEntry("wallClockAdjustments", 1)
                 .containsEntry("documentFormats", List.of())
                 .containsEntry("storage", List.of("memory"))

@@ -64,6 +64,7 @@ export type Handshake = {
       memoryLifecycle: 1;
       sqliteLifecycle?: 1;
       installedObservations?: 1;
+      memorySequenceFleet?: 1;
       wallClockAdjustments?: 1;
       documentFormats: [];
       environment: Record<string, string>;
@@ -120,6 +121,11 @@ export function decodeHandshake(value: unknown): Handshake {
       data.installedObservations !== 1
     )
       invalid("handshake.installedObservations");
+    if (
+      data.memorySequenceFleet !== undefined &&
+      data.memorySequenceFleet !== 1
+    )
+      invalid("handshake.memorySequenceFleet");
     if (data.memoryLifecycle !== 1) invalid("handshake.memoryLifecycle");
     if (!(data.storage as string[]).includes("memory"))
       invalid("handshake.memoryLifecycle requires memory storage");

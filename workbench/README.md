@@ -57,6 +57,9 @@ The separate [bounded document executor](docs/timeline-execution.md) runs real
 ZooGlass memory-runtime turns under virtual time, with receipt loss, retries and
 fixed link latency. It uses the [simulation host](../zooglass/simulation-host/README.md)
 rather than the network service used by connected scenarios and demos.
+The explicit v2 [memory sequence profile](docs/timeline-fleet-profile.md) adds
+bounded latest-by-sequence and history views; full fleet scenario qualification
+remains a separate step.
 
 From this directory, explicitly prepare the host and then execute a document:
 

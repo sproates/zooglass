@@ -1,3 +1,4 @@
+import { fleetProfile } from "./evidence-versions.js";
 import { isAbsolute } from "node:path";
 import { Bridge, type Response, type TimingDiagnostics } from "./bridge.js";
 
@@ -9,6 +10,7 @@ export type RuntimeGeneration = Readonly<{
 export type GenerationOptions = Readonly<{
   jar: string;
   configuration: string;
+  profile?: typeof fleetProfile;
   epochMillis: number;
   commandLimit: number;
   database?: string;
@@ -219,6 +221,13 @@ export class RuntimeGenerations {
         throw new Error("Runtime environment identity is missing");
       if (this.options.database && opened.bridge.sqliteLifecycle !== 1)
         throw new Error("Prepared artifact does not support SQLite lifecycle");
+      if (
+        this.options.profile === fleetProfile &&
+        opened.bridge.memorySequenceFleet !== 1
+      )
+        throw new Error(
+          "Prepared artifact does not support memory sequence fleet",
+        );
       const environment = environmentKey(opened.bridge.environment);
       // Memory document preflight uses protocol 1, which has no SQLite metadata.
       // Only that initial comparison projects the one new field; later generations pin all fields.
@@ -248,6 +257,7 @@ export class RuntimeGenerations {
       const response = await this.send(opened.bridge, timeMs, {
         op: "initialize-document",
         wire: this.options.configuration,
+        ...(this.options.profile ? { profile: this.options.profile } : {}),
         epochMillis: this.options.epochMillis,
         ...(this.wallOffset !== 0 ? { wallOffsetMillis: this.wallOffset } : {}),
         ...(this.options.database ? { database: this.options.database } : {}),

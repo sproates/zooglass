@@ -29,7 +29,7 @@ within the declared matching environment and artifact size bounds.
 qualify repeatability within their respective recorded environments. They do not
 claim cross-environment trace equality.
 
-## What is supported
+## V1 receipt-age scope
 
 The production parser validates configuration first. The Java profile then requires:
 
@@ -99,17 +99,21 @@ qualify this bounded profile, not every configuration accepted by ZooGlass.
 The [document repeatability campaign](timeline-campaign.md) qualifies representative
 versioned scenarios separately from the original fixed proofs. JVM pause diagnostics
 are excluded from semantic comparison; real virtual timestamps and business fields
-remain included. Wall-clock rollback is not admitted by this profile and remains
-part of planned persistence/restart work.
+remain included. Wall-clock rollback is not admitted by the v1 profile; v2
+[wall-clock adjustments](timeline-wall-clock.md) have separate qualification.
 
 Production `ViewCoordinator.apply()` calls `expire()` before applying a publication.
 That supports expiry-before-same-time-input in this model; retry-timeout-before-
 receipt remains a separate simulator convention.
 
 The [restart implementation design](../../docs/design/timeline-restart-boundary.md)
-sets out generation clocks and recovery gates. Current execution remains the
-single-generation memory profile.
+sets out generation clocks and recovery gates. V2 implements
+[memory lifecycle](timeline-lifecycle.md) and [SQLite recovery](timeline-sqlite.md)
+under the receipt-age profile. The fleet sequence profile below remains
+single-generation.
 
-The [fleet profile assessment](timeline-fleet-assessment.md) describes the next
-bounded extension for multiple sources, latest-by-sequence values and ordered
-history. That profile is planned, not admitted by the current executor.
+The explicit v2 [memory sequence profile](timeline-fleet-profile.md) admits a
+bounded two-source/two-view configuration with latest-by-sequence and ordered
+history. Its host/admission foundation is separate from the full fleet scenario
+and repeatability/parity qualification planned in the
+[fleet assessment](timeline-fleet-assessment.md).

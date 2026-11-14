@@ -996,3 +996,21 @@ flowchart LR
 [Sports execution](timeline-sports-host.md) reuses connection ownership and delayed
 links. `control-contract.ts` validates the two explicit control envelopes; it does
 not implement progress or fact retirement.
+
+## Sports qualification
+
+```mermaid
+flowchart LR
+  ordinary["scenarios/timeline-sports/author.ts"] -->|serialize explicit versions, facts and observations| states["timeline-sports/states.ts"]
+  ordinary -->|preserve pinned inputs with a fixed source clock| inputs["timeline-sports/inputs.ts"]
+  retention["scenarios/timeline-sports-retention/author.ts"] -->|serialize independent boundary rows| oracle["timeline-sports-retention/oracle.ts"]
+  oracle -->|share wire shape, not reconciliation| wire["timeline-sports/wire.ts"]
+  campaign["scripts/sports-repeat.ts"] -->|fresh-process matrix| runner["scripts/restart-campaign.ts"]
+  campaign -->|complete authored outcomes and measured pauses| checks["scripts/sports-campaign-checks.ts"]
+  controls["scripts/sports-strategy-check.ts"] -->|inspect actual prepared class differences| preparation["scripts/prepare-sports-strategy-mutation.py"]
+  parity["scripts/sports-service-parity.ts"] -->|independent public projections| serviceOracle["scripts/sports-parity-oracle.ts"]
+  parity -->|retain real socket frames| socket["scripts/service-parity-socket.ts"]
+```
+
+The [Sports qualification guide](timeline-sports-qualification.md) separates the
+pinned producer schedule, independent expected values and actual runtime evidence.

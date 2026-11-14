@@ -251,7 +251,7 @@ export async function runSportsServiceParity(
       return JSON.parse(raw) as PublicState;
     };
     const latest = (view: string) =>
-      client.messages.findLast((message) => {
+      [...client.messages].reverse().find((message) => {
         const value = message as Partial<PublicState> | null;
         return (
           value?.type === "view-update" &&

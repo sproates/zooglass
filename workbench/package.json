@@ -66,7 +66,11 @@
     "timeline:order-repeat": "node --import tsx scripts/order-repeat.ts",
     "prepare:order-controls": "python3 scripts/prepare-order-controls.py",
     "timeline:order-controls": "node --import tsx scripts/order-control-check.ts",
-    "timeline:order-service-parity": "node --import tsx scripts/order-service-parity.ts"
+    "timeline:order-service-parity": "node --import tsx scripts/order-service-parity.ts",
+    "prepare:sports-strategy-control": "python3 scripts/prepare-sports-strategy-mutation.py",
+    "timeline:sports-strategy-control": "node --import tsx scripts/sports-strategy-check.ts",
+    "timeline:sports-repeat": "node --import tsx scripts/sports-repeat.ts",
+    "timeline:sports-service-parity": "node --import tsx scripts/sports-service-parity.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

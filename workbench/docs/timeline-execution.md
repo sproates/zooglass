@@ -109,3 +109,7 @@ receipt remains a separate simulator convention.
 The [restart implementation design](../../docs/design/timeline-restart-boundary.md)
 sets out generation clocks and recovery gates. Current execution remains the
 single-generation memory profile.
+
+The [fleet profile assessment](timeline-fleet-assessment.md) describes the next
+bounded extension for multiple sources, latest-by-sequence values and ordered
+history. That profile is planned, not admitted by the current executor.

@@ -41,18 +41,18 @@ source floors and receipt targets. Serialization produces complete snapshot,
 client-frame and receipt envelopes; it does not run a second reconciler or obtain
 expected values from ZooGlass output.
 
-| Publication at virtual ms | Expected result |
-| --- | --- |
-| 60–110 | Six initial contributions receive versions 1–6; positions fan out to both views and operations update only fleet state |
-| 180 | Car-17 position 42 replaces its latest value and extends history, version 7 |
-| 190 | Car-28 operation 102 replaces its latest operation, version 8 |
-| 240 | Car-17 position 41 is accepted at version 9; latest position stays 42 and history becomes 40, 41, 42 |
-| 250 | Car-28 operation 101 is accepted at version 10 without changing the selected value or emitting an update |
-| 270 | Identical position 41 returns a duplicate receipt with original version 9 and targets |
-| 280 | Changed content at position identity 42 is rejected as `identityConflict` at current version 10 |
-| 290 | Identical operation 102 returns a duplicate receipt with original version 8 and targets |
-| 300 | Changed content at operation identity 102 is rejected as `identityConflict` at current version 10 |
-| 310–320 | Car-39 advances independently; location receives version 11 and operation receives version 12 |
+| Publication at virtual ms | Expected result                                                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 60–110                    | Six initial contributions receive versions 1–6; positions fan out to both views and operations update only fleet state |
+| 180                       | Car-17 position 42 replaces its latest value and extends history, version 7                                            |
+| 190                       | Car-28 operation 102 replaces its latest operation, version 8                                                          |
+| 240                       | Car-17 position 41 is accepted at version 9; latest position stays 42 and history becomes 40, 41, 42                   |
+| 250                       | Car-28 operation 101 is accepted at version 10 without changing the selected value or emitting an update               |
+| 270                       | Identical position 41 returns a duplicate receipt with original version 9 and targets                                  |
+| 280                       | Changed content at position identity 42 is rejected as `identityConflict` at current version 10                        |
+| 290                       | Identical operation 102 returns a duplicate receipt with original version 8 and targets                                |
+| 300                       | Changed content at operation identity 102 is rejected as `identityConflict` at current version 10                      |
+| 310–320                   | Car-39 advances independently; location receives version 11 and operation receives version 12                          |
 
 Accepted unchanged input is distinct from a duplicate: the former gets a new
 receipt version, while the duplicate retains the original version and targets.
@@ -93,8 +93,8 @@ bundle replays all 432 records exactly under the matching environment.
 ## Scope
 
 This slice establishes an executable fixture and independently authored oracles.
-The broader repeatability campaign, a deliberate wrong-strategy runtime control,
-and parity through ordinary source/client WebSockets and HTTP remain separate
-acceptance work. The original real-service fixture remains available and is not
+The separate [fleet qualification](timeline-fleet-qualification.md) records a
+20-run repeatability campaign, a deliberate wrong-strategy runtime control and
+parity through ordinary source/client WebSockets and HTTP. The original real-service fixture remains available and is not
 replaced by this deterministic scenario. No cross-platform or browser qualification
 is inferred from a passing timeline run.

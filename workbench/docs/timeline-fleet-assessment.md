@@ -1,15 +1,16 @@
 # Fleet timeline assessment
 
 The existing [three-vehicle fleet fixture](../scenarios/vehicle-fleet-contracts.json)
-is a useful next test of the deterministic simulator. Its unchanged legacy
+provides a bounded domain test of the deterministic simulator. Its unchanged legacy
 format is **not supported**. Giving the receipt-age example vehicle names would not preserve the
 fleet's latest-position and ordered-history behaviour.
 
 This assessment defines a bounded memory-backed sequence extension. The
 [host/admission foundation](timeline-fleet-profile.md) now implements that profile;
-the [fleet adaptation and oracles](timeline-fleet-scenario.md) are now implemented,
-while repeated execution and real-service parity remain outstanding. This does not
-convert the legacy format or change the browser demo.
+the [fleet adaptation and oracles](timeline-fleet-scenario.md) are implemented,
+and [fleet qualification](timeline-fleet-qualification.md) records repeated
+execution, a wrong-strategy control and real-service parity. This does not convert
+the legacy format or change the browser demo.
 
 ## What must survive adaptation
 
@@ -18,15 +19,15 @@ six subscriptions and 16 publications. Its 42 timeline entries include 11 client
 checks and nine HTTP checks. The runtime configuration uses publication sequence,
 not the similarly named field inside the payload, for ordering.
 
-| Behaviour | Existing fleet contract | Gap at assessment baseline (`6e33990`) |
-| --- | --- | --- |
-| Independent contributions | `fleet-state.position` and `.operation` retain values from separate sources | Configuration profile admits only one source and one field |
-| Latest position | Sequence 42 stays current when 41 arrives later | Only arrival replacement is admitted |
-| Journey | `received-journey.positions` inserts 41 between 40 and 42 | Ordered history is not admitted; one publication affects two views |
-| Identity | Identical retries retain the original accepted version and targets without reapplying; changed content at the same identity is rejected | Receipt assertions exist, but multi-view target lists need coverage |
-| Isolation | Equal sequence numbers on three vehicles and two sources remain independent | Multiple entities work; this combined source/view shape is unqualified |
-| Freshness | Default `unspecified`, with no receipt-age expiry | Current profile requires `receiptAge` |
-| Observation | Real socket frames and polling HTTP checks | Explicit settled-time frames and non-repairing installed snapshots exist in v2; legacy waits are not equivalent |
+| Behaviour                 | Existing fleet contract                                                                                                                 | Gap at assessment baseline (`6e33990`)                                                                          |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Independent contributions | `fleet-state.position` and `.operation` retain values from separate sources                                                             | Configuration profile admits only one source and one field                                                      |
+| Latest position           | Sequence 42 stays current when 41 arrives later                                                                                         | Only arrival replacement is admitted                                                                            |
+| Journey                   | `received-journey.positions` inserts 41 between 40 and 42                                                                               | Ordered history is not admitted; one publication affects two views                                              |
+| Identity                  | Identical retries retain the original accepted version and targets without reapplying; changed content at the same identity is rejected | Receipt assertions exist, but multi-view target lists need coverage                                             |
+| Isolation                 | Equal sequence numbers on three vehicles and two sources remain independent                                                             | Multiple entities work; this combined source/view shape is unqualified                                          |
+| Freshness                 | Default `unspecified`, with no receipt-age expiry                                                                                       | Current profile requires `receiptAge`                                                                           |
+| Observation               | Real socket frames and polling HTTP checks                                                                                              | Explicit settled-time frames and non-repairing installed snapshots exist in v2; legacy waits are not equivalent |
 
 The legacy compiler also requests 100,000 streams, 10,000 identities and 10,000
 history entries, above the controlled profile's limits of 20. A bounded fixture
@@ -39,8 +40,7 @@ frames are not interchangeable with the bounded configuration.
 
 On 14 November 2026, at `6e33990`, configuration-only inspection with the prepared
 host accepted the production configuration syntax but returned `unsupported`
-for both the compiled fixture and a copy with all three resource limits set to
-20. No runtime or store was started and no Java build was triggered. The ordinary
+for both the compiled fixture and a copy with all three resource limits set to 20. No runtime or store was started and no Java build was triggered. The ordinary
 legacy inspector separately reports observation and receipt adaptation issues;
 it is conservative advice, not a complete admission decision.
 

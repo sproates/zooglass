@@ -74,8 +74,8 @@ or socket ordering.
 The [fleet timeline scenario](timeline-fleet-scenario.md) supplies the complete
 fixture and independent expectations for late input, history insertion, duplicates,
 conflicts and entity isolation.
-Repeated fleet runs, a wrong-strategy control, strict replay and ordinary-service
-parity follow before the fleet qualification claim is made.
+The [fleet qualification](timeline-fleet-qualification.md) records repeated runs,
+a wrong-strategy control, strict replay and ordinary-service parity for that fixture.
 
 ## Foundation checks
 

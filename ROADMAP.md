@@ -47,8 +47,10 @@ delivery date:
   observations and fresh-store replay are implemented. [Wall-clock adjustments](workbench/docs/timeline-wall-clock.md) now exercise
   production rollback and repair behavior. A [60-run SQLite qualification](workbench/docs/timeline-sqlite-qualification.md)
   verifies three restart cases under long host pauses and detects an incorrect
-  recovery clock. Representative scenario breadth and broader fault support remain
-  future work. The POC has not been promoted to main.
+  recovery clock. A [20-run fleet qualification](workbench/docs/timeline-fleet-qualification.md)
+  now verifies a bounded multi-source sequence scenario, detects an incorrect
+  production strategy and confirms ordinary-service parity. Order/Sports coverage
+  and broader fault support remain future work. The POC has not been promoted to main.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

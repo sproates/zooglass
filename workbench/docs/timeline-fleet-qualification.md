@@ -78,3 +78,32 @@ retain hashes and provenance in the [evidence manifest](../evidence/README.md).
 Archives contain no executable artifacts or databases. Re-execution still requires
 the matching prepared artifacts and environment; archive verification checks bytes
 and inventory only.
+
+## Recorded result
+
+Workbench commit `1724c4ca9b0ed6f3343223d4d9c37bfaa2a3074c` passed the
+qualification on native macOS arm64. All 20 fresh Node/JVM runs passed 62 literal
+assertions each (1,240 total) and reproduced the same 432-record trace. Evidence
+contains 3,078 measured Node delays and 38 JVM pauses. This is one fixture group,
+not 20 distinct scenarios.
+
+The isolated normal strategy passed. Both wrong-strategy executions failed
+`frames-240` with identical 328-record traces, selecting late position 41 at
+version 9 instead of retaining position 42 at version 7. Artifact inspection
+confirmed that only `LatestBySequence.class` changed inside the production runtime.
+The hosts were prepared from Java source at `fa7284c`; its Java tree is identical
+to the tested tooling commit, and both revisions are recorded.
+
+Ordinary-service parity verified 16 complete receipts, 122 HTTP observations,
+20 legacy checkpoints, 28 authored client frames and six final unsubscribe
+acknowledgements. All 204 production classes matched the prepared runtime embedded
+in the simulation host. Strict replay independently re-executed and verified all
+432 records with a passed outcome. Independent raw-evidence review found no
+remaining issues.
+
+One campaign-checker test, seven strategy/clock-control tests and six service-session
+tests passed, together with focused type, lint and formatting checks. The
+[evidence manifest](../evidence/README.md) pins the raw runs, preparation provenance,
+independent audit script/report and validation logs. Qualification does not extend
+to Order/Sports, fleet SQLite/restart combinations, other operating systems or
+arbitrary socket ordering.

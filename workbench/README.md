@@ -60,8 +60,9 @@ rather than the network service used by connected scenarios and demos.
 The explicit v2 [memory sequence profile](docs/timeline-fleet-profile.md) adds
 bounded latest-by-sequence and history views. The
 [fleet timeline fixture](docs/timeline-fleet-scenario.md) adds independent expected
-receipts, frames and installed snapshots; repeated qualification and real-service
-parity remain separate steps.
+receipts, frames and installed snapshots. A [20-run qualification](docs/timeline-fleet-qualification.md)
+verifies repeatability, detects a deliberately wrong strategy and compares the
+same bounded configuration through ordinary service sockets and HTTP.
 
 From this directory, explicitly prepare the host and then execute a document:
 

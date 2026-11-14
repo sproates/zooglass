@@ -54,8 +54,9 @@ delivery date:
   [Order qualification](workbench/docs/timeline-order-qualification.md) covers
   ordinary, recovery and retention scenarios; [Sports qualification](workbench/docs/timeline-sports-qualification.md)
   covers two-cycle facts and bounded retirement. Both include actual incorrect-runtime
-  controls, strict replay and scoped service parity. CLI/guarantee completion and
-  aggregate acceptance remain under the [bounded completion contract](workbench/docs/timeline-completion.md).
+  controls, strict replay and scoped service parity. The [CLI and capability guide](workbench/docs/timeline-guide.md)
+  now covers comparison, strict-default replay and prepared setup. Final aggregate
+  acceptance remains under the [bounded completion contract](workbench/docs/timeline-completion.md).
   The POC has not been promoted to main.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.

@@ -55,7 +55,7 @@ async function host() {
   }
 }
 
-test("prepared Order host returns complete durable control receipts without document admission", async () => {
+test("prepared Order host returns complete durable control receipts with explicit document admission", async () => {
   const run = await host();
   try {
     await run.bridge.command(0, {
@@ -111,9 +111,10 @@ test("prepared Order host returns complete durable control receipts without docu
   );
   fixture.runtime.profile = "sqlite-order-v1";
   fixture.runtime.storage = "sqlite";
-  assert.throws(
-    () => parseTimelineDocument(JSON.stringify(fixture)),
-    /runtime.profile/,
+  fixture.assertions = [];
+  assert.equal(
+    parseTimelineDocument(JSON.stringify(fixture)).profile,
+    "sqlite-order-v1",
   );
 });
 

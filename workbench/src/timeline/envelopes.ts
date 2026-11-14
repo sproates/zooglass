@@ -1,20 +1,14 @@
+import { watermarkEnvelope } from "./progress-contract.js";
 import { Decimal, type Json } from "./json.js";
-import { choice, invalid, list, object, text } from "./validation.js";
+import {
+  choice,
+  invalid,
+  list,
+  object,
+  text,
+  runtimeCounter as counter,
+} from "./validation.js";
 
-// Runtime counters are Java longs, not agenda coordinates or JavaScript numbers.
-export function counter(
-  value: Json | undefined,
-  path: string,
-  nullable = false,
-) {
-  if (nullable && value === null) return;
-  if (
-    !(value instanceof Decimal) ||
-    !/^\d+$/.test(value.text) ||
-    BigInt(value.text) > 9223372036854775807n
-  )
-    invalid(path, "expected nonnegative signed-64-bit integer");
-}
 function nullableText(value: Json | undefined, path: string) {
   if (value !== null) text(value, path);
 }
@@ -305,6 +299,7 @@ export function observationList(
   list(value, path).forEach((item, i) => {
     const itemPath = `${path}[${i}]`;
     if (kind === "client-frames") clientEnvelope(item, itemPath);
+    else if (kind === "control-receipts") watermarkEnvelope(item, itemPath);
     else receiptEnvelope(item, itemPath, storage);
   });
 }

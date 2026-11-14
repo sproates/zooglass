@@ -1,3 +1,4 @@
+import { watermarkEnvelope } from "./progress-contract.js";
 import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
 import type { SessionEffect } from "./bridge.js";
@@ -140,6 +141,11 @@ export class DocumentTransport {
       return;
     }
     const envelope = parseJson(effect.wire);
+    if (effect.kind === "control-receipt") {
+      if (object(envelope, "control receipt").status === "failed")
+        throw new Error("infrastructure-failed: progress processing failed");
+      watermarkEnvelope(envelope, "control receipt");
+    }
     if (effect.kind === "handoff") {
       assert.ok(
         !this.handoffs.has(connection.session),
@@ -158,9 +164,17 @@ export class DocumentTransport {
       return;
     }
     assert.ok(
-      effect.kind === "frame" || effect.kind === "receipt",
+      effect.kind === "frame" ||
+        effect.kind === "receipt" ||
+        effect.kind === "control-receipt",
       `known effect kind ${effect.kind}`,
     );
+    const channel: LinkChannel =
+      effect.kind === "receipt"
+        ? "source-receipt"
+        : effect.kind === "control-receipt"
+          ? "progress-receipt"
+          : "client-frame";
     let causes: string[] = [];
     let messageId: string;
     if (effect.kind === "frame") {
@@ -190,7 +204,7 @@ export class DocumentTransport {
     if (latency > 0) {
       this.links.send(
         connection,
-        effect.kind === "receipt" ? "source-receipt" : "client-frame",
+        channel,
         envelope,
         messageId,
         latency,
@@ -225,8 +239,7 @@ export class DocumentTransport {
             {
               ...(j({
                 messageId,
-                channel:
-                  effect.kind === "receipt" ? "source-receipt" : "client-frame",
+                channel,
                 reason: "connection-closed",
               }) as { [key: string]: Json }),
               envelope,
@@ -250,8 +263,7 @@ export class DocumentTransport {
           {
             ...(j({
               messageId,
-              channel:
-                effect.kind === "receipt" ? "source-receipt" : "client-frame",
+              channel,
               ...(delivered
                 ? {}
                 : { reason: lossCause ? "receipt-loss" : "connection-closed" }),
@@ -414,7 +426,11 @@ export class DocumentTransport {
       return;
     }
     const channel: LinkChannel =
-      operation.op === "ingress" ? "source-publication" : "client-request";
+      operation.op === "ingress"
+        ? "source-publication"
+        : operation.op === "progress"
+          ? "progress-request"
+          : "client-request";
     this.links.send(
       connection,
       channel,

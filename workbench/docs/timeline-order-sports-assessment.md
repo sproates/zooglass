@@ -6,7 +6,8 @@ controlled execution of additional combinations and control endpoints, with
 independent evidence. This assessment defines the next bounded extensions. It
 does not convert the legacy JSON format. The subsequent
 [Order host foundation](timeline-order-host.md) admits the bounded Order configuration
-and progress endpoint; document execution and qualification remain outstanding.
+and progress endpoint. [Document controls and replay](timeline-order-controls.md)
+now expose that foundation; full demo scenarios and qualification remain outstanding.
 
 ## Baseline and observed admission
 

@@ -1,3 +1,4 @@
+import { progressControl } from "./progress-contract.js";
 import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules } from "./receipt-faults.js";
 import {
@@ -16,6 +17,7 @@ import {
 import {
   documentEvidenceVersions,
   fleetProfile,
+  orderProfile,
   evidenceV1,
   evidenceV2,
 } from "./evidence-versions.js";
@@ -54,6 +56,10 @@ export const lifecycleCapabilities = [
 export const sqliteLifecycleCapabilities = [
   ...lifecycleCapabilities,
   "sqlite",
+] as const;
+export const orderCapabilities = [
+  ...sqliteLifecycleCapabilities,
+  "progress-control",
 ] as const;
 export type TimelineDocument = {
   format: typeof format | typeof lifecycleFormat;
@@ -118,12 +124,17 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const profile =
     runtime.profile === undefined
       ? versions.profile
-      : choice(runtime.profile, "$.runtime.profile", [fleetProfile]);
+      : choice(runtime.profile, "$.runtime.profile", [
+          fleetProfile,
+          orderProfile,
+        ]);
   if (profile === fleetProfile && storage !== "memory")
     invalid(
       "$.runtime.storage",
       "memory sequence fleet requires memory storage",
     );
+  if (profile === orderProfile && storage !== "sqlite")
+    invalid("$.runtime.storage", "SQLite Order requires SQLite storage");
   choice(runtime.access, "$.runtime.access", ["unprotected"]);
   choice(runtime.initialState, "$.runtime.initialState", ["empty"]);
   const limits = object(doc.limits, "$.limits", [
@@ -181,13 +192,25 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const actors = new Set<string>();
   const sources = new Set<string>();
   const clients = new Set<string>();
+  const controls = new Set<string>();
   list(doc.actors, "$.actors", 100).forEach((value, i) => {
     const path = `$.actors[${i}]`;
     const actor = object(value, path, ["id", "role"]);
     const id = text(actor.id, `${path}.id`);
     unique(id, actors, `${path}.id`);
-    const role = choice(actor.role, `${path}.role`, ["source", "client"]);
-    (role === "source" ? sources : clients).add(id);
+    const role = choice(
+      actor.role,
+      `${path}.role`,
+      profile === orderProfile
+        ? ["source", "client", "progress"]
+        : ["source", "client"],
+    );
+    (role === "source"
+      ? sources
+      : role === "progress"
+        ? controls
+        : clients
+    ).add(id);
   });
   const linked = new Set<string>();
   list(doc.links, "$.links", 100).forEach((value, i) => {
@@ -212,17 +235,22 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const eventIds = new Set<string>();
   const wallSettings: { atMs: number; wallMillis: number; path: string }[] = [];
   const kinds = [
-    ...Object.keys(actionFields),
+    ...Object.keys(actionFields).filter(
+      (kind) => kind !== "progress-send" || profile === orderProfile,
+    ),
     ...(lifecycle ? Object.keys(runtimeActionFields) : []),
   ];
   list(doc.actions, "$.actions").forEach((value, i) => {
     const path = `$.actions[${i}]`;
     const entry = object(value, path);
     const kind = choice(entry.kind, `${path}.kind`, kinds);
-    if (profile === fleetProfile && isRuntimeAction(kind))
+    if (
+      (profile === fleetProfile || profile === orderProfile) &&
+      isRuntimeAction(kind)
+    )
       invalid(
         `${path}.kind`,
-        "memory sequence fleet does not support runtime lifecycle or wall clock actions",
+        `${profile} does not support runtime lifecycle or wall clock actions`,
       );
     const fields = isRuntimeAction(kind)
       ? runtimeActionFields[kind]
@@ -248,14 +276,19 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       entry.actor,
       kind.startsWith("source-")
         ? sources
-        : kind.startsWith("client-") || kind.startsWith("writer-")
-          ? clients
-          : actors,
+        : kind === "progress-send"
+          ? controls
+          : kind.startsWith("client-") || kind.startsWith("writer-")
+            ? clients
+            : actors,
       `${path}.actor`,
     );
     if (kind.startsWith("source-")) {
       required.add("source-publication");
       reference(entry.publication, publications, `${path}.publication`);
+    } else if (kind === "progress-send") {
+      required.add("progress-control");
+      progressControl(entry.control, `${path}.control`);
     } else if (kind.startsWith("client-")) {
       required.add("client-subscription");
       text(entry.viewId, `${path}.viewId`);
@@ -274,7 +307,12 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       record.kind,
       `${path}.kind`,
       lifecycle
-        ? ["client-frames", "source-receipts", "runtime-snapshot"]
+        ? [
+            "client-frames",
+            "source-receipts",
+            "runtime-snapshot",
+            ...(profile === orderProfile ? ["control-receipts"] : []),
+          ]
         : ["client-frames", "source-receipts"],
     );
     const assertion = object(value, path, [
@@ -298,7 +336,11 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     }
     reference(
       assertion.actor,
-      kind === "client-frames" ? clients : sources,
+      kind === "client-frames"
+        ? clients
+        : kind === "control-receipts"
+          ? controls
+          : sources,
       `${path}.actor`,
     );
     observationList(assertion.expected, `${path}.expected`, kind, storage);

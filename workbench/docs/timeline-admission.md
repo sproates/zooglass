@@ -39,3 +39,8 @@ V2 can explicitly select the [memory sequence profile](timeline-fleet-profile.md
 Admission checks the selected configuration profile and `memorySequenceFleet:1`
 capability together. The reported execution profile remains distinct from the
 document format; a v2 document alone does not select fleet strategies.
+
+V2 can also select [Order controls](timeline-order-controls.md) with the explicit
+`sqlite-order-v1` profile and SQLite storage. Admission requires the matching
+configuration profile and `sqliteOrder:1` host capability. This does not enable
+Order restart or wall-clock adjustment; those combinations are rejected.

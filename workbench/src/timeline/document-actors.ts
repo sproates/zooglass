@@ -281,7 +281,13 @@ export class DocumentActors {
         session: connection.session,
         wire: this.publications.get(text(action.publication, "publication"))!,
       };
-    } else
+    } else if (kind === "progress-send")
+      operation = {
+        op: "progress",
+        session: connection.session,
+        wire: encodeJson(action.control),
+      };
+    else
       operation = {
         op: "subscribe",
         session: connection.session,
@@ -298,7 +304,11 @@ export class DocumentActors {
         connection.generation,
         cause,
       );
-    if (operation.op === "ingress" || operation.op === "subscribe")
+    if (
+      operation.op === "ingress" ||
+      operation.op === "subscribe" ||
+      operation.op === "progress"
+    )
       await this.transport.sendToRuntime(
         connection,
         operation,

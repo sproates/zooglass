@@ -74,3 +74,18 @@ export function reference(
   if (!ids.has(id)) invalid(path, `unknown identity ${id}`);
   return id;
 }
+
+// Runtime counters are Java longs, not agenda coordinates or JavaScript numbers.
+export function runtimeCounter(
+  value: Json | undefined,
+  path: string,
+  nullable = false,
+) {
+  if (nullable && value === null) return;
+  if (
+    !(value instanceof Decimal) ||
+    !/^\d+$/.test(value.text) ||
+    BigInt(value.text) > 9223372036854775807n
+  )
+    invalid(path, "expected nonnegative signed-64-bit integer");
+}

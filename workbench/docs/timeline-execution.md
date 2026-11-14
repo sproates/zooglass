@@ -117,3 +117,9 @@ bounded two-source/two-view configuration with latest-by-sequence and ordered
 history. Its host/admission foundation is separate from the full fleet scenario
 and repeatability/parity qualification planned in the
 [fleet assessment](timeline-fleet-assessment.md).
+
+The explicit v2 [Order profile](timeline-order-controls.md) admits its bounded
+SQLite configuration, progress actors and complete watermark acknowledgements.
+Controls share the fixed-delay links and input phase; Order lifecycle and wall
+adjustment actions remain rejected. This transport foundation is separate from
+full Order scenario and parity qualification.

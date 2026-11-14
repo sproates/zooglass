@@ -117,6 +117,7 @@ function checkRuntimeDeclarations(
   scenario: TimelineDocument,
   trace: ReturnType<typeof parseTrace>,
 ) {
+  checkControlDeclarations(scenario, trace);
   const actions = list(scenario.document.actions, "actions");
   const runtimeActions = scenario.admittedActions.filter((action) =>
     isRuntimeAction(action.kind),
@@ -170,6 +171,55 @@ function checkRuntimeDeclarations(
     )
       throw new Error(
         "invalid-replay: runtime snapshot assertion differs from scenario",
+      );
+  }
+}
+
+function checkControlDeclarations(
+  scenario: TimelineDocument,
+  trace: ReturnType<typeof parseTrace>,
+) {
+  const actions = list(scenario.document.actions, "actions");
+  const declared = scenario.admittedActions.filter(
+    (action) => action.kind === "progress-send",
+  );
+  if (
+    trace.outcome === "passed" &&
+    trace.controlActions.length !== declared.length
+  )
+    throw new Error("invalid-replay: missing progress actions");
+  for (const [index, event] of trace.controlActions.entries()) {
+    const expected = declared[index];
+    if (
+      !expected ||
+      event.actor !== expected.actor ||
+      event.timeMs !== expected.atMs ||
+      event.data.actionId !== expected.id ||
+      encodeJson(event.data.control) !==
+        encodeJson(object(actions[expected.declaration], "action").control)
+    )
+      throw new Error("invalid-replay: progress action differs from scenario");
+  }
+  const assertions = list(scenario.document.assertions, "assertions")
+    .map((value) => object(value, "assertion"))
+    .filter((value) => value.kind === "control-receipts")
+    .sort((a, b) => integer(a.atMs, "atMs") - integer(b.atMs, "atMs"));
+  if (
+    trace.outcome === "passed" &&
+    trace.controlAssertions.length !== assertions.length
+  )
+    throw new Error("invalid-replay: missing control receipt assertions");
+  for (const [index, event] of trace.controlAssertions.entries()) {
+    const expected = assertions[index];
+    if (
+      !expected ||
+      event.actor !== expected.actor ||
+      event.timeMs !== integer(expected.atMs, "atMs") ||
+      event.data.assertionId !== expected.id ||
+      encodeJson(event.data.expected) !== encodeJson(expected.expected)
+    )
+      throw new Error(
+        "invalid-replay: control receipt assertion differs from scenario",
       );
   }
 }

@@ -1,6 +1,8 @@
 import { type Json } from "./json.js";
 import { choice } from "./validation.js";
 
+export const orderProfile = "sqlite-order-v1";
+
 export const fleetProfile = "memory-sequence-fleet-v1";
 
 export const evidenceV1 = {

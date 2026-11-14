@@ -6,7 +6,10 @@ documents for the explicit `memory-arrival-v1` configuration profile.
 V2 adds [memory lifecycle](timeline-lifecycle.md), with matching v2 trace, run and
 bundle contracts. Its optional `runtime.profile: "memory-sequence-fleet-v1"`
 selects the [bounded memory sequence profile](timeline-fleet-profile.md); omitted
-profiles retain the existing receipt-age identity. V1 rejects this field.
+profiles retain the existing receipt-age identity. The explicit
+`runtime.profile: "sqlite-order-v1"` selects [Order progress controls](timeline-order-controls.md)
+with SQLite storage, progress actors and complete control acknowledgements. V1
+rejects this field.
 Both versions are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
 retain their private format and existing commands.

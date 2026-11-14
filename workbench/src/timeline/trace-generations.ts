@@ -3,7 +3,7 @@ import { isRuntimeAction } from "./event-schema.js";
 import { encodeJson, type Json } from "./json.js";
 import { integer, invalid, list, object, text } from "./validation.js";
 
-type Event = {
+export type TraceEvent = {
   kind: string;
   id: string;
   parent: string | null;
@@ -19,6 +19,7 @@ type Event = {
 const sessionKinds = new Set([
   "frame",
   "receipt",
+  "control-receipt",
   "handoff",
   "delivered",
   "dropped",
@@ -34,14 +35,14 @@ export class TraceGenerations {
   private active: number | null = null;
   private epoch?: number;
   private wallOffset = 0;
-  private starting?: Event;
-  private stop?: Event;
-  private readonly tasks = new Map<string, Event>();
+  private starting?: TraceEvent;
+  private stop?: TraceEvent;
+  private readonly tasks = new Map<string, TraceEvent>();
   private readonly stopClosures = new Set<string>();
-  private readonly attemptParents = new Map<string, Event>();
+  private readonly attemptParents = new Map<string, TraceEvent>();
   private readonly connections = new Map<string, number[]>();
   private observedTargets?: string[];
-  private pendingObservation?: Event;
+  private pendingObservation?: TraceEvent;
 
   constructor(
     private readonly untilMs: number,
@@ -50,7 +51,7 @@ export class TraceGenerations {
     this.observedTargets = targets?.map(targetKey);
   }
 
-  accept(event: Event, path: string) {
+  accept(event: TraceEvent, path: string) {
     const {
       kind,
       id,
@@ -337,7 +338,7 @@ export class TraceGenerations {
     }
   }
 
-  private connection(event: Event, path: string) {
+  private connection(event: TraceEvent, path: string) {
     const { kind, actor, runtimeGeneration, connectionGeneration, data } =
       event;
     const declaredConnect = kind === "action" && data.actionKind === "connect";
@@ -419,7 +420,7 @@ export class TraceGenerations {
     return value;
   }
 
-  private task(event: Event, path: string) {
+  private task(event: TraceEvent, path: string) {
     const taskId = text(event.data.taskId, `${path}.data.taskId`);
     if (
       !/^-?[1-9][0-9]*$/.test(taskId) ||

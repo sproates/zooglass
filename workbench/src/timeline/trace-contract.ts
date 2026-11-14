@@ -1,10 +1,16 @@
+import { TraceControls } from "./trace-controls.js";
 import {
   eventData,
   isRuntimeAction,
   lifecycleEventKinds,
 } from "./event-schema.js";
 import type { ObservationTarget } from "./envelopes.js";
-import { evidenceV1, evidenceV2, fleetProfile } from "./evidence-versions.js";
+import {
+  evidenceV1,
+  evidenceV2,
+  fleetProfile,
+  orderProfile,
+} from "./evidence-versions.js";
 import { TraceGenerations } from "./trace-generations.js";
 import { encodeJson, jsonLimits, parseJson, type Json } from "./json.js";
 import {
@@ -74,7 +80,10 @@ export function parseTrace(
   const until = header.untilMs;
   const version = header.format === evidenceV2.trace ? 2 : 1;
   const kinds =
-    version === 2 ? [...eventKinds, ...lifecycleEventKinds] : eventKinds;
+    version === 2
+      ? [...eventKinds, ...lifecycleEventKinds, "control-receipt"]
+      : eventKinds;
+  const controls = new TraceControls(header.execution?.profile);
   const generations =
     version === 2 ? new TraceGenerations(until, observationTargets) : undefined;
   for (let index = 1; index < lines.length - 1; index++) {
@@ -151,21 +160,20 @@ export function parseTrace(
       storage,
     );
     const data = object(record.data, `${path}.data`);
-    generations?.accept(
-      {
-        kind,
-        id,
-        parent,
-        causes,
-        actor,
-        timeMs: key[0],
-        key,
-        runtimeGeneration,
-        connectionGeneration,
-        data,
-      },
-      path,
-    );
+    const event = {
+      kind,
+      id,
+      parent,
+      causes,
+      actor,
+      timeMs: key[0],
+      key,
+      runtimeGeneration,
+      connectionGeneration,
+      data,
+    };
+    generations?.accept(event, path);
+    controls.accept(event, path);
     if (kind === "assertion") {
       if (data.passed === false) failedAssertion = true;
       if (data.assertionKind === "runtime-snapshot")
@@ -186,6 +194,7 @@ export function parseTrace(
     failedAssertion,
   );
   const epochMillis = generations?.finish(outcome);
+  controls.finish(outcome);
   return {
     canonical: canonical.join(""),
     lines: canonical,
@@ -194,6 +203,8 @@ export function parseTrace(
     epochMillis,
     runtimeAssertions,
     runtimeActions,
+    controlActions: controls.actions,
+    controlAssertions: controls.assertions,
   };
 }
 
@@ -224,7 +235,7 @@ function traceHeader(value: ReturnType<typeof object>) {
       execution.profile,
       `${path}.execution.profile`,
       versions === evidenceV2
-        ? [versions.profile, fleetProfile]
+        ? [versions.profile, fleetProfile, orderProfile]
         : [versions.profile],
     );
     for (const name of [

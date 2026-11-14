@@ -61,6 +61,16 @@ export function executionSettings(
         "unsupported-execution: publication body exceeds 4096 canonical bytes",
       );
   }
+  for (const action of list(doc.actions, "$.actions")) {
+    const entry = object(action, "action");
+    if (
+      entry.kind === "progress-send" &&
+      Buffer.byteLength(encodeJson(entry.control)) > 4096
+    )
+      throw new Error(
+        "unsupported-execution: progress control exceeds 4096 canonical bytes",
+      );
+  }
   if (Buffer.byteLength(configuration) > 65536)
     throw new Error("unsupported-execution: configuration exceeds 65536 bytes");
   return settings;

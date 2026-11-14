@@ -1,3 +1,4 @@
+import { progressControl, watermarkEnvelope } from "./progress-contract.js";
 import { encodeJson, type Json } from "./json.js";
 import {
   clientEnvelope,
@@ -12,6 +13,7 @@ import { choice, integer, invalid, list, object, text } from "./validation.js";
 
 export const actionFields = {
   "source-send": ["publication"],
+  "progress-send": ["control"],
   "source-retry": ["publication"],
   "client-subscribe": ["viewId", "entityId"],
   "client-unsubscribe": ["viewId", "entityId"],
@@ -190,7 +192,7 @@ export function eventData(
       `${path}.actionKind`,
       version === 2
         ? [...Object.keys(actionFields), ...Object.keys(runtimeActionFields)]
-        : Object.keys(actionFields),
+        : Object.keys(actionFields).filter((kind) => kind !== "progress-send"),
     ) as ActorActionKind | RuntimeActionKind;
     const fields = isRuntimeAction(actionKind)
       ? runtimeActionFields[actionKind]
@@ -205,7 +207,9 @@ export function eventData(
         choice(data.mode, `${path}.mode`, stopModes);
       } else if (field === "wallMillis") {
         integer(data.wallMillis, `${path}.wallMillis`);
-      } else text(data[field], `${path}.${field}`);
+      } else if (field === "control")
+        progressControl(data.control, `${path}.control`);
+      else text(data[field], `${path}.${field}`);
     }
   } else if (kind === "scheduled") {
     object(data, path, ["taskId", "atMs", "phase", "taskKind"]);
@@ -234,8 +238,9 @@ export function eventData(
       "client-frame",
       "source-publication",
       "client-request",
+      ...(version === 2 ? ["progress-request", "progress-receipt"] : []),
     ]);
-    if (channel === "source-publication")
+    if (channel === "source-publication" || channel === "progress-request")
       object(data.envelope, `${path}.envelope`);
     else if (channel === "client-request") {
       const envelope = object(data.envelope, `${path}.envelope`, [
@@ -251,6 +256,8 @@ export function eventData(
       text(envelope.entityId, `${path}.envelope.entityId`);
     } else if (channel === "source-receipt")
       receiptEnvelope(data.envelope, `${path}.envelope`, storage);
+    else if (channel === "progress-receipt")
+      watermarkEnvelope(data.envelope, `${path}.envelope`);
     else clientEnvelope(data.envelope, `${path}.envelope`);
     if (kind === "link-send")
       integer(
@@ -265,7 +272,12 @@ export function eventData(
       data.assertionKind,
       `${path}.assertionKind`,
       version === 2
-        ? ["client-frames", "source-receipts", "runtime-snapshot"]
+        ? [
+            "client-frames",
+            "source-receipts",
+            "runtime-snapshot",
+            "control-receipts",
+          ]
         : ["client-frames", "source-receipts"],
     );
     object(data, path, [
@@ -306,7 +318,9 @@ export function eventData(
       ...(Object.hasOwn(data, "messageId") ? ["messageId"] : []),
     ]);
     if (data.messageId !== undefined) text(data.messageId, `${path}.messageId`);
-    if (kind === "receipt")
+    if (kind === "control-receipt")
+      watermarkEnvelope(data.envelope, `${path}.envelope`);
+    else if (kind === "receipt")
       receiptEnvelope(data.envelope, `${path}.envelope`, storage);
     else if (kind === "frame")
       clientEnvelope(data.envelope, `${path}.envelope`);

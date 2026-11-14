@@ -10,7 +10,12 @@ export type LinkConnection = {
   open: boolean;
 };
 export type LinkChannel =
-  "source-publication" | "source-receipt" | "client-request" | "client-frame";
+  | "source-publication"
+  | "source-receipt"
+  | "client-request"
+  | "client-frame"
+  | "progress-request"
+  | "progress-receipt";
 type Packet = {
   connection: LinkConnection;
   channel: LinkChannel;

@@ -1,11 +1,10 @@
 # Order simulation host foundation
 
 The prepared Java host now supports the bounded `sqlite-order-v1` configuration
-and progress controls through the real production runtime. This is a host/protocol
-foundation, **not yet an executable Workbench document profile**. Document admission
-still rejects `sqlite-order-v1`; progress actions, acknowledgement assertions,
-transport cancellation and replay integration are the next stage of the
-[Order/Sports assessment](timeline-order-sports-assessment.md).
+and progress controls through the real production runtime. The [Order document controls](timeline-order-controls.md) expose this foundation
+through typed progress actions, complete acknowledgement assertions, controlled
+links and replay. Full Order scenarios, restart and qualification remain separate
+stages of the [Order/Sports assessment](timeline-order-sports-assessment.md).
 
 ## Admitted configuration
 
@@ -50,7 +49,7 @@ this endpoint, and progress sessions cannot publish events. Old profiles cannot
 open progress sessions. Wire responses remain complete production watermark
 acknowledgements; they are not publication receipts or synthetic success results.
 
-Equal watermark repeats return the original version with
+Repeating the current watermark returns the original version with
 `duplicate/alreadyCommitted`. A watermark can change view status even before data
 arrives, and can update multiple mapped views without replacing retained payloads.
 Malformed controls produce the production `invalidProgress` response. Semantic
@@ -59,9 +58,10 @@ health after each control and fails the turn if storage requires recovery.
 
 The caller orders host commands. A control runs within one virtual turn, including
 production expiry before progress, state effects and any scheduled delivery work.
-Tasks must be dispatched using the existing time/round/phase/ordinal rules. This
-stage adds no document scheduling convention, automatic control retry, acknowledgement
-loss model or claim about ordinary cross-socket arrival order.
+Tasks must be dispatched using the existing time/round/phase/ordinal rules. The document executor schedules controls as phase-two inputs, with
+declaration order resolving ties. This is a simulator policy, not a claim about
+ordinary cross-socket arrival order. Automatic control retry and acknowledgement
+loss rules are not admitted.
 
 ## Verification
 
@@ -73,8 +73,9 @@ injection on the owned SQLite connection verifies a failed commit cannot acknowl
 a successful host turn; no fault hook is added to shipped runtime code.
 
 Prepared-process tests exercise capability negotiation, role isolation, real
-watermark receipts, old-profile isolation and continued document rejection.
+watermark receipts, old-profile isolation and profile capability boundaries.
 Existing fleet/SQLite host tests and the earlier semantic-record comparison remain
 regression gates. All execution/tests consume prepared artifacts; preparation is a
 separate explicit command. Full Order scenarios, repeated qualification, ordinary
-service parity, control replay and lifecycle combinations remain outstanding.
+service parity and lifecycle combinations remain outstanding. Document control
+transport/replay checks are described in the control guide.

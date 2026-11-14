@@ -9,13 +9,18 @@ import {
 } from "./admission.js";
 import {
   capabilities,
+  orderCapabilities,
   lifecycleCapabilities,
   requireExecutionCapabilities,
   sqliteLifecycleCapabilities,
 } from "./contract.js";
 import { Bridge } from "./bridge.js";
 import { RuntimeGenerations } from "./runtime-generations.js";
-import { documentEvidenceVersions, fleetProfile } from "./evidence-versions.js";
+import {
+  documentEvidenceVersions,
+  fleetProfile,
+  orderProfile,
+} from "./evidence-versions.js";
 import { executionSettings } from "./document-profile.js";
 import { DocumentExecution } from "./document-execution.js";
 import { SemanticTrace, type Counts, type Outcome } from "./semantic-trace.js";
@@ -76,11 +81,13 @@ export async function executeDocument(
     checkConfiguredTargets(scenario, wire);
     requireExecutionCapabilities(
       scenario,
-      scenario.storage === "sqlite"
-        ? sqliteLifecycleCapabilities
-        : evidence.protocol === 2
-          ? lifecycleCapabilities
-          : capabilities,
+      scenario.profile === orderProfile
+        ? orderCapabilities
+        : scenario.storage === "sqlite"
+          ? sqliteLifecycleCapabilities
+          : evidence.protocol === 2
+            ? lifecycleCapabilities
+            : capabilities,
     );
     const hostEnvironment =
       evidence.protocol === 2
@@ -125,8 +132,9 @@ export async function executeDocument(
         generations = new RuntimeGenerations({
           jar: options.jar,
           configuration: wire,
-          ...(scenario.profile === fleetProfile
-            ? { profile: fleetProfile }
+          ...(scenario.profile === fleetProfile ||
+          scenario.profile === orderProfile
+            ? { profile: scenario.profile }
             : {}),
           epochMillis,
           commandLimit: settings.turns,

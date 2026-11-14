@@ -5,6 +5,8 @@ It is a fixed **one-way** delay, applied independently in both directions of eac
 connection generation:
 
 - Source publication to runtime, then runtime receipt back to source.
+- For the [Order profile](timeline-order-controls.md), progress control to runtime,
+  then the complete watermark acknowledgement back to the progress actor.
 - Client subscribe/unsubscribe request to runtime, then acknowledgement, error or
   view frame back to client.
 
@@ -45,8 +47,8 @@ session. Existing zero-latency callbacks observe the closed generation and drop 
 their already scheduled causal round.
 
 A `link-send` record includes `messageId`, `channel`, `envelope` and `deliverAtMs`.
-The four channels are `source-publication`, `source-receipt`, `client-request` and
-`client-frame`. `delivered` or `dropped` records retain the message identity and exact
+The ordinary channels are `source-publication`, `source-receipt`, `client-request`
+and `client-frame`. Order adds `progress-request` and `progress-receipt`. `delivered` or `dropped` records retain the message identity and exact
 envelope. Drop causes link the original send and actual connection close; selected
 receipt loss also retains its fault decision. Replay compares these records as they
 are emitted during fresh execution.

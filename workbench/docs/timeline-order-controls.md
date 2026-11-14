@@ -5,7 +5,9 @@ Timeline v2 documents can select `runtime.profile: "sqlite-order-v1"` with
 must advertise `sqliteOrder: 1` and accept the bounded
 [Order configuration](timeline-order-host.md). Each run and replay uses a fresh
 private database. This foundation supports progress transport; it does not yet
-qualify the full Order demo, restart or wall-clock adjustment.
+qualify the full Order demo or wall-clock adjustment. The separate
+[`sqlite-order-restart-v1` profile](timeline-order-recovery.md) adds service restart
+and requires `sqliteOrderLifecycle: 1` as well.
 
 ## Declare controls and observations
 
@@ -84,14 +86,17 @@ saved control responses are never fed back into execution. The existing strict
 replay outcome policy applies.
 
 Progress actors/actions/acknowledgements require the Order profile. Older profiles
-and protocol-1 hosts cannot silently accept them. Order documents reject
-`service-stop`, `service-start` and `wall-clock-set`; the earlier receipt-age
-profiles retain their independently qualified lifecycle support.
+and protocol-1 hosts cannot silently accept them. The ordinary `sqlite-order-v1` profile rejects
+`service-stop`, `service-start` and `wall-clock-set`. The explicit recovery profile
+admits stop/start and keeps wall adjustment rejected. Both profiles reject progress
+sends during service downtime or without a live connection. A service stop cancels
+in-flight requests and replies, including an abrupt stop without close callbacks;
+a committed watermark survives even when its acknowledgement is cancelled.
 
 Transport tests cover delayed acknowledgements, exact repeats, abortive closure,
 malformed controls, admission boundaries and replay. The host tests separately
 exercise multiple views/clients, gap status, source priority and required
 contributions. The [ordinary two-cycle Order scenario](timeline-order-scenario.md) adds complete
-independent receipts and named state/client observations. Recovery, retention,
+independent receipts and named state/client observations. [Recovery](timeline-order-recovery.md) has a separate bounded fixture. Retention,
 repeated campaigns and ordinary-service parity remain later stages of the
 [Order/Sports assessment](timeline-order-sports-assessment.md).

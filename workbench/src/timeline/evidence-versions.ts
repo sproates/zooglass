@@ -2,6 +2,12 @@ import { type Json } from "./json.js";
 import { choice } from "./validation.js";
 
 export const orderProfile = "sqlite-order-v1";
+export const orderRestartProfile = "sqlite-order-restart-v1";
+export function isOrderProfile(
+  profile: unknown,
+): profile is typeof orderProfile | typeof orderRestartProfile {
+  return profile === orderProfile || profile === orderRestartProfile;
+}
 
 export const fleetProfile = "memory-sequence-fleet-v1";
 

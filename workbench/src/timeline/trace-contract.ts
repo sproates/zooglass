@@ -10,6 +10,7 @@ import {
   evidenceV2,
   fleetProfile,
   orderProfile,
+  orderRestartProfile,
 } from "./evidence-versions.js";
 import { TraceGenerations } from "./trace-generations.js";
 import { encodeJson, jsonLimits, parseJson, type Json } from "./json.js";
@@ -235,7 +236,7 @@ function traceHeader(value: ReturnType<typeof object>) {
       execution.profile,
       `${path}.execution.profile`,
       versions === evidenceV2
-        ? [versions.profile, fleetProfile, orderProfile]
+        ? [versions.profile, fleetProfile, orderProfile, orderRestartProfile]
         : [versions.profile],
     );
     for (const name of [

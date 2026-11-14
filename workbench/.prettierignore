@@ -10,3 +10,10 @@ scenarios/timeline-order/scenario.json
 
 # Exact pinned Order configuration bytes; SHA-256 is part of the fixture contract.
 scenarios/timeline-order/runtime.json
+
+# Generated recovery variants; complete assertions stay on one line.
+scenarios/timeline-order-recovery/before.json
+scenarios/timeline-order-recovery/at.json
+scenarios/timeline-order-recovery/after.json
+# Byte-identical pinned Order configuration.
+scenarios/timeline-order-recovery/runtime.json

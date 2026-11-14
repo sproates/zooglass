@@ -19,7 +19,7 @@ import { RuntimeGenerations } from "./runtime-generations.js";
 import {
   documentEvidenceVersions,
   fleetProfile,
-  orderProfile,
+  isOrderProfile,
 } from "./evidence-versions.js";
 import { executionSettings } from "./document-profile.js";
 import { DocumentExecution } from "./document-execution.js";
@@ -81,7 +81,7 @@ export async function executeDocument(
     checkConfiguredTargets(scenario, wire);
     requireExecutionCapabilities(
       scenario,
-      scenario.profile === orderProfile
+      isOrderProfile(scenario.profile)
         ? orderCapabilities
         : scenario.storage === "sqlite"
           ? sqliteLifecycleCapabilities
@@ -133,7 +133,7 @@ export async function executeDocument(
           jar: options.jar,
           configuration: wire,
           ...(scenario.profile === fleetProfile ||
-          scenario.profile === orderProfile
+          isOrderProfile(scenario.profile)
             ? { profile: scenario.profile }
             : {}),
           epochMillis,

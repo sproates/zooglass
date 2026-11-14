@@ -1,4 +1,8 @@
-import { orderProfile } from "./evidence-versions.js";
+import {
+  orderProfile,
+  orderRestartProfile,
+  isOrderProfile,
+} from "./evidence-versions.js";
 import { isRuntimeAction } from "./event-schema.js";
 import { encodeJson, type Json } from "./json.js";
 import type { TraceEvent } from "./trace-generations.js";
@@ -18,6 +22,7 @@ export class TraceControls {
   private readonly messageIds = new Set<string>();
   private readonly pending = new Map<string, TraceEvent>();
   private readonly observations = new Map<string, Json[]>();
+  private readonly stoppedGenerations = new Set<number>();
   private readonly closedConnections = new Set<string>();
   readonly actions: TraceEvent[] = [];
   readonly assertions: TraceEvent[] = [];
@@ -34,7 +39,7 @@ export class TraceControls {
       controlChannel(data.channel);
     const control =
       controlAction || controlAssertion || packet || kind === "control-receipt";
-    if (control && this.profile !== orderProfile)
+    if (control && !isOrderProfile(this.profile))
       invalid(path, "progress evidence requires the SQLite Order profile");
     const connection = JSON.stringify([
       event.actor,
@@ -42,12 +47,20 @@ export class TraceControls {
       event.connectionGeneration,
     ]);
     if (kind === "connection-closed") this.closedConnections.add(connection);
+    if (
+      kind === "action" &&
+      data.actionKind === "service-stop" &&
+      event.runtimeGeneration !== null
+    )
+      this.stoppedGenerations.add(event.runtimeGeneration);
     // Cancellation records may follow closure; fresh traffic cannot reuse that session.
     if (
       control &&
       !controlAssertion &&
       kind !== "dropped" &&
-      this.closedConnections.has(connection)
+      (this.closedConnections.has(connection) ||
+        (event.runtimeGeneration !== null &&
+          this.stoppedGenerations.has(event.runtimeGeneration)))
     )
       invalid(
         path,
@@ -63,6 +76,15 @@ export class TraceControls {
         path,
         "SQLite Order does not support runtime lifecycle or wall clock actions",
       );
+    if (
+      this.profile === orderRestartProfile &&
+      kind === "action" &&
+      data.actionKind === "wall-clock-set"
+    )
+      invalid(
+        path,
+        "SQLite Order lifecycle does not support wall clock actions",
+      );
     const owner = parent === null ? undefined : this.events.get(parent);
     if (controlAction) {
       if (
@@ -71,7 +93,8 @@ export class TraceControls {
         event.key[1] !== 0 ||
         event.key[2] !== 2 ||
         event.connectionGeneration === null ||
-        event.runtimeGeneration !== 1
+        event.runtimeGeneration === null ||
+        (this.profile === orderProfile && event.runtimeGeneration !== 1)
       )
         invalid(
           path,
@@ -186,23 +209,7 @@ export class TraceControls {
             this.observations.set(event.actor, observed);
           }
         } else {
-          const closed =
-            owner?.kind === "connection-closed"
-              ? owner
-              : event.causes
-                  .map((id) => this.events.get(id))
-                  .find((cause) => cause?.kind === "connection-closed");
-          if (
-            data.reason !== "connection-closed" ||
-            !closed ||
-            !sameOwner(event, closed) ||
-            closed.timeMs !== event.timeMs ||
-            (origin.kind === "link-send" && !sameKey(event, closed))
-          )
-            invalid(
-              path,
-              "progress cancellation requires its connection close cause",
-            );
+          this.cancellation(event, origin, owner, path);
         }
         this.consume(origin, path);
       }
@@ -219,6 +226,40 @@ export class TraceControls {
     }
     this.events.set(event.id, event);
   }
+  private cancellation(
+    event: TraceEvent,
+    origin: TraceEvent,
+    owner: TraceEvent | undefined,
+    path: string,
+  ) {
+    const causes = [owner, ...event.causes.map((id) => this.events.get(id))];
+    const closed = causes.find((cause) => cause?.kind === "connection-closed");
+    const stopped = causes.find(
+      (cause) =>
+        cause?.kind === "action" && cause.data.actionKind === "service-stop",
+    );
+    const connectionClose =
+      closed &&
+      sameOwner(event, closed) &&
+      closed.timeMs === event.timeMs &&
+      (origin.kind !== "link-send" || sameKey(event, closed));
+    const serviceStop =
+      this.profile === orderRestartProfile &&
+      stopped &&
+      stopped.actor === "@runtime" &&
+      stopped.connectionGeneration === null &&
+      stopped.runtimeGeneration === event.runtimeGeneration &&
+      sameKey(event, stopped);
+    if (
+      event.data.reason !== "connection-closed" ||
+      (!connectionClose && !serviceStop)
+    )
+      invalid(
+        path,
+        "progress cancellation requires its connection close or admitted service stop cause",
+      );
+  }
+
   private origin(event: TraceEvent) {
     return event.causes
       .map((id) => this.events.get(id))

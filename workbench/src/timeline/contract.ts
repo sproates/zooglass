@@ -18,6 +18,8 @@ import {
   documentEvidenceVersions,
   fleetProfile,
   orderProfile,
+  orderRestartProfile,
+  isOrderProfile,
   evidenceV1,
   evidenceV2,
 } from "./evidence-versions.js";
@@ -127,13 +129,14 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       : choice(runtime.profile, "$.runtime.profile", [
           fleetProfile,
           orderProfile,
+          orderRestartProfile,
         ]);
   if (profile === fleetProfile && storage !== "memory")
     invalid(
       "$.runtime.storage",
       "memory sequence fleet requires memory storage",
     );
-  if (profile === orderProfile && storage !== "sqlite")
+  if (isOrderProfile(profile) && storage !== "sqlite")
     invalid("$.runtime.storage", "SQLite Order requires SQLite storage");
   choice(runtime.access, "$.runtime.access", ["unprotected"]);
   choice(runtime.initialState, "$.runtime.initialState", ["empty"]);
@@ -201,7 +204,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     const role = choice(
       actor.role,
       `${path}.role`,
-      profile === orderProfile
+      isOrderProfile(profile)
         ? ["source", "client", "progress"]
         : ["source", "client"],
     );
@@ -236,7 +239,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const wallSettings: { atMs: number; wallMillis: number; path: string }[] = [];
   const kinds = [
     ...Object.keys(actionFields).filter(
-      (kind) => kind !== "progress-send" || profile === orderProfile,
+      (kind) => kind !== "progress-send" || isOrderProfile(profile),
     ),
     ...(lifecycle ? Object.keys(runtimeActionFields) : []),
   ];
@@ -251,6 +254,11 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       invalid(
         `${path}.kind`,
         `${profile} does not support runtime lifecycle or wall clock actions`,
+      );
+    if (profile === orderRestartProfile && kind === "wall-clock-set")
+      invalid(
+        `${path}.kind`,
+        "SQLite Order lifecycle does not support wall clock actions",
       );
     const fields = isRuntimeAction(kind)
       ? runtimeActionFields[kind]
@@ -311,7 +319,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
             "client-frames",
             "source-receipts",
             "runtime-snapshot",
-            ...(profile === orderProfile ? ["control-receipts"] : []),
+            ...(isOrderProfile(profile) ? ["control-receipts"] : []),
           ]
         : ["client-frames", "source-receipts"],
     );

@@ -56,6 +56,7 @@ export class Bridge {
   configurationAdmission = 0;
   sqliteLifecycle: 0 | 1 = 0;
   sqliteOrder: 0 | 1 = 0;
+  sqliteOrderLifecycle: 0 | 1 = 0;
   installedObservations: 0 | 1 = 0;
   memorySequenceFleet: 0 | 1 = 0;
   wallClockAdjustments: 0 | 1 = 0;
@@ -177,6 +178,7 @@ export class Bridge {
         bridge.installedObservations = handshake.installedObservations ?? 0;
         bridge.memorySequenceFleet = handshake.memorySequenceFleet ?? 0;
         bridge.sqliteOrder = handshake.sqliteOrder ?? 0;
+        bridge.sqliteOrderLifecycle = handshake.sqliteOrderLifecycle ?? 0;
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
       bridge.environment = handshake.environment;

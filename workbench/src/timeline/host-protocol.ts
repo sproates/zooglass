@@ -65,6 +65,7 @@ export type Handshake = {
       memoryLifecycle: 1;
       sqliteLifecycle?: 1;
       sqliteOrder?: 1;
+      sqliteOrderLifecycle?: 1;
       installedObservations?: 1;
       memorySequenceFleet?: 1;
       wallClockAdjustments?: 1;
@@ -108,6 +109,8 @@ export function decodeHandshake(value: unknown): Handshake {
   integer(data.protocol, "handshake.protocol", 1, 2);
   if (data.protocol !== 2 && data.sqliteOrder !== undefined)
     invalid("handshake.sqliteOrder requires protocol 2");
+  if (data.protocol !== 2 && data.sqliteOrderLifecycle !== undefined)
+    invalid("handshake.sqliteOrderLifecycle requires protocol 2");
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);
@@ -135,6 +138,13 @@ export function decodeHandshake(value: unknown): Handshake {
       (data.sqliteOrder !== 1 || data.sqliteLifecycle !== 1)
     )
       invalid("handshake.sqliteOrder requires SQLite lifecycle");
+    if (
+      data.sqliteOrderLifecycle !== undefined &&
+      (data.sqliteOrderLifecycle !== 1 ||
+        data.sqliteOrder !== 1 ||
+        data.sqliteLifecycle !== 1)
+    )
+      invalid("handshake.sqliteOrderLifecycle requires SQLite Order support");
     if (data.memoryLifecycle !== 1) invalid("handshake.memoryLifecycle");
     if (!(data.storage as string[]).includes("memory"))
       invalid("handshake.memoryLifecycle requires memory storage");

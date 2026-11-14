@@ -13,7 +13,12 @@ import {
   executionSettings,
   lifecycleDocumentProfile,
 } from "./document-profile.js";
-import { fleetProfile, orderProfile } from "./evidence-versions.js";
+import {
+  fleetProfile,
+  orderProfile,
+  orderRestartProfile,
+  isOrderProfile,
+} from "./evidence-versions.js";
 import { jsonLimits, parseJson } from "./json.js";
 import { list, object, text } from "./validation.js";
 
@@ -85,9 +90,16 @@ export async function probeLifecycle(
       throw new Error(
         "unsupported-execution: prepared artifact does not support memory sequence fleet",
       );
-    if (scenario.profile === orderProfile && opened.bridge.sqliteOrder !== 1)
+    if (isOrderProfile(scenario.profile) && opened.bridge.sqliteOrder !== 1)
       throw new Error(
         "unsupported-execution: prepared artifact does not support SQLite Order",
+      );
+    if (
+      scenario.profile === orderRestartProfile &&
+      opened.bridge.sqliteOrderLifecycle !== 1
+    )
+      throw new Error(
+        "unsupported-execution: prepared artifact does not support SQLite Order lifecycle",
       );
     if (scenario.storage === "sqlite" && opened.bridge.sqliteLifecycle !== 1)
       throw new Error(
@@ -152,8 +164,8 @@ export async function inspectRuntimeConfiguration(
 export function requiredConfigurationProfile(
   scenario: Pick<TimelineDocument, "storage" | "profile">,
 ) {
-  if (scenario.profile === fleetProfile || scenario.profile === orderProfile)
-    return scenario.profile;
+  if (isOrderProfile(scenario.profile)) return orderProfile;
+  if (scenario.profile === fleetProfile) return fleetProfile;
   return scenario.storage === "sqlite"
     ? lifecycleDocumentProfile
     : documentProfile;

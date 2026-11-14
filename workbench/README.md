@@ -889,5 +889,6 @@ SQLite configuration and progress endpoint. [Order document controls](docs/timel
 add explicit watermark sends, complete acknowledgement assertions and replay.
 The [two-cycle Order scenario](docs/timeline-order-scenario.md) retains all six
 orders and the completed demo's source/control inputs with independent expected
-outcomes. Order restart, retention and qualification remain separate; the
-real-service demos remain available.
+outcomes. [Order recovery](docs/timeline-order-recovery.md) separately admits
+restart and checks retained state and freshness continuity. Retention and full
+qualification remain separate; the real-service demos remain available.

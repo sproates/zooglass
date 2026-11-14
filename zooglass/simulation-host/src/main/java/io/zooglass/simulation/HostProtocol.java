@@ -119,6 +119,7 @@ enum HostProtocol {
         if (sqliteVersion != null) {
             capabilities.put("sqliteLifecycle", 1);
             capabilities.put("sqliteOrder", 1);
+            capabilities.put("sqliteOrderLifecycle", 1);
         }
         return capabilities;
     }

@@ -581,3 +581,18 @@ Simulation paths belong to `simulation-host/src/main/java/io/zooglass/`; product
 paths belong to `src/main/java/io/zooglass/`. The session records a distinct
 control-receipt effect. This is a private host capability, not Workbench document
 progress/replay support. See [scope and gates](../../workbench/docs/timeline-order-host.md).
+
+### Order lifecycle admission
+
+```mermaid
+flowchart LR
+  protocol["simulation/HostProtocol.java"] -->|advertise SQLite Order lifecycle capability| host["simulation/TimelineHost.java"]
+  host -->|inspect configuration separately from requested execution profile| profile["runtime/TimelineProfile.java"]
+  host -->|validate generation and database boundary| generation["simulation/RuntimeGeneration.java"]
+  host -->|recover retained production state| runtime["runtime/TimelineRuntime.java"]
+```
+
+These files belong to the separate simulation-host module. The explicit
+`sqlite-order-restart-v1` execution profile reuses the bounded `sqlite-order-v1`
+configuration and production SQLite recovery. Ordinary Order remains restricted
+to a new database in generation 1. Both reject wall-clock adjustment.

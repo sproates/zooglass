@@ -44,3 +44,6 @@ V2 can also select [Order controls](timeline-order-controls.md) with the explici
 `sqlite-order-v1` profile and SQLite storage. Admission requires the matching
 configuration profile and `sqliteOrder:1` host capability. This does not enable
 Order restart or wall-clock adjustment; those combinations are rejected.
+The separate [`sqlite-order-restart-v1`](timeline-order-recovery.md) execution profile
+uses the same configuration classifier and additionally requires
+`sqliteOrderLifecycle:1`. It admits stop/start but still rejects wall adjustment.

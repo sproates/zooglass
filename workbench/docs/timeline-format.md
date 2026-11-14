@@ -8,8 +8,9 @@ bundle contracts. Its optional `runtime.profile: "memory-sequence-fleet-v1"`
 selects the [bounded memory sequence profile](timeline-fleet-profile.md); omitted
 profiles retain the existing receipt-age identity. The explicit
 `runtime.profile: "sqlite-order-v1"` selects [Order progress controls](timeline-order-controls.md)
-with SQLite storage, progress actors and complete control acknowledgements. V1
-rejects this field.
+with SQLite storage, progress actors and complete control acknowledgements.
+`sqlite-order-restart-v1` adds [Order lifecycle](timeline-order-recovery.md) while
+retaining that configuration boundary. V1 rejects this field.
 Both versions are experimental contracts on the
 POC branch, not released compatibility promises. The two executable fixed proofs
 retain their private format and existing commands.

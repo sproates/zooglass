@@ -5,6 +5,7 @@ public final class TimelineProfile {
     public static final String NAME = "memory-arrival-v1";
     public static final String MEMORY_SEQUENCE_FLEET = "memory-sequence-fleet-v1";
     public static final String SQLITE_ORDER = "sqlite-order-v1";
+    public static final String SQLITE_ORDER_RESTART = "sqlite-order-restart-v1";
     public static final String SQLITE_RESTART = "receipt-age-restart-v1";
 
     private TimelineProfile() {}

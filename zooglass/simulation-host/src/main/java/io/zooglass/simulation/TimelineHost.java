@@ -169,23 +169,26 @@ public final class TimelineHost {
         String profile = TimelineProfile.inspect(config);
         boolean fleet = TimelineProfile.MEMORY_SEQUENCE_FLEET.equals(profile);
         boolean order = TimelineProfile.SQLITE_ORDER.equals(profile);
+        String requested = command.has("profile") ? text(command, "profile") : profile;
+        boolean orderRestart = order && TimelineProfile.SQLITE_ORDER_RESTART.equals(requested);
         if (!TimelineProfile.NAME.equals(profile)
                 && !(protocol == HostProtocol.V2
                         && (TimelineProfile.SQLITE_RESTART.equals(profile) || fleet || order)))
             throw new IllegalArgumentException("Unsupported document configuration profile");
-        if ((command.has("profile") && !profile.equals(text(command, "profile")))
+        if ((!profile.equals(requested) && !orderRestart)
                 || ((fleet || order) && !command.has("profile")))
             throw new IllegalArgumentException("Document profile agreement is required");
         if (fleet && generation.number() != 1)
             throw new IllegalArgumentException("Sequence fleet requires runtime generation 1");
-        if (order && (generation.number() != 1 || generation.startTimeMs() != 0
+        if (order && ((!orderRestart && generation.number() != 1)
+                || (generation.number() == 1 && generation.startTimeMs() != 0)
                 || generation.wallMillis(0) != generation.epochMillis()))
-            throw new IllegalArgumentException("Order profile requires generation 1 at time zero without wall adjustment");
+            throw new IllegalArgumentException("Order profile requires initial time zero, no wall adjustment and admitted generations");
         if ((TimelineProfile.SQLITE_RESTART.equals(profile) || order) && !sqliteAvailable)
             throw new IllegalArgumentException("SQLite lifecycle is unavailable");
 
         Path database = database(command, config.storage(), generation);
-        if (order && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
+        if (order && generation.number() == 1 && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
             throw new IllegalArgumentException("Order profile requires a new database path");
         var targets = command.has("observationTargets")
                 ? observationTargets(command.get("observationTargets"), config) : null;

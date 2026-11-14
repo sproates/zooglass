@@ -1,4 +1,9 @@
-import { fleetProfile, orderProfile } from "./evidence-versions.js";
+import {
+  fleetProfile,
+  orderProfile,
+  orderRestartProfile,
+  isOrderProfile,
+} from "./evidence-versions.js";
 import { isAbsolute } from "node:path";
 import { Bridge, type Response, type TimingDiagnostics } from "./bridge.js";
 
@@ -10,7 +15,8 @@ export type RuntimeGeneration = Readonly<{
 export type GenerationOptions = Readonly<{
   jar: string;
   configuration: string;
-  profile?: typeof fleetProfile | typeof orderProfile;
+  profile?:
+    typeof fleetProfile | typeof orderProfile | typeof orderRestartProfile;
   epochMillis: number;
   commandLimit: number;
   database?: string;
@@ -229,10 +235,17 @@ export class RuntimeGenerations {
           "Prepared artifact does not support memory sequence fleet",
         );
       if (
-        this.options.profile === orderProfile &&
+        isOrderProfile(this.options.profile) &&
         opened.bridge.sqliteOrder !== 1
       )
         throw new Error("Prepared artifact does not support SQLite Order");
+      if (
+        this.options.profile === orderRestartProfile &&
+        opened.bridge.sqliteOrderLifecycle !== 1
+      )
+        throw new Error(
+          "Prepared artifact does not support SQLite Order lifecycle",
+        );
       const environment = environmentKey(opened.bridge.environment);
       // Memory document preflight uses protocol 1, which has no SQLite metadata.
       // Only that initial comparison projects the one new field; later generations pin all fields.

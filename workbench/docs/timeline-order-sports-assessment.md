@@ -12,7 +12,9 @@ retains two complete cycles. Separate [recovery](timeline-order-recovery.md) and
 [retention](timeline-order-retention.md) fixtures cover restart and identity-window
 boundaries. [Order qualification](timeline-order-qualification.md) now records
 the finite campaign, runtime controls, strict replay and scoped service parity.
-Bounded Sports support and qualification remain outstanding.
+[Bounded Sports support](timeline-sports-host.md) now admits fact strategies and
+the retirement endpoint. Representative Sports scenarios and qualification remain
+outstanding.
 
 ## Baseline and observed admission
 

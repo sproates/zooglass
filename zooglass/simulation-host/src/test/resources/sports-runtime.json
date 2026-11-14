@@ -1,0 +1,245 @@
+{
+  "contractVersion": 2,
+  "storage": "sqlite",
+  "maxStreams": 16,
+  "identityWindow": 128,
+  "maxHistoryEntries": 64,
+  "sources": [
+    {
+      "id": "match-feed",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 16,
+        "maxMissingRanges": 16
+      }
+    },
+    {
+      "id": "bookmaker",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 16,
+        "maxMissingRanges": 16
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "match-market",
+      "fields": {
+        "match": {
+          "sourceId": "match-feed",
+          "type": "match.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "market": {
+          "sourceId": "bookmaker",
+          "type": "market.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 15000
+          }
+        },
+        "homeGoals": {
+          "sourceId": "match-feed",
+          "type": "home.contribution",
+          "mode": "activeFacts",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "awayGoals": {
+          "sourceId": "match-feed",
+          "type": "away.contribution",
+          "mode": "activeFacts",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "homeScore": {
+          "sourceId": "match-feed",
+          "type": "home.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "awayScore": {
+          "sourceId": "match-feed",
+          "type": "away.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        }
+      },
+      "publication": {
+        "mode": "publishPartial"
+      },
+      "entities": {
+        "match-feed": {
+          "mode": "envelopeEntity"
+        },
+        "bookmaker": {
+          "mode": "envelopeEntity"
+        }
+      }
+    },
+    {
+      "id": "scoreboard",
+      "fields": {
+        "match": {
+          "sourceId": "match-feed",
+          "type": "match.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "homeScore": {
+          "sourceId": "match-feed",
+          "type": "home.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "awayScore": {
+          "sourceId": "match-feed",
+          "type": "away.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        }
+      },
+      "publication": {
+        "mode": "publishPartial"
+      },
+      "entities": {
+        "match-feed": {
+          "mode": "envelopeEntity"
+        }
+      }
+    },
+    {
+      "id": "first-reported",
+      "fields": {
+        "match": {
+          "sourceId": "match-feed",
+          "type": "match.state",
+          "mode": "latestBySequence",
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "homeGoals": {
+          "sourceId": "match-feed",
+          "type": "home.contribution",
+          "mode": "activeFacts",
+          "facts": {
+            "revision": "firstFact",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "awayGoals": {
+          "sourceId": "match-feed",
+          "type": "away.contribution",
+          "mode": "activeFacts",
+          "facts": {
+            "revision": "firstFact",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "homeScore": {
+          "sourceId": "match-feed",
+          "type": "home.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "firstFact",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        },
+        "awayScore": {
+          "sourceId": "match-feed",
+          "type": "away.contribution",
+          "mode": "sumActiveFacts",
+          "property": "points",
+          "facts": {
+            "revision": "firstFact",
+            "maxRetainedFacts": 16,
+            "minimumBirthSequence": 1
+          },
+          "late": {
+            "mode": "acceptLate"
+          }
+        }
+      },
+      "publication": {
+        "mode": "publishPartial"
+      },
+      "entities": {
+        "match-feed": {
+          "mode": "envelopeEntity"
+        }
+      }
+    }
+  ]
+}

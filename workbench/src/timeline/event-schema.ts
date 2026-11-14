@@ -1,3 +1,4 @@
+import { controlEnvelope, retirementEnvelope } from "./control-contract.js";
 import { progressControl, watermarkEnvelope } from "./progress-contract.js";
 import { encodeJson, type Json } from "./json.js";
 import {
@@ -14,6 +15,7 @@ import { choice, integer, invalid, list, object, text } from "./validation.js";
 export const actionFields = {
   "source-send": ["publication"],
   "progress-send": ["control"],
+  "retirement-send": ["control"],
   "source-retry": ["publication"],
   "client-subscribe": ["viewId", "entityId"],
   "client-unsubscribe": ["viewId", "entityId"],
@@ -192,7 +194,9 @@ export function eventData(
       `${path}.actionKind`,
       version === 2
         ? [...Object.keys(actionFields), ...Object.keys(runtimeActionFields)]
-        : Object.keys(actionFields).filter((kind) => kind !== "progress-send"),
+        : Object.keys(actionFields).filter(
+            (kind) => kind !== "progress-send" && kind !== "retirement-send",
+          ),
     ) as ActorActionKind | RuntimeActionKind;
     const fields = isRuntimeAction(actionKind)
       ? runtimeActionFields[actionKind]
@@ -238,9 +242,20 @@ export function eventData(
       "client-frame",
       "source-publication",
       "client-request",
-      ...(version === 2 ? ["progress-request", "progress-receipt"] : []),
+      ...(version === 2
+        ? [
+            "progress-request",
+            "progress-receipt",
+            "retirement-request",
+            "retirement-receipt",
+          ]
+        : []),
     ]);
-    if (channel === "source-publication" || channel === "progress-request")
+    if (
+      channel === "source-publication" ||
+      channel === "progress-request" ||
+      channel === "retirement-request"
+    )
       object(data.envelope, `${path}.envelope`);
     else if (channel === "client-request") {
       const envelope = object(data.envelope, `${path}.envelope`, [
@@ -258,6 +273,8 @@ export function eventData(
       receiptEnvelope(data.envelope, `${path}.envelope`, storage);
     else if (channel === "progress-receipt")
       watermarkEnvelope(data.envelope, `${path}.envelope`);
+    else if (channel === "retirement-receipt")
+      retirementEnvelope(data.envelope, `${path}.envelope`);
     else clientEnvelope(data.envelope, `${path}.envelope`);
     if (kind === "link-send")
       integer(
@@ -319,7 +336,7 @@ export function eventData(
     ]);
     if (data.messageId !== undefined) text(data.messageId, `${path}.messageId`);
     if (kind === "control-receipt")
-      watermarkEnvelope(data.envelope, `${path}.envelope`);
+      controlEnvelope(data.envelope, `${path}.envelope`);
     else if (kind === "receipt")
       receiptEnvelope(data.envelope, `${path}.envelope`, storage);
     else if (kind === "frame")

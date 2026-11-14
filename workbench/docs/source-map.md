@@ -977,3 +977,22 @@ with explicit bounded workload settings. Preparation is a separate command;
 execution never builds artifacts. Service parity preserves raw observations and
 compares only declared common semantics, with spontaneous alarm evidence before
 HTTP snapshots. The temporary SQLite path belongs to the parity runner.
+
+## Sports retirement controls
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|admit bounded Sports roles and actions| versions["timeline/evidence-versions.ts"]
+  contract -->|validate complete observations| observations["timeline/envelopes.ts"]
+  observations -->|validate control acknowledgements| envelope["timeline/control-contract.ts"]
+  actors["timeline/document-actors.ts"] -->|dispatch retirement request| transport["timeline/document-transport.ts"]
+  transport -->|preserve request and acknowledgement links| links["timeline/delayed-links.ts"]
+  transport -->|validate production acknowledgement| envelope
+  trace["timeline/trace-controls.ts"] -->|check request identity and normalized response| envelope
+  replay["timeline/replay-document.ts"] -->|validate retained trace| parser["timeline/trace-contract.ts"]
+  parser -->|check control lineage| trace
+```
+
+[Sports execution](timeline-sports-host.md) reuses connection ownership and delayed
+links. `control-contract.ts` validates the two explicit control envelopes; it does
+not implement progress or fact retirement.

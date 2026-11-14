@@ -9,6 +9,11 @@ export function isOrderProfile(
   return profile === orderProfile || profile === orderRestartProfile;
 }
 
+export const sportsProfile = "sqlite-sports-v1";
+export function hasProgressControl(profile: unknown) {
+  return isOrderProfile(profile) || profile === sportsProfile;
+}
+
 export const fleetProfile = "memory-sequence-fleet-v1";
 
 export const evidenceV1 = {

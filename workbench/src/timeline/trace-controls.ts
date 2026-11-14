@@ -1,15 +1,22 @@
 import {
   orderProfile,
   orderRestartProfile,
-  isOrderProfile,
+  hasProgressControl,
+  sportsProfile,
 } from "./evidence-versions.js";
+import { controlRequestMatches } from "./control-contract.js";
 import { isRuntimeAction } from "./event-schema.js";
 import { encodeJson, type Json } from "./json.js";
 import type { TraceEvent } from "./trace-generations.js";
 import { integer, invalid, object } from "./validation.js";
 
 const controlChannel = (value: Json) =>
-  value === "progress-request" || value === "progress-receipt";
+  [
+    "progress-request",
+    "progress-receipt",
+    "retirement-request",
+    "retirement-receipt",
+  ].includes(String(value));
 const sameOwner = (a: TraceEvent, b: TraceEvent) =>
   a.actor === b.actor &&
   a.connectionGeneration === b.connectionGeneration &&
@@ -31,7 +38,9 @@ export class TraceControls {
   accept(event: TraceEvent, path: string) {
     const { kind, data, parent } = event;
     const controlAction =
-      kind === "action" && data.actionKind === "progress-send";
+      kind === "action" &&
+      (data.actionKind === "progress-send" ||
+        data.actionKind === "retirement-send");
     const controlAssertion =
       kind === "assertion" && data.assertionKind === "control-receipts";
     const packet =
@@ -39,8 +48,22 @@ export class TraceControls {
       controlChannel(data.channel);
     const control =
       controlAction || controlAssertion || packet || kind === "control-receipt";
-    if (control && !isOrderProfile(this.profile))
-      invalid(path, "progress evidence requires the SQLite Order profile");
+    if (control && !hasProgressControl(this.profile))
+      invalid(
+        path,
+        "control evidence requires the SQLite Order or Sports profile",
+      );
+    const retirement =
+      data.actionKind === "retirement-send" ||
+      String(data.channel).startsWith("retirement-") ||
+      (kind === "control-receipt" &&
+        object(data.envelope, path).kind === "factRetirement") ||
+      (controlAssertion &&
+        [...(data.expected as Json[]), ...(data.actual as Json[])].some(
+          (value) => object(value, path).kind === "factRetirement",
+        ));
+    if (retirement && this.profile !== sportsProfile)
+      invalid(path, "retirement evidence requires the SQLite Sports profile");
     const connection = JSON.stringify([
       event.actor,
       event.runtimeGeneration,
@@ -64,10 +87,10 @@ export class TraceControls {
     )
       invalid(
         path,
-        "progress traffic cannot use a closed connection generation",
+        "control traffic cannot use a closed connection generation",
       );
     if (
-      this.profile === orderProfile &&
+      (this.profile === orderProfile || this.profile === sportsProfile) &&
       kind === "action" &&
       typeof data.actionKind === "string" &&
       isRuntimeAction(data.actionKind)
@@ -94,11 +117,12 @@ export class TraceControls {
         event.key[2] !== 2 ||
         event.connectionGeneration === null ||
         event.runtimeGeneration === null ||
-        (this.profile === orderProfile && event.runtimeGeneration !== 1)
+        ((this.profile === orderProfile || this.profile === sportsProfile) &&
+          event.runtimeGeneration !== 1)
       )
         invalid(
           path,
-          "progress action requires a declared phase-two root and live connection",
+          "control action requires a declared phase-two root and live connection",
         );
       this.actions.push(event);
       this.pending.set(event.id, event);
@@ -109,9 +133,11 @@ export class TraceControls {
         !sameKey(event, owner) ||
         !(
           (owner.kind === "action" &&
-            owner.data.actionKind === "progress-send") ||
+            (owner.data.actionKind === "progress-send" ||
+              owner.data.actionKind === "retirement-send")) ||
           (owner.kind === "delivered" &&
-            owner.data.channel === "progress-request")
+            (owner.data.channel === "progress-request" ||
+              owner.data.channel === "retirement-request"))
         )
       )
         invalid(
@@ -125,42 +151,46 @@ export class TraceControls {
         path,
       );
       const ack = object(data.envelope, path);
-      if (ack.reason !== "invalidProgress") {
-        const stream = object(ack.stream, path);
-        if (
-          ["sourceId", "epoch", "sourceEntityId"].some(
-            (key) => stream[key] !== request[key],
-          ) ||
-          encodeJson(ack.throughSequence) !==
-            encodeJson(request.throughSequence)
-        )
-          invalid(path, "control receipt identity differs from its request");
-      }
+      const retirementOwner =
+        owner.data.actionKind === "retirement-send" ||
+        owner.data.channel === "retirement-request";
+      if (
+        (ack.kind === "factRetirement") !== retirementOwner ||
+        !controlRequestMatches(request, ack)
+      )
+        invalid(path, "control receipt identity differs from its request");
       this.pending.set(event.id, event);
     } else if (packet) {
       if (kind === "link-send") {
-        const request = data.channel === "progress-request";
+        const request =
+          data.channel === "progress-request" ||
+          data.channel === "retirement-request";
         if (
           !owner ||
           !sameOwner(event, owner) ||
           !sameKey(event, owner) ||
           (request
             ? owner.kind !== "action" ||
-              owner.data.actionKind !== "progress-send"
-            : owner.kind !== "control-receipt")
+              owner.data.actionKind !==
+                (data.channel === "retirement-request"
+                  ? "retirement-send"
+                  : "progress-send")
+            : owner.kind !== "control-receipt" ||
+              (object(owner.data.envelope, path).kind === "factRetirement") !==
+                (data.channel === "retirement-receipt"))
         )
           invalid(
             path,
-            "progress link must identify its request or receipt owner",
+            "control link must identify its request or receipt owner",
           );
         if (
           encodeJson(data.envelope) !==
             encodeJson(request ? owner.data.control : owner.data.envelope) ||
           (!request && data.messageId !== owner.data.messageId)
         )
-          invalid(path, "progress link changed its owned message");
+          invalid(path, "control link changed its owned message");
         if (integer(data.deliverAtMs, path) <= event.timeMs)
-          invalid(path, "progress link requires positive latency");
+          invalid(path, "control link requires positive latency");
         this.consume(owner, path);
         if (request) this.newMessage(event, path);
         this.pending.set(event.id, event);
@@ -178,14 +208,17 @@ export class TraceControls {
             (origin.kind === "link-send" &&
               origin.data.channel === data.channel) ||
             (origin.kind === "control-receipt" &&
-              data.channel === "progress-receipt")
+              data.channel ===
+                (object(origin.data.envelope, path).kind === "factRetirement"
+                  ? "retirement-receipt"
+                  : "progress-receipt"))
           ) ||
           origin.data.messageId !== data.messageId ||
           encodeJson(origin.data.envelope) !== encodeJson(data.envelope)
         )
           invalid(
             path,
-            "progress delivery must preserve its owned message and connection",
+            "control delivery must preserve its owned message and connection",
           );
         if (kind === "delivered") {
           if (
@@ -194,14 +227,17 @@ export class TraceControls {
           )
             invalid(
               path,
-              "progress delivery differs from its scheduled arrival",
+              "control delivery differs from its scheduled arrival",
             );
           if (
             origin.kind === "control-receipt" &&
             origin.timeMs !== event.timeMs
           )
             invalid(path, "zero-latency control receipt changed delivery time");
-          if (data.channel === "progress-request")
+          if (
+            data.channel === "progress-request" ||
+            data.channel === "retirement-request"
+          )
             this.pending.set(event.id, event);
           else {
             const observed = this.observations.get(event.actor) ?? [];
@@ -256,7 +292,7 @@ export class TraceControls {
     )
       invalid(
         path,
-        "progress cancellation requires its connection close or admitted service stop cause",
+        "control cancellation requires its connection close or admitted service stop cause",
       );
   }
 
@@ -273,19 +309,19 @@ export class TraceControls {
   private newMessage(event: TraceEvent, path: string) {
     const id = String(event.data.messageId);
     if (this.messageIds.has(id))
-      invalid(path, "progress message identity was reused");
+      invalid(path, "control message identity was reused");
     this.messageIds.add(id);
   }
   private consume(event: TraceEvent, path: string) {
     if (this.used.has(event.id) || !this.pending.delete(event.id))
-      invalid(path, "progress message owner was already consumed");
+      invalid(path, "control message owner was already consumed");
     this.used.add(event.id);
   }
   finish(outcome: string) {
     if (outcome === "passed" && this.pending.size)
       invalid(
         "trace result",
-        "passing progress trace retains unfinished control work",
+        "passing control trace retains unfinished control work",
       );
   }
 }

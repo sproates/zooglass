@@ -65,6 +65,7 @@ export type Handshake = {
       memoryLifecycle: 1;
       sqliteLifecycle?: 1;
       sqliteOrder?: 1;
+      sqliteSports?: 1;
       sqliteOrderLifecycle?: 1;
       installedObservations?: 1;
       memorySequenceFleet?: 1;
@@ -111,6 +112,13 @@ export function decodeHandshake(value: unknown): Handshake {
     invalid("handshake.sqliteOrder requires protocol 2");
   if (data.protocol !== 2 && data.sqliteOrderLifecycle !== undefined)
     invalid("handshake.sqliteOrderLifecycle requires protocol 2");
+  if (
+    data.sqliteSports !== undefined &&
+    (data.protocol !== 2 ||
+      data.sqliteSports !== 1 ||
+      data.sqliteLifecycle !== 1)
+  )
+    invalid("handshake.sqliteSports requires protocol 2 and SQLite lifecycle");
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);

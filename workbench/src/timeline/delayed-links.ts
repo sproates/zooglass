@@ -15,7 +15,9 @@ export type LinkChannel =
   | "client-request"
   | "client-frame"
   | "progress-request"
-  | "progress-receipt";
+  | "progress-receipt"
+  | "retirement-request"
+  | "retirement-receipt";
 type Packet = {
   connection: LinkConnection;
   channel: LinkChannel;

@@ -10,6 +10,7 @@ import io.zooglass.delivery.SnapshotBroadcaster;
 import io.zooglass.delivery.SnapshotSubscriptions;
 import io.zooglass.delivery.TimelineDelivery;
 import io.zooglass.runtime.EventIngress;
+import io.zooglass.runtime.FactRetirementIngress;
 import io.zooglass.runtime.ProgressIngress;
 import io.zooglass.runtime.PublicationJson;
 import io.zooglass.runtime.RuntimeConfiguration;
@@ -46,14 +47,16 @@ public final class TimelineHost {
     private SnapshotSubscriptions subscriptions;
     private EventIngress ingress;
     private ProgressIngress progress;
+    private FactRetirementIngress retirement;
     private boolean orderProfile;
+    private boolean sportsProfile;
     private boolean stopped;
     private boolean documentMode;
     private boolean durable;
     private boolean sequenceFleet;
     private RuntimeConfiguration documentConfiguration;
 
-    private enum Role { CLIENT, SOURCE, PROGRESS }
+    private enum Role { CLIENT, SOURCE, PROGRESS, RETIREMENT }
 
     private record Connection(TimelineSession session, Role role) {}
 
@@ -72,7 +75,7 @@ public final class TimelineHost {
         if (stopped) throw new IllegalStateException("Runtime already stopped");
         String op = text(command, "op");
         protocol.validateFields(command, op);
-        if ((sequenceFleet || orderProfile) && op.equals("wall-clock-set"))
+        if ((sequenceFleet || orderProfile || sportsProfile) && op.equals("wall-clock-set"))
             throw new IllegalArgumentException("This profile does not support wall-clock adjustments");
         var turn = identities.admit(command, op);
         if (op.equals("inspect-configuration")) return inspectConfiguration(command, turn);
@@ -89,8 +92,14 @@ public final class TimelineHost {
                 if (durable) TimelineRuntime.verifyStorageAvailable(runtime);
             }
             case "progress" -> {
-                if (!orderProfile) throw new IllegalArgumentException("Progress requires the Order profile");
+                if (!orderProfile && !sportsProfile)
+                    throw new IllegalArgumentException("Progress requires an Order or Sports profile");
                 progress.handleMessage(session(command, Role.PROGRESS), new TextMessage(text(command, "wire")));
+                TimelineRuntime.verifyStorageAvailable(runtime);
+            }
+            case "retirement" -> {
+                if (!sportsProfile) throw new IllegalArgumentException("Retirement requires the Sports profile");
+                retirement.handleMessage(session(command, Role.RETIREMENT), new TextMessage(text(command, "wire")));
                 TimelineRuntime.verifyStorageAvailable(runtime);
             }
             case "subscribe" -> {
@@ -169,14 +178,15 @@ public final class TimelineHost {
         String profile = TimelineProfile.inspect(config);
         boolean fleet = TimelineProfile.MEMORY_SEQUENCE_FLEET.equals(profile);
         boolean order = TimelineProfile.SQLITE_ORDER.equals(profile);
+        boolean sports = TimelineProfile.SQLITE_SPORTS.equals(profile);
         String requested = command.has("profile") ? text(command, "profile") : profile;
         boolean orderRestart = order && TimelineProfile.SQLITE_ORDER_RESTART.equals(requested);
         if (!TimelineProfile.NAME.equals(profile)
                 && !(protocol == HostProtocol.V2
-                        && (TimelineProfile.SQLITE_RESTART.equals(profile) || fleet || order)))
+                        && (TimelineProfile.SQLITE_RESTART.equals(profile) || fleet || order || sports)))
             throw new IllegalArgumentException("Unsupported document configuration profile");
         if ((!profile.equals(requested) && !orderRestart)
-                || ((fleet || order) && !command.has("profile")))
+                || ((fleet || order || sports) && !command.has("profile")))
             throw new IllegalArgumentException("Document profile agreement is required");
         if (fleet && generation.number() != 1)
             throw new IllegalArgumentException("Sequence fleet requires runtime generation 1");
@@ -184,17 +194,23 @@ public final class TimelineHost {
                 || (generation.number() == 1 && generation.startTimeMs() != 0)
                 || generation.wallMillis(0) != generation.epochMillis()))
             throw new IllegalArgumentException("Order profile requires initial time zero, no wall adjustment and admitted generations");
-        if ((TimelineProfile.SQLITE_RESTART.equals(profile) || order) && !sqliteAvailable)
+        if (sports && (generation.number() != 1 || generation.startTimeMs() != 0
+                || generation.wallMillis(0) != generation.epochMillis()))
+            throw new IllegalArgumentException("Sports profile requires generation 1, initial time zero and no wall adjustment");
+        if ((TimelineProfile.SQLITE_RESTART.equals(profile) || order || sports) && !sqliteAvailable)
             throw new IllegalArgumentException("SQLite lifecycle is unavailable");
 
         Path database = database(command, config.storage(), generation);
         if (order && generation.number() == 1 && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
             throw new IllegalArgumentException("Order profile requires a new database path");
+        if (sports && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
+            throw new IllegalArgumentException("Sports profile requires a new database path");
         var targets = command.has("observationTargets")
                 ? observationTargets(command.get("observationTargets"), config) : null;
         documentMode = true;
         sequenceFleet = fleet;
         orderProfile = order;
+        sportsProfile = sports;
         documentConfiguration = config;
         durable = database != null;
         compose(config, generation, database);
@@ -301,6 +317,7 @@ public final class TimelineHost {
             subscriptions = new SnapshotSubscriptions(JSON, broadcaster);
             ingress = new EventIngress(runtime, JSON);
             progress = new ProgressIngress(runtime, JSON);
+            retirement = new FactRetirementIngress(runtime, JSON);
         } catch (RuntimeException failure) {
             try {
                 shutdown();
@@ -317,7 +334,7 @@ public final class TimelineHost {
             throw new IllegalArgumentException("Session identity/limit");
         Role role = role(command, name);
         var session = new TimelineSession(name, turns, wire -> turns.effect(
-                Map.of("kind", role == Role.PROGRESS ? "control-receipt" : "receipt",
+                Map.of("kind", role == Role.PROGRESS || role == Role.RETIREMENT ? "control-receipt" : "receipt",
                         "session", name, "wire", wire)));
         sessions.put(name, new Connection(session, role));
         if (role == Role.CLIENT) subscriptions.afterConnectionEstablished(session);
@@ -329,8 +346,13 @@ public final class TimelineHost {
                 case "client" -> Role.CLIENT;
                 case "source" -> Role.SOURCE;
                 case "progress" -> {
-                    if (!orderProfile) throw new IllegalArgumentException("Progress requires the Order profile");
+                    if (!orderProfile && !sportsProfile)
+                        throw new IllegalArgumentException("Progress requires an Order or Sports profile");
                     yield Role.PROGRESS;
+                }
+                case "retirement" -> {
+                    if (!sportsProfile) throw new IllegalArgumentException("Retirement requires the Sports profile");
+                    yield Role.RETIREMENT;
                 }
                 default -> throw new IllegalArgumentException("Invalid session role");
             };

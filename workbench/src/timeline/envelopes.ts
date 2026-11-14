@@ -1,4 +1,4 @@
-import { watermarkEnvelope } from "./progress-contract.js";
+import { controlEnvelope } from "./control-contract.js";
 import { Decimal, type Json } from "./json.js";
 import {
   choice,
@@ -299,7 +299,7 @@ export function observationList(
   list(value, path).forEach((item, i) => {
     const itemPath = `${path}[${i}]`;
     if (kind === "client-frames") clientEnvelope(item, itemPath);
-    else if (kind === "control-receipts") watermarkEnvelope(item, itemPath);
+    else if (kind === "control-receipts") controlEnvelope(item, itemPath);
     else receiptEnvelope(item, itemPath, storage);
   });
 }

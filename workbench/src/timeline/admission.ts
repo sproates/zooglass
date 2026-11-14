@@ -15,6 +15,7 @@ import {
 } from "./document-profile.js";
 import {
   fleetProfile,
+  sportsProfile,
   orderProfile,
   orderRestartProfile,
   isOrderProfile,
@@ -101,6 +102,10 @@ export async function probeLifecycle(
       throw new Error(
         "unsupported-execution: prepared artifact does not support SQLite Order lifecycle",
       );
+    if (scenario.profile === sportsProfile && opened.bridge.sqliteSports !== 1)
+      throw new Error(
+        "unsupported-execution: prepared artifact does not support SQLite Sports",
+      );
     if (scenario.storage === "sqlite" && opened.bridge.sqliteLifecycle !== 1)
       throw new Error(
         "unsupported-execution: prepared artifact does not support SQLite lifecycle",
@@ -165,6 +170,7 @@ export function requiredConfigurationProfile(
   scenario: Pick<TimelineDocument, "storage" | "profile">,
 ) {
   if (isOrderProfile(scenario.profile)) return orderProfile;
+  if (scenario.profile === sportsProfile) return sportsProfile;
   if (scenario.profile === fleetProfile) return fleetProfile;
   return scenario.storage === "sqlite"
     ? lifecycleDocumentProfile

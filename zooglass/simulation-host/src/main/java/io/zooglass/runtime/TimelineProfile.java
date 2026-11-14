@@ -6,12 +6,14 @@ public final class TimelineProfile {
     public static final String MEMORY_SEQUENCE_FLEET = "memory-sequence-fleet-v1";
     public static final String SQLITE_ORDER = "sqlite-order-v1";
     public static final String SQLITE_ORDER_RESTART = "sqlite-order-restart-v1";
+    public static final String SQLITE_SPORTS = "sqlite-sports-v1";
     public static final String SQLITE_RESTART = "receipt-age-restart-v1";
 
     private TimelineProfile() {}
 
     public static String inspect(RuntimeConfiguration config) {
         if (OrderTimelineProfile.supports(config)) return SQLITE_ORDER;
+        if (SportsTimelineProfile.supports(config)) return SQLITE_SPORTS;
         if (supportsSequenceFleet(config)) return MEMORY_SEQUENCE_FLEET;
         if (!supportsReceiptAge(config)) return "unsupported";
         return switch (config.storage()) {

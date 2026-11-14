@@ -596,3 +596,19 @@ These files belong to the separate simulation-host module. The explicit
 `sqlite-order-restart-v1` execution profile reuses the bounded `sqlite-order-v1`
 configuration and production SQLite recovery. Ordinary Order remains restricted
 to a new database in generation 1. Both reject wall-clock adjustment.
+
+### Sports fact and retirement admission
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|require explicit profile agreement| profiles["runtime/TimelineProfile.java"]
+  profiles -->|classify bounded Sports configuration| profile["runtime/SportsTimelineProfile.java"]
+  host -->|dispatch control under virtual turn| retirement["runtime/FactRetirementIngress.java (production)"]
+  host -->|verify storage health after dispatch| runtime["runtime/TimelineRuntime.java"]
+  retirement -->|complete normalized acknowledgement| session["simulation/TimelineSession.java"]
+```
+
+The simulation-host module owns admission and controlled dispatch; the production
+retirement handler owns parsing and per-view atomicity. Sports admits a new SQLite
+database in generation 1, with no restart or wall-clock adjustment. See the
+[Sports execution boundary](../../workbench/docs/timeline-sports-host.md).

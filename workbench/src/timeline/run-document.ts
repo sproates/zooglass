@@ -10,6 +10,7 @@ import {
 import {
   capabilities,
   orderCapabilities,
+  sportsCapabilities,
   lifecycleCapabilities,
   requireExecutionCapabilities,
   sqliteLifecycleCapabilities,
@@ -19,6 +20,7 @@ import { RuntimeGenerations } from "./runtime-generations.js";
 import {
   documentEvidenceVersions,
   fleetProfile,
+  sportsProfile,
   isOrderProfile,
 } from "./evidence-versions.js";
 import { executionSettings } from "./document-profile.js";
@@ -81,13 +83,15 @@ export async function executeDocument(
     checkConfiguredTargets(scenario, wire);
     requireExecutionCapabilities(
       scenario,
-      isOrderProfile(scenario.profile)
-        ? orderCapabilities
-        : scenario.storage === "sqlite"
-          ? sqliteLifecycleCapabilities
-          : evidence.protocol === 2
-            ? lifecycleCapabilities
-            : capabilities,
+      scenario.profile === sportsProfile
+        ? sportsCapabilities
+        : isOrderProfile(scenario.profile)
+          ? orderCapabilities
+          : scenario.storage === "sqlite"
+            ? sqliteLifecycleCapabilities
+            : evidence.protocol === 2
+              ? lifecycleCapabilities
+              : capabilities,
     );
     const hostEnvironment =
       evidence.protocol === 2
@@ -133,6 +137,7 @@ export async function executeDocument(
           jar: options.jar,
           configuration: wire,
           ...(scenario.profile === fleetProfile ||
+          scenario.profile === sportsProfile ||
           isOrderProfile(scenario.profile)
             ? { profile: scenario.profile }
             : {}),

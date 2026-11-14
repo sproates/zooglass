@@ -181,13 +181,16 @@ function checkControlDeclarations(
 ) {
   const actions = list(scenario.document.actions, "actions");
   const declared = scenario.admittedActions.filter(
-    (action) => action.kind === "progress-send",
+    (action) =>
+      action.kind === "progress-send" || action.kind === "retirement-send",
   );
   if (
     trace.outcome === "passed" &&
     trace.controlActions.length !== declared.length
   )
-    throw new Error("invalid-replay: missing progress actions");
+    throw new Error(
+      `invalid-replay: missing ${declared.some((action) => action.kind === "retirement-send") ? "control" : "progress"} actions`,
+    );
   for (const [index, event] of trace.controlActions.entries()) {
     const expected = declared[index];
     if (
@@ -195,10 +198,13 @@ function checkControlDeclarations(
       event.actor !== expected.actor ||
       event.timeMs !== expected.atMs ||
       event.data.actionId !== expected.id ||
+      event.data.actionKind !== expected.kind ||
       encodeJson(event.data.control) !==
         encodeJson(object(actions[expected.declaration], "action").control)
     )
-      throw new Error("invalid-replay: progress action differs from scenario");
+      throw new Error(
+        `invalid-replay: ${event.data.actionKind === "retirement-send" || expected?.kind === "retirement-send" ? "retirement" : "progress"} action differs from scenario`,
+      );
   }
   const assertions = list(scenario.document.assertions, "assertions")
     .map((value) => object(value, "assertion"))

@@ -1,4 +1,4 @@
-import { watermarkEnvelope } from "./progress-contract.js";
+import { controlEnvelope } from "./control-contract.js";
 import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
 import type { SessionEffect } from "./bridge.js";
@@ -143,8 +143,10 @@ export class DocumentTransport {
     const envelope = parseJson(effect.wire);
     if (effect.kind === "control-receipt") {
       if (object(envelope, "control receipt").status === "failed")
-        throw new Error("infrastructure-failed: progress processing failed");
-      watermarkEnvelope(envelope, "control receipt");
+        throw new Error(
+          `infrastructure-failed: ${object(envelope, "control receipt").kind === "factRetirement" ? "retirement" : "progress"} processing failed`,
+        );
+      controlEnvelope(envelope, "control receipt");
     }
     if (effect.kind === "handoff") {
       assert.ok(
@@ -173,7 +175,9 @@ export class DocumentTransport {
       effect.kind === "receipt"
         ? "source-receipt"
         : effect.kind === "control-receipt"
-          ? "progress-receipt"
+          ? object(envelope, "control receipt").kind === "factRetirement"
+            ? "retirement-receipt"
+            : "progress-receipt"
           : "client-frame";
     let causes: string[] = [];
     let messageId: string;
@@ -428,9 +432,11 @@ export class DocumentTransport {
     const channel: LinkChannel =
       operation.op === "ingress"
         ? "source-publication"
-        : operation.op === "progress"
-          ? "progress-request"
-          : "client-request";
+        : operation.op === "retirement"
+          ? "retirement-request"
+          : operation.op === "progress"
+            ? "progress-request"
+            : "client-request";
     this.links.send(
       connection,
       channel,

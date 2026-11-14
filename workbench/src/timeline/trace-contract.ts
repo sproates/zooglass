@@ -9,6 +9,7 @@ import {
   evidenceV1,
   evidenceV2,
   fleetProfile,
+  sportsProfile,
   orderProfile,
   orderRestartProfile,
 } from "./evidence-versions.js";
@@ -236,7 +237,13 @@ function traceHeader(value: ReturnType<typeof object>) {
       execution.profile,
       `${path}.execution.profile`,
       versions === evidenceV2
-        ? [versions.profile, fleetProfile, orderProfile, orderRestartProfile]
+        ? [
+            versions.profile,
+            fleetProfile,
+            orderProfile,
+            orderRestartProfile,
+            sportsProfile,
+          ]
         : [versions.profile],
     );
     for (const name of [

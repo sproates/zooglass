@@ -1,5 +1,6 @@
 import {
   fleetProfile,
+  sportsProfile,
   orderProfile,
   orderRestartProfile,
   isOrderProfile,
@@ -16,7 +17,10 @@ export type GenerationOptions = Readonly<{
   jar: string;
   configuration: string;
   profile?:
-    typeof fleetProfile | typeof orderProfile | typeof orderRestartProfile;
+    | typeof sportsProfile
+    | typeof fleetProfile
+    | typeof orderProfile
+    | typeof orderRestartProfile;
   epochMillis: number;
   commandLimit: number;
   database?: string;
@@ -233,6 +237,13 @@ export class RuntimeGenerations {
       )
         throw new Error(
           "Prepared artifact does not support memory sequence fleet",
+        );
+      if (
+        this.options.profile === sportsProfile &&
+        opened.bridge.sqliteSports !== 1
+      )
+        throw new Error(
+          "unsupported-execution: prepared artifact does not support SQLite Sports",
         );
       if (
         isOrderProfile(this.options.profile) &&

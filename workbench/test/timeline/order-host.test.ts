@@ -215,7 +215,7 @@ test("existing document profiles cannot open a progress session", async () => {
         role: "progress",
         session: "p",
       }),
-      /Progress requires the Order profile/,
+      /Progress requires an Order or Sports profile/,
     );
   } finally {
     await opened.bridge.close();

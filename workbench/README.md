@@ -897,8 +897,12 @@ real-service demos remain available.
 
 The [timeline completion contract](docs/timeline-completion.md) consolidates current
 evidence, the remaining delivery sequence and the first bounded release's explicit
-limits. Order qualification, Sports and final CLI/acceptance remain outstanding.
+limits. Sports qualification and final CLI/acceptance remain outstanding.
 
 [Order qualification](docs/timeline-order-qualification.md) provides the finite
 ordinary/recovery/retention campaign, actual wrong-priority/clock controls and
 scoped ordinary-service comparison. See its acceptance section for evidence status.
+
+[Bounded Sports execution](docs/timeline-sports-host.md) admits the fact strategies
+and real retirement endpoint with complete acknowledgements, cancellation and
+replay. Representative Sports scenarios and qualification remain a separate gate.

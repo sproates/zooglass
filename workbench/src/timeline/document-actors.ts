@@ -281,9 +281,9 @@ export class DocumentActors {
         session: connection.session,
         wire: this.publications.get(text(action.publication, "publication"))!,
       };
-    } else if (kind === "progress-send")
+    } else if (kind === "progress-send" || kind === "retirement-send")
       operation = {
-        op: "progress",
+        op: kind === "retirement-send" ? "retirement" : "progress",
         session: connection.session,
         wire: encodeJson(action.control),
       };
@@ -307,7 +307,8 @@ export class DocumentActors {
     if (
       operation.op === "ingress" ||
       operation.op === "subscribe" ||
-      operation.op === "progress"
+      operation.op === "progress" ||
+      operation.op === "retirement"
     )
       await this.transport.sendToRuntime(
         connection,

@@ -120,6 +120,7 @@ enum HostProtocol {
             capabilities.put("sqliteLifecycle", 1);
             capabilities.put("sqliteOrder", 1);
             capabilities.put("sqliteOrderLifecycle", 1);
+            capabilities.put("sqliteSports", 1);
         }
         return capabilities;
     }
@@ -179,8 +180,8 @@ enum HostProtocol {
                     case "connect" -> Set.of("session", "role");
                     case "disconnect", "stall" -> Set.of("session");
                     case "ingress", "subscribe" -> Set.of("session", "wire");
-                    case "progress" -> {
-                        if (this != V2) throw new IllegalArgumentException("Progress requires protocol 2");
+                    case "progress", "retirement" -> {
+                        if (this != V2) throw new IllegalArgumentException("Controls require protocol 2");
                         yield Set.of("session", "wire");
                     }
                     case "release" -> Set.of("session", "fail");

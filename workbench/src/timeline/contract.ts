@@ -17,9 +17,10 @@ import {
 import {
   documentEvidenceVersions,
   fleetProfile,
+  sportsProfile,
   orderProfile,
   orderRestartProfile,
-  isOrderProfile,
+  hasProgressControl,
   evidenceV1,
   evidenceV2,
 } from "./evidence-versions.js";
@@ -62,6 +63,10 @@ export const sqliteLifecycleCapabilities = [
 export const orderCapabilities = [
   ...sqliteLifecycleCapabilities,
   "progress-control",
+] as const;
+export const sportsCapabilities = [
+  ...orderCapabilities,
+  "fact-retirement-control",
 ] as const;
 export type TimelineDocument = {
   format: typeof format | typeof lifecycleFormat;
@@ -128,6 +133,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       ? versions.profile
       : choice(runtime.profile, "$.runtime.profile", [
           fleetProfile,
+          sportsProfile,
           orderProfile,
           orderRestartProfile,
         ]);
@@ -136,8 +142,11 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       "$.runtime.storage",
       "memory sequence fleet requires memory storage",
     );
-  if (isOrderProfile(profile) && storage !== "sqlite")
-    invalid("$.runtime.storage", "SQLite Order requires SQLite storage");
+  if (hasProgressControl(profile) && storage !== "sqlite")
+    invalid(
+      "$.runtime.storage",
+      `SQLite ${profile === sportsProfile ? "Sports" : "Order"} requires SQLite storage`,
+    );
   choice(runtime.access, "$.runtime.access", ["unprotected"]);
   choice(runtime.initialState, "$.runtime.initialState", ["empty"]);
   const limits = object(doc.limits, "$.limits", [
@@ -196,6 +205,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const sources = new Set<string>();
   const clients = new Set<string>();
   const controls = new Set<string>();
+  const retirementActors = new Set<string>();
   list(doc.actors, "$.actors", 100).forEach((value, i) => {
     const path = `$.actors[${i}]`;
     const actor = object(value, path, ["id", "role"]);
@@ -204,13 +214,19 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     const role = choice(
       actor.role,
       `${path}.role`,
-      isOrderProfile(profile)
-        ? ["source", "client", "progress"]
+      hasProgressControl(profile)
+        ? [
+            "source",
+            "client",
+            "progress",
+            ...(profile === sportsProfile ? ["retirement"] : []),
+          ]
         : ["source", "client"],
     );
+    if (role === "retirement") retirementActors.add(id);
     (role === "source"
       ? sources
-      : role === "progress"
+      : role === "progress" || role === "retirement"
         ? controls
         : clients
     ).add(id);
@@ -239,7 +255,9 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const wallSettings: { atMs: number; wallMillis: number; path: string }[] = [];
   const kinds = [
     ...Object.keys(actionFields).filter(
-      (kind) => kind !== "progress-send" || isOrderProfile(profile),
+      (kind) =>
+        (kind !== "progress-send" || hasProgressControl(profile)) &&
+        (kind !== "retirement-send" || profile === sportsProfile),
     ),
     ...(lifecycle ? Object.keys(runtimeActionFields) : []),
   ];
@@ -248,7 +266,9 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     const entry = object(value, path);
     const kind = choice(entry.kind, `${path}.kind`, kinds);
     if (
-      (profile === fleetProfile || profile === orderProfile) &&
+      (profile === fleetProfile ||
+        profile === orderProfile ||
+        profile === sportsProfile) &&
       isRuntimeAction(kind)
     )
       invalid(
@@ -284,18 +304,24 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       entry.actor,
       kind.startsWith("source-")
         ? sources
-        : kind === "progress-send"
-          ? controls
-          : kind.startsWith("client-") || kind.startsWith("writer-")
-            ? clients
-            : actors,
+        : kind === "retirement-send"
+          ? retirementActors
+          : kind === "progress-send"
+            ? new Set([...controls].filter((id) => !retirementActors.has(id)))
+            : kind.startsWith("client-") || kind.startsWith("writer-")
+              ? clients
+              : actors,
       `${path}.actor`,
     );
     if (kind.startsWith("source-")) {
       required.add("source-publication");
       reference(entry.publication, publications, `${path}.publication`);
-    } else if (kind === "progress-send") {
-      required.add("progress-control");
+    } else if (kind === "progress-send" || kind === "retirement-send") {
+      required.add(
+        kind === "progress-send"
+          ? "progress-control"
+          : "fact-retirement-control",
+      );
       progressControl(entry.control, `${path}.control`);
     } else if (kind.startsWith("client-")) {
       required.add("client-subscription");
@@ -319,7 +345,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
             "client-frames",
             "source-receipts",
             "runtime-snapshot",
-            ...(isOrderProfile(profile) ? ["control-receipts"] : []),
+            ...(hasProgressControl(profile) ? ["control-receipts"] : []),
           ]
         : ["client-frames", "source-receipts"],
     );
@@ -352,6 +378,19 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       `${path}.actor`,
     );
     observationList(assertion.expected, `${path}.expected`, kind, storage);
+    if (kind === "control-receipts") {
+      const expectedKind = retirementActors.has(String(assertion.actor))
+        ? "factRetirement"
+        : "watermark";
+      list(assertion.expected, `${path}.expected`).forEach((value, index) => {
+        const acknowledgement = object(value, `${path}.expected[${index}]`);
+        if (acknowledgement.kind !== expectedKind)
+          invalid(
+            `${path}.expected[${index}].kind`,
+            "acknowledgement kind must match its actor endpoint",
+          );
+      });
+    }
     required.add("observations");
   });
   const policies = retryPolicies(doc);

@@ -881,3 +881,7 @@ repeatability checks for the authored sequence fleet, an isolated wrong-strategy
 control, and ordinary-service WebSocket/HTTP parity with the same bounded
 configuration. These commands consume prepared artifacts and retain raw evidence;
 the guide distinguishes smoke checks from clean-commit qualification.
+
+The [Order/Sports compatibility assessment](docs/timeline-order-sports-assessment.md)
+records the next profile and control-transport gaps against the completed demos.
+Neither configuration is admitted yet; their real-service demos remain separate.

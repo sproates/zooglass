@@ -22,7 +22,7 @@ network timing.
 | Fleet representative behaviour                      | [Fleet qualification and parity](timeline-fleet-qualification.md)                                                                                                             | Included in final regression acceptance.                                                                                                            |
 | Order representative behaviour                      | [Ordinary scenario](timeline-order-scenario.md), [recovery](timeline-order-recovery.md), [retention](timeline-order-retention.md)                                             | [Qualification](timeline-order-qualification.md) complete; preserve it in final regression acceptance.                                              |
 | Sports representative behaviour                     | [Bounded support](timeline-sports-host.md), [Sports qualification](timeline-sports-qualification.md)                                                                          | Qualification complete; preserve it in final regression acceptance.                                                                                 |
-| Usable command-line product                         | Run, inspect, replay and bundles already exist                                                                                                                                | Compare command, strict-default replay with explicit verification-only mode, integrated capability/environment matrix and fresh-setup guide.        |
+| Usable command-line product                         | Run, inspect, replay and bundles already exist                                                                                                                                | [CLI and capability guide](timeline-guide.md), comparison and strict-default replay implemented; final aggregate acceptance remains.                |
 | Final accepted guarantee                            | Prior bounded evidence remains valid within its recorded limits                                                                                                               | Freeze a candidate; complete-diff checks, combined evidence audit and clean-checkout setup; publish the exact supported guarantee after acceptance. |
 
 ## Frozen fault boundary
@@ -50,15 +50,15 @@ No implied lossy WebSocket transport or graceful-close guarantee is introduced.
 4. **Qualify Sports — complete.** Corrections, withdrawals, absent versus zero values,
    retirement, retention, wrong-policy control and service parity close representative
    scenario coverage.
-5. **Finish CLI and the capability guide.** Run/replay/inspect already exist; add
-   compare and implement the accepted replay policy without another engine.
+5. **Finish CLI and the capability guide — complete.** Compare saved evidence,
+   use strict-default replay and follow the integrated capability/setup guide.
 6. **Aggregate acceptance and handoff.** Fix demonstrated defects against the
    frozen contract and present the supported release for acceptance.
 
 Stable replay will exit successfully only when re-execution verifies a passing
 scenario. An explicit verification-only option will support reproducing failed
-runs. This policy is accepted but not yet implemented: current commands still
-require `--require-passed` for strict outcome checking.
+runs. This policy is implemented; `--verification-only` explicitly permits reproduced
+failures, and `--require-passed` remains a compatibility alias for the strict default.
 
 ## Completion discipline
 

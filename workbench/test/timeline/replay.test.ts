@@ -242,7 +242,7 @@ test("replay CLI refuses symlink and hardlink outputs that alias saved evidence"
   }
 });
 
-test("require-passed distinguishes reproduced failures while preserving default verification exit", async () => {
+test("strict replay defaults distinguish reproduced failures; verification-only is explicit", async () => {
   const { spawnSync } = await import("node:child_process");
   for (const outcome of ["passed", "assertion-failed", "limit-exceeded"]) {
     const f = fixture();
@@ -250,8 +250,12 @@ test("require-passed distinguishes reproduced failures while preserving default 
     if (outcome === "limit-exceeded") f.document.limits.turns = 2;
     const saved = await baseline(f);
     try {
-      for (const requirePassed of [false, true]) {
-        const output = saved.path + `.${requirePassed}.json`;
+      for (const policy of [
+        "default",
+        "--require-passed",
+        "--verification-only",
+      ]) {
+        const output = saved.path + `.${policy}.json`;
         const child = spawnSync(
           process.execPath,
           [
@@ -261,13 +265,13 @@ test("require-passed distinguishes reproduced failures while preserving default 
             saved.path,
             output,
             jar,
-            ...(requirePassed ? ["--require-passed"] : []),
+            ...(policy === "default" ? [] : [policy]),
           ],
           { encoding: "utf8" },
         );
         assert.equal(
           child.status,
-          requirePassed && outcome !== "passed" ? 2 : 0,
+          policy !== "--verification-only" && outcome !== "passed" ? 2 : 0,
           child.stderr,
         );
         const report = JSON.parse(await readFile(output, "utf8"));

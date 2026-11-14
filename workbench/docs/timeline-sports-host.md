@@ -69,8 +69,8 @@ per-view atomicity, repeated floors, complete acknowledgements, link cancellatio
 replay and bundle validation. Tests consume prepared artifacts and never build Java.
 
 The representative two-cycle Sports scenarios, retained-fact/identity boundaries,
-wrong-revision runtime control, finite qualification campaign and scoped ordinary
-service parity remain the next qualification gate. This foundation does not claim
+wrong-revision runtime control, finite campaign and scoped ordinary
+service parity are recorded in [Sports qualification](timeline-sports-qualification.md). This foundation does not claim
 that broader evidence or promote the POC to main.
 
 Focused verification passed 102 Java cases across Sports, Order and host protocol,

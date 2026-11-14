@@ -897,7 +897,8 @@ real-service demos remain available.
 
 The [timeline completion contract](docs/timeline-completion.md) consolidates current
 evidence, the remaining delivery sequence and the first bounded release's explicit
-limits. Final CLI/guarantee work and aggregate acceptance remain outstanding.
+limits. The [CLI and capability guide](docs/timeline-guide.md) covers prepared
+setup, comparison and strict-default replay. Final aggregate acceptance remains.
 
 [Order qualification](docs/timeline-order-qualification.md) provides the finite
 ordinary/recovery/retention campaign, actual wrong-priority/clock controls and

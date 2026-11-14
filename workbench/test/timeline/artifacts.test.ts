@@ -156,7 +156,15 @@ test("bundle CLI preserves failed semantics, strict replay exits and immutable e
     assert.equal(report.status, "verified");
     assert.equal(report.recordedOutcome, "assertion-failed");
     const defaultReplay = cli("replay", dir, join(root, "default.json"), jar);
-    assert.equal(defaultReplay.status, 0, defaultReplay.stderr);
+    assert.equal(defaultReplay.status, 2, defaultReplay.stderr);
+    const verification = cli(
+      "replay",
+      dir,
+      join(root, "verification.json"),
+      jar,
+      "--verification-only",
+    );
+    assert.equal(verification.status, 0, verification.stderr);
     assert.equal(cli("replay", dir, join(dir, "report.json"), jar).status, 1);
     await symlink(dir, join(root, "alias"));
     assert.equal(

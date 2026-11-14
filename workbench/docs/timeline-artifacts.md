@@ -12,9 +12,11 @@ any existing destination. Replay reports must be new files outside the evidence
 directory. Existing single-file `timeline:execute` and `timeline:replay` remain
 available.
 
-V1 documents retain v1 bundle/run/trace formats. [Memory lifecycle](timeline-lifecycle.md)
-documents use matching v2 formats and bridge protocol 2; mixed versions reject
-before replay starts Java. Both profiles start with empty memory.
+V1 documents retain v1 bundle/run/trace formats. The lifecycle, Fleet, Order and
+Sports profiles use matching v2 formats and bridge protocol 2; mixed versions
+reject before replay starts Java. All runs begin with empty memory or a new SQLite
+database, according to their [execution profile](timeline-guide.md). Supported
+SQLite restart scenarios retain their store between generations within that run.
 
 ## Contents and completion
 
@@ -27,11 +29,13 @@ before replay starts Java. Both profiles start with empty memory.
 | `manifest.json`      | Versioned inventory, byte lengths, hashes, execution/environment identity and provenance |
 
 The manifest is written last. It identifies the scenario, trace, scheduler,
-randomness and bridge protocol versions, the empty memory initial state, JAR and
+randomness and bridge protocol versions, the empty initial state and storage kind, JAR and
 Workbench module hashes, dependency lock and Node/JVM environment. Source revision
 and tracked-change status are diagnostic provenance; they are null if Git metadata
 is unavailable. Executable hashes, not a claim of a clean Git checkout, govern
-replay. SQLite is not used or qualified by this profile.
+replay. SQLite runs also retain the SQLite version in their environment identity.
+Database files are not bundle members: replay rebuilds state from retained inputs
+in a new database outside the evidence directory.
 
 Assertion and budget failures are completed semantic runs and can have a manifest.
 They remain failures, even when replay verifies them. Infrastructure failures
@@ -62,17 +66,23 @@ Moving the directory or deleting the original scenario/configuration works:
 recorded configuration paths are not reopened during replay. Each file has the
 existing 16 MiB admission bound; oversized output remains incomplete.
 
-Record exits 0 for a passing scenario, 1 otherwise. Replay exits 0 for verified
-reproduction, including a reproduced failure by default. With `--require-passed`,
-a verified scenario failure exits 2; invalid evidence, divergence and infrastructure
-failure exit 1. The report preserves both verification status and scenario outcome.
+Record exits 0 for a passing scenario, 1 otherwise. Replay exits 0 only for verified
+reproduction of a passing scenario. A verified scenario failure exits 2; invalid
+evidence, divergence and infrastructure failure exit 1. `--verification-only`
+explicitly permits a reproduced failure to exit 0; `--require-passed` remains an
+alias for the strict default. The report preserves both verification status and
+scenario outcome.
 
 ## Scope
 
-This packages admitted memory-runtime runs for copying or archiving and verifies
-their completeness. It does not upload or back up files, bundle executables,
-qualify Linux/cross-environment equality, or implement persistence/restart.
+This packages admitted memory and SQLite runs for copying or archiving and verifies
+their completeness. Lifecycle and strategy guarantees come from the selected
+runtime profile; packaging does not extend them. It does not upload or back up
+files, bundle executables or qualify cross-environment equality.
 Keep the matching prepared JAR and Workbench revision available separately.
 Earlier campaign evidence retains its original format, archived separately as
 [GitHub Release assets](../evidence/README.md); it has not been converted to this
 portable run-bundle format.
+
+The [CLI and capability guide](timeline-guide.md) lists supported profiles and
+environments, setup commands and saved-evidence comparison.

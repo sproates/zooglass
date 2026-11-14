@@ -1014,3 +1014,16 @@ flowchart LR
 
 The [Sports qualification guide](timeline-sports-qualification.md) separates the
 pinned producer schedule, independent expected values and actual runtime evidence.
+
+## Timeline command-line evidence tools
+
+```mermaid
+flowchart LR
+  comparecli["timeline/compare-cli.ts"] -->|validate and compare saved evidence| compare["timeline/compare.ts"]
+  compare -->|validate run| replay["timeline/replay-document.ts"]
+  compare -->|validate bundle inventory| bundle["timeline/artifact-bundle.ts"]
+  replaycli["timeline/replay-cli.ts"] -->|re-execute and compare| replay
+  bundlecli["timeline/bundle-cli.ts"] -->|record or re-execute bundle| bundle
+  replaycli -->|strict or verification-only exit| policy["timeline/replay-policy.ts"]
+  bundlecli -->|same replay exit policy| policy
+```

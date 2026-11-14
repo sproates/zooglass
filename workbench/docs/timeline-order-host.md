@@ -6,7 +6,7 @@ through typed progress actions, complete acknowledgement assertions, controlled
 links and replay. The [ordinary Order scenario](timeline-order-scenario.md) exercises two cycles;
 [Order recovery](timeline-order-recovery.md) adds an explicit lifecycle profile;
 [retention](timeline-order-retention.md) checks the identity-window boundary.
-Full qualification remains a separate stage of the [Order/Sports assessment](timeline-order-sports-assessment.md).
+[Order qualification](timeline-order-qualification.md) records the completed bounded campaign and service parity.
 
 ## Admitted configuration
 
@@ -81,6 +81,6 @@ watermark receipts, old-profile isolation and profile capability boundaries.
 Existing fleet/SQLite host tests and the earlier semantic-record comparison remain
 regression gates. All execution/tests consume prepared artifacts; preparation is a
 separate explicit command. The [ordinary Order scenario](timeline-order-scenario.md)
-adds independently authored document evidence. Repeated qualification, ordinary
-service parity and broader lifecycle combinations remain outstanding. Document control
+adds independently authored document evidence. [Repeated qualification and ordinary service parity](timeline-order-qualification.md)
+are complete; broader lifecycle combinations remain outside the admitted profiles. Document control
 transport/replay checks are described in the control guide.

@@ -308,6 +308,36 @@ test("tool byte and encoding limits fail before parsing", async () => {
   }
 });
 
+test("a trailing document reports the production decoder's root rejection", async () => {
+  await withInput(
+    JSON.stringify(basic) + ' {"secret":"DO-NOT-ECHO"}',
+    async (path) => {
+      const result = await run(["check", path, "--json"]);
+      assert.equal(result.code, 1);
+      assert.doesNotMatch(result.stdout, /DO-NOT-ECHO/);
+      assert.deepEqual(JSON.parse(result.stdout), {
+        format: "zooglass-config-report/v1",
+        operation: "check",
+        inputFormat: null,
+        valid: false,
+        storage: null,
+        notChecked,
+        diagnostics: [
+          {
+            code: "invalid-value",
+            path: "",
+            reason:
+              "Value, property or constructor settings are not valid for runtime configuration",
+            line: null,
+            column: null,
+          },
+        ],
+        explanation: null,
+      });
+    },
+  );
+});
+
 test("usage and unreadable input return distinct exits and machine-readable reports", async () => {
   for (const args of [
     ["--json"],
@@ -338,7 +368,7 @@ test("valid, invalid and usage commands remain offline despite deployment settin
         `-Dserver.port=${address.port}`,
         "-Dserver.address=127.0.0.1",
         `-Dzooglass.database=${join(directory, "must-not-exist.sqlite")}`,
-        "-Dzooglass.access=not-a-policy",
+        "-Dzooglass.access.mode=not-a-policy",
       ];
       for (const [args, code] of [
         [["check", path], 0],

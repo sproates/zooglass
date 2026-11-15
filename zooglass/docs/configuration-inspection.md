@@ -95,8 +95,8 @@ machine identifiers. Rejected values and raw parser exception text are not print
 | `input-io` | Input cannot be read as a regular file. |
 | `input-too-large` | Input exceeds the tool's 16 MiB byte limit. |
 | `invalid-encoding` | Input is not valid UTF-8. |
-| `invalid-json` | Invalid JSON, duplicate key, trailing document or parser limit. |
-| `invalid-value` | Property/type or record-constructor settings cannot be decoded. |
+| `invalid-json` | Invalid JSON syntax, duplicate key or parser limit. |
+| `invalid-value` | Property/type or record-constructor settings cannot be decoded, or a trailing document follows the configuration. |
 | `invalid-configuration` | Production configuration validation rejects the settings. |
 
 The command uses a bounded read and retains the production parser's depth, string,

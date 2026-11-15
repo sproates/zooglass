@@ -42,6 +42,13 @@ Its [tests](../.github/ci/selection.test.mjs) give concrete examples.
 Mixed changes combine the required checks. The Actions selection summary shows
 what was selected and why. See [Testing](testing.md) for suite commands and coverage.
 
+When core checks are selected, deterministic timeline validation runs in a separate
+required job alongside ordinary Workbench checks. Each job prepares its own Java
+artifacts before testing; tests never build them. The timeline job retains packaging,
+host and scenario checks. The final gate rejects a missing, skipped, cancelled or
+failed timeline job when core checks were selected. This keeps the long timeline
+suite from consuming the ordinary checks' time budget without removing coverage.
+
 ## Run everything manually
 
 In GitHub Actions, open **Validation**, choose **Run workflow**, select the branch

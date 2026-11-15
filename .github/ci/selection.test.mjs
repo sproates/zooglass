@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { selectChecks, suites, requiredResultErrors } from "./selection.mjs";
@@ -101,6 +101,45 @@ test("gate rejects failed, cancelled, skipped and missing selected jobs", () => 
       groups,
     ),
     [],
+  );
+});
+
+test("Workbench gate requires the separate timeline job whenever core is selected", () => {
+  const workflow = readFileSync(
+    new URL("../workflows/workbench.yml", import.meta.url),
+    "utf8",
+  );
+  // Read the mapping actually passed to gate.mjs, rather than a test-only copy.
+  const groups = JSON.parse(workflow.match(/GROUPS: '([^']+)'/)[1]);
+  const successful = Object.fromEntries(
+    Object.keys(groups).map((job) => [job, { result: "success" }]),
+  );
+  for (const result of ["failure", "cancelled", "skipped", undefined]) {
+    const results = { ...successful, timeline: { result } };
+    if (result === undefined) delete results.timeline;
+    assert.equal(
+      requiredResultErrors({ core: true }, results, groups).length,
+      1,
+    );
+  }
+  assert.deepEqual(
+    requiredResultErrors({ core: true }, successful, groups),
+    [],
+  );
+  assert.deepEqual(
+    requiredResultErrors(
+      { static: true },
+      { ...successful, timeline: { result: "skipped" } },
+      groups,
+    ),
+    [],
+  );
+  const needs = workflow.match(/workbench-gate:\s+needs:\s*\[([^\]]+)\]/)[1];
+  assert.ok(
+    needs
+      .split(",")
+      .map((job) => job.trim())
+      .includes("timeline"),
   );
 });
 

@@ -6,13 +6,13 @@ Baseline main `ec4fbbf`. The first two implementation slices add
 [V3 conversion/execution](../../workbench/docs/timeline-conversion.md). The third
 slice supplies [reviewed fixtures](../../workbench/scenarios/timeline-static/README.md);
 the [finite qualification](../../workbench/docs/timeline-static-qualification.md)
-passes in the fourth slice. All four slices are merged into the integration
-branch; their combined promotion to main is ready for review and pending merge.
+passes in the fourth slice. All four slices were delivered to main through
+[PR #179](https://github.com/sproates/zooglass/pull/179), merge `04dcbb6`,
+on 15 November 2026.
 The [bounded timeline](../../workbench/docs/timeline-guide.md) is delivered. This
-proposal adds one reusable configuration family and one explicit conversion path;
+expansion adds one reusable configuration family and one explicit conversion path;
 it does not reopen the completed POC or promise every Workbench scenario.
 The implementation and qualification satisfy the fixed finish line below.
-Main promotion remains a separate acceptance decision.
 
 ## Outcome and fixed finish line
 
@@ -260,10 +260,11 @@ continue to run under their own profiles and are not removed by this table.
 
 ## Implementation boundaries and delivery
 
-Integration branch: `integration/timeline-configuration-breadth`, created
-from refreshed main after design acceptance. Four bounded implementation PRs target
-it; a final reviewed promotion PR targets main. No automatic main merge. Expected
-count: **one design PR, four implementation/evidence PRs, one promotion PR**.
+Delivery used `integration/timeline-configuration-breadth`, created from main
+after design acceptance. Four implementation PRs (#175–#178) targeted it before
+[PR #179](https://github.com/sproates/zooglass/pull/179) promoted the combined result
+to main. The merged integration branch has been removed. Delivered count:
+**one design PR, four implementation/evidence PRs, one promotion PR**.
 
 1. **Admission and identity contract.** Requested-profile host capability, bounded
    family predicate and V3 version plumbing, with positive/negative/overlap tests.

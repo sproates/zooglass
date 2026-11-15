@@ -1,5 +1,10 @@
 # Bounded timeline acceptance candidate
 
+Historical POC record: the acceptance and promotion decisions described below
+were subsequently completed through [PR #172](https://github.com/sproates/zooglass/pull/172).
+See the [integration results](timeline-integration-results.md) for delivered status;
+the original contract and candidate evidence below retain their recorded scope.
+
 The POC implements the bounded deterministic timeline described in the
 [capability guide](timeline-guide.md) and [completion contract](timeline-completion.md).
 Engineering checks are complete and the candidate is ready for an owner acceptance

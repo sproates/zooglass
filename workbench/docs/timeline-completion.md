@@ -1,5 +1,10 @@
 # Deterministic timeline completion contract
 
+Historical POC record: the acceptance and promotion decisions described below
+were subsequently completed through [PR #172](https://github.com/sproates/zooglass/pull/172).
+See the [integration results](timeline-integration-results.md) for delivered status;
+the original contract and candidate evidence below retain their recorded scope.
+
 Accepted completion boundary, 14 November 2026. This contract distinguishes the
 working POC from the remaining requirements for its first bounded release. It
 refines the [original design](../../docs/design/deterministic-timeline.md); it does

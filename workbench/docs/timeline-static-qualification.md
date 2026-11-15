@@ -5,8 +5,9 @@ has one fixed qualification boundary: five converted legacy scenarios and the
 [independent mixed-mode witness](../scenarios/timeline-static/mixed-modes/ORACLE.md).
 The fixed qualification passed on 15 November 2026 at source
 [`8049dfc`](https://github.com/sproates/zooglass/commit/8049dfcb7ff500126132c0f4552b1dd0d9a5d98d),
-on macOS arm64 with Node 26.0.0 and Java 25.0.5.0.2. Final promotion to main
-remains a separate decision.
+on macOS arm64 with Node 26.0.0 and Java 25.0.5.0.2. The qualified capability was
+delivered to main in [PR #179](https://github.com/sproates/zooglass/pull/179),
+merge `04dcbb6`. These results retain their original source and artifact identities.
 
 ## Fixed matrix
 

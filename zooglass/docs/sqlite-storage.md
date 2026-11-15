@@ -34,10 +34,10 @@ A bound database records its tenant before any state is restored. Opening it for
 another tenant fails, even if both tenants use the same view and entity IDs.
 Open demo mode also refuses bound databases.
 
-**Protected serving is not enabled yet.** The tenant-aware store entry point is
-internal until admission and active revocation are implemented. Existing unowned
-demo databases continue to work. Do not adopt a demo database you need to keep
-using with the current server.
+[Protected serving](protected-deployment.md) binds the store to the configured
+tenant and checks grants on viewer admission and delivery. Existing unowned demo
+databases still work in open demo mode. Adoption changes which mode can open the
+store; take a stopped backup before adopting a database.
 
 To prepare an existing database for protected use:
 

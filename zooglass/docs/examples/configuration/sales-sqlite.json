@@ -1,0 +1,41 @@
+{
+  "contractVersion": 2,
+  "storage": "sqlite",
+  "maxStreams": 100,
+  "identityWindow": 1000,
+  "maxHistoryEntries": 1000,
+  "sources": [
+    {
+      "id": "sales",
+      "epoch": "day-1"
+    }
+  ],
+  "views": [
+    {
+      "id": "sales-summary",
+      "fields": {
+        "items": {
+          "sourceId": "sales",
+          "type": "sale",
+          "mode": "activeFacts",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 100,
+            "minimumBirthSequence": 1
+          }
+        },
+        "total": {
+          "sourceId": "sales",
+          "type": "sale",
+          "mode": "sumActiveFacts",
+          "property": "amount",
+          "facts": {
+            "revision": "latestFactRevision",
+            "maxRetainedFacts": 100,
+            "minimumBirthSequence": 1
+          }
+        }
+      }
+    }
+  ]
+}

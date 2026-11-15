@@ -13,6 +13,10 @@ For deployments using the original live-view setting `zooglass.views.config`
 (or `ZOOGLASS_VIEWS_CONFIG`), migrate the view definitions to the configuration
 format below and set `zooglass.config`. Startup rejects the retired setting.
 
+For a complete settings reference and runnable examples, start with the
+[configuration guide](configuration.md). This page defines publication semantics
+and the wire protocol.
+
 ## Configure and run
 
 Save a configuration such as this as `views.json`:

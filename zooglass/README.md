@@ -24,6 +24,9 @@ The [publication guide](docs/publications.md) defines configuration, wire messag
 acknowledgements, bounds and restart behaviour. Configuration `contractVersion: 2`
 is a data-format identifier; there is one runtime and no version-prefixed API.
 
+Start with the [configuration guide](docs/configuration.md) for complete runnable
+examples, defaults, supported combinations and deployment settings.
+
 ## Interfaces
 
 | Interface | Purpose |
@@ -124,9 +127,10 @@ to `simulation-host/target/zooglass-simulation.jar`.
 
 From `../workbench/`, run `npm run prepare:timeline` explicitly before timeline
 execution or tests. It installs the runtime dependency, packages the host and
-checks both artifact boundaries. The controlled host currently supports bounded
-memory scenarios; SQLite restart remains planned. Production SQLite recovery is
-covered separately by the runtime tests.
+checks both artifact boundaries. The controlled host supports the documented memory and SQLite lifecycle families
+and qualified Fleet, Order, Sports and static-view configurations. See the
+[timeline capability guide](../workbench/docs/timeline-guide.md) for exact limits;
+service configuration support does not imply timeline admission.
 
 ## Tests and ownership
 

@@ -48,14 +48,13 @@ delivery date:
   explicit limits. [POC acceptance checks](workbench/docs/timeline-acceptance.md)
   are complete. [PR #172](https://github.com/sproates/zooglass/pull/172) delivers
   that capability alongside the live demos with [integration qualification](workbench/docs/timeline-integration-results.md).
-  The accepted [configuration expansion](docs/design/timeline-configuration-expansion.md)
-  targets one reusable memory/static-view family and five explicit legacy conversions,
-  with a fixed qualification boundary. [Configuration admission](workbench/docs/timeline-static-admission.md) and
+  The [configuration expansion](docs/design/timeline-configuration-expansion.md),
+  delivered in [PR #179](https://github.com/sproates/zooglass/pull/179), adds one
+  reusable memory/static-view family and five explicit legacy conversions. [Configuration admission](workbench/docs/timeline-static-admission.md) and
   [V3 conversion/execution](workbench/docs/timeline-conversion.md) are implemented
-  on the integration delivery path, with [six authored fixtures](workbench/scenarios/timeline-static/README.md)
+  on main, with [six authored fixtures](workbench/scenarios/timeline-static/README.md)
   and a passing [fixed qualification](workbench/docs/timeline-static-qualification.md).
-  All four implementation slices are complete; their combined promotion to main
-  is ready for review and remains pending merge. Ordinary socket/browser checks and
+  Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.

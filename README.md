@@ -120,7 +120,9 @@ distinction. The accepted
 virtual time, runtime execution boundaries and reproducible replay. This integration
 adds the completed [bounded timeline](workbench/docs/timeline-guide.md) alongside
 all three live demos. It supports explicit memory/SQLite lifecycle and qualified
-Fleet, Order and Sports profiles; ordinary demos retain real process/network timing.
+Fleet, Order and Sports profiles. [PR #179](https://github.com/sproates/zooglass/pull/179)
+adds a reusable static-memory family with [explicit conversion](workbench/docs/timeline-conversion.md)
+and six qualified fixtures. Ordinary demos retain real process/network timing.
 The [separate host](zooglass/simulation-host/README.md) shares production runtime
 code without shipping simulation controls in the service. The combined Workbench was delivered in
 [PR #172](https://github.com/sproates/zooglass/pull/172); see the

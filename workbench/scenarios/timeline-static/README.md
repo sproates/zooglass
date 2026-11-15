@@ -3,8 +3,9 @@
 These six cases exercise the generic `memory-static-views-v1` family. They use the
 shared V3 executor; no fixture-specific runtime or selection algorithm is involved.
 Focused execution/replay checks are separate from the finite qualification campaign.
-The [fixed campaign](../../docs/timeline-static-qualification.md) passes; final
-integration promotion remains pending.
+The [fixed campaign](../../docs/timeline-static-qualification.md) passes. These
+fixtures were delivered to main in
+[PR #179](https://github.com/sproates/zooglass/pull/179).
 
 | Case                                                                             | Preserved behaviour                                                                                                             |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |

@@ -6,11 +6,13 @@ Baseline main `ec4fbbf`. The first two implementation slices add
 [V3 conversion/execution](../../workbench/docs/timeline-conversion.md). The third
 slice supplies [reviewed fixtures](../../workbench/scenarios/timeline-static/README.md);
 the [finite qualification](../../workbench/docs/timeline-static-qualification.md)
-passes in the fourth slice. Final integration promotion remains pending.
+passes in the fourth slice. All four slices are merged into the integration
+branch; their combined promotion to main is ready for review and pending merge.
 The [bounded timeline](../../workbench/docs/timeline-guide.md) is delivered. This
 proposal adds one reusable configuration family and one explicit conversion path;
 it does not reopen the completed POC or promise every Workbench scenario.
-Implementation follows acceptance of this contract. Main promotion remains separate.
+The implementation and qualification satisfy the fixed finish line below.
+Main promotion remains a separate acceptance decision.
 
 ## Outcome and fixed finish line
 

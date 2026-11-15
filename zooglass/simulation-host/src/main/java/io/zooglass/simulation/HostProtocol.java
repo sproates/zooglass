@@ -115,6 +115,7 @@ enum HostProtocol {
         capabilities.put("memoryStaticViews", 1);
         if (this == V1) return capabilities;
         capabilities.put("installedObservations", 1);
+        capabilities.put("publicSnapshots", 1);
         capabilities.put("memorySequenceFleet", 1);
         capabilities.put("wallClockAdjustments", 1);
         if (sqliteVersion != null) {

@@ -1,3 +1,4 @@
+import type { DeliveredReceipt } from "./projected-assertions.js";
 import { controlEnvelope } from "./control-contract.js";
 import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
@@ -51,6 +52,7 @@ export class DocumentTransport {
   private readonly pendingFaultCloses = new Set<string>();
   private readonly sessions = new Map<string, Connection>();
   private readonly handoffs = new Map<string, Handoff>();
+  private readonly receipts: DeliveredReceipt[] = [];
   private readonly observations = new Map<string, Json[]>();
   constructor(
     private readonly agenda: Agenda,
@@ -92,6 +94,26 @@ export class DocumentTransport {
   }
   observed(actor: string): Json[] {
     return this.observations.get(actor)!;
+  }
+  deliveredReceipts(actor: string, atMs: number) {
+    return this.receipts.filter(
+      (receipt) => receipt.actor === actor && receipt.atMs === atMs,
+    );
+  }
+  private observe(
+    connection: Connection,
+    channel: LinkChannel,
+    envelope: Json,
+    eventId: string,
+  ) {
+    this.observations.get(connection.actor)!.push(envelope);
+    if (channel === "source-receipt")
+      this.receipts.push({
+        eventId,
+        actor: connection.actor,
+        atMs: this.agenda.current[0],
+        envelope,
+      });
   }
   pending(): number {
     return this.messages + this.handoffs.size + this.links.pending();
@@ -214,7 +236,7 @@ export class DocumentTransport {
         latency,
         sent,
         async (arrival) => {
-          this.observations.get(connection.actor)!.push(envelope);
+          this.observe(connection, channel, envelope, arrival);
           if (effect.kind === "receipt" && publication)
             this.ports.receipt(
               publication.action,
@@ -230,7 +252,7 @@ export class DocumentTransport {
     this.messages++;
     this.messageBound();
     const task =
-      this.scenario.document.format === "timeline-simulation/v2"
+      this.scenario.document.format !== "timeline-simulation/v1"
         ? this.agenda.allocateModelTask()
         : undefined;
     if (task !== undefined)
@@ -283,7 +305,7 @@ export class DocumentTransport {
               : [],
         );
         if (delivered) {
-          this.observations.get(connection.actor)!.push(envelope);
+          this.observe(connection, channel, envelope, arrival);
           if (effect.kind === "receipt" && publication)
             this.ports.receipt(
               publication.action,
@@ -391,7 +413,7 @@ export class DocumentTransport {
     if (this.pendingFaultCloses.has(connection.session)) return;
     this.pendingFaultCloses.add(connection.session);
     const task =
-      this.scenario.document.format === "timeline-simulation/v2"
+      this.scenario.document.format !== "timeline-simulation/v1"
         ? this.agenda.allocateModelTask()
         : undefined;
     if (task !== undefined) this.faultTasks.set(connection.session, task);

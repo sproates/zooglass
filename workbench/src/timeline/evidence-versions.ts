@@ -36,7 +36,7 @@ export const evidenceV2 = {
   protocol: 2,
 } as const;
 
-/** Reserved for static-view documents; admission alone does not enable execution. */
+/** Static-view documents retain an explicit identity across all evidence formats. */
 export const evidenceV3 = {
   scenario: "timeline-simulation/v3",
   trace: "timeline-trace/v3",
@@ -46,11 +46,19 @@ export const evidenceV3 = {
   protocol: 2,
 } as const;
 
-export function documentEvidenceVersions(format: Json | undefined) {
-  return choice(format, "$.format", [
+export type EvidenceVersions =
+  typeof evidenceV1 | typeof evidenceV2 | typeof evidenceV3;
+export function documentEvidenceVersions(
+  format: Json | undefined,
+): EvidenceVersions {
+  const admitted = choice(format, "$.format", [
     evidenceV1.scenario,
     evidenceV2.scenario,
-  ]) === evidenceV2.scenario
-    ? evidenceV2
-    : evidenceV1;
+    evidenceV3.scenario,
+  ]);
+  return admitted === evidenceV3.scenario
+    ? evidenceV3
+    : admitted === evidenceV2.scenario
+      ? evidenceV2
+      : evidenceV1;
 }

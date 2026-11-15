@@ -1225,3 +1225,40 @@ without reserializing them. Session-owned temporary SQLite state is cleaned with
 session; an explicitly supplied database remains caller-owned on close or startup
 failure. Live demos and parity runners share process ownership without sharing
 configuration serialization policy.
+
+## Static conversion and projected assertions
+
+```mermaid
+flowchart LR
+  cli["timeline/convert-cli.ts"] -->|explicit conversion only| conversion["timeline/conversion.ts"]
+  conversion -->|lossless eligibility and finite resource bounds| eligibility["timeline/conversion-eligibility.ts"]
+  conversion -->|deterministic transcription and report| document["timeline/conversion-document.ts"]
+  conversion -->|production validation and comparison| admission["timeline/requested-admission.ts"]
+  provenance["timeline/conversion-provenance.ts"] -->|regenerate claims without executing| document
+  provenance -->|bounded exact input reads| files["timeline/file-input.ts"]
+  run["timeline/run-document.ts"] -->|retain and validate declared provenance| provenance
+  replay["timeline/replay-document.ts"] -->|validate embedded original and report| provenance
+  bundle["timeline/artifact-bundle.ts"] -->|pin fixed extra members| provenance
+```
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|closed V3 actions and assertion references| static["timeline/static-contract.ts"]
+  execution["timeline/document-execution.ts"] -->|timestamp-scoped acceptance| assertions["timeline/projected-assertions.ts"]
+  transport["timeline/document-transport.ts"] -->|retain delivery event IDs and full receipts| execution
+  execution -->|same installed read: internal and public| turns["timeline/runtime-turns.ts"]
+  turns -->|production projection| host["simulation-host: TimelineHost.java"]
+```
+
+```mermaid
+flowchart LR
+  trace["timeline/trace-contract.ts"] -->|receipt lineage and non-reuse| projections["timeline/trace-projections.ts"]
+  projections -->|validate acceptance result| assertions["timeline/projected-assertions.ts"]
+  trace -->|bind data assertion to its complete observation| generations["timeline/trace-generations.ts"]
+```
+
+The converter never runs a scenario or derives an expected outcome. V3 uses the
+same agenda, transport and generation owner as existing documents. `manifest.ts`
+hashes timeline modules plus the legacy parser and configuration compiler used by
+conversion and provenance verification. Historical evidence retains its original
+identity requirements. See [conversion and assertions](timeline-conversion.md).

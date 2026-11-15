@@ -4,13 +4,22 @@ import { encodeJson, type Json } from "./json.js";
 import {
   clientEnvelope,
   installedSnapshot,
+  publicSnapshot,
   observationList,
   observationTarget,
   receiptEnvelope,
   runtimeObservation,
   snapshotEnvelope,
 } from "./envelopes.js";
-import { choice, integer, invalid, list, object, text } from "./validation.js";
+import {
+  choice,
+  integer,
+  invalid,
+  list,
+  object,
+  text,
+  runtimeCounter,
+} from "./validation.js";
 
 export const actionFields = {
   "source-send": ["publication"],
@@ -50,18 +59,19 @@ export function eventData(
   path: string,
   time: number,
   until: number,
-  version: 1 | 2 = 1,
+  version: 1 | 2 | 3 = 1,
   storage: "memory" | "sqlite" | undefined = version === 1
     ? "memory"
     : undefined,
 ) {
   const data = object(value, path);
-  if (kind === "runtime-initialized" && version === 2) {
+  if (kind === "runtime-initialized" && version >= 2) {
     object(data, path, [
       "startTimeMs",
       "wallMillis",
       "monotonicMs",
       "snapshots",
+      ...(version === 3 ? ["projectedSnapshots"] : []),
     ]);
     if (integer(data.startTimeMs, `${path}.startTimeMs`, until) !== time)
       invalid(path, "runtime start time differs from agenda key");
@@ -76,7 +86,36 @@ export function eventData(
         invalid(snapshotPath, "duplicate observation target");
       targets.add(id);
     });
-  } else if (kind === "runtime-observation" && version === 2) {
+    if (version === 3) {
+      const projected = list(
+        data.projectedSnapshots,
+        `${path}.projectedSnapshots`,
+        64,
+      );
+      const raw = list(data.snapshots, `${path}.snapshots`, 64);
+      if (projected.length !== raw.length)
+        invalid(path, "projected snapshot count mismatch");
+      projected.forEach((value, index) => {
+        const snapshot = object(raw[index], path);
+        const publicValue = publicSnapshot(
+          value,
+          `${path}.projectedSnapshots[${index}]`,
+          observationTarget(snapshot, path),
+        );
+        sameSnapshotMetadata(snapshot, publicValue, path);
+      });
+    }
+  } else if (kind === "runtime-data-observation" && version === 3) {
+    object(data, path, ["viewId", "entityId", "snapshot", "publicSnapshot"]);
+    const target = observationTarget(data, path);
+    const raw = installedSnapshot(data.snapshot, `${path}.snapshot`, target);
+    const projected = publicSnapshot(
+      data.publicSnapshot,
+      `${path}.publicSnapshot`,
+      target,
+    );
+    sameSnapshotMetadata(raw, projected, path);
+  } else if (kind === "runtime-observation" && version >= 2) {
     const { viewId, entityId, ...result } = data;
     runtimeObservation(
       result,
@@ -85,7 +124,7 @@ export function eventData(
     );
   } else if (
     (kind === "connection-outcome" || kind === "attempt-outcome") &&
-    version === 2
+    version >= 2
   ) {
     const attempt = kind === "attempt-outcome";
     object(
@@ -192,7 +231,7 @@ export function eventData(
     const actionKind = choice(
       data.actionKind,
       `${path}.actionKind`,
-      version === 2
+      version >= 2
         ? [...Object.keys(actionFields), ...Object.keys(runtimeActionFields)]
         : Object.keys(actionFields).filter(
             (kind) => kind !== "progress-send" && kind !== "retirement-send",
@@ -242,7 +281,7 @@ export function eventData(
       "client-frame",
       "source-publication",
       "client-request",
-      ...(version === 2
+      ...(version >= 2
         ? [
             "progress-request",
             "progress-receipt",
@@ -288,12 +327,13 @@ export function eventData(
     const assertionKind = choice(
       data.assertionKind,
       `${path}.assertionKind`,
-      version === 2
+      version >= 2
         ? [
             "client-frames",
             "source-receipts",
             "runtime-snapshot",
             "control-receipts",
+            ...(version === 3 ? ["runtime-data", "source-accepted"] : []),
           ]
         : ["client-frames", "source-receipts"],
     );
@@ -304,14 +344,45 @@ export function eventData(
       "passed",
       "expected",
       "actual",
-      ...(assertionKind === "runtime-snapshot" ? ["viewId", "entityId"] : []),
+      ...(["runtime-snapshot", "runtime-data"].includes(assertionKind)
+        ? ["viewId", "entityId"]
+        : []),
+      ...(assertionKind === "source-accepted"
+        ? ["send", "publication", "identity", "receiptEventId"]
+        : []),
     ]);
     text(data.assertionId, `${path}.assertionId`);
     if (integer(data.atMs, `${path}.atMs`, until) !== time)
       invalid(path, "assertion time differs from agenda key");
     if (typeof data.passed !== "boolean")
       invalid(`${path}.passed`, "expected boolean");
-    if (assertionKind === "runtime-snapshot") {
+    if (assertionKind === "runtime-data") {
+      observationTarget(data, path);
+      object(data.expected, `${path}.expected`);
+      object(data.actual, `${path}.actual`);
+    } else if (assertionKind === "source-accepted") {
+      text(data.send, `${path}.send`);
+      text(data.publication, `${path}.publication`);
+      const identity = object(data.identity, `${path}.identity`, [
+        "stream",
+        "publicationSequence",
+      ]);
+      runtimeCounter(
+        identity.publicationSequence,
+        `${path}.identity.publicationSequence`,
+      );
+      const stream = object(identity.stream, `${path}.identity.stream`, [
+        "sourceId",
+        "epoch",
+        "sourceEntityId",
+      ]);
+      for (const key of Object.keys(stream))
+        text(stream[key], `${path}.identity.stream.${key}`);
+      if (data.expected !== true || typeof data.actual !== "boolean")
+        invalid(path, "acceptance compares true with a boolean");
+      if (data.receiptEventId !== null)
+        text(data.receiptEventId, `${path}.receiptEventId`);
+    } else if (assertionKind === "runtime-snapshot") {
       const target = observationTarget(data, path);
       runtimeObservation(data.expected, `${path}.expected`, target);
       runtimeObservation(data.actual, `${path}.actual`, target);
@@ -343,4 +414,14 @@ export function eventData(
       clientEnvelope(data.envelope, `${path}.envelope`);
     else snapshotEnvelope(data.envelope, `${path}.envelope`);
   }
+}
+
+function sameSnapshotMetadata(
+  raw: { [key: string]: Json },
+  projected: { [key: string]: Json },
+  path: string,
+) {
+  for (const field of ["version", "status", "provenance"])
+    if (encodeJson(raw[field]) !== encodeJson(projected[field]))
+      invalid(path, "projection changed snapshot metadata");
 }

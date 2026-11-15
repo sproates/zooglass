@@ -125,18 +125,15 @@ test("protocol checks static capability and coherent eligibility/comparison diag
     );
 });
 
-test("V3 identities are reserved, not admitted to the existing document executor", () => {
+test("V3 identity requires its explicit static profile", () => {
   assert.equal(evidenceV3.profile, staticViewsProfile);
-  assert.throws(
-    () => documentEvidenceVersions(evidenceV3.scenario),
-    /supported values/,
-  );
+  assert.equal(documentEvidenceVersions(evidenceV3.scenario), evidenceV3);
   assert.throws(
     () =>
       parseTimelineDocument(
         JSON.stringify({ ...fixture().document, format: evidenceV3.scenario }),
       ),
-    /supported values/,
+    /requires explicit/,
   );
 });
 

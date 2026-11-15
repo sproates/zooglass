@@ -1,4 +1,4 @@
-import { lifecycleFormat, type TimelineDocument } from "./contract.js";
+import { format, type TimelineDocument } from "./contract.js";
 import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
 import { encodeJson } from "./json.js";
 import { integer, list, object, text } from "./validation.js";
@@ -39,7 +39,7 @@ export function executionSettings(
         "unsupported-execution: actor IDs starting with @ are reserved",
       );
   });
-  const preparedConnection = scenario.format === lifecycleFormat ? 0 : 1;
+  const preparedConnection = scenario.format !== format ? 0 : 1;
   if (
     scenario.admittedActions.filter((entry) => entry.kind === "connect")
       .length +

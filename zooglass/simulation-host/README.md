@@ -11,7 +11,10 @@ with installed snapshots, read-only observations and [controlled wall adjustment
 
 The additive [static configuration admission](../../workbench/docs/timeline-static-admission.md)
 checks the broader memory/static-view family without runtime startup. Its explicit
-startup path is checked separately; V3 Workbench scenario execution remains planned.
+startup path is checked separately. [V3 execution](../../workbench/docs/timeline-conversion.md)
+also requires `publicSnapshots:1`: internal and public snapshots come from the same
+installed read, using production `ViewSnapshot.from`. Old profiles receive unchanged
+raw observation responses.
 
 ## Prepare and run
 

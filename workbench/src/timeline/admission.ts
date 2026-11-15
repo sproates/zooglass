@@ -1,10 +1,15 @@
+import { inspectRequestedConfiguration } from "./requested-admission.js";
+import {
+  loadConversionProvenance,
+  conversionReferenceConfiguration,
+} from "./conversion-provenance.js";
 import { createHash } from "node:crypto";
-import { open } from "node:fs/promises";
+import { boundedFile, decode } from "./file-input.js";
+export { boundedFile, decode } from "./file-input.js";
 import { dirname, resolve } from "node:path";
 import { Bridge } from "./bridge.js";
 import {
   format,
-  lifecycleFormat,
   parseTimelineDocument,
   type TimelineDocument,
 } from "./contract.js";
@@ -15,39 +20,15 @@ import {
 } from "./document-profile.js";
 import {
   fleetProfile,
+  staticViewsProfile,
+  documentEvidenceVersions,
   sportsProfile,
   orderProfile,
   orderRestartProfile,
   isOrderProfile,
 } from "./evidence-versions.js";
-import { jsonLimits, parseJson } from "./json.js";
+import { parseJson } from "./json.js";
 import { list, object, text } from "./validation.js";
-
-export async function boundedFile(path: string): Promise<Buffer> {
-  const file = await open(path, "r");
-  try {
-    if (!(await file.stat()).isFile())
-      throw new Error("invalid-admission: expected regular file");
-    const bytes = Buffer.alloc(jsonLimits.bytes + 1);
-    let length = 0;
-    for (;;) {
-      const { bytesRead } = await file.read(
-        bytes,
-        length,
-        bytes.length - length,
-        null,
-      );
-      length += bytesRead;
-      if (length > jsonLimits.bytes)
-        throw new Error("invalid-admission: file byte limit");
-      if (bytesRead === 0) return bytes.subarray(0, length);
-    }
-  } finally {
-    await file.close();
-  }
-}
-export const decode = (bytes: Buffer) =>
-  new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
 
 /** Resolve and hash the exact bytes before any runtime is started. */
 export async function loadDocument(scenarioPath: string) {
@@ -65,7 +46,17 @@ export async function loadDocument(scenarioPath: string) {
     throw new Error("invalid-admission: configuration SHA-256 mismatch");
   }
   const wire = decode(bytes);
-  return { scenario, wire, configurationHash };
+  const conversionProvenance = await loadConversionProvenance(
+    scenarioPath,
+    scenario,
+    wire,
+  );
+  return {
+    scenario,
+    wire,
+    configurationHash,
+    ...(conversionProvenance ? { conversionProvenance } : {}),
+  };
 }
 
 /** Negotiate the requested lifecycle with the same artifact, without starting a runtime. */
@@ -83,6 +74,14 @@ export async function probeLifecycle(
     if (opened.artifact !== artifact || opened.bridge.memoryLifecycle !== 1)
       throw new Error(
         "unsupported-execution: prepared artifact does not support memory lifecycle",
+      );
+    if (
+      scenario.profile === staticViewsProfile &&
+      (opened.bridge.memoryStaticViews !== 1 ||
+        opened.bridge.publicSnapshots !== 1)
+    )
+      throw new Error(
+        "unsupported-execution: prepared artifact lacks static public snapshot support",
       );
     if (
       scenario.profile === fleetProfile &&
@@ -214,22 +213,33 @@ export function checkConfiguredTargets(
 
 /** Read once and preserve the exact configuration bytes validated by the runtime. */
 export async function inspectAdmission(scenarioPath: string, jar: string) {
-  const { scenario, wire, configurationHash } =
+  const { scenario, wire, configurationHash, conversionProvenance } =
     await loadDocument(scenarioPath);
   const jarPath = resolve(jar);
-  const lifecycle = scenario.format === lifecycleFormat;
+  const lifecycle = documentEvidenceVersions(scenario.format).protocol === 2;
   const { bridge, artifact } = await Bridge.open(jarPath);
   try {
-    const configuration = await inspectRuntimeConfiguration(
-      bridge,
-      wire,
-      scenario.storage,
-    );
+    const requested =
+      scenario.profile === staticViewsProfile
+        ? await inspectRequestedConfiguration(
+            bridge,
+            wire,
+            conversionProvenance
+              ? conversionReferenceConfiguration(conversionProvenance)
+              : undefined,
+          )
+        : undefined;
+    const configuration =
+      requested?.configuration ??
+      (await inspectRuntimeConfiguration(bridge, wire, scenario.storage));
     const requiredProfile = requiredConfigurationProfile(scenario);
     let reason: string | undefined;
     if (
       !bridge.documentFormats.includes(format) ||
-      configuration.documentProfile !== requiredProfile
+      (requested
+        ? !requested.requestedProfile.eligible ||
+          requested.requestedProfile.comparison?.equivalent === false
+        : configuration.documentProfile !== requiredProfile)
     )
       reason = `Prepared artifact/configuration does not support ${requiredProfile}.`;
     try {

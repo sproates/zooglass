@@ -15,6 +15,7 @@ import io.zooglass.runtime.ProgressIngress;
 import io.zooglass.runtime.PublicationJson;
 import io.zooglass.runtime.RuntimeConfiguration;
 import io.zooglass.runtime.StaticViewsTimelineProfile;
+import io.zooglass.api.ViewSnapshot;
 import io.zooglass.runtime.TimelineProfile;
 import io.zooglass.runtime.TimelineRuntime;
 import io.zooglass.runtime.ViewCoordinator;
@@ -86,7 +87,7 @@ public final class TimelineHost {
         if (op.equals("inspect-requested-profile")) return inspectRequestedProfile(command, turn);
 
         turns.begin(turn.timeMs());
-        List<String> snapshots = null;
+        InstalledObservations snapshots = null;
         switch (op) {
             case "initialize" -> initialize(text(command, "policy"), turn.generation());
             case "initialize-document" -> snapshots = initializeDocument(command, turn.generation());
@@ -160,7 +161,7 @@ public final class TimelineHost {
                         "documentProfile", TimelineProfile.inspect(config)));
     }
 
-    private Map<String, Object> response(HostTurns.Turn turn, List<String> snapshots) {
+    private Map<String, Object> response(HostTurns.Turn turn, InstalledObservations snapshots) {
         int pending = turns.pendingCount();
         int held = delivery.heldCount();
         var effects =
@@ -185,11 +186,14 @@ public final class TimelineHost {
         var clocks = new LinkedHashMap<>(response);
         clocks.put("monotonicMs", turn.generation().monotonicMillis(turn.timeMs()));
         clocks.put("wallMillis", turn.generation().wallMillis(turn.timeMs()));
-        if (snapshots != null) clocks.put("snapshots", snapshots);
+        if (snapshots != null) {
+            clocks.put("snapshots", snapshots.raw());
+            if (snapshots.projected() != null) clocks.put("projectedSnapshots", snapshots.projected());
+        }
         return clocks;
     }
 
-    private List<String> initializeDocument(JsonNode command, RuntimeGeneration generation) {
+    private InstalledObservations initializeDocument(JsonNode command, RuntimeGeneration generation) {
         var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
         String profile = TimelineProfile.inspect(config);
         boolean fleet = TimelineProfile.MEMORY_SEQUENCE_FLEET.equals(profile);
@@ -257,10 +261,16 @@ public final class TimelineHost {
         }
     }
 
-    private List<String> installed(List<ViewResource> targets) {
-        return TimelineRuntime.installedSnapshots(runtime, targets).stream()
-                .map(snapshot -> canonical(JSON.writeValueAsString(snapshot)))
-                .toList();
+    private record InstalledObservations(List<String> raw, List<String> projected) {}
+
+    private InstalledObservations installed(List<ViewResource> targets) {
+        var snapshots = TimelineRuntime.installedSnapshots(runtime, targets);
+        var raw = snapshots.stream().map(snapshot -> canonical(JSON.writeValueAsString(snapshot))).toList();
+        // Both representations come from the same side-effect-free installed read.
+        var projected = staticViews ? snapshots.stream()
+                .map(ViewSnapshot::from)
+                .map(snapshot -> canonical(JSON.writeValueAsString(snapshot))).toList() : null;
+        return new InstalledObservations(raw, projected);
     }
 
     private static Path database(JsonNode command, String storage, RuntimeGeneration generation) {

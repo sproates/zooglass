@@ -1,3 +1,4 @@
+import { TraceProjections } from "./trace-projections.js";
 import { TraceControls } from "./trace-controls.js";
 import {
   eventData,
@@ -8,6 +9,7 @@ import type { ObservationTarget } from "./envelopes.js";
 import {
   evidenceV1,
   evidenceV2,
+  evidenceV3,
   fleetProfile,
   sportsProfile,
   orderProfile,
@@ -80,14 +82,25 @@ export function parseTrace(
   };
   const header = traceHeader(readRecord(0));
   const until = header.untilMs;
-  const version = header.format === evidenceV2.trace ? 2 : 1;
+  const version =
+    header.format === evidenceV3.trace
+      ? 3
+      : header.format === evidenceV2.trace
+        ? 2
+        : 1;
   const kinds =
-    version === 2
-      ? [...eventKinds, ...lifecycleEventKinds, "control-receipt"]
+    version >= 2
+      ? [
+          ...eventKinds,
+          ...lifecycleEventKinds,
+          "control-receipt",
+          ...(version === 3 ? ["runtime-data-observation"] : []),
+        ]
       : eventKinds;
+  const projections = version === 3 ? new TraceProjections() : undefined;
   const controls = new TraceControls(header.execution?.profile);
   const generations =
-    version === 2 ? new TraceGenerations(until, observationTargets) : undefined;
+    version >= 2 ? new TraceGenerations(until, observationTargets) : undefined;
   for (let index = 1; index < lines.length - 1; index++) {
     const record = readRecord(index);
     const path = `trace[${index}]`;
@@ -135,7 +148,7 @@ export function parseTrace(
     previous = key;
     const actor = text(record.actor, `${path}.actor`);
     const runtimeGeneration =
-      version === 2 && record.runtimeGeneration === null
+      version >= 2 && record.runtimeGeneration === null
         ? null
         : integer(
             record.runtimeGeneration,
@@ -176,6 +189,7 @@ export function parseTrace(
     };
     generations?.accept(event, path);
     controls.accept(event, path);
+    projections?.accept(event, path);
     if (kind === "assertion") {
       if (data.passed === false) failedAssertion = true;
       if (data.assertionKind === "runtime-snapshot")
@@ -204,6 +218,8 @@ export function parseTrace(
     outcome,
     epochMillis,
     runtimeAssertions,
+    projectedAssertions: projections?.assertions ?? [],
+    staticActions: projections?.actions ?? [],
     runtimeActions,
     controlActions: controls.actions,
     controlAssertions: controls.assertions,
@@ -221,10 +237,16 @@ function traceHeader(value: ReturnType<typeof object>) {
   const format = choice(record.format, `${path}.format`, [
     evidenceV1.trace,
     evidenceV2.trace,
+    evidenceV3.trace,
   ]);
-  const versions = format === evidenceV2.trace ? evidenceV2 : evidenceV1;
+  const versions =
+    format === evidenceV3.trace
+      ? evidenceV3
+      : format === evidenceV2.trace
+        ? evidenceV2
+        : evidenceV1;
   let execution;
-  if (versions === evidenceV2 && record.execution === undefined)
+  if (versions.protocol === 2 && record.execution === undefined)
     invalid(`${path}.execution`, "required for lifecycle evidence");
   if (record.execution !== undefined) {
     execution = object(record.execution, `${path}.execution`, [

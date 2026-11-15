@@ -1,5 +1,6 @@
 import {
   fleetProfile,
+  staticViewsProfile,
   sportsProfile,
   orderProfile,
   orderRestartProfile,
@@ -18,6 +19,7 @@ export type GenerationOptions = Readonly<{
   configuration: string;
   profile?:
     | typeof sportsProfile
+    | typeof staticViewsProfile
     | typeof fleetProfile
     | typeof orderProfile
     | typeof orderRestartProfile;
@@ -231,6 +233,14 @@ export class RuntimeGenerations {
         throw new Error("Runtime environment identity is missing");
       if (this.options.database && opened.bridge.sqliteLifecycle !== 1)
         throw new Error("Prepared artifact does not support SQLite lifecycle");
+      if (
+        this.options.profile === staticViewsProfile &&
+        (opened.bridge.memoryStaticViews !== 1 ||
+          opened.bridge.publicSnapshots !== 1)
+      )
+        throw new Error(
+          "Prepared artifact lacks static public snapshot support",
+        );
       if (
         this.options.profile === fleetProfile &&
         opened.bridge.memorySequenceFleet !== 1

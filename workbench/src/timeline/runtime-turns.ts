@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import type { Agenda } from "./agenda.js";
 import type { Bridge, Effect, Response, SessionEffect } from "./bridge.js";
 import { RuntimeGenerations } from "./runtime-generations.js";
-import { installedSnapshot, type ObservationTarget } from "./envelopes.js";
+import {
+  publicSnapshot,
+  installedSnapshot,
+  type ObservationTarget,
+} from "./envelopes.js";
 import { parseJson, type Json } from "./json.js";
 import { SemanticTrace, metadataJson as j } from "./semantic-trace.js";
 import { object } from "./validation.js";
@@ -28,6 +32,7 @@ export class RuntimeTurns {
       publication?: PublicationAttempt,
     ) => void,
     private readonly observationTargets: readonly ObservationTarget[] = [],
+    private readonly projections = false,
   ) {}
   get lifecycle() {
     return this.bridge instanceof RuntimeGenerations;
@@ -61,6 +66,18 @@ export class RuntimeTurns {
           }),
           "runtime initialization",
         ),
+        ...(this.projections
+          ? {
+              projectedSnapshots: (response.projectedSnapshots ?? []).map(
+                (wire, index) =>
+                  publicSnapshot(
+                    parseJson(wire),
+                    `initialized public snapshot[${index}]`,
+                    this.observationTargets[index],
+                  ),
+              ),
+            }
+          : {}),
         snapshots: snapshots.map((wire, index) =>
           installedSnapshot(
             parseJson(wire),
@@ -76,6 +93,9 @@ export class RuntimeTurns {
     this.accept(response, initialized);
   }
   async observeInstalled(target: ObservationTarget) {
+    return (await this.observeRepresentations(target)).snapshot;
+  }
+  async observeRepresentations(target: ObservationTarget) {
     assert.ok(this.bridge instanceof RuntimeGenerations && this.bridge.current);
     this.consumeExecutionTurn();
     const response = await this.bridge.command(
@@ -106,11 +126,19 @@ export class RuntimeTurns {
       1,
       "installed observation returns its sole target",
     );
-    return installedSnapshot(
+    const snapshot = installedSnapshot(
       parseJson(response.snapshots![0]),
       "installed snapshot",
       target,
     );
+    const projected = this.projections
+      ? publicSnapshot(
+          parseJson(response.projectedSnapshots![0]),
+          "public snapshot",
+          target,
+        )
+      : undefined;
+    return { snapshot, projected };
   }
   async setWall(wallMillis: number) {
     assert.ok(this.bridge instanceof RuntimeGenerations);

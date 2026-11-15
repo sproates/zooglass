@@ -37,7 +37,7 @@ delivery date:
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
-- **Deterministic timeline simulation — integration pending.** The bounded
+- **Deterministic timeline simulation — bounded integration delivered.** The bounded
   [timeline capability](workbench/docs/timeline-guide.md) implements controlled time,
   real production runtime execution, exact replay and portable evidence. Qualified
   [memory](workbench/docs/timeline-memory-qualification.md),
@@ -46,9 +46,9 @@ delivery date:
   [Order](workbench/docs/timeline-order-qualification.md) and
   [Sports](workbench/docs/timeline-sports-qualification.md) profiles retain their
   explicit limits. [POC acceptance checks](workbench/docs/timeline-acceptance.md)
-  are complete. The [integration plan](docs/design/timeline-integration.md) combines
-  that capability with the delivered live demos; main promotion requires validation,
-  independent review and owner authorisation. Ordinary socket/browser checks and
+  are complete. [PR #172](https://github.com/sproates/zooglass/pull/172) delivers
+  that capability alongside the live demos with [integration qualification](workbench/docs/timeline-integration-results.md).
+  Broader deterministic coverage remains future work. Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.

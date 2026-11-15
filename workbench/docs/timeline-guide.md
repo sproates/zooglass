@@ -102,8 +102,9 @@ and download links; archived data excludes executable dependencies.
 
 The [completion contract](timeline-completion.md) defines the bounded guarantee.
 The [acceptance candidate](timeline-acceptance.md) records completed aggregate checks;
-owner acceptance and promotion to main remain separate decisions. Ordinary live
+the [integration results](timeline-integration-results.md) record its delivery to main. Ordinary live
 Workbench demos continue to serve their real-time purpose.
 
 The [integration qualification](timeline-integration-results.md) checks the bounded
-timeline alongside all three existing live demos. Promotion to main remains pending.
+timeline alongside all three existing live demos, delivered in
+[PR #172](https://github.com/sproates/zooglass/pull/172).

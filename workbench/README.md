@@ -241,8 +241,8 @@ defines a separate execution mode with virtual time, controlled production-runti
 turns and replayable faults. The [bounded timeline guide](docs/timeline-guide.md)
 describes the implemented profiles, setup and strict replay/compare commands.
 They coexist with the three live demos; these ordinary commands retain the
-real-time behaviour described below. Main promotion of the combined integration
-is pending validation, review and owner authorisation.
+real-time behaviour described below. The combined integration is delivered in
+[PR #172](https://github.com/sproates/zooglass/pull/172).
 
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are
@@ -931,7 +931,8 @@ The [timeline completion contract](docs/timeline-completion.md) consolidates cur
 evidence, the remaining delivery sequence and the first bounded release's explicit
 limits. The [CLI and capability guide](docs/timeline-guide.md) covers prepared
 setup, comparison and strict-default replay. [Aggregate checks](docs/timeline-acceptance.md)
-are complete; the bounded candidate awaits owner acceptance and separate main promotion.
+are complete; the bounded implementation is integrated into main alongside all
+three live demos. See the [integration results](docs/timeline-integration-results.md).
 
 [Order qualification](docs/timeline-order-qualification.md) provides the finite
 ordinary/recovery/retention campaign, actual wrong-priority/clock controls and

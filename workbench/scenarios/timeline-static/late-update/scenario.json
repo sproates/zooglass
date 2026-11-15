@@ -1,0 +1,186 @@
+{
+  "actions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "connect-source-0",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 0,
+      "id": "connect-source-1",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-2",
+      "atMs": 0,
+      "id": "connect-source-2",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "send-0",
+      "kind": "source-send",
+      "publication": "publication-0"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 180,
+      "id": "send-1",
+      "kind": "source-send",
+      "publication": "publication-1"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 900,
+      "id": "send-2",
+      "kind": "source-send",
+      "publication": "publication-2"
+    },
+    {
+      "actor": "source-2",
+      "atMs": 1250,
+      "id": "send-4",
+      "kind": "source-send",
+      "publication": "publication-4"
+    }
+  ],
+  "actors": [
+    { "id": "source-0", "role": "source" },
+    { "id": "source-1", "role": "source" },
+    { "id": "source-2", "role": "source" }
+  ],
+  "assertions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "accepted-0",
+      "kind": "source-accepted",
+      "send": "send-0"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 180,
+      "id": "accepted-1",
+      "kind": "source-accepted",
+      "send": "send-1"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 900,
+      "id": "accepted-2",
+      "kind": "source-accepted",
+      "send": "send-2"
+    },
+    {
+      "atMs": 900,
+      "entityId": "order-108",
+      "expected": {
+        "order": { "sourceTimestamp": 1900, "status": "packed" },
+        "payment": { "sourceTimestamp": 1180, "status": "authorised" }
+      },
+      "id": "check-3",
+      "kind": "runtime-data",
+      "viewId": "order"
+    },
+    {
+      "actor": "source-2",
+      "atMs": 1250,
+      "id": "accepted-4",
+      "kind": "source-accepted",
+      "send": "send-4"
+    },
+    {
+      "atMs": 1250,
+      "entityId": "order-108",
+      "expected": {
+        "inventory": { "sourceTimestamp": 1100, "status": "reserved" },
+        "order": { "sourceTimestamp": 1900, "status": "packed" },
+        "payment": { "sourceTimestamp": 1180, "status": "authorised" }
+      },
+      "id": "check-5",
+      "kind": "runtime-data",
+      "viewId": "order"
+    }
+  ],
+  "clock": { "epochMillis": 1700000000000 },
+  "conversionReport": "conversion-report.json",
+  "end": {
+    "heldFrames": 0,
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0
+  },
+  "format": "timeline-simulation/v3",
+  "id": "converted-109a739dc2f822ec0f4f965c",
+  "limits": {
+    "pendingMessages": 1000,
+    "queuedEvents": 1000,
+    "rounds": 100,
+    "traceBytes": 16777216,
+    "turns": 2000
+  },
+  "links": [
+    { "actor": "source-0", "latencyMs": 0 },
+    { "actor": "source-1", "latencyMs": 0 },
+    { "actor": "source-2", "latencyMs": 0 }
+  ],
+  "observationTargets": [{ "entityId": "order-108", "viewId": "order" }],
+  "publications": [
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "sourceTimestamp": 1000, "status": "accepted" },
+        "publicationSequence": 1,
+        "sourceEntityId": "order-108",
+        "sourceId": "orders",
+        "type": "order.accepted"
+      },
+      "id": "publication-0"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "sourceTimestamp": 1180, "status": "authorised" },
+        "publicationSequence": 1,
+        "sourceEntityId": "order-108",
+        "sourceId": "payments",
+        "type": "payment.authorised"
+      },
+      "id": "publication-1"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "sourceTimestamp": 1900, "status": "packed" },
+        "publicationSequence": 2,
+        "sourceEntityId": "order-108",
+        "sourceId": "orders",
+        "type": "order.packed"
+      },
+      "id": "publication-2"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "sourceTimestamp": 1100, "status": "reserved" },
+        "publicationSequence": 1,
+        "sourceEntityId": "order-108",
+        "sourceId": "inventory",
+        "type": "inventory.reserved"
+      },
+      "id": "publication-4"
+    }
+  ],
+  "runtime": {
+    "access": "unprotected",
+    "configuration": "configuration.json",
+    "initialState": "empty",
+    "profile": "memory-static-views-v1",
+    "sha256": "f44dfd235b0709e81d7972f9b0ccd139e47e478a8c34293da1be5fdeb49c7569",
+    "storage": "memory"
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "untilMs": 1250
+}

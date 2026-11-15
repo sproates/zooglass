@@ -1,0 +1,133 @@
+{
+  "name": "A live match with independent score and odds feeds",
+  "sources": [
+    {
+      "id": "match-feed",
+      "name": "Match feed"
+    },
+    {
+      "id": "bookmaker",
+      "name": "Bookmaker"
+    }
+  ],
+  "clients": [
+    {
+      "id": "scoreboard-1",
+      "name": "Live scoreboard",
+      "initialState": "connected"
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "source-event",
+      "simulationTime": 0,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 0,
+        "away": 0,
+        "period": "first-half"
+      },
+      "epoch": "run",
+      "publicationSequence": 1
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 250,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": {
+        "homeWin": 2.1,
+        "draw": 3.2,
+        "awayWin": 3.6
+      },
+      "epoch": "run",
+      "publicationSequence": 1
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 250,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 0,
+          "away": 0,
+          "period": "first-half"
+        },
+        "odds": {
+          "homeWin": 2.1,
+          "draw": 3.2,
+          "awayWin": 3.6
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1200,
+      "sourceId": "match-feed",
+      "type": "score.updated",
+      "entityId": "match-42",
+      "payload": {
+        "home": 1,
+        "away": 0,
+        "period": "first-half"
+      },
+      "epoch": "run",
+      "publicationSequence": 2
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1350,
+      "sourceId": "bookmaker",
+      "type": "odds.updated",
+      "entityId": "match-42",
+      "payload": {
+        "homeWin": 1.55,
+        "draw": 3.7,
+        "awayWin": 5.4
+      },
+      "epoch": "run",
+      "publicationSequence": 2
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1350,
+      "viewId": "match",
+      "entityId": "match-42",
+      "expected": {
+        "score": {
+          "home": 1,
+          "away": 0,
+          "period": "first-half"
+        },
+        "odds": {
+          "homeWin": 1.55,
+          "draw": 3.7,
+          "awayWin": 5.4
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": [
+          {
+            "sourceId": "match-feed",
+            "type": "score.updated"
+          }
+        ],
+        "odds": [
+          {
+            "sourceId": "bookmaker",
+            "type": "odds.updated"
+          }
+        ]
+      }
+    }
+  ]
+}

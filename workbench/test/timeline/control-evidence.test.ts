@@ -57,14 +57,13 @@ test("control archives reject duplicate names and oversized directories", async 
 });
 
 test("control archives reject an oversized declared entry before reading it", async () => {
-  const jar = archive({ "a.class": Buffer.from("a") });
+  const jar = Buffer.from(
+    zipSync({ "a.class": Buffer.from("a") }, { level: 6 }),
+  );
   const central = jar.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
   assert.ok(central >= 0);
   jar.writeUInt32LE(33 * 1024 * 1024, central + 24);
-  await assert.rejects(
-    jarInventory(jar),
-    /oversized prepared JAR entry|compressed.*size|size.*mismatch/,
-  );
+  await assert.rejects(jarInventory(jar), /oversized prepared JAR entry/);
 });
 
 test("prepared artifact reading preserves bytes and rejects oversized files", async () => {

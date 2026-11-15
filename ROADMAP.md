@@ -32,6 +32,8 @@ for what these applications demonstrate and their limits.
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
 
+- **Simpler configuration authoring (proposed).** [Local templates and offline checks](docs/design/configuration-authoring.md) would reduce repeated field settings while retaining explicit policies and ordinary runtime JSON. The design is pending acceptance; these commands are not implemented.
+
 - **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
 
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.

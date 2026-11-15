@@ -9,6 +9,7 @@ Order uses [timeline-order-evidence-20261114](https://github.com/sproates/zoogla
 and Sports uses [timeline-sports-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-sports-evidence-20261114).
 Final acceptance uses [timeline-acceptance-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-acceptance-evidence-20261114).
 Integration qualification uses [timeline-integration-evidence-20261115](https://github.com/sproates/zooglass/releases/tag/timeline-integration-evidence-20261115).
+Static configuration qualification uses [timeline-static-evidence-20261115](https://github.com/sproates/zooglass/releases/tag/timeline-static-evidence-20261115).
 Git retains this manifest and [SHA256SUMS](SHA256SUMS). The archives contain no
 executables or dependencies. Release assets remain available until explicitly
 changed or deleted; their hashes below pin the exact published bytes.
@@ -24,6 +25,17 @@ changed or deleted; their hashes below pin the exact published bytes.
 | [macos-arm64-sports-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sports-evidence-20261114/macos-arm64-sports-20261114.tar.gz)                                  |    52 |         58,665,716 | `012db06c1c7c537eea65a1eaebe3c55eabde9d4d362f13df068d91e978d822e4` |
 | [macos-arm64-timeline-acceptance-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-acceptance-evidence-20261114/macos-arm64-timeline-acceptance-20261114.tar.gz)    |    52 |          8,152,529 | `394107e12cca91de2002df44b21ac8e8d3f54b2d301922101b6b28a69959b568` |
 | [macos-arm64-timeline-integration-20261115.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-integration-evidence-20261115/macos-arm64-timeline-integration-20261115.tar.gz) |   101 |         59,285,430 | `6b32669c96f5512c229c491d0ed6eb8cc4694e4f982560180b06043110488a89` |
+| [macos-arm64-static-configuration-20261115.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-static-evidence-20261115/macos-arm64-static-configuration-20261115.tar.gz)      |   108 |          2,519,760 | `31e63b1880e4f3df6a4e4f3d4b919b74618fc6d8860ee23b48f8f036b9ad7068` |
+
+The static configuration release targets tested source
+[`8049dfcb7ff500126132c0f4552b1dd0d9a5d98d`](https://github.com/sproates/zooglass/commit/8049dfcb7ff500126132c0f4552b1dd0d9a5d98d).
+It retains the fixed 28-execution qualification, complete run/replay/service/control
+observations, the offline audit and five negative audit checks. One earlier aborted
+three-execution attempt is retained separately and is not counted as passed
+qualification. See [results and limits](../docs/timeline-static-qualification.md).
+The control's isolated Java sources were prepared from `74ac1fd`, whose Java tree
+is identical to the qualification source. The later manifest/documentation commit
+records these results without changing the qualified tools or JSON fixtures.
 
 The integration release targets tested candidate
 [`baa892c8c4bb67ee41e34eeeb60b52a71198099f`](https://github.com/sproates/zooglass/commit/baa892c8c4bb67ee41e34eeeb60b52a71198099f).
@@ -120,6 +132,7 @@ gh release download timeline-order-evidence-20261114 --repo sproates/zooglass --
 gh release download timeline-sports-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-acceptance-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-integration-evidence-20261115 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
+gh release download timeline-static-evidence-20261115 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 (cd "$evidence_dir" && shasum -a 256 -c "$checksums")
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-timeline-20261113.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/linux-arm64-timeline-20261113.tar.gz"
@@ -130,6 +143,7 @@ python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-order-2026
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-sports-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-timeline-acceptance-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-timeline-integration-20261115.tar.gz"
+python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-static-configuration-20261115.tar.gz"
 ```
 
 The download links also work in a browser. Check the downloaded bytes against

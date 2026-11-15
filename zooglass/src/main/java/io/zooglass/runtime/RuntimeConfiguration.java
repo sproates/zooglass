@@ -286,7 +286,7 @@ public record RuntimeConfiguration(
         }
     }
 
-    private static JsonMapper configurationMapper() {
+    static JsonMapper configurationMapper() {
         return JsonMapper.builder()
                 .withCoercionConfig(
                         LogicalType.Textual,

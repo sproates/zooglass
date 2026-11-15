@@ -11,6 +11,24 @@ boxes represent external framework machinery. These are static relationships,
 not a timeline of a request or a deployment diagram. Framework and library
 dependencies are omitted except where needed to explain startup.
 
+## Offline configuration inspection
+
+The application dispatches `config` commands before Spring starts. Inspection uses
+production decoding and validation without constructing a coordinator or storage.
+The explanation module presents effective policies and identifies defaults from the
+original declarations; it does not select strategies independently.
+
+```mermaid
+flowchart LR
+  app["ZooGlassApplication.java"] -->|dispatches before Spring| cli["config/ConfigurationCommand.java"]
+  cli -->|validates read-only input| inspect["runtime/ConfigurationInspection.java"]
+  inspect -->|uses strict decoder| config["runtime/RuntimeConfiguration.java"]
+  config -->|checks references and strategies| validation["runtime/ConfigurationValidation.java"]
+  cli -->|presents decoded settings and defaults| explain["config/ConfigurationExplanation.java"]
+```
+
+See [offline inspection](configuration-inspection.md) for commands and report fields.
+
 ## Access policy decisions
 
 The `access/` modules implement policy decisions without depending on the view

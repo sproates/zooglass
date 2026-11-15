@@ -16,6 +16,17 @@ that every event ordering is correct, or that the service is production ready.
 The [capability delivery record](verification/capability-delivery.md) connects
 contracts, configuration, executable examples and demo coverage.
 
+## Offline configuration inspection
+
+`ConfigurationInspectionTests` compares read-only inspection with the production
+parser for valid and invalid documents. Existing configuration suites retain the
+service's validation contracts. `workbench/test/configuration-command.test.ts`
+executes a prepared service JAR and checks the report schema, independently expected
+effective policies/defaults, explicit equivalents, accepted nulls, exact long values,
+priority order, redacted diagnostics and byte/encoding limits. It checks that valid,
+invalid and usage commands finish without Spring startup or filesystem changes.
+These tests never build the JAR.
+
 ## Publication ingestion
 
 `PublicationFunctionalTests` sends publications through the real `/events` socket and

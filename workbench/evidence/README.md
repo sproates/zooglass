@@ -8,20 +8,31 @@ fleet uses [timeline-fleet-evidence-20261114](https://github.com/sproates/zoogla
 Order uses [timeline-order-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-order-evidence-20261114),
 and Sports uses [timeline-sports-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-sports-evidence-20261114).
 Final acceptance uses [timeline-acceptance-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-acceptance-evidence-20261114).
+Integration qualification uses [timeline-integration-evidence-20261115](https://github.com/sproates/zooglass/releases/tag/timeline-integration-evidence-20261115).
 Git retains this manifest and [SHA256SUMS](SHA256SUMS). The archives contain no
 executables or dependencies. Release assets remain available until explicitly
 changed or deleted; their hashes below pin the exact published bytes.
 
-| Archive                                                                                                                                                                                         | Files | Uncompressed bytes | SHA-256                                                            |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------------------------------------------------ |
-| [macos-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/macos-timeline-20261113.tar.gz)                                              |   937 |         49,428,333 | `39b7cdc54d190e65c54e8e6422663101c24b90533b38c05de6e792953008f558` |
-| [linux-arm64-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/linux-arm64-timeline-20261113.tar.gz)                                  |   916 |         49,915,765 | `3440a2bda91cd51dd4a149db12e19516ec8c9cdb3926f51d6cd8e065d4baa4ff` |
-| [macos-arm64-memory-lifecycle-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-memory-evidence-20261114/macos-arm64-memory-lifecycle-20261114.tar.gz)           |    83 |          4,533,024 | `9e78cc90cd607146cec7448c9980e930d83bd2f211d659f377eb67a5d3d29e5c` |
-| [macos-arm64-sqlite-restart-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sqlite-evidence-20261114/macos-arm64-sqlite-restart-20261114.tar.gz)               |    85 |          2,445,773 | `7462d391bc7fb4ccc89f11219e69cf12ffe9c7fb23dc8ac3de70ca7ca3b66cf2` |
-| [macos-arm64-fleet-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-fleet-evidence-20261114/macos-arm64-fleet-20261114.tar.gz)                                  |    50 |         41,306,112 | `5ae53aa66c232c33c53ce409cf0cce5110fbc0ff9f40338d6a2a3111b87fba11` |
-| [macos-arm64-order-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-order-evidence-20261114/macos-arm64-order-20261114.tar.gz)                                  |    78 |         79,200,269 | `833a0415701e098faebac4d2395eee6eeb1db77aa336580e05baa27af2a8372a` |
-| [macos-arm64-sports-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sports-evidence-20261114/macos-arm64-sports-20261114.tar.gz)                               |    52 |         58,665,716 | `012db06c1c7c537eea65a1eaebe3c55eabde9d4d362f13df068d91e978d822e4` |
-| [macos-arm64-timeline-acceptance-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-acceptance-evidence-20261114/macos-arm64-timeline-acceptance-20261114.tar.gz) |    52 |          8,152,529 | `394107e12cca91de2002df44b21ac8e8d3f54b2d301922101b6b28a69959b568` |
+| Archive                                                                                                                                                                                            | Files | Uncompressed bytes | SHA-256                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------------------------------------------------ |
+| [macos-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/macos-timeline-20261113.tar.gz)                                                 |   937 |         49,428,333 | `39b7cdc54d190e65c54e8e6422663101c24b90533b38c05de6e792953008f558` |
+| [linux-arm64-timeline-20261113.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-evidence-20261113/linux-arm64-timeline-20261113.tar.gz)                                     |   916 |         49,915,765 | `3440a2bda91cd51dd4a149db12e19516ec8c9cdb3926f51d6cd8e065d4baa4ff` |
+| [macos-arm64-memory-lifecycle-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-memory-evidence-20261114/macos-arm64-memory-lifecycle-20261114.tar.gz)              |    83 |          4,533,024 | `9e78cc90cd607146cec7448c9980e930d83bd2f211d659f377eb67a5d3d29e5c` |
+| [macos-arm64-sqlite-restart-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sqlite-evidence-20261114/macos-arm64-sqlite-restart-20261114.tar.gz)                  |    85 |          2,445,773 | `7462d391bc7fb4ccc89f11219e69cf12ffe9c7fb23dc8ac3de70ca7ca3b66cf2` |
+| [macos-arm64-fleet-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-fleet-evidence-20261114/macos-arm64-fleet-20261114.tar.gz)                                     |    50 |         41,306,112 | `5ae53aa66c232c33c53ce409cf0cce5110fbc0ff9f40338d6a2a3111b87fba11` |
+| [macos-arm64-order-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-order-evidence-20261114/macos-arm64-order-20261114.tar.gz)                                     |    78 |         79,200,269 | `833a0415701e098faebac4d2395eee6eeb1db77aa336580e05baa27af2a8372a` |
+| [macos-arm64-sports-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-sports-evidence-20261114/macos-arm64-sports-20261114.tar.gz)                                  |    52 |         58,665,716 | `012db06c1c7c537eea65a1eaebe3c55eabde9d4d362f13df068d91e978d822e4` |
+| [macos-arm64-timeline-acceptance-20261114.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-acceptance-evidence-20261114/macos-arm64-timeline-acceptance-20261114.tar.gz)    |    52 |          8,152,529 | `394107e12cca91de2002df44b21ac8e8d3f54b2d301922101b6b28a69959b568` |
+| [macos-arm64-timeline-integration-20261115.tar.gz](https://github.com/sproates/zooglass/releases/download/timeline-integration-evidence-20261115/macos-arm64-timeline-integration-20261115.tar.gz) |   101 |         59,285,430 | `6b32669c96f5512c229c491d0ed6eb8cc4694e4f982560180b06043110488a89` |
+
+The integration release targets tested candidate
+[`baa892c8c4bb67ee41e34eeeb60b52a71198099f`](https://github.com/sproates/zooglass/commit/baa892c8c4bb67ee41e34eeeb60b52a71198099f).
+It retains nine fresh bundles and strict replays (6,158 matching records and 576
+passing assertions), full Fleet/Order/Sports ordinary-service parity evidence,
+artifact/source identities, focused checks, complete CI logs and independent audit.
+See [integration results and limits](../docs/timeline-integration-results.md).
+Historical campaigns retain their original identities; this does not rerun them
+or imply promotion to main.
 
 ## Provenance
 
@@ -108,6 +119,7 @@ gh release download timeline-fleet-evidence-20261114 --repo sproates/zooglass --
 gh release download timeline-order-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-sports-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 gh release download timeline-acceptance-evidence-20261114 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
+gh release download timeline-integration-evidence-20261115 --repo sproates/zooglass --pattern '*.tar.gz' --dir "$evidence_dir"
 (cd "$evidence_dir" && shasum -a 256 -c "$checksums")
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-timeline-20261113.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/linux-arm64-timeline-20261113.tar.gz"
@@ -117,6 +129,7 @@ python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-fleet-2026
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-order-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-sports-20261114.tar.gz"
 python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-timeline-acceptance-20261114.tar.gz"
+python3 scripts/evidence-archive.py verify "$evidence_dir/macos-arm64-timeline-integration-20261115.tar.gz"
 ```
 
 The download links also work in a browser. Check the downloaded bytes against

@@ -122,8 +122,9 @@ adds the completed [bounded timeline](workbench/docs/timeline-guide.md) alongsid
 all three live demos. It supports explicit memory/SQLite lifecycle and qualified
 Fleet, Order and Sports profiles; ordinary demos retain real process/network timing.
 The [separate host](zooglass/simulation-host/README.md) shares production runtime
-code without shipping simulation controls in the service. Promotion of this combined
-branch to main is pending review and owner authorisation. See the
+code without shipping simulation controls in the service. The combined Workbench was delivered in
+[PR #172](https://github.com/sproates/zooglass/pull/172); see the
+[integration qualification](workbench/docs/timeline-integration-results.md). See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.
 

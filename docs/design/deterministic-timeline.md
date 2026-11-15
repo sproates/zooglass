@@ -5,7 +5,8 @@ Status: accepted design, 13 November 2026, with the
 14 November. The bounded implementation includes controlled time/delivery, exact
 replay, memory/SQLite lifecycle, qualified Fleet/Order/Sports profiles and the CLI.
 [POC acceptance checks](../../workbench/docs/timeline-acceptance.md) are complete;
-[integration with the live demos](timeline-integration.md) is under review.
+[integration with the live demos](timeline-integration.md) was delivered in
+[PR #172](https://github.com/sproates/zooglass/pull/172).
 The completion contract is authoritative for explicit first-release deferrals;
 broader mechanisms below remain design direction. Existing `simulate`, `integrate`
 and live-demo commands retain their separate roles.

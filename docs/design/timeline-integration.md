@@ -1,9 +1,9 @@
 # Integrating the deterministic timeline into Workbench
 
-Status: integration qualified on `integration/deterministic-timeline`,
-15 November 2026. [Results and evidence](../../workbench/docs/timeline-integration-results.md)
-record the tested candidate. Main and the frozen POC remain unchanged; final
-promotion requires separate owner authorisation.
+Status: delivered to main through [PR #172](https://github.com/sproates/zooglass/pull/172),
+15 November 2026, as merge `a054bc8`. Its tree matches reviewed head `5160fe5`.
+[Results and evidence](../../workbench/docs/timeline-integration-results.md) record
+qualification and promotion. The plan below preserves the delivery procedure.
 
 The outcome is one Workbench checkout containing the existing Vehicle, Order and
 Sports live demos plus the completed bounded timeline. Existing demo commands keep
@@ -12,7 +12,7 @@ live demos onto virtual time or broaden supported configurations.
 
 The [accepted-scope candidate](https://github.com/sproates/zooglass/blob/8e744b6a19753babe5e83b7539226c440eaee820/workbench/docs/timeline-acceptance.md)
 and [capability guide](https://github.com/sproates/zooglass/blob/8e744b6a19753babe5e83b7539226c440eaee820/workbench/docs/timeline-guide.md)
-define the delivered boundary. Owner acceptance of promotion remains pending.
+define the delivered boundary. Promotion was owner-authorised after qualification.
 
 ## Inspected starting points
 

@@ -1,7 +1,8 @@
 # Timeline integration qualification
 
 The bounded timeline is integrated alongside the existing Vehicle, Order and Sports
-live demos on `integration/deterministic-timeline`. Promotion to main is pending.
+live demos, delivered to main through
+[PR #172](https://github.com/sproates/zooglass/pull/172) on 15 November 2026.
 The [integration plan](../../docs/design/timeline-integration.md) defines the scope
 and rollback procedure; the [capability guide](timeline-guide.md) defines the
 supported timeline boundary. Live demo commands retain ordinary process and network
@@ -89,5 +90,17 @@ they are not standalone archive-only replay tools.
 These witnesses are macOS arm64 checks, not a new cross-platform determinism
 campaign. Historical campaigns retain their original source/environment limits.
 The archive contains evidence rather than executable dependencies; replay still
-requires matching artifact and environment identities. Main promotion and website
-publication have not occurred.
+requires matching artifact and environment identities. Website publication is
+outside this integration.
+
+## Promotion verification
+
+Owner-authorised merge `a054bc8af090c682a8f4e6d5909f10859844aebe` preserves both
+histories and exactly matches the reviewed `5160fe5` tree
+`ccc8e63556652a0bf7f032e711a719c5a1405f97`.
+[Final-head CI](https://github.com/sproates/zooglass/actions/runs/43656578789)
+passes all eleven jobs/gates. Post-merge packaging checks and a strict 84-record
+warehouse bundle replay pass using the prepared artifacts. No Java build or full
+campaign rerun was needed for the identical tree. Evidence tags/assets remain
+intact; merged integration, POC and plan branch names were removed after checking
+that their histories remain reachable from main.

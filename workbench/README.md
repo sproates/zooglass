@@ -81,6 +81,32 @@ continuous and interactive browser commands are available, including durable
 service recovery. The [protected Order acceptance](../demos/order-tracker/README.md#protected-access-acceptance)
 checks scoped subscriptions, revocation and clearing separately.
 
+## Controlled timeline execution
+
+The separate [bounded document executor](docs/timeline-execution.md) runs real
+ZooGlass memory-runtime turns under virtual time, with receipt loss, retries and
+fixed link latency. It uses the [simulation host](../zooglass/simulation-host/README.md)
+rather than the network service used by connected scenarios and demos.
+The explicit v2 [memory sequence profile](docs/timeline-fleet-profile.md) adds
+bounded latest-by-sequence and history views. The
+[fleet timeline fixture](docs/timeline-fleet-scenario.md) adds independent expected
+receipts, frames and installed snapshots. A [20-run qualification](docs/timeline-fleet-qualification.md)
+verifies repeatability, detects a deliberately wrong strategy and compares the
+same bounded configuration through ordinary service sockets and HTTP.
+
+From this directory, explicitly prepare the host and then execute a document:
+
+```sh
+npm run prepare:timeline
+npm run timeline:execute -- scenarios/simulation/warehouse-retry.json /tmp/warehouse-run.json
+npm run test:timeline
+```
+
+Preparation installs the production runtime classifier, packages
+`../zooglass/simulation-host/target/zooglass-simulation.jar` and verifies its
+embedded dependency. Execution and tests consume prepared artifacts only.
+Restart, SQLite and protected serving are not admitted by this timeline profile.
+
 ## Run a scenario
 
 Use Node 26 and install dependencies with `npm ci`. Connected runs and the full
@@ -212,9 +238,11 @@ on the replacement socket. These do not change the generic check contract.
 
 The accepted [deterministic timeline design](../docs/design/deterministic-timeline.md)
 defines a separate execution mode with virtual time, controlled production-runtime
-turns and replayable faults. A bounded proof lives on the separate
-[POC branch](https://github.com/sproates/zooglass/tree/poc/deterministic-timeline);
-these demo commands retain the real-time behaviour described below.
+turns and replayable faults. The [bounded timeline guide](docs/timeline-guide.md)
+describes the implemented profiles, setup and strict replay/compare commands.
+They coexist with the three live demos; these ordinary commands retain the
+real-time behaviour described below. Main promotion of the combined integration
+is pending validation, review and owner authorisation.
 
 `simulationTime` is an elapsed time in milliseconds. Entries run in ascending
 time order, preserving declaration order for ties. Initial client states are
@@ -819,3 +847,98 @@ are demo-specific and do not change scenario execution or verification. See the
 policy revocation and connection loss against a real TLS service and the basic
 vehicle demo. It uses the existing service owner and client modules, with a
 controlled HTTPS authority and explicit protected-data clearing.
+
+## Deterministic timeline POC
+
+The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingress,
+freshness and subscription delivery under an explicit agenda. It is not a new
+implementation of `simulate` and does not yet support general scenarios. Prepare
+its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.
+
+The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
+provides strict syntax/trace inspection and a census of the existing scenario
+format. The [bounded document executor](docs/timeline-execution.md) now runs
+versioned scenarios against the real configured runtime, with causal traces and
+exact observation assertions. Its `memory-arrival-v1` profile remains narrower than
+the full runtime and legacy format; validation alone does not certify execution.
+
+[Verification replay](docs/timeline-replay.md) starts a fresh JVM from saved inputs,
+checks artifact/environment identity and stops at the first differing semantic
+record. A verified reproduction of a failed run remains a failed scenario.
+
+[Seeded receipt-loss rules](docs/timeline-faults.md) now exercise committed-but-unobserved
+publications and explicit duplicate retries, with every integer draw in the trace.
+
+[Bounded automatic retries](docs/timeline-retries.md) use virtual receipt deadlines,
+fresh source generations and retained publication bytes. Their timer decisions and
+failure prefixes are verified by replay.
+
+[Fixed virtual link delays](docs/timeline-links.md) now cover source/client requests
+and return delivery, preserving FIFO and cancelling old-generation messages on
+connection interruption. Receipt deadlines include the full round trip.
+
+The [document repeatability campaign](docs/timeline-campaign.md) exercises nine
+scenario/seed combinations in fresh processes with Node and JVM host-time
+perturbations. Replay requires both verified reproduction and successful scenario
+assertions by default; `--verification-only` explicitly permits a reproduced failure.
+
+See the [clock-leak detection control](docs/timeline-clock-leak.md) for the
+separately prepared mutant and long command-boundary pause evidence.
+
+Use [portable run bundles](docs/timeline-artifacts.md) to retain inputs, a live
+trace, results and a completeness manifest for later replay.
+
+[Raw qualification evidence](evidence/README.md) is retained as GitHub Release assets,
+with hashes and provenance in Git; see the
+[Linux qualification procedure](docs/timeline-linux.md) for the separate environment.
+
+The [memory lifecycle executor](docs/timeline-lifecycle.md) now supports v2
+stop/start, downtime retries and matching replay/bundle evidence through fresh JVMs.
+SQLite recovery and controlled wall adjustments are described below. Existing v1
+campaigns do not qualify the v2 profile.
+
+The [memory qualification campaign](docs/timeline-memory-qualification.md) checks
+three distinct lifecycle cases in fresh processes, with long Node/JVM pauses and
+an isolated wrong-generation-clock control. It is separate from v1 and SQLite
+qualification.
+
+[SQLite timeline documents](docs/timeline-sqlite.md) add controlled durable recovery,
+read-only runtime assertions and replay from a fresh private store.
+
+[Controlled wall-clock adjustments](docs/timeline-wall-clock.md) exercise production
+rollback uncertainty and recovery while monotonic deadlines remain unchanged.
+
+The [fleet qualification guide](docs/timeline-fleet-qualification.md) describes
+repeatability checks for the authored sequence fleet, an isolated wrong-strategy
+control, and ordinary-service WebSocket/HTTP parity with the same bounded
+configuration. These commands consume prepared artifacts and retain raw evidence;
+the guide distinguishes smoke checks from clean-commit qualification.
+
+The [Order/Sports compatibility assessment](docs/timeline-order-sports-assessment.md)
+records the next profile and control-transport gaps against the completed demos.
+The [Order host foundation](docs/timeline-order-host.md) now admits its bounded
+SQLite configuration and progress endpoint. [Order document controls](docs/timeline-order-controls.md)
+add explicit watermark sends, complete acknowledgement assertions and replay.
+The [two-cycle Order scenario](docs/timeline-order-scenario.md) retains all six
+orders and the completed demo's source/control inputs with independent expected
+outcomes. [Order recovery](docs/timeline-order-recovery.md) separately admits
+restart and checks retained state and freshness continuity.
+[Order retention](docs/timeline-order-retention.md) checks the identity-window
+boundary and durable progress. Qualification evidence is linked below; the
+real-service demos remain available.
+
+The [timeline completion contract](docs/timeline-completion.md) consolidates current
+evidence, the remaining delivery sequence and the first bounded release's explicit
+limits. The [CLI and capability guide](docs/timeline-guide.md) covers prepared
+setup, comparison and strict-default replay. [Aggregate checks](docs/timeline-acceptance.md)
+are complete; the bounded candidate awaits owner acceptance and separate main promotion.
+
+[Order qualification](docs/timeline-order-qualification.md) provides the finite
+ordinary/recovery/retention campaign, actual wrong-priority/clock controls and
+scoped ordinary-service comparison. See its acceptance section for evidence status.
+
+[Bounded Sports execution](docs/timeline-sports-host.md) admits the fact strategies
+and real retirement endpoint with complete acknowledgements, cancellation and
+replay. [Sports qualification](docs/timeline-sports-qualification.md) covers the
+full pinned two-cycle inputs, separate retention boundaries, six fresh-process
+runs, an actual wrong-revision runtime control and scoped ordinary-service parity.

@@ -66,10 +66,14 @@ for (const message of [
   });
 }
 
-for (const input of ["locator.click", "keyboard.press"]) {
-  test(`reset does not accept closure while the old page is open: ${input}`, async () => {
+for (const message of [
+  "locator.click: Browser closed",
+  "keyboard.press: Browser closed",
+]) {
+  test(`reset does not accept a closure message while the old page is open: ${message}`, async () => {
     const fixture = resetFixture();
-    const error = new Error(`${input}: Browser closed`);
+    const error = new Error(message);
+
     try {
       await assert.rejects(
         resetThroughBrowser(fixture.demo, async () => {
@@ -81,10 +85,17 @@ for (const input of ["locator.click", "keyboard.press"]) {
       fixture.closePage();
     }
   });
+}
 
-  test(`reset propagates other input failures after page closure: ${input}`, async () => {
+for (const message of [
+  "locator.click: Timeout exceeded",
+  "keyboard.press: Timeout exceeded",
+  "keyboard.press: Browser closed unexpectedly during another operation",
+]) {
+  test(`reset propagates other input failures even after page closure: ${message}`, async () => {
     const fixture = resetFixture();
-    const error = new Error(`${input}: Timeout exceeded`);
+    const error = new Error(message);
+
     await assert.rejects(
       resetThroughBrowser(fixture.demo, async () => {
         fixture.closePage();

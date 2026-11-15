@@ -2,8 +2,10 @@ package io.zooglass.delivery;
 
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,7 +20,7 @@ final class SubscriptionIndex {
     void add(WebSocketSession session, String viewId, String entityId) {
         var subscription = new Subscription(viewId, entityId);
         sessionsBySubscription
-                .computeIfAbsent(subscription, ignored -> new HashMap<>())
+                .computeIfAbsent(subscription, ignored -> new LinkedHashMap<>())
                 .put(session, ++nextGeneration);
         subscriptionsBySession
                 .computeIfAbsent(session, ignored -> new HashSet<>())
@@ -31,8 +33,10 @@ final class SubscriptionIndex {
 
     Map<WebSocketSession, Long> recipients(String viewId, String entityId) {
         // Sending can remove a failed recipient; iteration must use a stable snapshot.
-        return Map.copyOf(
-                sessionsBySubscription.getOrDefault(new Subscription(viewId, entityId), Map.of()));
+        return Collections.unmodifiableMap(
+                new LinkedHashMap<>(
+                        sessionsBySubscription.getOrDefault(
+                                new Subscription(viewId, entityId), Map.of())));
     }
 
     void remove(WebSocketSession session, String viewId, String entityId) {

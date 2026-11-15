@@ -18,6 +18,41 @@ class ReceiptAgeRecoveryTests {
     @TempDir Path directory;
 
     @Test
+    void installedSnapshotDoesNotSampleTheClockOrRepairAnOverdueDeadline() {
+        var clockState = new Clock();
+        var clock = new ReceiptClock() {
+            boolean readable = true;
+
+            public long wallMillis() {
+                if (!readable) throw new AssertionError("installed read sampled wall clock");
+                return clockState.wallMillis();
+            }
+
+            public long monotonicMillis() {
+                if (!readable) throw new AssertionError("installed read sampled monotonic clock");
+                return clockState.monotonicMillis();
+            }
+        };
+        var alarms = new FreshnessSchedulingTests.ManualAlarms(clockState);
+        var db = directory.resolve("installed.db").toString();
+        try (var runtime = new ViewCoordinator(config("sqlite", 50), db, clock, null, () -> alarms)) {
+            runtime.apply(ProgressTests.event(1));
+            clockState.advance(50);
+            clock.readable = false;
+
+            var installed = runtime.installedSnapshot("fleet", "car").orElseThrow();
+            assertThat(installed.version()).isOne();
+            assertThat(installed.status().fields().get("position").freshness()).isEqualTo("fresh");
+            assertThat(runtime.installedSnapshot("fleet", "car")).contains(installed);
+
+            clock.readable = true;
+            var reconciled = snapshot(runtime);
+            assertThat(reconciled.version()).isEqualTo(2);
+            assertThat(reconciled.status().fields().get("position").freshness()).isEqualTo("stale");
+        }
+    }
+
+    @Test
     void addingATimedViewUpgradesSchemaFourWithoutBackfillingValues() throws Exception {
         var previous = ProgressTests.configuration("sqlite");
         var db = directory.resolve("migrate.db");

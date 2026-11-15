@@ -115,10 +115,15 @@ Workbench's scenarios have a defined action order and can be run repeatedly. Its
 real-process execution does not make network delivery, service scheduling or
 wall-clock timing deterministic. The
 [timeline guide](workbench/README.md#timeline-order-and-real-time) explains that
-distinction. We plan to develop Workbench into a deterministic timeline simulator,
-with an explicit controlled-time execution contract. The accepted
-[deterministic timeline design](docs/design/deterministic-timeline.md) describes
-that separate work; the current demos retain real process and network timing. See the
+distinction. The accepted
+[deterministic timeline design](docs/design/deterministic-timeline.md) defines
+virtual time, runtime execution boundaries and reproducible replay. This integration
+adds the completed [bounded timeline](workbench/docs/timeline-guide.md) alongside
+all three live demos. It supports explicit memory/SQLite lifecycle and qualified
+Fleet, Order and Sports profiles; ordinary demos retain real process/network timing.
+The [separate host](zooglass/simulation-host/README.md) shares production runtime
+code without shipping simulation controls in the service. Promotion of this combined
+branch to main is pending review and owner authorisation. See the
 [roadmap](ROADMAP.md#further-direction). The [architecture guide](docs/diagrams/README.md) shows the implemented
 vehicle-demo stack and its boundaries.
 

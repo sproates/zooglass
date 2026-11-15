@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 13 November 2026.
+Last reviewed: 15 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -37,7 +37,19 @@ delivery date:
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
-- **Deterministic timeline simulation.** Develop Workbench from a scripted, repeatable scenario runner into a deterministic timeline simulator. Define controlled simulation time, scheduling and fault delivery so the same scenario and seed reproduce the same event ordering and outcomes within the simulated environment. Keep real-service integration runs as separate evidence; ordinary process and network timing are not deterministic today. The accepted [execution contract and design](docs/design/deterministic-timeline.md) define controlled Java runtime turns, simulated links and verification replay. A separate [bounded POC](https://github.com/sproates/zooglass/tree/poc/deterministic-timeline) covers two fixed memory-backed scenarios; general scenario support remains in development.
+- **Deterministic timeline simulation — integration pending.** The bounded
+  [timeline capability](workbench/docs/timeline-guide.md) implements controlled time,
+  real production runtime execution, exact replay and portable evidence. Qualified
+  [memory](workbench/docs/timeline-memory-qualification.md),
+  [SQLite](workbench/docs/timeline-sqlite-qualification.md),
+  [Fleet](workbench/docs/timeline-fleet-qualification.md),
+  [Order](workbench/docs/timeline-order-qualification.md) and
+  [Sports](workbench/docs/timeline-sports-qualification.md) profiles retain their
+  explicit limits. [POC acceptance checks](workbench/docs/timeline-acceptance.md)
+  are complete. The [integration plan](docs/design/timeline-integration.md) combines
+  that capability with the delivered live demos; main promotion requires validation,
+  independent review and owner authorisation. Ordinary socket/browser checks and
+  the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

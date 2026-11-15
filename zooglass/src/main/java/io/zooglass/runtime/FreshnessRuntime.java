@@ -7,9 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /** Called under the coordinator lock. The single alarm only wakes the coordinator. */
 final class FreshnessRuntime implements AutoCloseable {
@@ -17,19 +14,21 @@ final class FreshnessRuntime implements AutoCloseable {
     private final Map<String, BoundView> bindings;
     private final ReceiptClock clock;
     private final FreshnessDeadlines deadlines = new FreshnessDeadlines();
-    private final ScheduledThreadPoolExecutor timer =
-            new ScheduledThreadPoolExecutor(
-                    1, Thread.ofPlatform().daemon().name("zooglass-receipt-age").factory());
+    private final AlarmScheduler timer;
     private final Runnable wake;
-    private ScheduledFuture<?> alarm;
+    private AlarmScheduler.Task alarm;
     private Long armed;
     private final ClockRollback observations = new ClockRollback();
 
-    FreshnessRuntime(Map<String, BoundView> bindings, ReceiptClock clock, Runnable wake) {
+    FreshnessRuntime(
+            Map<String, BoundView> bindings,
+            ReceiptClock clock,
+            Runnable wake,
+            AlarmScheduler timer) {
         this.bindings = bindings;
         this.clock = clock;
         this.wake = wake;
-        timer.setRemoveOnCancelPolicy(true);
+        this.timer = Objects.requireNonNull(timer);
     }
 
     StateImage recover(StateImage old) {
@@ -167,19 +166,16 @@ final class FreshnessRuntime implements AutoCloseable {
             return;
         }
         if (alarm != null) {
-            alarm.cancel(false);
+            alarm.cancel();
         }
         armed = next;
         alarm =
                 next == null
                         ? null
-                        : timer.schedule(
-                                wake,
-                                Math.max(0, next - clock.monotonicMillis()),
-                                TimeUnit.MILLISECONDS);
+                        : timer.schedule(wake, Math.max(0, next - clock.monotonicMillis()));
     }
 
     public void close() {
-        timer.shutdownNow();
+        timer.close();
     }
 }

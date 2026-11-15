@@ -69,6 +69,29 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <forceCreation>true</forceCreation>
+                    <excludes>
+                        <exclude>io/zooglass/simulation/**</exclude>
+                        <exclude>io/zooglass/runtime/TimelineRuntime*</exclude>
+                        <exclude>io/zooglass/runtime/TimelineProfile*</exclude>
+                        <exclude>io/zooglass/runtime/ControlledReceiptClock*</exclude>
+                        <exclude>io/zooglass/runtime/ControlledAlarmScheduler*</exclude>
+                        <exclude>io/zooglass/delivery/TimelineDelivery*</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>runtime-library</id>
+                        <phase>package</phase>
+                        <goals><goal>jar</goal></goals>
+                        <configuration><classifier>runtime</classifier></configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>

@@ -30,6 +30,17 @@ class StaticViewsTimelineHostTests {
                  "history":[{"publicationSequence":1,"payload":{"value":"older"}},
                             {"publicationSequence":2,"payload":{"value":"newer"}}]}
                 """));
+        var publicSnapshot = JSON.readTree(observed.path("projectedSnapshots").get(0).asString());
+        assertThat(publicSnapshot.path("data")).isEqualTo(JSON.readTree("""
+                {"arrival":{"value":"older"},"latest":{"value":"newer"},
+                 "history":[{"value":"older"},{"value":"newer"}]}
+                """));
+        assertThat(publicSnapshot.path("publicationSequences")).isEqualTo(JSON.readTree("""
+                {"arrival":[1],"latest":[2],"history":[1,2]}
+                """));
+        var rawSnapshot = JSON.readTree(observed.path("snapshots").get(0).asString());
+        for (String field : new String[] {"viewId", "entityId", "version", "status", "provenance"})
+            assertThat(publicSnapshot.path(field)).isEqualTo(rawSnapshot.path(field));
         assertThat(observed.path("effects").isEmpty()).isTrue();
         assertThat(observed.path("pendingTasks").intValue()).isZero();
         host.command(turn("shutdown", 5));

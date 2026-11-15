@@ -37,18 +37,19 @@ assertion or resource-limit failure. Reports do not overwrite evidence.
 
 ## Commands and exit statuses
 
-| Command                                                        | Purpose                                                                   | Exit status                                                                                           |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `timeline:execute SCENARIO RUN [JAR]`                          | Execute a document                                                        | 0 passed; 1 failure or rejection                                                                      |
-| `timeline:inspect scenario FILE...`                            | Validate document syntax                                                  | 0 valid; 1 invalid; execution not checked                                                             |
-| `timeline:inspect admission SCENARIO JAR`                      | Check configuration/artifact admission                                    | 0 assessment produced; read `execution: eligible/unsupported`; 1 invalid input or failed inspection   |
-| `timeline:inspect static-configuration CONFIG JAR [REFERENCE]` | Check the broader static-memory family and optional normalized comparison | 0 assessment produced; read `requestedProfile`; 1 invalid input or failed inspection                  |
-| `timeline:inspect trace FILE...`                               | Validate raw JSONL trace structure                                        | 0 valid; 1 invalid; no execution verification                                                         |
-| `timeline:inspect legacy FILE...`                              | Assess ordinary scenario compatibility                                    | 0 assessment produced; read its limitations                                                           |
-| `timeline:replay RUN REPORT [JAR]`                             | Re-execute saved run                                                      | 0 verified and passed; 2 verified scenario failure; 1 divergence, infrastructure failure or rejection |
-| `timeline:bundle record SCENARIO DIRECTORY [JAR]`              | Execute and retain portable evidence                                      | 0 passed; 1 failure or rejection                                                                      |
-| `timeline:bundle replay DIRECTORY REPORT [JAR]`                | Validate inventory and re-execute                                         | Same strict replay policy                                                                             |
-| `timeline:compare LEFT RIGHT REPORT`                           | Compare two saved runs or bundle directories                              | 0 equal; 2 different trace; 1 incompatible identities or invalid evidence                             |
+| Command                                                                            | Purpose                                                                   | Exit status                                                                                           |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `timeline:execute SCENARIO RUN [JAR]`                                              | Execute a document                                                        | 0 passed; 1 failure or rejection                                                                      |
+| `timeline:convert LEGACY DIRECTORY --runtime CONFIG --epoch-ms INTEGER --seed HEX` | Explicitly translate the static subset                                    | 0 converted, no scenario execution; 1 unsupported or invalid                                          |
+| `timeline:inspect scenario FILE...`                                                | Validate document syntax                                                  | 0 valid; 1 invalid; execution not checked                                                             |
+| `timeline:inspect admission SCENARIO JAR`                                          | Check configuration/artifact admission                                    | 0 assessment produced; read `execution: eligible/unsupported`; 1 invalid input or failed inspection   |
+| `timeline:inspect static-configuration CONFIG JAR [REFERENCE]`                     | Check the broader static-memory family and optional normalized comparison | 0 assessment produced; read `requestedProfile`; 1 invalid input or failed inspection                  |
+| `timeline:inspect trace FILE...`                                                   | Validate raw JSONL trace structure                                        | 0 valid; 1 invalid; no execution verification                                                         |
+| `timeline:inspect legacy FILE...`                                                  | Assess ordinary scenario compatibility                                    | 0 assessment produced; read its limitations                                                           |
+| `timeline:replay RUN REPORT [JAR]`                                                 | Re-execute saved run                                                      | 0 verified and passed; 2 verified scenario failure; 1 divergence, infrastructure failure or rejection |
+| `timeline:bundle record SCENARIO DIRECTORY [JAR]`                                  | Execute and retain portable evidence                                      | 0 passed; 1 failure or rejection                                                                      |
+| `timeline:bundle replay DIRECTORY REPORT [JAR]`                                    | Validate inventory and re-execute                                         | Same strict replay policy                                                                             |
+| `timeline:compare LEFT RIGHT REPORT`                                               | Compare two saved runs or bundle directories                              | 0 equal; 2 different trace; 1 incompatible identities or invalid evidence                             |
 
 Replay accepts `--verification-only` to exit 0 for a faithfully reproduced assertion
 or limit failure. Reports still retain that failed outcome. `--require-passed`
@@ -110,4 +111,4 @@ The [integration qualification](timeline-integration-results.md) checks the boun
 timeline alongside all three existing live demos, delivered in
 [PR #172](https://github.com/sproates/zooglass/pull/172).
 
-[Static configuration admission](timeline-static-admission.md) is the first broader-configuration foundation; it does not yet enable V3 scenario execution.
+[Static configuration admission](timeline-static-admission.md) checks the broader family; [V3 conversion and execution](timeline-conversion.md) add projected assertions and retained conversion provenance.

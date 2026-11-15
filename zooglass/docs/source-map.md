@@ -616,3 +616,15 @@ The simulation-host module owns admission and controlled dispatch; the productio
 retirement handler owns parsing and per-view atomicity. Sports admits a new SQLite
 database in generation 1, with no restart or wall-clock adjustment. See the
 [Sports execution boundary](../../workbench/docs/timeline-sports-host.md).
+
+### V3 public data projection
+
+```mermaid
+flowchart LR
+  host["simulation/TimelineHost.java"] -->|one side-effect-free installed read| runtime["core: runtime/ViewCoordinator.java"]
+  host -->|project that same snapshot| public["core: api/ViewSnapshot.java"]
+```
+
+The static profile returns both internal and production public snapshots. The
+separate `publicSnapshots:1` capability prevents an admission-only host from being
+mistaken for a V3 execution host. Existing profiles retain their raw response shape.

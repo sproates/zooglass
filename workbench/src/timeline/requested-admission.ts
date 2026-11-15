@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { boundedFile, decode } from "./admission.js";
+import { boundedFile, decode } from "./file-input.js";
 import { Bridge } from "./bridge.js";
 import { staticViewsProfile } from "./evidence-versions.js";
 

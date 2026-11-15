@@ -1,7 +1,7 @@
 # Static configuration admission
 
 The `memory-static-views-v1` foundation checks whether a configuration belongs to
-the accepted broader family. It does not yet convert or execute V3 scenarios.
+the accepted broader family. [V3 conversion and execution](timeline-conversion.md) use this admission path.
 Existing V1/V2 execution and profile classification retain their meaning.
 
 Use a prepared host JAR (see [setup](timeline-guide.md)):
@@ -46,11 +46,10 @@ Inspection creates no runtime, store, session or scheduled work. The additive
 `memoryStaticViews:1` capability is required; an older artifact fails explicitly.
 The private host startup path independently checks the supplied bytes and requested
 profile before composing a generation-one runtime at time zero. V3 document,
-trace, run and bundle identities are reserved, but the document executor still
-rejects V3 until its assertions and evidence handling are implemented.
+trace, run and bundle identities are distinct. Execution additionally requires
+`publicSnapshots:1` on protocol 2, so an admission-only host cannot execute V3.
 
-The next slice's data assertions must use production `ViewSnapshot.from` on the
+V3 data assertions use production `ViewSnapshot.from` on the
 side-effect-free installed snapshot: internal data contains retained sequence and
 payload envelopes, while legacy HTTP expectations contain public payload values.
-Both full internal observations and public projections will remain in the trace;
-this foundation does not implement those assertions.
+Both full internal observations and public projections remain in the trace.

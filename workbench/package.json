@@ -51,6 +51,7 @@
     "timeline:repeat": "node --import tsx scripts/timeline-repeat.ts",
     "timeline:compare": "node --import tsx src/timeline/compare-cli.ts",
     "timeline:inspect": "node --import tsx src/timeline/inspect.ts",
+    "timeline:convert": "node --import tsx src/timeline/convert-cli.ts",
     "timeline:execute": "node --import tsx src/timeline/document-cli.ts",
     "timeline:replay": "node --import tsx src/timeline/replay-cli.ts",
     "timeline:bundle": "node --import tsx src/timeline/bundle-cli.ts",

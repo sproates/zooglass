@@ -1,3 +1,8 @@
+import { staticViewsProfile } from "./evidence-versions.js";
+import {
+  acceptedReceipt,
+  publicationIdentity,
+} from "./projected-assertions.js";
 import assert from "node:assert/strict";
 import { Agenda } from "./agenda.js";
 import type { Bridge } from "./bridge.js";
@@ -22,6 +27,7 @@ export class DocumentExecution {
   private readonly transport: DocumentTransport;
   private readonly actors: DocumentActors;
   private stopCause?: string;
+  private readonly usedReceipts = new Set<string>();
   constructor(
     readonly bridge: Bridge | RuntimeGenerations,
     readonly scenario: TimelineDocument,
@@ -37,6 +43,7 @@ export class DocumentExecution {
       (effect, parent, publication) =>
         this.transport.effect(effect, parent, publication),
       scenario.observationTargets,
+      scenario.profile === staticViewsProfile,
     );
     this.transport = new DocumentTransport(
       this.agenda,
@@ -151,6 +158,14 @@ export class DocumentExecution {
   }
   async assertObservation(assertion: { [key: string]: Json }) {
     this.runtime.consumeExecutionTurn();
+    if (assertion.kind === "runtime-data") {
+      await this.assertRuntimeData(assertion);
+      return;
+    }
+    if (assertion.kind === "source-accepted") {
+      this.assertSourceAccepted(assertion);
+      return;
+    }
     if (assertion.kind === "runtime-snapshot") {
       await this.assertRuntimeSnapshot(assertion);
       return;
@@ -177,6 +192,96 @@ export class DocumentExecution {
         }) as { [key: string]: Json }),
         expected: assertion.expected,
         actual,
+      },
+      [],
+      this.runtime.generation,
+    );
+    if (!passed)
+      throw new Error(`assertion-failed: ${text(assertion.id, "id")}`);
+  }
+
+  private async assertRuntimeData(assertion: { [key: string]: Json }) {
+    const target = {
+      viewId: text(assertion.viewId, "viewId"),
+      entityId: text(assertion.entityId, "entityId"),
+    };
+    const { snapshot, projected } =
+      await this.runtime.observeRepresentations(target);
+    assert.ok(
+      projected,
+      "static runtime supplies the production public projection",
+    );
+    const observation = this.event(
+      "runtime-data-observation",
+      { ...target, snapshot, publicSnapshot: projected },
+      null,
+    );
+    const actual = projected.data;
+    const passed = encodeJson(assertion.expected) === encodeJson(actual);
+    this.event(
+      "assertion",
+      {
+        ...object(
+          j({
+            assertionId: assertion.id,
+            assertionKind: assertion.kind,
+            atMs: integer(assertion.atMs, "atMs"),
+            passed,
+            ...target,
+          }),
+          "assertion",
+        ),
+        expected: assertion.expected,
+        actual,
+      },
+      observation,
+    );
+    if (!passed)
+      throw new Error(`assertion-failed: ${text(assertion.id, "id")}`);
+  }
+
+  private assertSourceAccepted(assertion: { [key: string]: Json }) {
+    const actor = text(assertion.actor, "actor");
+    const send = list(this.scenario.document.actions, "actions")
+      .map((value) => object(value, "action"))
+      .find((action) => action.id === assertion.send)!;
+    const publication = list(
+      this.scenario.document.publications,
+      "publications",
+    )
+      .map((value) => object(value, "publication"))
+      .find((value) => value.id === send.publication)!;
+    const identity = publicationIdentity(publication.body);
+    const receiptEventId =
+      acceptedReceipt(
+        this.transport.deliveredReceipts(actor, this.agenda.current[0]),
+        identity,
+        this.usedReceipts,
+      ) ?? null;
+    const passed = receiptEventId !== null;
+    if (receiptEventId) this.usedReceipts.add(receiptEventId);
+    this.trace.event(
+      "assertion",
+      this.agenda.current,
+      actor,
+      this.actors.connection(actor)?.generation ?? null,
+      receiptEventId,
+      {
+        ...object(
+          j({
+            assertionId: assertion.id,
+            assertionKind: assertion.kind,
+            atMs: integer(assertion.atMs, "atMs"),
+            passed,
+          }),
+          "assertion",
+        ),
+        expected: true,
+        actual: passed,
+        send: assertion.send,
+        publication: send.publication,
+        identity,
+        receiptEventId,
       },
       [],
       this.runtime.generation,

@@ -1,9 +1,10 @@
 # Broader deterministic configuration support
 
 Status: accepted expansion contract, 15 November 2026, merged through PR #174.
-Baseline main `ec4fbbf`. The first implementation slice adds
-[requested-profile admission](../../workbench/docs/timeline-static-admission.md);
-conversion and V3 execution remain planned.
+Baseline main `ec4fbbf`. The first two implementation slices add
+[requested-profile admission](../../workbench/docs/timeline-static-admission.md) and
+[V3 conversion/execution](../../workbench/docs/timeline-conversion.md). Authored
+fixtures and finite qualification remain subsequent milestones.
 The [bounded timeline](../../workbench/docs/timeline-guide.md) is delivered. This
 proposal adds one reusable configuration family and one explicit conversion path;
 it does not reopen the completed POC or promise every Workbench scenario.
@@ -70,7 +71,9 @@ by this profile. Existing profiles continue to provide their delivered capabilit
 The new family's initial transport scope is zero-latency links, explicit source
 sends and client connect/disconnect/subscribe/unsubscribe. No source retries,
 receipt-loss rules, writer faults or automatic retry policies are admitted for this
-new family in this milestone. Their existing-profile support is unchanged.
+new family in this milestone. Source actors connect exactly once at time zero,
+without source disconnect/reconnect; client lifecycle remains explicit. Existing-profile
+support is unchanged.
 
 ### Preserve admission identity
 
@@ -128,7 +131,7 @@ nor tests may execute ZooGlass to manufacture expected versions or answers.
 
 ## Conversion is reviewable, explicit and bounded
 
-Proposed command (not yet implemented):
+Explicit conversion command:
 
 ```text
 npm run timeline:convert -- LEGACY.json NEW_DIRECTORY --runtime CONFIG.json --epoch-ms INTEGER --seed HEX [--jar HOST.jar]
@@ -155,7 +158,9 @@ documents omit this field. Conversion errors leave no executable-looking success
 
 ### Configuration and limits
 
-Require the caller to supply the bounded runtime configuration. Compare its
+Require the caller to supply the bounded runtime configuration, with all five
+selected resource bounds explicit. The general admission path still accepts
+production defaults; converter reporting must not invent their numeric values. Compare its
 normalized meaning to the legacy declarations compiled by the existing shared
 `runtimeView`/`runtimeConfiguration` logic. The requested-admission host operation
 compares both configurations after production decoding, with an explicit whitelist of the five resource properties

@@ -1,3 +1,8 @@
+import { inspectRequestedConfiguration } from "./requested-admission.js";
+import {
+  validateConversionProvenance,
+  conversionReferenceConfiguration,
+} from "./conversion-provenance.js";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import {
@@ -9,6 +14,7 @@ import {
 } from "./admission.js";
 import {
   capabilities,
+  staticCapabilities,
   orderCapabilities,
   sportsCapabilities,
   lifecycleCapabilities,
@@ -20,6 +26,7 @@ import { RuntimeGenerations } from "./runtime-generations.js";
 import {
   documentEvidenceVersions,
   fleetProfile,
+  staticViewsProfile,
   sportsProfile,
   isOrderProfile,
 } from "./evidence-versions.js";
@@ -43,8 +50,7 @@ export type DocumentOptions = {
   admitReplay?: (identity: unknown, environment: unknown) => void;
 };
 export async function runDocument(path: string, options: DocumentOptions) {
-  const { scenario, wire, configurationHash } = await loadDocument(path);
-  return executeDocument({ scenario, wire, configurationHash }, options);
+  return executeDocument(await loadDocument(path), options);
 }
 
 /** Execute retained inputs directly; replay never resolves the saved configuration path. */
@@ -53,9 +59,15 @@ export async function executeDocument(
     scenario,
     wire,
     configurationHash,
+    conversionProvenance,
   }: Awaited<ReturnType<typeof loadDocument>>,
   options: DocumentOptions,
 ) {
+  const provenance = validateConversionProvenance(
+    scenario,
+    wire,
+    conversionProvenance,
+  );
   const settings = executionSettings(scenario, wire);
   const evidence = documentEvidenceVersions(scenario.document.format);
   let generations: RuntimeGenerations | undefined;
@@ -70,28 +82,43 @@ export async function executeDocument(
       throw new Error(
         "unsupported-execution: artifact does not implement documents",
       );
-    const inspected = await inspectRuntimeConfiguration(
-      bridge,
-      wire,
-      scenario.storage,
-    );
+    const requested =
+      scenario.profile === staticViewsProfile
+        ? await inspectRequestedConfiguration(
+            bridge,
+            wire,
+            provenance
+              ? conversionReferenceConfiguration(provenance)
+              : undefined,
+          )
+        : undefined;
+    const inspected =
+      requested?.configuration ??
+      (await inspectRuntimeConfiguration(bridge, wire, scenario.storage));
     const profile = requiredConfigurationProfile(scenario);
-    if (inspected.documentProfile !== profile)
+    if (
+      requested
+        ? !requested.requestedProfile.eligible ||
+          requested.requestedProfile.comparison?.equivalent === false
+        : inspected.documentProfile !== profile
+    )
       throw new Error(
         `unsupported-execution: configuration is outside ${profile}`,
       );
     checkConfiguredTargets(scenario, wire);
     requireExecutionCapabilities(
       scenario,
-      scenario.profile === sportsProfile
-        ? sportsCapabilities
-        : isOrderProfile(scenario.profile)
-          ? orderCapabilities
-          : scenario.storage === "sqlite"
-            ? sqliteLifecycleCapabilities
-            : evidence.protocol === 2
-              ? lifecycleCapabilities
-              : capabilities,
+      scenario.profile === staticViewsProfile
+        ? staticCapabilities
+        : scenario.profile === sportsProfile
+          ? sportsCapabilities
+          : isOrderProfile(scenario.profile)
+            ? orderCapabilities
+            : scenario.storage === "sqlite"
+              ? sqliteLifecycleCapabilities
+              : evidence.protocol === 2
+                ? lifecycleCapabilities
+                : capabilities,
     );
     const hostEnvironment =
       evidence.protocol === 2
@@ -136,7 +163,8 @@ export async function executeDocument(
         generations = new RuntimeGenerations({
           jar: options.jar,
           configuration: wire,
-          ...(scenario.profile === fleetProfile ||
+          ...(scenario.profile === staticViewsProfile ||
+          scenario.profile === fleetProfile ||
           scenario.profile === sportsProfile ||
           isOrderProfile(scenario.profile)
             ? { profile: scenario.profile }
@@ -255,6 +283,7 @@ export async function executeDocument(
     }
     return {
       format: evidence.run,
+      ...(provenance ? { conversionProvenance: provenance } : {}),
       environment,
       diagnostics: {
         hostDelayMs: options.hostDelay ?? 0,

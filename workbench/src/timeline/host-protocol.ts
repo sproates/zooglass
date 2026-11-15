@@ -44,6 +44,7 @@ export type Response = {
   pendingTasks: number;
   heldFrames: number;
   snapshots?: string[];
+  projectedSnapshots?: string[];
   configuration?: {
     contractVersion: number;
     storage: string;
@@ -77,6 +78,7 @@ export type Handshake = {
       sqliteSports?: 1;
       sqliteOrderLifecycle?: 1;
       installedObservations?: 1;
+      publicSnapshots?: 1;
       memorySequenceFleet?: 1;
       wallClockAdjustments?: 1;
       documentFormats: [];
@@ -130,6 +132,15 @@ export function decodeHandshake(value: unknown): Handshake {
       data.sqliteLifecycle !== 1)
   )
     invalid("handshake.sqliteSports requires protocol 2 and SQLite lifecycle");
+  if (
+    data.publicSnapshots !== undefined &&
+    (data.protocol !== 2 ||
+      data.publicSnapshots !== 1 ||
+      data.installedObservations !== 1)
+  )
+    invalid(
+      "handshake.publicSnapshots requires protocol 2 installed observations",
+    );
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);
@@ -266,6 +277,16 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
     strings(data.snapshots, "response.snapshots");
     if ((data.snapshots as string[]).length > 64)
       invalid("response.snapshots limit");
+  }
+  if (data.projectedSnapshots !== undefined) {
+    if (protocol !== 2 || data.snapshots === undefined)
+      invalid("response.projectedSnapshots requires installed snapshots");
+    strings(data.projectedSnapshots, "response.projectedSnapshots");
+    if (
+      (data.projectedSnapshots as string[]).length !==
+      (data.snapshots as string[]).length
+    )
+      invalid("response.projectedSnapshots count");
   }
   if (data.configuration !== undefined) {
     const config = record(data.configuration, "response.configuration");

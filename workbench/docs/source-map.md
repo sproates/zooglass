@@ -665,6 +665,9 @@ flowchart LR
   inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
   inspect -->|bounded UTF-8 reads; optional artifact validation| admission["timeline/admission.ts"]
   admission -->|configuration hash and full production parser| bridge["timeline/bridge.ts"]
+  inspect -->|requested static family and optional reference| requested["timeline/requested-admission.ts"]
+  requested -->|negotiate capability; no runtime startup| bridge
+  requested -->|exact bounded input bytes| admission
   inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
   inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
 ```
@@ -1222,3 +1225,76 @@ without reserializing them. Session-owned temporary SQLite state is cleaned with
 session; an explicitly supplied database remains caller-owned on close or startup
 failure. Live demos and parity runners share process ownership without sharing
 configuration serialization policy.
+
+## Static conversion and projected assertions
+
+```mermaid
+flowchart LR
+  cli["timeline/convert-cli.ts"] -->|explicit conversion only| conversion["timeline/conversion.ts"]
+  conversion -->|lossless eligibility and finite resource bounds| eligibility["timeline/conversion-eligibility.ts"]
+  conversion -->|deterministic transcription and report| document["timeline/conversion-document.ts"]
+  conversion -->|production validation and comparison| admission["timeline/requested-admission.ts"]
+  provenance["timeline/conversion-provenance.ts"] -->|regenerate claims without executing| document
+  provenance -->|bounded exact input reads| files["timeline/file-input.ts"]
+  run["timeline/run-document.ts"] -->|retain and validate declared provenance| provenance
+  replay["timeline/replay-document.ts"] -->|validate embedded original and report| provenance
+  bundle["timeline/artifact-bundle.ts"] -->|pin fixed extra members| provenance
+```
+
+```mermaid
+flowchart LR
+  contract["timeline/contract.ts"] -->|closed V3 actions and assertion references| static["timeline/static-contract.ts"]
+  execution["timeline/document-execution.ts"] -->|timestamp-scoped acceptance| assertions["timeline/projected-assertions.ts"]
+  transport["timeline/document-transport.ts"] -->|retain delivery event IDs and full receipts| execution
+  execution -->|same installed read: internal and public| turns["timeline/runtime-turns.ts"]
+  turns -->|production projection| host["simulation-host: TimelineHost.java"]
+```
+
+```mermaid
+flowchart LR
+  trace["timeline/trace-contract.ts"] -->|receipt lineage and non-reuse| projections["timeline/trace-projections.ts"]
+  projections -->|validate acceptance result| assertions["timeline/projected-assertions.ts"]
+  trace -->|bind data assertion to its complete observation| generations["timeline/trace-generations.ts"]
+```
+
+The converter never runs a scenario or derives an expected outcome. V3 uses the
+same agenda, transport and generation owner as existing documents. `manifest.ts`
+hashes timeline modules plus the legacy parser and configuration compiler used by
+conversion and provenance verification. Historical evidence retains its original
+identity requirements. See [conversion and assertions](timeline-conversion.md).
+
+The [static fixture corpus](../scenarios/timeline-static/README.md) contains five
+converter outputs and one independently authored mixed-mode document. They all
+use the execution path above; no domain-specific authoring or execution module is
+added. `test/timeline/static-fixtures.test.ts` validates retained provenance,
+executes and strictly replays the six cases, and checks maximum admitted shape.
+
+## Static qualification ownership
+
+```mermaid
+flowchart TB
+  campaign["scripts/static-campaign.ts"] -->|run and replay twelve modes| executor["timeline/run-document.ts + replay-document.ts"]
+  campaign -->|check literals and pauses| checks["scripts/static-campaign-checks.ts"]
+  campaign -->|pin clean source and inputs| evidence["scripts/static-evidence.ts"]
+  control["scripts/static-selection-control.ts"] -->|check artifact inventory| preparation["scripts/fleet-strategy-check.ts"]
+  control -->|execute normal and mutant| controlExecutor["timeline/run-document.ts"]
+  parity["scripts/static-service-parity.ts"] -->|ordinary socket and HTTP observations| service["service/zooglass-session.ts"]
+  parity -->|transcribe inputs and check retained observations| observations["scripts/static-service-observations.ts"]
+  fixtures["scenarios/timeline-static/*"] -->|reviewed inputs and expectations| campaign
+  fixtures -->|same configuration and barriers| parity
+```
+
+The [qualification](timeline-static-qualification.md) has a fixed 28-execution
+matrix. Its scripts coordinate existing execution and service primitives; they
+never select or compute view values. No domain-specific executor is added.
+
+```mermaid
+flowchart TB
+  audit["scripts/static-audit.ts"] -->|recheck raw runs and pause evidence| campaign["scripts/static-campaign-checks.ts"]
+  audit -->|recheck normal and wrong-selection outcomes| control["scripts/static-selection-control.ts"]
+  audit -->|recheck raw service observations| service["scripts/static-service-observations.ts"]
+```
+
+The offline auditor verifies the fixed matrix, literal observations, retained
+input hashes and executable identities. It never runs ZooGlass; archive inventory
+verification additionally protects every retained file's bytes.

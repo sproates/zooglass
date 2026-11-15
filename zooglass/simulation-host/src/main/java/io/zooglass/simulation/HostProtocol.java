@@ -111,9 +111,11 @@ enum HostProtocol {
                 this == V1 ? "configurationAdmission" : "memoryLifecycle", 1,
                 "documentFormats", this == V1 ? List.of("timeline-simulation/v1") : List.of(),
                 "environment", environment);
-        if (this == V1) return handshake;
         var capabilities = new LinkedHashMap<String, Object>(handshake);
+        capabilities.put("memoryStaticViews", 1);
+        if (this == V1) return capabilities;
         capabilities.put("installedObservations", 1);
+        capabilities.put("publicSnapshots", 1);
         capabilities.put("memorySequenceFleet", 1);
         capabilities.put("wallClockAdjustments", 1);
         if (sqliteVersion != null) {
@@ -165,6 +167,7 @@ enum HostProtocol {
                 switch (op) {
                     case "initialize" -> Set.of("policy");
                     case "inspect-configuration" -> Set.of("wire");
+                    case "inspect-requested-profile" -> Set.of("wire", "profile", "referenceWire");
                     case "initialize-document" -> this == V1
                             ? Set.of("wire", "epochMillis")
                             : Set.of("wire", "epochMillis", "startTimeMs", "database",

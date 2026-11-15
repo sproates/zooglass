@@ -133,7 +133,7 @@ export function verifyFleetInventories(
   );
 }
 
-async function readPreparation(directory: string) {
+export async function readLatestSelectionPreparation(directory: string) {
   const manifest = await boundedFile(join(directory, "preparation.json"));
   const provenance = JSON.parse(decode(manifest)) as Preparation;
   assert.equal(provenance.format, "timeline-fleet-strategy-preparation/v1");
@@ -358,7 +358,7 @@ async function main() {
   try {
     source = await captureSource();
     const preparation = resolve(prepared);
-    const control = await readPreparation(preparation);
+    const control = await readLatestSelectionPreparation(preparation);
     assert.equal(
       git(["rev-parse", `${control.provenance.revision}:zooglass`])
         .toString()
@@ -426,7 +426,7 @@ async function main() {
     );
     assert.deepEqual((await captureControlInput(path)).identities, inputs);
     assert.equal(
-      digest((await readPreparation(preparation)).manifest),
+      digest((await readLatestSelectionPreparation(preparation)).manifest),
       manifestSha256,
     );
   } catch (cause) {

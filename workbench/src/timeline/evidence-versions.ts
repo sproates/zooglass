@@ -14,6 +14,8 @@ export function hasProgressControl(profile: unknown) {
   return isOrderProfile(profile) || profile === sportsProfile;
 }
 
+export const staticViewsProfile = "memory-static-views-v1";
+
 export const fleetProfile = "memory-sequence-fleet-v1";
 
 export const evidenceV1 = {
@@ -34,11 +36,29 @@ export const evidenceV2 = {
   protocol: 2,
 } as const;
 
-export function documentEvidenceVersions(format: Json | undefined) {
-  return choice(format, "$.format", [
+/** Static-view documents retain an explicit identity across all evidence formats. */
+export const evidenceV3 = {
+  scenario: "timeline-simulation/v3",
+  trace: "timeline-trace/v3",
+  run: "timeline-run/v3",
+  bundle: "timeline-bundle/v3",
+  profile: staticViewsProfile,
+  protocol: 2,
+} as const;
+
+export type EvidenceVersions =
+  typeof evidenceV1 | typeof evidenceV2 | typeof evidenceV3;
+export function documentEvidenceVersions(
+  format: Json | undefined,
+): EvidenceVersions {
+  const admitted = choice(format, "$.format", [
     evidenceV1.scenario,
     evidenceV2.scenario,
-  ]) === evidenceV2.scenario
-    ? evidenceV2
-    : evidenceV1;
+    evidenceV3.scenario,
+  ]);
+  return admitted === evidenceV3.scenario
+    ? evidenceV3
+    : admitted === evidenceV2.scenario
+      ? evidenceV2
+      : evidenceV1;
 }

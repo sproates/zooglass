@@ -1,3 +1,4 @@
+import { conversionBundleFiles } from "./conversion-provenance.js";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { closeSync, openSync, writeSync } from "node:fs";
@@ -6,7 +7,12 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { boundedFile, decode, loadDocument } from "./admission.js";
-import { evidenceV1, evidenceV2 } from "./evidence-versions.js";
+import {
+  evidenceV1,
+  evidenceV2,
+  evidenceV3,
+  type EvidenceVersions,
+} from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { parseReplay, replaySaved } from "./replay-document.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
@@ -18,7 +24,7 @@ const files = [
   "trace.jsonl",
   "run.json",
 ] as const;
-function bundleVersions(versions: typeof evidenceV1 | typeof evidenceV2) {
+function bundleVersions(versions: EvidenceVersions) {
   return {
     scenario: versions.scenario,
     trace: versions.trace,
@@ -111,6 +117,11 @@ export async function recordBundle(
   let traceFile: number | undefined;
   try {
     const input = await loadDocument(scenarioPath);
+    const provenanceFiles = input.conversionProvenance
+      ? conversionBundleFiles(input.conversionProvenance)
+      : {};
+    for (const [name, content] of Object.entries(provenanceFiles))
+      await writeFile(join(directory, name), content, { flag: "wx" });
     const diagnosticDirectory = await bundleStoreParent(
       directory,
       input.scenario.storage,
@@ -140,7 +151,7 @@ export async function recordBundle(
     }
     const { versions } = parseReplay(raw);
     const inventory: Record<string, { bytes: number; sha256: string }> = {};
-    for (const name of files) {
+    for (const name of [...files, ...Object.keys(provenanceFiles)]) {
       const bytes = await boundedFile(join(directory, name));
       if (name === "trace.jsonl" && decode(bytes) !== result.trace)
         throw new Error("Streamed trace differs from completed result");
@@ -183,7 +194,12 @@ export async function readBundle(directory: string) {
   if (!(await lstat(directory)).isDirectory())
     throw new Error("invalid-bundle: expected a real directory");
   const names = (await readdir(directory)).sort();
-  same(names, [...files, "manifest.json"].sort(), "file inventory");
+  const extraNames =
+    names.includes("conversion-report.json") || names.includes("legacy.json")
+      ? ["conversion-report.json", "legacy.json"]
+      : [];
+  const members = [...files, ...extraNames];
+  same(names, [...members, "manifest.json"].sort(), "file inventory");
   const bytes: Record<string, Buffer> = {};
   for (const name of names) {
     const path = join(directory, name);
@@ -207,11 +223,16 @@ export async function readBundle(directory: string) {
   );
   if (
     manifest.format !== evidenceV1.bundle &&
-    manifest.format !== evidenceV2.bundle
+    manifest.format !== evidenceV2.bundle &&
+    manifest.format !== evidenceV3.bundle
   )
     throw new Error("invalid-bundle: unsupported format");
   const versions =
-    manifest.format === evidenceV2.bundle ? evidenceV2 : evidenceV1;
+    manifest.format === evidenceV3.bundle
+      ? evidenceV3
+      : manifest.format === evidenceV2.bundle
+        ? evidenceV2
+        : evidenceV1;
   same(
     manifest.versions,
     parseJson(JSON.stringify(bundleVersions(versions))),
@@ -228,8 +249,8 @@ export async function readBundle(directory: string) {
       typeof source.trackedChanges !== "boolean")
   )
     throw new Error("invalid-bundle: source provenance");
-  const inventory = object(manifest.files, "files", [...files]);
-  for (const name of files) {
+  const inventory = object(manifest.files, "files", members);
+  for (const name of members) {
     const entry = object(inventory[name], name, ["bytes", "sha256"]);
     if (
       integer(entry.bytes, "bytes") !== bytes[name].length ||
@@ -238,6 +259,17 @@ export async function readBundle(directory: string) {
       throw new Error(`invalid-bundle: ${name} hash/size mismatch`);
   }
   const run = parseReplay(decode(bytes["run.json"]));
+  const retainedProvenance = run.conversionProvenance
+    ? conversionBundleFiles(run.conversionProvenance)
+    : {};
+  same(
+    extraNames.sort(),
+    Object.keys(retainedProvenance).sort(),
+    "conversion provenance inventory",
+  );
+  for (const [name, content] of Object.entries(retainedProvenance))
+    if (decode(bytes[name]) !== content)
+      throw new Error("invalid-bundle: conversion provenance bytes mismatch");
   if (run.versions.bundle !== manifest.format)
     throw new Error("invalid-bundle: manifest/run version mismatch");
   same(

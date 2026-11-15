@@ -1,0 +1,135 @@
+{
+  "adaptations": [
+    "Caller supplied five explicit resource bounds replace compiler defaults; omitted reference delivery bounds identify production defaults.",
+    "Numeric admission floors can differ; the whole-input span prevents introduced receipt eviction or out-of-order rejection for these inputs.",
+    "Source connections occur at virtual time zero; initially connected clients connect without subscriptions.",
+    "HTTP expected-value waits become settled public-data assertions; transport, native timing and complete original envelopes are not asserted.",
+    "Each source send gains an explicit acceptance assertion preserving the ordinary runner's implicit receipt check."
+  ],
+  "converter": {
+    "artifactSha256": "8dcdda5f9398170c64192a3b088d447dc5b803549df25054428a832e397b7ece",
+    "version": "legacy-static-conversion/v1",
+    "workbenchSha256": "df13e1289ec00237630beeb902f5d2444c466f17bfc2c8fc499e0b1c5e04b6be"
+  },
+  "files": {
+    "configuration": {
+      "bytes": 671,
+      "path": "configuration.json",
+      "sha256": "f366961467efba794ceaca714e0c87c5cde7ce38c8ceb4d18be7cac4508e08d3"
+    },
+    "legacy": {
+      "bytes": 2703,
+      "path": "legacy.json",
+      "sha256": "c930f503f04ec3170bbeaeea62d6fdae3005441847f809554fb25eb12172684d"
+    }
+  },
+  "finiteInput": {
+    "histories": [],
+    "streams": [
+      {
+        "identity": ["match-feed", "run", "match-91"],
+        "maximumSequence": 2,
+        "minimumSequence": 1,
+        "sequenceSpan": 2
+      },
+      {
+        "identity": ["bookmaker", "run", "match-91"],
+        "maximumSequence": 4,
+        "minimumSequence": 1,
+        "sequenceSpan": 4
+      }
+    ]
+  },
+  "format": "timeline-conversion/v1",
+  "mapping": [
+    {
+      "path": "$.sources[0]",
+      "targets": ["actor:source-0", "action:connect-source-0"]
+    },
+    {
+      "path": "$.sources[1]",
+      "targets": ["actor:source-1", "action:connect-source-1"]
+    },
+    {
+      "path": "$.timeline[0]",
+      "targets": [
+        "publication:publication-0",
+        "action:send-0",
+        "assertion:accepted-0"
+      ]
+    },
+    {
+      "path": "$.timeline[1]",
+      "targets": [
+        "publication:publication-1",
+        "action:send-1",
+        "assertion:accepted-1"
+      ]
+    },
+    {
+      "path": "$.timeline[2]",
+      "targets": [
+        "publication:publication-2",
+        "action:send-2",
+        "assertion:accepted-2"
+      ]
+    },
+    {
+      "path": "$.timeline[3]",
+      "targets": [
+        "publication:publication-3",
+        "action:send-3",
+        "assertion:accepted-3"
+      ]
+    },
+    {
+      "path": "$.timeline[4]",
+      "targets": [
+        "publication:publication-4",
+        "action:send-4",
+        "assertion:accepted-4"
+      ]
+    },
+    {
+      "path": "$.timeline[5]",
+      "targets": [
+        "publication:publication-5",
+        "action:send-5",
+        "assertion:accepted-5"
+      ]
+    },
+    { "path": "$.timeline[6]", "targets": ["assertion:check-6"] }
+  ],
+  "options": {
+    "epochMillis": 1700000000000,
+    "seed": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "preservedExpectations": [
+    {
+      "assertion": "check-6",
+      "expected": {
+        "odds": { "awayWin": 5.1, "draw": 3.6, "homeWin": 1.62 },
+        "score": { "away": 0, "home": 1 }
+      },
+      "path": "$.timeline[6].expected"
+    }
+  ],
+  "referenceConfiguration": "{\"contractVersion\":2,\"storage\":\"memory\",\"maxStreams\":100000,\"identityWindow\":10000,\"maxHistoryEntries\":10000,\"sources\":[{\"id\":\"match-feed\",\"epoch\":\"run\"},{\"id\":\"bookmaker\",\"epoch\":\"run\"}],\"views\":[{\"id\":\"match\",\"fields\":{\"score\":{\"sourceId\":\"match-feed\",\"type\":\"score.updated\",\"mode\":\"arrival\"},\"odds\":{\"sourceId\":\"bookmaker\",\"type\":\"odds.updated\",\"mode\":\"arrival\"}}}]}",
+  "rejectedConstructs": [],
+  "resourceBounds": {
+    "omittedDeliveryBounds": "production-default",
+    "reference": {
+      "delivery": { "maxQueuedBytes": null, "maxQueuedMessages": null },
+      "identityWindow": 10000,
+      "maxHistoryEntries": 10000,
+      "maxStreams": 100000
+    },
+    "supplied": {
+      "delivery": { "maxQueuedBytes": 1048576, "maxQueuedMessages": 128 },
+      "identityWindow": 20,
+      "maxHistoryEntries": 20,
+      "maxStreams": 20
+    }
+  },
+  "scenarioCanonicalSha256": "ba690ef06184eead0f39692b25f610c04943e766fdc92a16ceecd417f5c75f3b"
+}

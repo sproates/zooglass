@@ -25,7 +25,15 @@ export type TimingDiagnostics = {
     virtualMs: number;
   }[];
 };
+export type ProfileIssue = { path: string; rule: string };
+export type RequestedProfile = {
+  profile: string;
+  eligible: boolean;
+  issues: ProfileIssue[];
+  comparison?: { equivalent: boolean; differences: ProfileIssue[] };
+};
 export type Response = {
+  requestedProfile?: RequestedProfile;
   diagnostics?: TimingDiagnostics;
   turnId: number;
   runtimeGeneration: number;
@@ -36,6 +44,7 @@ export type Response = {
   pendingTasks: number;
   heldFrames: number;
   snapshots?: string[];
+  projectedSnapshots?: string[];
   configuration?: {
     contractVersion: number;
     storage: string;
@@ -43,6 +52,7 @@ export type Response = {
   };
 };
 export type Handshake = {
+  memoryStaticViews?: 1;
   fixture: string;
   artifact: string;
   frameCap: number;
@@ -68,6 +78,7 @@ export type Handshake = {
       sqliteSports?: 1;
       sqliteOrderLifecycle?: 1;
       installedObservations?: 1;
+      publicSnapshots?: 1;
       memorySequenceFleet?: 1;
       wallClockAdjustments?: 1;
       documentFormats: [];
@@ -108,6 +119,8 @@ function strings(value: unknown, path: string) {
 export function decodeHandshake(value: unknown): Handshake {
   const data = record(value, "handshake");
   integer(data.protocol, "handshake.protocol", 1, 2);
+  if (data.memoryStaticViews !== undefined && data.memoryStaticViews !== 1)
+    invalid("handshake.memoryStaticViews");
   if (data.protocol !== 2 && data.sqliteOrder !== undefined)
     invalid("handshake.sqliteOrder requires protocol 2");
   if (data.protocol !== 2 && data.sqliteOrderLifecycle !== undefined)
@@ -119,6 +132,15 @@ export function decodeHandshake(value: unknown): Handshake {
       data.sqliteLifecycle !== 1)
   )
     invalid("handshake.sqliteSports requires protocol 2 and SQLite lifecycle");
+  if (
+    data.publicSnapshots !== undefined &&
+    (data.protocol !== 2 ||
+      data.publicSnapshots !== 1 ||
+      data.installedObservations !== 1)
+  )
+    invalid(
+      "handshake.publicSnapshots requires protocol 2 installed observations",
+    );
   string(data.fixture, "handshake.fixture");
   string(data.artifact, "handshake.artifact");
   integer(data.frameCap, "handshake.frameCap", 1);
@@ -221,6 +243,15 @@ function effect(value: unknown, index: number) {
   }
 }
 
+function profileIssues(value: unknown, path: string) {
+  if (!Array.isArray(value)) invalid(path);
+  for (const [index, item] of value.entries()) {
+    const issue = record(item, `${path}[${index}]`);
+    string(issue.path, `${path}[${index}].path`);
+    string(issue.rule, `${path}[${index}].rule`);
+  }
+}
+
 export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
   const data = record(value, "response");
   integer(data.turnId, "response.turnId");
@@ -247,6 +278,16 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
     if ((data.snapshots as string[]).length > 64)
       invalid("response.snapshots limit");
   }
+  if (data.projectedSnapshots !== undefined) {
+    if (protocol !== 2 || data.snapshots === undefined)
+      invalid("response.projectedSnapshots requires installed snapshots");
+    strings(data.projectedSnapshots, "response.projectedSnapshots");
+    if (
+      (data.projectedSnapshots as string[]).length !==
+      (data.snapshots as string[]).length
+    )
+      invalid("response.projectedSnapshots count");
+  }
   if (data.configuration !== undefined) {
     const config = record(data.configuration, "response.configuration");
     integer(
@@ -256,6 +297,27 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
     );
     string(config.storage, "response.configuration.storage");
     string(config.documentProfile, "response.configuration.documentProfile");
+  }
+  if (data.requestedProfile !== undefined) {
+    const path = "response.requestedProfile";
+    const requested = record(data.requestedProfile, path);
+    string(requested.profile, `${path}.profile`);
+    profileIssues(requested.issues, `${path}.issues`);
+    if (
+      typeof requested.eligible !== "boolean" ||
+      requested.eligible !== ((requested.issues as unknown[]).length === 0)
+    )
+      invalid(`${path}.eligible`);
+    if (requested.comparison !== undefined) {
+      const comparison = record(requested.comparison, `${path}.comparison`);
+      profileIssues(comparison.differences, `${path}.comparison.differences`);
+      if (
+        typeof comparison.equivalent !== "boolean" ||
+        comparison.equivalent !==
+          ((comparison.differences as unknown[]).length === 0)
+      )
+        invalid(`${path}.comparison.equivalent`);
+    }
   }
   if (data.diagnostics !== undefined) {
     const diagnostics = record(data.diagnostics, "response.diagnostics");

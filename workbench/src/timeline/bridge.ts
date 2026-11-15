@@ -54,6 +54,9 @@ export class Bridge {
     elapsedNanos: number;
   }[] = [];
   configurationAdmission = 0;
+  memoryStaticViews: 0 | 1 = 0;
+  publicSnapshots: 0 | 1 = 0;
+  private projectedObservations = false;
   sqliteLifecycle: 0 | 1 = 0;
   sqliteOrder: 0 | 1 = 0;
   sqliteSports: 0 | 1 = 0;
@@ -177,12 +180,14 @@ export class Bridge {
       if (handshake.protocol === 2) {
         bridge.sqliteLifecycle = handshake.sqliteLifecycle ?? 0;
         bridge.installedObservations = handshake.installedObservations ?? 0;
+        bridge.publicSnapshots = handshake.publicSnapshots ?? 0;
         bridge.memorySequenceFleet = handshake.memorySequenceFleet ?? 0;
         bridge.sqliteSports = handshake.sqliteSports ?? 0;
         bridge.sqliteOrder = handshake.sqliteOrder ?? 0;
         bridge.sqliteOrderLifecycle = handshake.sqliteOrderLifecycle ?? 0;
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
+      bridge.memoryStaticViews = handshake.memoryStaticViews ?? 0;
       bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {
@@ -251,7 +256,8 @@ export class Bridge {
     } else if (
       op === "initialize" ||
       op === "initialize-document" ||
-      op === "inspect-configuration"
+      op === "inspect-configuration" ||
+      op === "inspect-requested-profile"
     ) {
       throw new Error("Invalid command for an initialized generation");
     }
@@ -392,6 +398,16 @@ export class Bridge {
         } else if (value.snapshots !== undefined) {
           throw new Error("Unrequested initialization snapshots");
         }
+        const projected =
+          operation.op === "initialize-document"
+            ? operation.profile === "memory-static-views-v1"
+            : this.projectedObservations;
+        if (
+          (value.projectedSnapshots !== undefined) !==
+          (targets !== undefined && projected)
+        )
+          throw new Error("Mismatched public snapshot projection");
+        this.projectedObservations = projected;
         this.wallOffset = offset;
         if (value.diagnostics) this.timing = value.diagnostics;
         if (this.generation)

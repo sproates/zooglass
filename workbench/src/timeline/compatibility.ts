@@ -30,12 +30,12 @@ export function assessLegacyScenario(scenario: Scenario) {
     if (entry.kind === "client-state")
       add(
         path,
-        "client connection/reconnect and retained-subscription semantics need an explicit actor model",
+        "legacy client-state transitions require explicit conversion; the first static converter excludes them",
       );
     if (entry.kind === "view-check")
       add(
         path,
-        "HTTP snapshot assertion needs a recorded read after settlement; no controlled read adapter yet",
+        "HTTP expected-value waits require explicit translation to settled public-data assertions; this inventory does not execute that conversion",
       );
     if (entry.kind === "client-view-check")
       add(
@@ -94,7 +94,7 @@ export function assessLegacyScenario(scenario: Scenario) {
     name: scenario.name,
     unchangedExecutionSupported: false,
     blocker:
-      "Legacy scenarios require conversion to timeline-simulation/v1 with explicit connection actions and settled-time assertions.",
+      "Legacy scenarios require explicit conversion; the bounded static subset targets timeline-simulation/v3 with connection actions and settled-time assertions.",
     kinds,
     issues,
   };

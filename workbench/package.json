@@ -51,6 +51,7 @@
     "timeline:repeat": "node --import tsx scripts/timeline-repeat.ts",
     "timeline:compare": "node --import tsx src/timeline/compare-cli.ts",
     "timeline:inspect": "node --import tsx src/timeline/inspect.ts",
+    "timeline:convert": "node --import tsx src/timeline/convert-cli.ts",
     "timeline:execute": "node --import tsx src/timeline/document-cli.ts",
     "timeline:replay": "node --import tsx src/timeline/replay-cli.ts",
     "timeline:bundle": "node --import tsx src/timeline/bundle-cli.ts",
@@ -71,7 +72,11 @@
     "prepare:sports-strategy-control": "python3 scripts/prepare-sports-strategy-mutation.py",
     "timeline:sports-strategy-control": "node --import tsx scripts/sports-strategy-check.ts",
     "timeline:sports-repeat": "node --import tsx scripts/sports-repeat.ts",
-    "timeline:sports-service-parity": "node --import tsx scripts/sports-service-parity.ts"
+    "timeline:sports-service-parity": "node --import tsx scripts/sports-service-parity.ts",
+    "timeline:static-campaign": "node --import tsx scripts/static-campaign.ts",
+    "timeline:static-selection-control": "node --import tsx scripts/static-selection-control.ts",
+    "timeline:static-service-parity": "node --import tsx scripts/static-service-parity.ts",
+    "timeline:static-audit": "node --import tsx scripts/static-audit.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

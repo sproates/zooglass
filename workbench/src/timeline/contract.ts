@@ -1,3 +1,8 @@
+import {
+  validateStaticDocument,
+  validateProjectedAssertions,
+  projectedAssertionKinds,
+} from "./static-contract.js";
 import { progressControl } from "./progress-contract.js";
 import { retryPolicies, type RetryPolicy } from "./retry-policy.js";
 import { receiptRules } from "./receipt-faults.js";
@@ -23,6 +28,8 @@ import {
   hasProgressControl,
   evidenceV1,
   evidenceV2,
+  evidenceV3,
+  staticViewsProfile,
 } from "./evidence-versions.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
@@ -39,6 +46,17 @@ import {
 
 export const format = evidenceV1.scenario;
 export const lifecycleFormat = evidenceV2.scenario;
+export const staticFormat = evidenceV3.scenario;
+export const staticCapabilities = [
+  "memory",
+  "memory-lifecycle",
+  "source-publication",
+  "client-subscription",
+  "client-lifecycle",
+  "observations",
+  "runtime-observations",
+  "projected-observations",
+] as const;
 export const capabilities = [
   "memory",
   "source-publication",
@@ -69,7 +87,7 @@ export const sportsCapabilities = [
   "fact-retirement-control",
 ] as const;
 export type TimelineDocument = {
-  format: typeof format | typeof lifecycleFormat;
+  format: typeof format | typeof lifecycleFormat | typeof staticFormat;
   storage: "memory" | "sqlite";
   profile: string;
   observationTargets: ObservationTarget[];
@@ -85,6 +103,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const rawDocument = object(parseJson(raw), "$");
   const versions = documentEvidenceVersions(rawDocument.format);
   const lifecycle = versions.protocol === 2;
+  const staticViews = versions === evidenceV3;
   const doc = object(rawDocument, "$", [
     "format",
     "id",
@@ -99,12 +118,16 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "limits",
     "untilMs",
     "end",
+    ...(staticViews && Object.hasOwn(rawDocument, "conversionReport")
+      ? ["conversionReport"]
+      : []),
     ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
     ...(Object.hasOwn(rawDocument, "retries") ? ["retries"] : []),
     ...(lifecycle && Object.hasOwn(rawDocument, "observationTargets")
       ? ["observationTargets"]
       : []),
   ]);
+  if (staticViews) validateStaticDocument(doc);
   text(doc.id, "$.id");
   const clock = object(doc.clock, "$.clock", ["epochMillis"]);
   const epoch = integer(clock.epochMillis, "$.clock.epochMillis");
@@ -131,12 +154,13 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const profile =
     runtime.profile === undefined
       ? versions.profile
-      : choice(runtime.profile, "$.runtime.profile", [
-          fleetProfile,
-          sportsProfile,
-          orderProfile,
-          orderRestartProfile,
-        ]);
+      : choice(
+          runtime.profile,
+          "$.runtime.profile",
+          staticViews
+            ? [staticViewsProfile]
+            : [fleetProfile, sportsProfile, orderProfile, orderRestartProfile],
+        );
   if (profile === fleetProfile && storage !== "memory")
     invalid(
       "$.runtime.storage",
@@ -334,6 +358,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     } else required.add("client-lifecycle");
   });
   validateWallSchedule(until, wallSettings);
+  if (staticViews) validateProjectedAssertions(doc);
   list(doc.assertions, "$.assertions").forEach((value, i) => {
     const path = `$.assertions[${i}]`;
     const record = object(value, path);
@@ -345,10 +370,17 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
             "client-frames",
             "source-receipts",
             "runtime-snapshot",
+            ...(staticViews ? projectedAssertionKinds : []),
             ...(hasProgressControl(profile) ? ["control-receipts"] : []),
           ]
         : ["client-frames", "source-receipts"],
     );
+    if (staticViews && projectedAssertionKinds.includes(kind)) {
+      unique(text(record.id, `${path}.id`), eventIds, `${path}.id`);
+      integer(record.atMs, `${path}.atMs`, until);
+      required.add("projected-observations");
+      return;
+    }
     const assertion = object(value, path, [
       "id",
       "atMs",

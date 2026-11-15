@@ -1,0 +1,55 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "orders",
+      "epoch": "run"
+    },
+    {
+      "id": "payments",
+      "epoch": "run"
+    },
+    {
+      "id": "inventory",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "order",
+      "fields": {
+        "order": {
+          "inputs": [
+            {
+              "sourceId": "orders",
+              "type": "order.accepted"
+            },
+            {
+              "sourceId": "orders",
+              "type": "order.packed"
+            }
+          ],
+          "mode": "arrival"
+        },
+        "payment": {
+          "sourceId": "payments",
+          "type": "payment.authorised",
+          "mode": "arrival"
+        },
+        "inventory": {
+          "sourceId": "inventory",
+          "type": "inventory.reserved",
+          "mode": "arrival"
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}

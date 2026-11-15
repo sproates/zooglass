@@ -245,6 +245,24 @@ export function installedSnapshot(
   return snapshot;
 }
 
+/** Validate the production API projection without reconstructing its values. */
+export function publicSnapshot(
+  value: Json | undefined,
+  path: string,
+  target?: ObservationTarget,
+) {
+  const snapshot = object(value, path);
+  snapshotEnvelope({ ...snapshot, type: "view-update" }, path, true);
+  if (Object.hasOwn(snapshot, "type"))
+    invalid(path, "public snapshot is not a wire frame");
+  if (
+    target &&
+    (snapshot.viewId !== target.viewId || snapshot.entityId !== target.entityId)
+  )
+    invalid(path, "public snapshot does not match observation target");
+  return snapshot;
+}
+
 export function runtimeObservation(
   value: Json | undefined,
   path: string,

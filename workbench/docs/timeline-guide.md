@@ -37,17 +37,19 @@ assertion or resource-limit failure. Reports do not overwrite evidence.
 
 ## Commands and exit statuses
 
-| Command                                           | Purpose                                      | Exit status                                                                                           |
-| ------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `timeline:execute SCENARIO RUN [JAR]`             | Execute a document                           | 0 passed; 1 failure or rejection                                                                      |
-| `timeline:inspect scenario FILE...`               | Validate document syntax                     | 0 valid; 1 invalid; execution not checked                                                             |
-| `timeline:inspect admission SCENARIO JAR`         | Check configuration/artifact admission       | 0 assessment produced; read `execution: eligible/unsupported`; 1 invalid input or failed inspection   |
-| `timeline:inspect trace FILE...`                  | Validate raw JSONL trace structure           | 0 valid; 1 invalid; no execution verification                                                         |
-| `timeline:inspect legacy FILE...`                 | Assess ordinary scenario compatibility       | 0 assessment produced; read its limitations                                                           |
-| `timeline:replay RUN REPORT [JAR]`                | Re-execute saved run                         | 0 verified and passed; 2 verified scenario failure; 1 divergence, infrastructure failure or rejection |
-| `timeline:bundle record SCENARIO DIRECTORY [JAR]` | Execute and retain portable evidence         | 0 passed; 1 failure or rejection                                                                      |
-| `timeline:bundle replay DIRECTORY REPORT [JAR]`   | Validate inventory and re-execute            | Same strict replay policy                                                                             |
-| `timeline:compare LEFT RIGHT REPORT`              | Compare two saved runs or bundle directories | 0 equal; 2 different trace; 1 incompatible identities or invalid evidence                             |
+| Command                                                                            | Purpose                                                                   | Exit status                                                                                           |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `timeline:execute SCENARIO RUN [JAR]`                                              | Execute a document                                                        | 0 passed; 1 failure or rejection                                                                      |
+| `timeline:convert LEGACY DIRECTORY --runtime CONFIG --epoch-ms INTEGER --seed HEX` | Explicitly translate the static subset                                    | 0 converted, no scenario execution; 1 unsupported or invalid                                          |
+| `timeline:inspect scenario FILE...`                                                | Validate document syntax                                                  | 0 valid; 1 invalid; execution not checked                                                             |
+| `timeline:inspect admission SCENARIO JAR`                                          | Check configuration/artifact admission                                    | 0 assessment produced; read `execution: eligible/unsupported`; 1 invalid input or failed inspection   |
+| `timeline:inspect static-configuration CONFIG JAR [REFERENCE]`                     | Check the broader static-memory family and optional normalized comparison | 0 assessment produced; read `requestedProfile`; 1 invalid input or failed inspection                  |
+| `timeline:inspect trace FILE...`                                                   | Validate raw JSONL trace structure                                        | 0 valid; 1 invalid; no execution verification                                                         |
+| `timeline:inspect legacy FILE...`                                                  | Assess ordinary scenario compatibility                                    | 0 assessment produced; read its limitations                                                           |
+| `timeline:replay RUN REPORT [JAR]`                                                 | Re-execute saved run                                                      | 0 verified and passed; 2 verified scenario failure; 1 divergence, infrastructure failure or rejection |
+| `timeline:bundle record SCENARIO DIRECTORY [JAR]`                                  | Execute and retain portable evidence                                      | 0 passed; 1 failure or rejection                                                                      |
+| `timeline:bundle replay DIRECTORY REPORT [JAR]`                                    | Validate inventory and re-execute                                         | Same strict replay policy                                                                             |
+| `timeline:compare LEFT RIGHT REPORT`                                               | Compare two saved runs or bundle directories                              | 0 equal; 2 different trace; 1 incompatible identities or invalid evidence                             |
 
 Replay accepts `--verification-only` to exit 0 for a faithfully reproduced assertion
 or limit failure. Reports still retain that failed outcome. `--require-passed`
@@ -69,14 +71,15 @@ Standalone replay requires a new report file; keep it outside any bundle directo
 These are bounded profiles, not automatic conversion of ordinary Workbench JSON.
 Configuration admission is authoritative; follow each profile's linked limits.
 
-| Profile                         | Storage and strategies                                       | Lifecycle and controls                                             | Evidence                                                                               |
-| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `memory-arrival-v1` (v1)        | Memory, one latest-by-arrival field                          | No restart; fixed links, receipt loss/retry, viewer control        | [Document proof](timeline-execution.md)                                                |
-| `receipt-age-restart-v1` (v2)   | Memory or SQLite, bounded latest-by-arrival                  | Stop/start between turns, receipt-age continuity; wall adjustments | [Memory](timeline-memory-qualification.md), [SQLite](timeline-sqlite-qualification.md) |
-| `memory-sequence-fleet-v1` (v2) | Memory, bounded latest-by-sequence/history                   | Multi-source fleet; no restart                                     | [Fleet](timeline-fleet-qualification.md)                                               |
-| `sqlite-order-v1` (v2)          | SQLite, bounded mapping, priority and required contributions | Progress/watermarks; no restart                                    | [Order](timeline-order-qualification.md)                                               |
-| `sqlite-order-restart-v1` (v2)  | Same Order configuration                                     | Explicit restart, retained identity/progress; no wall adjustment   | [Order recovery](timeline-order-recovery.md)                                           |
-| `sqlite-sports-v1` (v2)         | SQLite, bounded latest/first fact revision, count/sum        | Progress and per-view atomic retirement; no restart                | [Sports](timeline-sports-qualification.md)                                             |
+| Profile                         | Storage and strategies                                       | Lifecycle and controls                                                           | Evidence                                                                               |
+| ------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `memory-arrival-v1` (v1)        | Memory, one latest-by-arrival field                          | No restart; fixed links, receipt loss/retry, viewer control                      | [Document proof](timeline-execution.md)                                                |
+| `receipt-age-restart-v1` (v2)   | Memory or SQLite, bounded latest-by-arrival                  | Stop/start between turns, receipt-age continuity; wall adjustments               | [Memory](timeline-memory-qualification.md), [SQLite](timeline-sqlite-qualification.md) |
+| `memory-sequence-fleet-v1` (v2) | Memory, bounded latest-by-sequence/history                   | Multi-source fleet; no restart                                                   | [Fleet](timeline-fleet-qualification.md)                                               |
+| `sqlite-order-v1` (v2)          | SQLite, bounded mapping, priority and required contributions | Progress/watermarks; no restart                                                  | [Order](timeline-order-qualification.md)                                               |
+| `sqlite-order-restart-v1` (v2)  | Same Order configuration                                     | Explicit restart, retained identity/progress; no wall adjustment                 | [Order recovery](timeline-order-recovery.md)                                           |
+| `sqlite-sports-v1` (v2)         | SQLite, bounded latest/first fact revision, count/sum        | Progress and per-view atomic retirement; no restart                              | [Sports](timeline-sports-qualification.md)                                             |
+| `memory-static-views-v1` (v3)   | Memory, bounded arrival/latest/history mixtures and aliases  | Explicit conversion or authoring; zero-latency links, no retries/faults/restarts | [Static configuration](timeline-static-qualification.md)                               |
 
 Unsupported fields, combinations and resource bounds reject admission. Declared
 presend omission/order, fixed FIFO latency, lost source receipts and exact retries,
@@ -87,11 +90,11 @@ real browser/device behaviour and native concurrency need their separate tests.
 
 ## Environment and evidence
 
-| Environment   | Retained qualification                                    | Limit                                                                                   |
-| ------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order and Sports | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
-| Linux arm64   | Original v1 document campaign                             | Does not qualify later profiles                                                         |
-| Other systems | No retained qualification claim                           | Successful preparation alone is not qualification                                       |
+| Environment   | Retained qualification                                            | Limit                                                                                   |
+| ------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order, Sports and Static | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
+| Linux arm64   | Original v1 document campaign                                     | Does not qualify later profiles                                                         |
+| Other systems | No retained qualification claim                                   | Successful preparation alone is not qualification                                       |
 
 Replay requires the recorded executor/modules, host JAR and environment identities.
 Changing even CLI modules changes the current Workbench identity, so replay older
@@ -108,3 +111,5 @@ Workbench demos continue to serve their real-time purpose.
 The [integration qualification](timeline-integration-results.md) checks the bounded
 timeline alongside all three existing live demos, delivered in
 [PR #172](https://github.com/sproates/zooglass/pull/172).
+
+[Static configuration admission](timeline-static-admission.md) checks the broader family; [V3 conversion and execution](timeline-conversion.md) add projected assertions and retained conversion provenance.

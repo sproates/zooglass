@@ -1,0 +1,144 @@
+{
+  "actions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "connect-source-0",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "send-0",
+      "kind": "source-send",
+      "publication": "publication-0"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 100,
+      "id": "send-1",
+      "kind": "source-send",
+      "publication": "publication-1"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 200,
+      "id": "send-2",
+      "kind": "source-send",
+      "publication": "publication-2"
+    }
+  ],
+  "actors": [{ "id": "source-0", "role": "source" }],
+  "assertions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "accepted-0",
+      "kind": "source-accepted",
+      "send": "send-0"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 100,
+      "id": "accepted-1",
+      "kind": "source-accepted",
+      "send": "send-1"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 200,
+      "id": "accepted-2",
+      "kind": "source-accepted",
+      "send": "send-2"
+    },
+    {
+      "atMs": 201,
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+          { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+        ]
+      },
+      "id": "check-3",
+      "kind": "runtime-data",
+      "viewId": "trip-history"
+    },
+    {
+      "atMs": 202,
+      "entityId": "car-22",
+      "expected": {
+        "positions": [{ "latitude": 52, "longitude": -1, "sequence": 41 }]
+      },
+      "id": "check-4",
+      "kind": "runtime-data",
+      "viewId": "trip-history"
+    }
+  ],
+  "clock": { "epochMillis": 1700000000000 },
+  "conversionReport": "conversion-report.json",
+  "end": {
+    "heldFrames": 0,
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0
+  },
+  "format": "timeline-simulation/v3",
+  "id": "converted-443d7dd9046477f468a5153e",
+  "limits": {
+    "pendingMessages": 1000,
+    "queuedEvents": 1000,
+    "rounds": 100,
+    "traceBytes": 16777216,
+    "turns": 2000
+  },
+  "links": [{ "actor": "source-0", "latencyMs": 0 }],
+  "observationTargets": [
+    { "entityId": "car-17", "viewId": "trip-history" },
+    { "entityId": "car-22", "viewId": "trip-history" }
+  ],
+  "publications": [
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+        "publicationSequence": 40,
+        "sourceEntityId": "car-17",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-0"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 52, "longitude": -1, "sequence": 41 },
+        "publicationSequence": 41,
+        "sourceEntityId": "car-22",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-1"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 },
+        "publicationSequence": 42,
+        "sourceEntityId": "car-17",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-2"
+    }
+  ],
+  "runtime": {
+    "access": "unprotected",
+    "configuration": "configuration.json",
+    "initialState": "empty",
+    "profile": "memory-static-views-v1",
+    "sha256": "98f65e6644e945a2c85ff7a24d7c44d727c5975a1b13436fa893cbe2d69a33af",
+    "storage": "memory"
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "untilMs": 202
+}

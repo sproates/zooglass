@@ -64,7 +64,8 @@ export class TraceGenerations {
     } = event;
     if (this.epoch !== undefined) this.wallMillis(event.timeMs, path);
     const snapshotAssertion =
-      kind === "assertion" && data.assertionKind === "runtime-snapshot";
+      kind === "assertion" &&
+      ["runtime-snapshot", "runtime-data"].includes(String(data.assertionKind));
     if (this.pendingObservation && !snapshotAssertion)
       invalid(
         path,
@@ -264,7 +265,10 @@ export class TraceGenerations {
           path,
           "unavailable outcome must identify its actor's attempted action or retry",
         );
-    } else if (kind === "runtime-observation") {
+    } else if (
+      kind === "runtime-observation" ||
+      kind === "runtime-data-observation"
+    ) {
       if (
         actor !== "@runtime" ||
         connectionGeneration !== null ||
@@ -284,7 +288,10 @@ export class TraceGenerations {
             path,
             "unavailable runtime observation requires the current stop cause",
           );
-      } else if (data.outcome !== "available") {
+      } else if (
+        kind === "runtime-observation" &&
+        data.outcome !== "available"
+      ) {
         invalid(
           path,
           "running runtime observation requires an installed snapshot",
@@ -315,10 +322,18 @@ export class TraceGenerations {
           "runtime snapshot assertion must share its observation's same agenda key",
         );
       const { outcome, snapshot } = observation.data;
-      const observed = {
-        outcome,
-        ...(snapshot !== undefined ? { snapshot } : {}),
-      };
+      if (
+        (data.assertionKind === "runtime-data") !==
+        (observation.kind === "runtime-data-observation")
+      )
+        invalid(
+          path,
+          "projection assertion requires matching observation kind",
+        );
+      const observed =
+        data.assertionKind === "runtime-data"
+          ? object(observation.data.publicSnapshot, path).data
+          : { outcome, ...(snapshot !== undefined ? { snapshot } : {}) };
       if (encodeJson(data.actual) !== encodeJson(observed))
         invalid(
           path,

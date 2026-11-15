@@ -1,10 +1,18 @@
 # Broader deterministic configuration support
 
-Status: proposed expansion contract, 15 November 2026. Baseline main `ec4fbbf`.
+Status: accepted expansion contract, 15 November 2026, merged through PR #174.
+Baseline main `ec4fbbf`. The first two implementation slices add
+[requested-profile admission](../../workbench/docs/timeline-static-admission.md) and
+[V3 conversion/execution](../../workbench/docs/timeline-conversion.md). The third
+slice supplies [reviewed fixtures](../../workbench/scenarios/timeline-static/README.md);
+the [finite qualification](../../workbench/docs/timeline-static-qualification.md)
+passes in the fourth slice. All four slices are merged into the integration
+branch; their combined promotion to main is ready for review and pending merge.
 The [bounded timeline](../../workbench/docs/timeline-guide.md) is delivered. This
 proposal adds one reusable configuration family and one explicit conversion path;
 it does not reopen the completed POC or promise every Workbench scenario.
-Implementation follows acceptance of this contract. Main promotion remains separate.
+The implementation and qualification satisfy the fixed finish line below.
+Main promotion remains a separate acceptance decision.
 
 ## Outcome and fixed finish line
 
@@ -43,7 +51,7 @@ polling and client message consumption.
 
 ## One configuration family
 
-Proposed explicit profile: `memory-static-views-v1`.
+Explicit profile: `memory-static-views-v1`.
 
 | Dimension            | Admitted contract                                                                                                            |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -67,7 +75,9 @@ by this profile. Existing profiles continue to provide their delivered capabilit
 The new family's initial transport scope is zero-latency links, explicit source
 sends and client connect/disconnect/subscribe/unsubscribe. No source retries,
 receipt-loss rules, writer faults or automatic retry policies are admitted for this
-new family in this milestone. Their existing-profile support is unchanged.
+new family in this milestone. Source actors connect exactly once at time zero,
+without source disconnect/reconnect; client lifecycle remains explicit. Existing-profile
+support is unchanged.
 
 ### Preserve admission identity
 
@@ -97,8 +107,13 @@ is no promise that newly built tools replay old archives with different identiti
 
 - **`runtime-data`**: names view/entity, exact expected data object and settled
   timestamp. Read installed state using the existing side-effect-free observation
-  operation. Retain the complete observed snapshot in the semantic trace, then
-  compare its entire `data` object losslessly. This is explicitly a data assertion,
+  operation. Retain the complete internal observed snapshot in the semantic trace.
+  The host applies production `ViewSnapshot.from` to that installed snapshot and
+  also records the projected public snapshot; compare its entire `data` object
+  losslessly. Internal data retains publication-sequence/payload envelopes, whereas
+  legacy HTTP expectations contain public values. Reuse the production projection;
+  do not unwrap those envelopes independently in TypeScript or change legacy
+  expected values. This is explicitly a data assertion,
   not a claim to have asserted every status/version/provenance field. The initial
   converter accepts non-null expected objects only; absence is deferred.
 - **`source-accepted`**: references a declared send and its source actor. At that
@@ -120,7 +135,7 @@ nor tests may execute ZooGlass to manufacture expected versions or answers.
 
 ## Conversion is reviewable, explicit and bounded
 
-Proposed command (not yet implemented):
+Explicit conversion command:
 
 ```text
 npm run timeline:convert -- LEGACY.json NEW_DIRECTORY --runtime CONFIG.json --epoch-ms INTEGER --seed HEX [--jar HOST.jar]
@@ -147,7 +162,9 @@ documents omit this field. Conversion errors leave no executable-looking success
 
 ### Configuration and limits
 
-Require the caller to supply the bounded runtime configuration. Compare its
+Require the caller to supply the bounded runtime configuration, with all five
+selected resource bounds explicit. The general admission path still accepts
+production defaults; converter reporting must not invent their numeric values. Compare its
 normalized meaning to the legacy declarations compiled by the existing shared
 `runtimeView`/`runtimeConfiguration` logic. The requested-admission host operation
 compares both configurations after production decoding, with an explicit whitelist of the five resource properties
@@ -243,7 +260,7 @@ continue to run under their own profiles and are not removed by this table.
 
 ## Implementation boundaries and delivery
 
-Proposed integration branch: `integration/timeline-configuration-breadth`, created
+Integration branch: `integration/timeline-configuration-breadth`, created
 from refreshed main after design acceptance. Four bounded implementation PRs target
 it; a final reviewed promotion PR targets main. No automatic main merge. Expected
 count: **one design PR, four implementation/evidence PRs, one promotion PR**.
@@ -285,7 +302,7 @@ flowchart LR
   cli["timeline/convert-cli.ts"] -->|write explicit conversion artifacts| conversion["timeline/conversion.ts"]
   conversion -->|reject unsupported constructs| eligibility["timeline/conversion-eligibility.ts"]
   conversion -->|compile reference configuration| config["service/runtime-configuration.ts"]
-  conversion -->|inspect supplied and reference configurations| admission["timeline/admission.ts"]
+  conversion -->|inspect supplied and reference configurations| admission["timeline/requested-admission.ts"]
   admission -->|requested-profile validation only| host["simulation/TimelineHost.java"]
   host -->|check bounded family| profile["runtime/StaticViewsTimelineProfile.java"]
   host -->|decode both configurations| production["runtime/RuntimeConfiguration.java"]

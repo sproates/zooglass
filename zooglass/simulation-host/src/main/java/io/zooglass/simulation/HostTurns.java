@@ -25,7 +25,7 @@ final class HostTurns {
     Turn admit(JsonNode command, String operation) {
         long id = integer(command, "turnId");
         long at = integer(command, "timeMs");
-        boolean inspection = operation.equals("inspect-configuration");
+        boolean inspection = operation.equals("inspect-configuration") || operation.equals("inspect-requested-profile");
         boolean initializing = operation.equals("initialize") || operation.equals("initialize-document");
         boolean adjusting = operation.equals("wall-clock-set");
         if (adjusting && protocol != HostProtocol.V2)

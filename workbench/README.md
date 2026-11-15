@@ -943,3 +943,14 @@ and real retirement endpoint with complete acknowledgements, cancellation and
 replay. [Sports qualification](docs/timeline-sports-qualification.md) covers the
 full pinned two-cycle inputs, separate retention boundaries, six fresh-process
 runs, an actual wrong-revision runtime control and scoped ordinary-service parity.
+
+### Static configuration conversion
+
+[V3 conversion and execution](docs/timeline-conversion.md) extend the deterministic
+timeline with one bounded static-memory family, public-data and source-acceptance
+assertions, and retained conversion provenance. Conversion is explicit and never
+executes the scenario or computes expected outcomes. Unsupported legacy constructs
+are rejected; the existing demos and V1/V2 profiles retain their meaning. The
+[fixed qualification](docs/timeline-static-qualification.md) passes for five
+converted scenarios and the independent mixed-mode witness. Integration promotion
+to main remains separate.

@@ -1,3 +1,8 @@
+import {
+  validateConversionProvenance,
+  type ConversionProvenance,
+} from "./conversion-provenance.js";
+import { publicationIdentity } from "./projected-assertions.js";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { boundedFile, decode } from "./admission.js";
@@ -7,6 +12,7 @@ import {
   documentEvidenceVersions,
   evidenceV1,
   evidenceV2,
+  evidenceV3,
 } from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
@@ -37,6 +43,9 @@ export function parseReplay(raw: string) {
     "configuration",
     "execution",
     "trace",
+    ...(Object.hasOwn(saved, "conversionProvenance")
+      ? ["conversionProvenance"]
+      : []),
     ...(Object.hasOwn(saved, "message") ? ["message"] : []),
     ...(Object.hasOwn(saved, "diagnostics") ? ["diagnostics"] : []),
   ]);
@@ -44,6 +53,7 @@ export function parseReplay(raw: string) {
   const format = choice(saved.format, "format", [
     evidenceV1.run,
     evidenceV2.run,
+    evidenceV3.run,
   ]);
   const outcome = choice(saved.outcome, "outcome", [
     "passed",
@@ -58,6 +68,11 @@ export function parseReplay(raw: string) {
   if (scenario.canonical !== saved.scenario)
     throw new Error("invalid-replay: noncanonical scenario");
   const wire = string(saved.configuration, "configuration");
+  const conversionProvenance = validateConversionProvenance(
+    scenario,
+    wire,
+    saved.conversionProvenance as ConversionProvenance | undefined,
+  );
   const configurationHash = sha(wire);
   if (object(scenario.document.runtime, "runtime").sha256 !== configurationHash)
     throw new Error("invalid-replay: configuration hash mismatch");
@@ -106,6 +121,7 @@ export function parseReplay(raw: string) {
     scenario,
     wire,
     configurationHash,
+    ...(conversionProvenance ? { conversionProvenance } : {}),
     execution,
     versions,
     lines: trace.lines,
@@ -118,6 +134,7 @@ function checkRuntimeDeclarations(
   trace: ReturnType<typeof parseTrace>,
 ) {
   checkControlDeclarations(scenario, trace);
+  checkProjectedDeclarations(scenario, trace);
   const actions = list(scenario.document.actions, "actions");
   const runtimeActions = scenario.admittedActions.filter((action) =>
     isRuntimeAction(action.kind),
@@ -172,6 +189,95 @@ function checkRuntimeDeclarations(
       throw new Error(
         "invalid-replay: runtime snapshot assertion differs from scenario",
       );
+  }
+}
+
+function checkProjectedDeclarations(
+  scenario: TimelineDocument,
+  trace: ReturnType<typeof parseTrace>,
+) {
+  if (scenario.format === evidenceV3.scenario) {
+    const actions = list(scenario.document.actions, "actions").map((value) =>
+      object(value, "action"),
+    );
+    if (
+      trace.outcome === "passed" &&
+      trace.staticActions.length !== actions.length
+    )
+      throw new Error("invalid-replay: missing static actions");
+    const seen = new Set<string>();
+    for (const event of trace.staticActions) {
+      const id = text(event.data.actionId, "actionId");
+      const declared = actions.find((action) => action.id === id);
+      if (
+        !declared ||
+        seen.has(id) ||
+        declared.actor !== event.actor ||
+        integer(declared.atMs, "atMs") !== event.timeMs
+      )
+        throw new Error("invalid-replay: static action differs from scenario");
+      seen.add(id);
+      const expected: { [key: string]: Json } = {
+        ...declared,
+        actionId: declared.id,
+        actionKind: declared.kind,
+      };
+      for (const key of ["id", "kind", "actor", "atMs"]) delete expected[key];
+      if (encodeJson(expected) !== encodeJson(event.data))
+        throw new Error(
+          "invalid-replay: static action payload differs from scenario",
+        );
+    }
+  }
+  const assertions = list(scenario.document.assertions, "assertions")
+    .map((value) => object(value, "assertion"))
+    .filter((value) =>
+      ["runtime-data", "source-accepted"].includes(String(value.kind)),
+    )
+    .sort((a, b) => integer(a.atMs, "atMs") - integer(b.atMs, "atMs"));
+  if (
+    trace.outcome === "passed" &&
+    trace.projectedAssertions.length !== assertions.length
+  )
+    throw new Error("invalid-replay: missing projected assertions");
+  for (const [index, event] of trace.projectedAssertions.entries()) {
+    const declared = assertions[index];
+    if (
+      !declared ||
+      declared.id !== event.data.assertionId ||
+      declared.kind !== event.data.assertionKind ||
+      integer(declared.atMs, "atMs") !== event.timeMs
+    )
+      throw new Error(
+        "invalid-replay: projected assertion differs from scenario",
+      );
+    if (declared.kind === "runtime-data") {
+      if (
+        declared.viewId !== event.data.viewId ||
+        declared.entityId !== event.data.entityId ||
+        encodeJson(declared.expected) !== encodeJson(event.data.expected)
+      )
+        throw new Error(
+          "invalid-replay: projected data expectation differs from scenario",
+        );
+    } else {
+      const send = list(scenario.document.actions, "actions")
+        .map((value) => object(value, "action"))
+        .find((action) => action.id === declared.send)!;
+      const publication = list(scenario.document.publications, "publications")
+        .map((value) => object(value, "publication"))
+        .find((value) => value.id === send.publication)!;
+      if (
+        declared.actor !== event.actor ||
+        declared.send !== event.data.send ||
+        send.publication !== event.data.publication ||
+        encodeJson(publicationIdentity(publication.body)) !==
+          encodeJson(event.data.identity)
+      )
+        throw new Error(
+          "invalid-replay: acceptance identity differs from scenario",
+        );
+    }
   }
 }
 

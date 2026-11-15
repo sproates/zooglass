@@ -1,0 +1,139 @@
+{
+  "adaptations": [
+    "Caller supplied five explicit resource bounds replace compiler defaults; omitted reference delivery bounds identify production defaults.",
+    "Numeric admission floors can differ; the whole-input span prevents introduced receipt eviction or out-of-order rejection for these inputs.",
+    "Source connections occur at virtual time zero; initially connected clients connect without subscriptions.",
+    "HTTP expected-value waits become settled public-data assertions; transport, native timing and complete original envelopes are not asserted.",
+    "Each source send gains an explicit acceptance assertion preserving the ordinary runner's implicit receipt check."
+  ],
+  "converter": {
+    "artifactSha256": "8dcdda5f9398170c64192a3b088d447dc5b803549df25054428a832e397b7ece",
+    "version": "legacy-static-conversion/v1",
+    "workbenchSha256": "df13e1289ec00237630beeb902f5d2444c466f17bfc2c8fc499e0b1c5e04b6be"
+  },
+  "files": {
+    "configuration": {
+      "bytes": 1039,
+      "path": "configuration.json",
+      "sha256": "f44dfd235b0709e81d7972f9b0ccd139e47e478a8c34293da1be5fdeb49c7569"
+    },
+    "legacy": {
+      "bytes": 2904,
+      "path": "legacy.json",
+      "sha256": "109a739dc2f822ec0f4f965c5131bcbb237c331aef0cd80dd9d175db87ccfa70"
+    }
+  },
+  "finiteInput": {
+    "histories": [],
+    "streams": [
+      {
+        "identity": ["orders", "run", "order-108"],
+        "maximumSequence": 2,
+        "minimumSequence": 1,
+        "sequenceSpan": 2
+      },
+      {
+        "identity": ["payments", "run", "order-108"],
+        "maximumSequence": 1,
+        "minimumSequence": 1,
+        "sequenceSpan": 1
+      },
+      {
+        "identity": ["inventory", "run", "order-108"],
+        "maximumSequence": 1,
+        "minimumSequence": 1,
+        "sequenceSpan": 1
+      }
+    ]
+  },
+  "format": "timeline-conversion/v1",
+  "mapping": [
+    {
+      "path": "$.sources[0]",
+      "targets": ["actor:source-0", "action:connect-source-0"]
+    },
+    {
+      "path": "$.sources[1]",
+      "targets": ["actor:source-1", "action:connect-source-1"]
+    },
+    {
+      "path": "$.sources[2]",
+      "targets": ["actor:source-2", "action:connect-source-2"]
+    },
+    {
+      "path": "$.timeline[0]",
+      "targets": [
+        "publication:publication-0",
+        "action:send-0",
+        "assertion:accepted-0"
+      ]
+    },
+    {
+      "path": "$.timeline[1]",
+      "targets": [
+        "publication:publication-1",
+        "action:send-1",
+        "assertion:accepted-1"
+      ]
+    },
+    {
+      "path": "$.timeline[2]",
+      "targets": [
+        "publication:publication-2",
+        "action:send-2",
+        "assertion:accepted-2"
+      ]
+    },
+    { "path": "$.timeline[3]", "targets": ["assertion:check-3"] },
+    {
+      "path": "$.timeline[4]",
+      "targets": [
+        "publication:publication-4",
+        "action:send-4",
+        "assertion:accepted-4"
+      ]
+    },
+    { "path": "$.timeline[5]", "targets": ["assertion:check-5"] }
+  ],
+  "options": {
+    "epochMillis": 1700000000000,
+    "seed": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "preservedExpectations": [
+    {
+      "assertion": "check-3",
+      "expected": {
+        "order": { "sourceTimestamp": 1900, "status": "packed" },
+        "payment": { "sourceTimestamp": 1180, "status": "authorised" }
+      },
+      "path": "$.timeline[3].expected"
+    },
+    {
+      "assertion": "check-5",
+      "expected": {
+        "inventory": { "sourceTimestamp": 1100, "status": "reserved" },
+        "order": { "sourceTimestamp": 1900, "status": "packed" },
+        "payment": { "sourceTimestamp": 1180, "status": "authorised" }
+      },
+      "path": "$.timeline[5].expected"
+    }
+  ],
+  "referenceConfiguration": "{\"contractVersion\":2,\"storage\":\"memory\",\"maxStreams\":100000,\"identityWindow\":10000,\"maxHistoryEntries\":10000,\"sources\":[{\"id\":\"orders\",\"epoch\":\"run\"},{\"id\":\"payments\",\"epoch\":\"run\"},{\"id\":\"inventory\",\"epoch\":\"run\"}],\"views\":[{\"id\":\"order\",\"fields\":{\"order\":{\"inputs\":[{\"sourceId\":\"orders\",\"type\":\"order.accepted\"},{\"sourceId\":\"orders\",\"type\":\"order.packed\"}],\"mode\":\"arrival\"},\"payment\":{\"sourceId\":\"payments\",\"type\":\"payment.authorised\",\"mode\":\"arrival\"},\"inventory\":{\"sourceId\":\"inventory\",\"type\":\"inventory.reserved\",\"mode\":\"arrival\"}}}]}",
+  "rejectedConstructs": [],
+  "resourceBounds": {
+    "omittedDeliveryBounds": "production-default",
+    "reference": {
+      "delivery": { "maxQueuedBytes": null, "maxQueuedMessages": null },
+      "identityWindow": 10000,
+      "maxHistoryEntries": 10000,
+      "maxStreams": 100000
+    },
+    "supplied": {
+      "delivery": { "maxQueuedBytes": 1048576, "maxQueuedMessages": 128 },
+      "identityWindow": 20,
+      "maxHistoryEntries": 20,
+      "maxStreams": 20
+    }
+  },
+  "scenarioCanonicalSha256": "728d6657db3288848d111f8a27888f8cb9c5acc725bc3da5cc2ffca368917f81"
+}

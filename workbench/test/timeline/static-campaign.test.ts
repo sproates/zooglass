@@ -22,6 +22,11 @@ test("static qualification requires independent literals, identical traces and m
   const counts = checkStaticRun(perturbed, scenario, normal, perturbedMode);
   assert.equal(counts.jvmPauses, 2);
   assert.ok(counts.nodePauses > 0);
+  const nearRequested = structuredClone(perturbed);
+  nearRequested.diagnostics.generations![0].node[0].elapsedNanos = 69_000_000;
+  assert.doesNotThrow(() =>
+    checkStaticRun(nearRequested, scenario, normal, perturbedMode),
+  );
   for (const corrupt of [
     (run: typeof perturbed) => {
       run.outcome = "assertion-failed";
@@ -53,5 +58,15 @@ test("static qualification requires independent literals, identical traces and m
     () =>
       checkStaticRun(normal, JSON.stringify(changed), undefined, baselineMode),
     /reviewed scenario/,
+  );
+});
+
+test("converted scenarios without subscriptions require state pauses but no client writer pause", async () => {
+  const path = "scenarios/timeline-static/live-match/scenario.json";
+  const scenario = await readFile(path, "utf8");
+  const run = await runDocument(path, { jar, ...perturbedMode });
+  assert.equal(
+    checkStaticRun(run, scenario, undefined, perturbedMode).jvmPauses,
+    1,
   );
 });

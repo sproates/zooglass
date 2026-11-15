@@ -23,6 +23,7 @@ export async function auditStaticCampaign(directory: string) {
   assert.equal(summary.format, "timeline-static-campaign/v1");
   assert.equal(summary.complete, true);
   assert.equal(summary.scenarioExecutions, 24);
+  assert.equal(summary.attemptedExecutions, 24);
   assert.equal(summary.expectedExecutions, 24);
   assert.equal(summary.rows.length, 12);
   for (const file of summary.source.files.filter((file: { path: string }) =>

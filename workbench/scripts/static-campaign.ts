@@ -51,6 +51,8 @@ export async function runStaticCampaign(output: string, preparedJar: string) {
     { recursive: true, errorOnExist: true, force: false },
   );
   const rows = [];
+  let attemptedExecutions = 0;
+  let scenarioExecutions = 0;
   let failure: string | undefined;
   try {
     for (const name of staticCases) {
@@ -61,7 +63,9 @@ export async function runStaticCampaign(output: string, preparedJar: string) {
         ["baseline", baselineMode],
         ["perturbed", perturbedMode],
       ] as const) {
+        attemptedExecutions++;
         const run = await runDocument(scenario, { jar, ...mode });
+        scenarioExecutions++;
         const file = `${name}-${label}.json`;
         await writeEvidence(join(directory, file), run);
         const counts = checkStaticRun(run, bytes, baseline, mode);
@@ -69,9 +73,11 @@ export async function runStaticCampaign(output: string, preparedJar: string) {
         assert.equal(run.execution.workbenchSha256, source.workbenchSha256);
         if (!baseline) baseline = run;
         // Replay uses a fresh JVM and compares every new record. Retain its actual run too.
+        attemptedExecutions++;
         const replay = await replaySaved(parseReplay(JSON.stringify(run)), {
           jar,
         });
+        scenarioExecutions++;
         const replayFile = `${name}-${label}-replay.json`;
         await writeEvidence(join(directory, replayFile), replay);
         assert.equal(replay.status, "verified");
@@ -111,7 +117,8 @@ export async function runStaticCampaign(output: string, preparedJar: string) {
     artifactSha256,
     runtimeSha256,
     complete: failure === undefined && rows.length === 12,
-    scenarioExecutions: rows.length * 2,
+    scenarioExecutions,
+    attemptedExecutions,
     expectedExecutions: 24,
     rows,
     ...(failure ? { failure } : {}),

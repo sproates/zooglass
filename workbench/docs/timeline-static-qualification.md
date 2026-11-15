@@ -22,9 +22,11 @@ JVM; this count does not claim a particular number of operating-system processes
 
 The perturbed runs request 70 ms Node command delays, 70 ms idle delays, paced
 execution and 90 ms JVM pauses. The checker requires measured in-turn Node delays
-at every publication timestamp and JVM pauses at the first state effect and writer
-handoff. It checks the complete literal assertions as well as baseline trace
-identity. Missing or short pause evidence is a failure. No alarm pause is expected:
+over 50 ms at every publication timestamp and a JVM pause at the first state effect. The
+subscribed mixed-mode witness also requires the first client writer-handoff pause;
+the converted cases have no subscribers and therefore no client writer pause. It checks the complete literal assertions as well as baseline trace
+identity. Missing or short pause evidence is a failure. The Node threshold allows timer
+quantization around the requested 70 ms; JVM pauses must meet their requested 90 ms. No alarm pause is expected:
 this family has unspecified freshness and schedules no expiry timer.
 
 The mixed-mode control reuses the isolated preparation recipe that removes the

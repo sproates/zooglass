@@ -5,7 +5,8 @@ Baseline main `ec4fbbf`. The first two implementation slices add
 [requested-profile admission](../../workbench/docs/timeline-static-admission.md) and
 [V3 conversion/execution](../../workbench/docs/timeline-conversion.md). The third
 slice supplies [reviewed fixtures](../../workbench/scenarios/timeline-static/README.md);
-finite qualification remains the final implementation milestone.
+the [finite qualification](../../workbench/docs/timeline-static-qualification.md)
+passes in the fourth slice. Final integration promotion remains pending.
 The [bounded timeline](../../workbench/docs/timeline-guide.md) is delivered. This
 proposal adds one reusable configuration family and one explicit conversion path;
 it does not reopen the completed POC or promise every Workbench scenario.

@@ -3,8 +3,10 @@
 The [accepted configuration expansion](../../docs/design/timeline-configuration-expansion.md)
 has one fixed qualification boundary: five converted legacy scenarios and the
 [independent mixed-mode witness](../scenarios/timeline-static/mixed-modes/ORACLE.md).
-This guide describes the qualification tools; results and archived evidence are
-pending. Final promotion to main is a separate decision.
+The fixed qualification passed on 15 November 2026 at source
+[`8049dfc`](https://github.com/sproates/zooglass/commit/8049dfcb7ff500126132c0f4552b1dd0d9a5d98d),
+on macOS arm64 with Node 26.0.0 and Java 25.0.5.0.2. Final promotion to main
+remains a separate decision.
 
 ## Fixed matrix
 
@@ -43,6 +45,42 @@ source publications and literal data checks from the reviewed documents. They
 exercise real sockets and HTTP reads at named barriers, retaining complete
 observations. They do not claim deterministic transport timing or equality of
 cross-socket event ordering with the timeline trace.
+
+## Results and retained evidence
+
+All **28 matrix executions** pass their required checks. The twelve recorded runs
+contain 642 records and 92 passing assertions; twelve strict replays independently
+reproduce those records. The perturbed runs retain 128 measured Node delays and
+seven JVM pauses. Minimum observed durations were 69.468 ms for Node and 90.470 ms
+for Java. These results establish the stated timing perturbations in one recorded
+environment, not cross-platform trace equality.
+
+The normal selection control passes. Its isolated mutant fails `data-a-11` at
+30 ms with latest sample A11 instead of A12; earlier semantic records match, and
+arrival/history remain correct. The two ordinary-service comparisons pass nine
+receipt checks and seven HTTP data checkpoints; mixed-modes also passes five
+subscriber-data checkpoints. Artifact checks confirm identical production runtime class bytes in the
+ordinary service and primary timeline host.
+
+The offline audit rechecks raw outcomes, retained fixture/provenance bytes,
+source/artifact identities, every replay and both service comparisons. Five copy-only
+negative controls reject missing pause evidence even after its summary hash is
+updated, changed replay output with an updated hash, incorrect service data, a
+falsified control outcome and a missing run/replay pair. They execute no scenarios.
+
+One earlier attempt stopped after three executions because the checker incorrectly
+required a client writer pause in an unsubscribed conversion. Runtime assertions
+had passed. The failed attempt and its original summary are retained separately;
+an accompanying note corrects that old summary's pair-based count of two. The
+checker was fixed and the complete matrix rerun from the new clean commit. Those
+three aborted-attempt executions and focused tests are additional to the 28 above.
+No fixture expectation or runtime implementation changed.
+
+The [release archive and SHA-256](../evidence/README.md) retain exact inputs,
+conversion reports, all runs/replays, full service observations, control preparation,
+validation logs, negative audit controls and the aborted attempt. The archive has
+108 files and 2,519,760 uncompressed bytes. Prepared JARs are identified by hash;
+executables and dependencies are not embedded in the archive.
 
 ## Reproduce
 

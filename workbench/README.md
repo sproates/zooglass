@@ -951,5 +951,6 @@ timeline with one bounded static-memory family, public-data and source-acceptanc
 assertions, and retained conversion provenance. Conversion is explicit and never
 executes the scenario or computes expected outcomes. Unsupported legacy constructs
 are rejected; the existing demos and V1/V2 profiles retain their meaning. The
-[expansion qualification](../docs/design/timeline-configuration-expansion.md) remains
-a separate delivery milestone.
+[fixed qualification](docs/timeline-static-qualification.md) passes for five
+converted scenarios and the independent mixed-mode witness. Integration promotion
+to main remains separate.

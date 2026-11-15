@@ -42,7 +42,8 @@ guarantees.
 The [capability delivery record](docs/verification/capability-delivery.md) links
 each behaviour to its configuration, contract and executable evidence. Start with
 the [runtime guide](zooglass/README.md) for interfaces and the
-[publication guide](zooglass/docs/publications.md) for source identities and view
+[configuration guide](zooglass/docs/configuration.md) for runnable examples and
+settings, and the [publication guide](zooglass/docs/publications.md) for source identities and view
 definitions. Progress, freshness, storage and protected deployment have dedicated
 guides linked from those pages.
 

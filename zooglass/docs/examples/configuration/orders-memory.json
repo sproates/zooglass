@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 100,
+  "identityWindow": 1000,
+  "maxHistoryEntries": 1000,
+  "sources": [
+    {
+      "id": "orders",
+      "epoch": "run",
+      "progress": {
+        "mode": "contiguousSequence",
+        "startSequence": 1,
+        "maxReceivedRanges": 64,
+        "maxMissingRanges": 64
+      }
+    },
+    {
+      "id": "payments",
+      "epoch": "run"
+    },
+    {
+      "id": "courier-primary",
+      "epoch": "run"
+    },
+    {
+      "id": "courier-backup",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "order-summary",
+      "entities": {
+        "payments": {
+          "mode": "lookupEntity",
+          "keys": {
+            "payment-9": "order-42"
+          }
+        }
+      },
+      "publication": {
+        "mode": "requireContributions",
+        "fields": ["order", "payment"],
+        "maxPendingEntities": 50
+      },
+      "fields": {
+        "order": {
+          "sourceId": "orders",
+          "type": "updated",
+          "mode": "latestBySequence"
+        },
+        "payment": {
+          "sourceId": "payments",
+          "type": "updated",
+          "mode": "latestBySequence"
+        },
+        "delivery": {
+          "inputs": [
+            {
+              "sourceId": "courier-primary",
+              "type": "status"
+            },
+            {
+              "sourceId": "courier-backup",
+              "type": "status"
+            }
+          ],
+          "mode": "latestBySequence",
+          "conflict": {
+            "mode": "sourcePriority",
+            "sources": ["courier-primary", "courier-backup"]
+          },
+          "freshness": {
+            "mode": "receiptAge",
+            "staleAfterMillis": 30000
+          }
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "recovery": "freshSnapshot",
+    "slowClient": "coalesceLatestState",
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}

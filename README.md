@@ -22,9 +22,10 @@ view can deliberately retain the first report. These policies are implemented in
 the runtime and exercised by [acceptance tests](docs/verification/capability-delivery.md).
 
 ZooGlass is under active development. The capabilities below are implemented;
-the [roadmap](ROADMAP.md#further-direction) also sets out our plans for deterministic
-timeline simulation, performance measurement, clustering and high availability.
-These are future work, not current guarantees.
+the [bounded deterministic timeline](workbench/docs/timeline-guide.md) is also
+delivered. The [roadmap](ROADMAP.md#further-direction) sets out future work on
+performance measurement, clustering and high availability; those are not current
+guarantees.
 
 ## What ZooGlass handles
 

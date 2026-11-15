@@ -368,3 +368,147 @@ for (const [capability, message] of [
     assert.deepEqual(host.signals, ["SIGKILL"]);
   });
 }
+
+test("local command preparation failures do not send, consume a turn or poison a generation", async (context) => {
+  const host = await pipe(context, { wallClockAdjustments: 1 });
+  const bridge = await host.open();
+  const sent: unknown[] = [];
+  host.child.stdin.on("data", (bytes: Buffer) =>
+    sent.push(JSON.parse(bytes.subarray(4).toString())),
+  );
+  try {
+    await assert.rejects(
+      bridge.command(50, { op: "initialize-document", epochMillis: -1 }),
+      /Invalid document epoch/,
+    );
+    assert.deepEqual(sent, []);
+    await host.initialize(bridge);
+    await assert.rejects(
+      bridge.command(51, { op: "wall-clock-set", wallMillis: -1 }),
+      /Unsupported or invalid wall adjustment/,
+    );
+    assert.equal(sent.length, 1);
+    host.reply({
+      ...initialResponse,
+      turnId: 43,
+      timeMs: 52,
+      monotonicMs: 2,
+      wallMillis: 1052,
+    });
+    await bridge.command(52, { op: "observe" });
+    assert.deepEqual(sent[1], {
+      op: "observe",
+      turnId: 43,
+      runtimeGeneration: 2,
+      timeMs: 52,
+      monotonicMs: 2,
+      wallMillis: 1052,
+    });
+  } finally {
+    host.exit(null, "SIGKILL");
+    await bridge.close();
+  }
+});
+
+test("acknowledged wall adjustments determine subsequent command clocks and framing", async (context) => {
+  const host = await pipe(context, { wallClockAdjustments: 1 });
+  const bridge = await host.open();
+  const sent: unknown[] = [];
+  host.child.stdin.on("data", (bytes: Buffer) => {
+    assert.equal(bytes.readUInt32BE(0), bytes.length - 4);
+    sent.push(JSON.parse(bytes.subarray(4).toString()));
+  });
+  try {
+    host.reply({ ...initialResponse, wallMillis: 950 });
+    await bridge.command(50, {
+      op: "initialize-document",
+      wire: "{}",
+      epochMillis: 1000,
+      wallOffsetMillis: -100,
+    });
+    host.reply({
+      ...initialResponse,
+      turnId: 43,
+      timeMs: 55,
+      monotonicMs: 5,
+      wallMillis: 900,
+    });
+    await bridge.command(55, { op: "wall-clock-set", wallMillis: 900 });
+    host.reply({
+      ...initialResponse,
+      turnId: 44,
+      timeMs: 60,
+      monotonicMs: 10,
+      wallMillis: 905,
+    });
+    await bridge.command(60, { op: "observe" });
+    assert.deepEqual(sent, [
+      {
+        op: "initialize-document",
+        wire: "{}",
+        epochMillis: 1000,
+        wallOffsetMillis: -100,
+        startTimeMs: 50,
+        turnId: 42,
+        runtimeGeneration: 2,
+        timeMs: 50,
+        monotonicMs: 0,
+        wallMillis: 950,
+      },
+      {
+        op: "wall-clock-set",
+        turnId: 43,
+        runtimeGeneration: 2,
+        timeMs: 55,
+        monotonicMs: 5,
+        wallMillis: 900,
+      },
+      {
+        op: "observe",
+        turnId: 44,
+        runtimeGeneration: 2,
+        timeMs: 60,
+        monotonicMs: 10,
+        wallMillis: 905,
+      },
+    ]);
+  } finally {
+    host.exit(null, "SIGKILL");
+    await bridge.close();
+  }
+});
+
+test("nested observation targets are copied before a pause and invalid replies poison the generation", async (context) => {
+  const host = await pipe(context, { installedObservations: 1 });
+  const bridge = await host.open(2);
+  try {
+    await host.initialize(bridge);
+    const observationTargets = [{ viewId: "view", entityId: "entity" }];
+    let sent: Record<string, unknown> | undefined;
+    host.child.stdin.once("data", (bytes: Buffer) => {
+      sent = JSON.parse(bytes.subarray(4).toString());
+    });
+    host.reply({ ...initialResponse, turnId: 43, snapshots: [] });
+    const pending = bridge.command(50, {
+      op: "observe-installed",
+      observationTargets,
+    });
+    observationTargets[0].entityId = "changed";
+    observationTargets.push({ viewId: "extra", entityId: "extra" });
+    await assert.rejects(pending, /Mismatched initialization snapshots/);
+    assert.deepEqual(sent?.observationTargets, [
+      { viewId: "view", entityId: "entity" },
+    ]);
+    await assert.rejects(
+      bridge.command(50, { op: "observe" }),
+      /Mismatched initialization snapshots/,
+    );
+    await assert.rejects(
+      bridge.finishAbruptly(),
+      /Mismatched initialization snapshots/,
+    );
+  } finally {
+    host.exit(null, "SIGKILL");
+    await bridge.close();
+  }
+});

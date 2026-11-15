@@ -754,7 +754,14 @@ replacing the JVM:
 flowchart LR
   generations["timeline/runtime-generations.ts"] -->|fresh process and verified stop| bridge["timeline/bridge.ts"]
   bridge -->|explicit protocol 2 admission| protocol["timeline/host-protocol.ts"]
+  bridge -->|derive command clocks and validate replies| command["timeline/bridge-command.ts"]
 ```
+
+`bridge-command.ts` derives command clocks and encoded bytes, then checks reply
+identity, clocks and requested snapshots without mutating bridge state. The bridge
+retains command admission, overlap rejection, framing, process ownership and failure
+handling. It advances epoch/turn before sending and commits wall offset, projection
+mode and acknowledgment only after the complete reply passes validation.
 
 The bridge decodes UTF-8 strictly and admits handshake/response metadata through
 `host-protocol.ts`. Discriminated effect types tell each consumer which fields are

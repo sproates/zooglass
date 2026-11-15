@@ -1268,3 +1268,33 @@ converter outputs and one independently authored mixed-mode document. They all
 use the execution path above; no domain-specific authoring or execution module is
 added. `test/timeline/static-fixtures.test.ts` validates retained provenance,
 executes and strictly replays the six cases, and checks maximum admitted shape.
+
+## Static qualification ownership
+
+```mermaid
+flowchart TB
+  campaign["scripts/static-campaign.ts"] -->|run and replay twelve modes| executor["timeline/run-document.ts + replay-document.ts"]
+  campaign -->|check literals and pauses| checks["scripts/static-campaign-checks.ts"]
+  campaign -->|pin clean source and inputs| evidence["scripts/static-evidence.ts"]
+  control["scripts/static-selection-control.ts"] -->|check artifact inventory| preparation["scripts/fleet-strategy-check.ts"]
+  control -->|execute normal and mutant| controlExecutor["timeline/run-document.ts"]
+  parity["scripts/static-service-parity.ts"] -->|ordinary socket and HTTP observations| service["service/zooglass-session.ts"]
+  parity -->|transcribe inputs and check retained observations| observations["scripts/static-service-observations.ts"]
+  fixtures["scenarios/timeline-static/*"] -->|reviewed inputs and expectations| campaign
+  fixtures -->|same configuration and barriers| parity
+```
+
+The [qualification](timeline-static-qualification.md) has a fixed 28-execution
+matrix. Its scripts coordinate existing execution and service primitives; they
+never select or compute view values. No domain-specific executor is added.
+
+```mermaid
+flowchart TB
+  audit["scripts/static-audit.ts"] -->|recheck raw runs and pause evidence| campaign["scripts/static-campaign-checks.ts"]
+  audit -->|recheck normal and wrong-selection outcomes| control["scripts/static-selection-control.ts"]
+  audit -->|recheck raw service observations| service["scripts/static-service-observations.ts"]
+```
+
+The offline auditor verifies the fixed matrix, literal observations, retained
+input hashes and executable identities. It never runs ZooGlass; archive inventory
+verification additionally protects every retained file's bytes.

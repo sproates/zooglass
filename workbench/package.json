@@ -72,7 +72,11 @@
     "prepare:sports-strategy-control": "python3 scripts/prepare-sports-strategy-mutation.py",
     "timeline:sports-strategy-control": "node --import tsx scripts/sports-strategy-check.ts",
     "timeline:sports-repeat": "node --import tsx scripts/sports-repeat.ts",
-    "timeline:sports-service-parity": "node --import tsx scripts/sports-service-parity.ts"
+    "timeline:sports-service-parity": "node --import tsx scripts/sports-service-parity.ts",
+    "timeline:static-campaign": "node --import tsx scripts/static-campaign.ts",
+    "timeline:static-selection-control": "node --import tsx scripts/static-selection-control.ts",
+    "timeline:static-service-parity": "node --import tsx scripts/static-service-parity.ts",
+    "timeline:static-audit": "node --import tsx scripts/static-audit.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -54,6 +54,7 @@ export class Bridge {
     elapsedNanos: number;
   }[] = [];
   configurationAdmission = 0;
+  memoryStaticViews: 0 | 1 = 0;
   sqliteLifecycle: 0 | 1 = 0;
   sqliteOrder: 0 | 1 = 0;
   sqliteSports: 0 | 1 = 0;
@@ -183,6 +184,7 @@ export class Bridge {
         bridge.sqliteOrderLifecycle = handshake.sqliteOrderLifecycle ?? 0;
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
+      bridge.memoryStaticViews = handshake.memoryStaticViews ?? 0;
       bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {
@@ -251,7 +253,8 @@ export class Bridge {
     } else if (
       op === "initialize" ||
       op === "initialize-document" ||
-      op === "inspect-configuration"
+      op === "inspect-configuration" ||
+      op === "inspect-requested-profile"
     ) {
       throw new Error("Invalid command for an initialized generation");
     }

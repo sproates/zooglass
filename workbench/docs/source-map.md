@@ -665,6 +665,9 @@ flowchart LR
   inspect -->|inspect structural JSONL| trace["timeline/trace-contract.ts"]
   inspect -->|bounded UTF-8 reads; optional artifact validation| admission["timeline/admission.ts"]
   admission -->|configuration hash and full production parser| bridge["timeline/bridge.ts"]
+  inspect -->|requested static family and optional reference| requested["timeline/requested-admission.ts"]
+  requested -->|negotiate capability; no runtime startup| bridge
+  requested -->|exact bounded input bytes| admission
   inspect -->|audit legacy semantics| compatibility["timeline/compatibility.ts"]
   inspect -->|existing legacy parser| scenario["scenario/scenario.ts"]
 ```

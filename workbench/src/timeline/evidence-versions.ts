@@ -14,6 +14,8 @@ export function hasProgressControl(profile: unknown) {
   return isOrderProfile(profile) || profile === sportsProfile;
 }
 
+export const staticViewsProfile = "memory-static-views-v1";
+
 export const fleetProfile = "memory-sequence-fleet-v1";
 
 export const evidenceV1 = {
@@ -31,6 +33,16 @@ export const evidenceV2 = {
   run: "timeline-run/v2",
   bundle: "timeline-bundle/v2",
   profile: "receipt-age-restart-v1",
+  protocol: 2,
+} as const;
+
+/** Reserved for static-view documents; admission alone does not enable execution. */
+export const evidenceV3 = {
+  scenario: "timeline-simulation/v3",
+  trace: "timeline-trace/v3",
+  run: "timeline-run/v3",
+  bundle: "timeline-bundle/v3",
+  profile: staticViewsProfile,
   protocol: 2,
 } as const;
 

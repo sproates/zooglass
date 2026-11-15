@@ -492,6 +492,10 @@ flowchart TB
   protocol["simulation/HostProtocol.java"] -->|framing and validated commands| host["simulation/TimelineHost.java"]
   host -->|runtime composition| runtime["runtime/TimelineRuntime.java"]
   host -->|receipt-age or explicit sequence qualification| profile["runtime/TimelineProfile.java"]
+  host -->|requested-family inspection and comparison| requested["simulation/RequestedProfileAdmission.java"]
+  requested -->|bounded static-memory predicate| static["runtime/StaticViewsTimelineProfile.java"]
+  host -->|recheck actual startup configuration| static
+  requested -->|production normalization and comparison| configuration
   host -->|modelled connections| session["simulation/TimelineSession.java"]
   host -->|controlled delivery driver| driver["delivery/TimelineDelivery.java"]
   host -->|real source handler| ingress["core: runtime/EventIngress.java"]

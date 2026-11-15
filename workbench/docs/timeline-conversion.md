@@ -2,7 +2,7 @@
 
 V3 runs the `memory-static-views-v1` family through the shared deterministic
 executor. It adds public-data and source-acceptance assertions. This implementation
-supports explicit conversion; the six-case qualification campaign and final
+supports explicit conversion and [six reviewed fixtures](../scenarios/timeline-static/README.md); the qualification campaign and final
 integration promotion remain separate milestones.
 
 Prepare the host explicitly using [the setup guide](timeline-guide.md). Tests,

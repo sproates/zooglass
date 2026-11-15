@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "match-feed",
+      "epoch": "run"
+    },
+    {
+      "id": "bookmaker",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "match",
+      "fields": {
+        "score": {
+          "sourceId": "match-feed",
+          "type": "score.updated",
+          "mode": "arrival"
+        },
+        "odds": {
+          "sourceId": "bookmaker",
+          "type": "odds.updated",
+          "mode": "arrival"
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}

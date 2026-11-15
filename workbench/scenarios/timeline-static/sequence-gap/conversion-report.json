@@ -1,0 +1,141 @@
+{
+  "adaptations": [
+    "Caller supplied five explicit resource bounds replace compiler defaults; omitted reference delivery bounds identify production defaults.",
+    "Numeric admission floors can differ; the whole-input span prevents introduced receipt eviction or out-of-order rejection for these inputs.",
+    "Source connections occur at virtual time zero; initially connected clients connect without subscriptions.",
+    "HTTP expected-value waits become settled public-data assertions; transport, native timing and complete original envelopes are not asserted.",
+    "Each source send gains an explicit acceptance assertion preserving the ordinary runner's implicit receipt check."
+  ],
+  "converter": {
+    "artifactSha256": "8dcdda5f9398170c64192a3b088d447dc5b803549df25054428a832e397b7ece",
+    "version": "legacy-static-conversion/v1",
+    "workbenchSha256": "df13e1289ec00237630beeb902f5d2444c466f17bfc2c8fc499e0b1c5e04b6be"
+  },
+  "files": {
+    "configuration": {
+      "bytes": 738,
+      "path": "configuration.json",
+      "sha256": "5b4dc4283b048ccabd1d43f85a472331693942a9d713583be25a8d3ee21f9bc9"
+    },
+    "legacy": {
+      "bytes": 3697,
+      "path": "legacy.json",
+      "sha256": "56ba1d8dd49c89a5daddb9fcc34e8e468bddfcade31b2b900d04a20dd9d79bbd"
+    }
+  },
+  "finiteInput": {
+    "histories": [
+      { "entries": 3, "target": ["trip-history", "car-17", "positions"] }
+    ],
+    "streams": [
+      {
+        "identity": ["vehicle-feed", "run", "car-17"],
+        "maximumSequence": 42,
+        "minimumSequence": 40,
+        "sequenceSpan": 3
+      }
+    ]
+  },
+  "format": "timeline-conversion/v1",
+  "mapping": [
+    {
+      "path": "$.sources[0]",
+      "targets": ["actor:source-0", "action:connect-source-0"]
+    },
+    {
+      "path": "$.timeline[0]",
+      "targets": [
+        "publication:publication-0",
+        "action:send-0",
+        "assertion:accepted-0"
+      ]
+    },
+    { "path": "$.timeline[1]", "targets": ["assertion:check-1"] },
+    {
+      "path": "$.timeline[2]",
+      "targets": [
+        "publication:publication-2",
+        "action:send-2",
+        "assertion:accepted-2"
+      ]
+    },
+    { "path": "$.timeline[3]", "targets": ["assertion:check-3"] },
+    { "path": "$.timeline[4]", "targets": ["assertion:check-4"] },
+    {
+      "path": "$.timeline[5]",
+      "targets": [
+        "publication:publication-5",
+        "action:send-5",
+        "assertion:accepted-5"
+      ]
+    },
+    { "path": "$.timeline[6]", "targets": ["assertion:check-6"] },
+    { "path": "$.timeline[7]", "targets": ["assertion:check-7"] }
+  ],
+  "options": {
+    "epochMillis": 1700000000000,
+    "seed": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "preservedExpectations": [
+    {
+      "assertion": "check-1",
+      "expected": {
+        "positions": [{ "latitude": 51, "longitude": -0.3, "sequence": 40 }]
+      },
+      "path": "$.timeline[1].expected"
+    },
+    {
+      "assertion": "check-3",
+      "expected": {
+        "position": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+      },
+      "path": "$.timeline[3].expected"
+    },
+    {
+      "assertion": "check-4",
+      "expected": {
+        "positions": [
+          { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+          { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+        ]
+      },
+      "path": "$.timeline[4].expected"
+    },
+    {
+      "assertion": "check-6",
+      "expected": {
+        "positions": [
+          { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+          { "latitude": 51.1, "longitude": -0.2, "sequence": 41 },
+          { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+        ]
+      },
+      "path": "$.timeline[6].expected"
+    },
+    {
+      "assertion": "check-7",
+      "expected": {
+        "position": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+      },
+      "path": "$.timeline[7].expected"
+    }
+  ],
+  "referenceConfiguration": "{\"contractVersion\":2,\"storage\":\"memory\",\"maxStreams\":100000,\"identityWindow\":10000,\"maxHistoryEntries\":10000,\"sources\":[{\"id\":\"vehicle-feed\",\"epoch\":\"run\"}],\"views\":[{\"id\":\"live-map\",\"fields\":{\"position\":{\"sourceId\":\"vehicle-feed\",\"type\":\"vehicle.location.updated\",\"mode\":\"latestBySequence\"}}},{\"id\":\"trip-history\",\"fields\":{\"positions\":{\"sourceId\":\"vehicle-feed\",\"type\":\"vehicle.location.updated\",\"mode\":\"historyBySequence\"}}}]}",
+  "rejectedConstructs": [],
+  "resourceBounds": {
+    "omittedDeliveryBounds": "production-default",
+    "reference": {
+      "delivery": { "maxQueuedBytes": null, "maxQueuedMessages": null },
+      "identityWindow": 10000,
+      "maxHistoryEntries": 10000,
+      "maxStreams": 100000
+    },
+    "supplied": {
+      "delivery": { "maxQueuedBytes": 1048576, "maxQueuedMessages": 128 },
+      "identityWindow": 20,
+      "maxHistoryEntries": 20,
+      "maxStreams": 20
+    }
+  },
+  "scenarioCanonicalSha256": "7c32968b00e16a8fc70d44303b1c4a6c8d537d2b7d1963d7a570ffe6579db4c4"
+}

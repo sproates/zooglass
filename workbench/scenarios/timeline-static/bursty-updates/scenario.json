@@ -1,0 +1,216 @@
+{
+  "actions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "connect-source-0",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 0,
+      "id": "connect-source-1",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "send-0",
+      "kind": "source-send",
+      "publication": "publication-0"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1000,
+      "id": "send-1",
+      "kind": "source-send",
+      "publication": "publication-1"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1002,
+      "id": "send-2",
+      "kind": "source-send",
+      "publication": "publication-2"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1004,
+      "id": "send-3",
+      "kind": "source-send",
+      "publication": "publication-3"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 1007,
+      "id": "send-4",
+      "kind": "source-send",
+      "publication": "publication-4"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1010,
+      "id": "send-5",
+      "kind": "source-send",
+      "publication": "publication-5"
+    }
+  ],
+  "actors": [
+    { "id": "source-0", "role": "source" },
+    { "id": "source-1", "role": "source" }
+  ],
+  "assertions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "accepted-0",
+      "kind": "source-accepted",
+      "send": "send-0"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1000,
+      "id": "accepted-1",
+      "kind": "source-accepted",
+      "send": "send-1"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1002,
+      "id": "accepted-2",
+      "kind": "source-accepted",
+      "send": "send-2"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1004,
+      "id": "accepted-3",
+      "kind": "source-accepted",
+      "send": "send-3"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 1007,
+      "id": "accepted-4",
+      "kind": "source-accepted",
+      "send": "send-4"
+    },
+    {
+      "actor": "source-1",
+      "atMs": 1010,
+      "id": "accepted-5",
+      "kind": "source-accepted",
+      "send": "send-5"
+    },
+    {
+      "atMs": 1010,
+      "entityId": "match-91",
+      "expected": {
+        "odds": { "awayWin": 5.1, "draw": 3.6, "homeWin": 1.62 },
+        "score": { "away": 0, "home": 1 }
+      },
+      "id": "check-6",
+      "kind": "runtime-data",
+      "viewId": "match"
+    }
+  ],
+  "clock": { "epochMillis": 1700000000000 },
+  "conversionReport": "conversion-report.json",
+  "end": {
+    "heldFrames": 0,
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0
+  },
+  "format": "timeline-simulation/v3",
+  "id": "converted-c930f503f04ec3170bbeaeea",
+  "limits": {
+    "pendingMessages": 1000,
+    "queuedEvents": 1000,
+    "rounds": 100,
+    "traceBytes": 16777216,
+    "turns": 2000
+  },
+  "links": [
+    { "actor": "source-0", "latencyMs": 0 },
+    { "actor": "source-1", "latencyMs": 0 }
+  ],
+  "observationTargets": [{ "entityId": "match-91", "viewId": "match" }],
+  "publications": [
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "away": 0, "home": 0 },
+        "publicationSequence": 1,
+        "sourceEntityId": "match-91",
+        "sourceId": "match-feed",
+        "type": "score.updated"
+      },
+      "id": "publication-0"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "awayWin": 3.6, "draw": 3.2, "homeWin": 2.1 },
+        "publicationSequence": 1,
+        "sourceEntityId": "match-91",
+        "sourceId": "bookmaker",
+        "type": "odds.updated"
+      },
+      "id": "publication-1"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "awayWin": 3.7, "draw": 3.25, "homeWin": 2.05 },
+        "publicationSequence": 2,
+        "sourceEntityId": "match-91",
+        "sourceId": "bookmaker",
+        "type": "odds.updated"
+      },
+      "id": "publication-2"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "awayWin": 3.8, "draw": 3.3, "homeWin": 1.98 },
+        "publicationSequence": 3,
+        "sourceEntityId": "match-91",
+        "sourceId": "bookmaker",
+        "type": "odds.updated"
+      },
+      "id": "publication-3"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "away": 0, "home": 1 },
+        "publicationSequence": 2,
+        "sourceEntityId": "match-91",
+        "sourceId": "match-feed",
+        "type": "score.updated"
+      },
+      "id": "publication-4"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "awayWin": 5.1, "draw": 3.6, "homeWin": 1.62 },
+        "publicationSequence": 4,
+        "sourceEntityId": "match-91",
+        "sourceId": "bookmaker",
+        "type": "odds.updated"
+      },
+      "id": "publication-5"
+    }
+  ],
+  "runtime": {
+    "access": "unprotected",
+    "configuration": "configuration.json",
+    "initialState": "empty",
+    "profile": "memory-static-views-v1",
+    "sha256": "f366961467efba794ceaca714e0c87c5cde7ce38c8ceb4d18be7cac4508e08d3",
+    "storage": "memory"
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "untilMs": 1010
+}

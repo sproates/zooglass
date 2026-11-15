@@ -1,0 +1,29 @@
+{
+  "contractVersion": 2,
+  "storage": "memory",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "vehicle-feed",
+      "epoch": "run"
+    }
+  ],
+  "views": [
+    {
+      "id": "trip-history",
+      "fields": {
+        "positions": {
+          "sourceId": "vehicle-feed",
+          "type": "vehicle.location.updated",
+          "mode": "historyBySequence"
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}

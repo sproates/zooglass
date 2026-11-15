@@ -1262,3 +1262,9 @@ same agenda, transport and generation owner as existing documents. `manifest.ts`
 hashes timeline modules plus the legacy parser and configuration compiler used by
 conversion and provenance verification. Historical evidence retains its original
 identity requirements. See [conversion and assertions](timeline-conversion.md).
+
+The [static fixture corpus](../scenarios/timeline-static/README.md) contains five
+converter outputs and one independently authored mixed-mode document. They all
+use the execution path above; no domain-specific authoring or execution module is
+added. `test/timeline/static-fixtures.test.ts` validates retained provenance,
+executes and strictly replays the six cases, and checks maximum admitted shape.

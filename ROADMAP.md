@@ -52,7 +52,8 @@ delivery date:
   targets one reusable memory/static-view family and five explicit legacy conversions,
   with a fixed qualification boundary. [Configuration admission](workbench/docs/timeline-static-admission.md) and
   [V3 conversion/execution](workbench/docs/timeline-conversion.md) are implemented
-  on the integration delivery path; authored fixtures and qualification remain pending. Ordinary socket/browser checks and
+  on the integration delivery path, with [six authored fixtures](workbench/scenarios/timeline-static/README.md)
+  proposed in the third slice; finite qualification remains pending. Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.

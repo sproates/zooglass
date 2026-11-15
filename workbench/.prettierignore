@@ -26,3 +26,7 @@ scenarios/timeline-order-retention/runtime.json
 # Generated Sports fixtures; preserve authored serialization and qualified bytes.
 scenarios/timeline-sports/scenario.json
 scenarios/timeline-sports-retention/scenario.json
+
+# Exact converter input bytes; hashes and original serialization are retained.
+scenarios/timeline-static/*/legacy.json
+scenarios/timeline-static/*/configuration.json

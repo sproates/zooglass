@@ -1,0 +1,178 @@
+{
+  "actions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "connect-source-0",
+      "kind": "connect"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "send-0",
+      "kind": "source-send",
+      "publication": "publication-0"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 100,
+      "id": "send-2",
+      "kind": "source-send",
+      "publication": "publication-2"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 500,
+      "id": "send-5",
+      "kind": "source-send",
+      "publication": "publication-5"
+    }
+  ],
+  "actors": [{ "id": "source-0", "role": "source" }],
+  "assertions": [
+    {
+      "actor": "source-0",
+      "atMs": 0,
+      "id": "accepted-0",
+      "kind": "source-accepted",
+      "send": "send-0"
+    },
+    {
+      "atMs": 1,
+      "entityId": "car-17",
+      "expected": {
+        "positions": [{ "latitude": 51, "longitude": -0.3, "sequence": 40 }]
+      },
+      "id": "check-1",
+      "kind": "runtime-data",
+      "viewId": "trip-history"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 100,
+      "id": "accepted-2",
+      "kind": "source-accepted",
+      "send": "send-2"
+    },
+    {
+      "atMs": 101,
+      "entityId": "car-17",
+      "expected": {
+        "position": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+      },
+      "id": "check-3",
+      "kind": "runtime-data",
+      "viewId": "live-map"
+    },
+    {
+      "atMs": 102,
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+          { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+        ]
+      },
+      "id": "check-4",
+      "kind": "runtime-data",
+      "viewId": "trip-history"
+    },
+    {
+      "actor": "source-0",
+      "atMs": 500,
+      "id": "accepted-5",
+      "kind": "source-accepted",
+      "send": "send-5"
+    },
+    {
+      "atMs": 501,
+      "entityId": "car-17",
+      "expected": {
+        "positions": [
+          { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+          { "latitude": 51.1, "longitude": -0.2, "sequence": 41 },
+          { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+        ]
+      },
+      "id": "check-6",
+      "kind": "runtime-data",
+      "viewId": "trip-history"
+    },
+    {
+      "atMs": 502,
+      "entityId": "car-17",
+      "expected": {
+        "position": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 }
+      },
+      "id": "check-7",
+      "kind": "runtime-data",
+      "viewId": "live-map"
+    }
+  ],
+  "clock": { "epochMillis": 1700000000000 },
+  "conversionReport": "conversion-report.json",
+  "end": {
+    "heldFrames": 0,
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0
+  },
+  "format": "timeline-simulation/v3",
+  "id": "converted-56ba1d8dd49c89a5daddb9fc",
+  "limits": {
+    "pendingMessages": 1000,
+    "queuedEvents": 1000,
+    "rounds": 100,
+    "traceBytes": 16777216,
+    "turns": 2000
+  },
+  "links": [{ "actor": "source-0", "latencyMs": 0 }],
+  "observationTargets": [
+    { "entityId": "car-17", "viewId": "trip-history" },
+    { "entityId": "car-17", "viewId": "live-map" }
+  ],
+  "publications": [
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 51, "longitude": -0.3, "sequence": 40 },
+        "publicationSequence": 40,
+        "sourceEntityId": "car-17",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-0"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 51.2, "longitude": -0.1, "sequence": 42 },
+        "publicationSequence": 42,
+        "sourceEntityId": "car-17",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-2"
+    },
+    {
+      "body": {
+        "epoch": "run",
+        "payload": { "latitude": 51.1, "longitude": -0.2, "sequence": 41 },
+        "publicationSequence": 41,
+        "sourceEntityId": "car-17",
+        "sourceId": "vehicle-feed",
+        "type": "vehicle.location.updated"
+      },
+      "id": "publication-5"
+    }
+  ],
+  "runtime": {
+    "access": "unprotected",
+    "configuration": "configuration.json",
+    "initialState": "empty",
+    "profile": "memory-static-views-v1",
+    "sha256": "5b4dc4283b048ccabd1d43f85a472331693942a9d713583be25a8d3ee21f9bc9",
+    "storage": "memory"
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "untilMs": 502
+}

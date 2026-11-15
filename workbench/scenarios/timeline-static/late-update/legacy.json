@@ -1,0 +1,137 @@
+{
+  "name": "An inventory update arrives late",
+  "sources": [
+    {
+      "id": "orders",
+      "name": "Order service"
+    },
+    {
+      "id": "payments",
+      "name": "Payment service"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory service"
+    }
+  ],
+  "clients": [],
+  "timeline": [
+    {
+      "kind": "source-event",
+      "simulationTime": 0,
+      "sourceId": "orders",
+      "type": "order.accepted",
+      "entityId": "order-108",
+      "payload": {
+        "status": "accepted",
+        "sourceTimestamp": 1000
+      },
+      "epoch": "run",
+      "publicationSequence": 1
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 180,
+      "sourceId": "payments",
+      "type": "payment.authorised",
+      "entityId": "order-108",
+      "payload": {
+        "status": "authorised",
+        "sourceTimestamp": 1180
+      },
+      "epoch": "run",
+      "publicationSequence": 1
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 900,
+      "sourceId": "orders",
+      "type": "order.packed",
+      "entityId": "order-108",
+      "payload": {
+        "status": "packed",
+        "sourceTimestamp": 1900
+      },
+      "epoch": "run",
+      "publicationSequence": 2
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 900,
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        }
+      }
+    },
+    {
+      "kind": "source-event",
+      "simulationTime": 1250,
+      "sourceId": "inventory",
+      "type": "inventory.reserved",
+      "entityId": "order-108",
+      "payload": {
+        "status": "reserved",
+        "sourceTimestamp": 1100
+      },
+      "epoch": "run",
+      "publicationSequence": 1
+    },
+    {
+      "kind": "view-check",
+      "simulationTime": 1250,
+      "viewId": "order",
+      "entityId": "order-108",
+      "expected": {
+        "order": {
+          "status": "packed",
+          "sourceTimestamp": 1900
+        },
+        "payment": {
+          "status": "authorised",
+          "sourceTimestamp": 1180
+        },
+        "inventory": {
+          "status": "reserved",
+          "sourceTimestamp": 1100
+        }
+      }
+    }
+  ],
+  "views": [
+    {
+      "id": "order",
+      "fields": {
+        "order": [
+          {
+            "sourceId": "orders",
+            "type": "order.accepted"
+          },
+          {
+            "sourceId": "orders",
+            "type": "order.packed"
+          }
+        ],
+        "payment": [
+          {
+            "sourceId": "payments",
+            "type": "payment.authorised"
+          }
+        ],
+        "inventory": [
+          {
+            "sourceId": "inventory",
+            "type": "inventory.reserved"
+          }
+        ]
+      }
+    }
+  ]
+}

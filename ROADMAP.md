@@ -48,9 +48,10 @@ delivery date:
   explicit limits. [POC acceptance checks](workbench/docs/timeline-acceptance.md)
   are complete. [PR #172](https://github.com/sproates/zooglass/pull/172) delivers
   that capability alongside the live demos with [integration qualification](workbench/docs/timeline-integration-results.md).
-  The next [proposed configuration expansion](docs/design/timeline-configuration-expansion.md)
+  The accepted [configuration expansion](docs/design/timeline-configuration-expansion.md)
   targets one reusable memory/static-view family and five explicit legacy conversions,
-  with a fixed qualification boundary. It is not yet implemented. Ordinary socket/browser checks and
+  with a fixed qualification boundary. Configuration admission is the first
+  implementation slice; conversion and V3 execution remain planned. Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.

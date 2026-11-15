@@ -9,6 +9,10 @@ Workbench now uses it for [v2 memory stop/start documents](../../workbench/docs/
 Private protocol 2 also supports [SQLite document recovery](../../workbench/docs/timeline-sqlite.md),
 with installed snapshots, read-only observations and [controlled wall adjustments](../../workbench/docs/timeline-wall-clock.md). Protected access remains planned.
 
+The additive [static configuration admission](../../workbench/docs/timeline-static-admission.md)
+checks the broader memory/static-view family without runtime startup. Its explicit
+startup path is checked separately; V3 Workbench scenario execution remains planned.
+
 ## Prepare and run
 
 Use JDK 25 and Node 26. From `../../workbench/`:
@@ -51,6 +55,9 @@ split, copied reconciliation implementation or public simulation extension API.
 The production project has no dependency on this host.
 
 - `simulation/HostProtocol` owns framing, strict command fields and JSON handling.
+- `simulation/RequestedProfileAdmission` owns requested-family inspection and
+  normalized comparison; `runtime/StaticViewsTimelineProfile` owns the bounded
+  static-memory predicate. Existing profile classification is unchanged.
 - `simulation/HostTurns` admits consecutive command identities for one generation.
 - `simulation/RuntimeGeneration` owns generation identity and global/local clock
   conversion before runtime construction.

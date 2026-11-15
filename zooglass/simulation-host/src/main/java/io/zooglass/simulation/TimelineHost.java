@@ -14,6 +14,7 @@ import io.zooglass.runtime.FactRetirementIngress;
 import io.zooglass.runtime.ProgressIngress;
 import io.zooglass.runtime.PublicationJson;
 import io.zooglass.runtime.RuntimeConfiguration;
+import io.zooglass.runtime.StaticViewsTimelineProfile;
 import io.zooglass.runtime.TimelineProfile;
 import io.zooglass.runtime.TimelineRuntime;
 import io.zooglass.runtime.ViewCoordinator;
@@ -54,6 +55,7 @@ public final class TimelineHost {
     private boolean documentMode;
     private boolean durable;
     private boolean sequenceFleet;
+    private boolean staticViews;
     private RuntimeConfiguration documentConfiguration;
 
     private enum Role { CLIENT, SOURCE, PROGRESS, RETIREMENT }
@@ -75,10 +77,13 @@ public final class TimelineHost {
         if (stopped) throw new IllegalStateException("Runtime already stopped");
         String op = text(command, "op");
         protocol.validateFields(command, op);
+        if (staticViews && Set.of("wall-clock-set", "stall", "release", "progress", "retirement").contains(op))
+            throw new IllegalArgumentException("Static views profile does not support clock, writer fault or control operations");
         if ((sequenceFleet || orderProfile || sportsProfile) && op.equals("wall-clock-set"))
             throw new IllegalArgumentException("This profile does not support wall-clock adjustments");
         var turn = identities.admit(command, op);
         if (op.equals("inspect-configuration")) return inspectConfiguration(command, turn);
+        if (op.equals("inspect-requested-profile")) return inspectRequestedProfile(command, turn);
 
         turns.begin(turn.timeMs());
         List<String> snapshots = null;
@@ -131,6 +136,17 @@ public final class TimelineHost {
 
     private Map<String, Object> inspectConfiguration(JsonNode command, HostTurns.Turn turn) {
         var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+        return configurationResponse(config, turn);
+    }
+
+    private Map<String, Object> inspectRequestedProfile(JsonNode command, HostTurns.Turn turn) {
+        var config = TimelineRuntime.inspectConfiguration(text(command, "wire"));
+        var result = new LinkedHashMap<>(configurationResponse(config, turn));
+        result.put("requestedProfile", RequestedProfileAdmission.inspect(command, config));
+        return result;
+    }
+
+    private static Map<String, Object> configurationResponse(RuntimeConfiguration config, HostTurns.Turn turn) {
         return Map.of(
                 "turnId", turn.id(),
                 "runtimeGeneration", turn.generation().number(),
@@ -180,12 +196,25 @@ public final class TimelineHost {
         boolean order = TimelineProfile.SQLITE_ORDER.equals(profile);
         boolean sports = TimelineProfile.SQLITE_SPORTS.equals(profile);
         String requested = command.has("profile") ? text(command, "profile") : profile;
+        boolean boundedStatic = StaticViewsTimelineProfile.NAME.equals(requested);
+        if (boundedStatic) {
+            var issues = StaticViewsTimelineProfile.inspect(config);
+            if (protocol != HostProtocol.V2 || !issues.isEmpty())
+                throw new IllegalArgumentException("Unsupported static views configuration profile: " + issues);
+            if (generation.number() != 1 || generation.startTimeMs() != 0
+                    || generation.wallMillis(0) != generation.epochMillis())
+                throw new IllegalArgumentException("Static views profile requires generation 1, initial time zero and no wall adjustment");
+            // Requested admission is independent of legacy first-match classification.
+            fleet = false;
+            order = false;
+            sports = false;
+        }
         boolean orderRestart = order && TimelineProfile.SQLITE_ORDER_RESTART.equals(requested);
-        if (!TimelineProfile.NAME.equals(profile)
+        if (!boundedStatic && !TimelineProfile.NAME.equals(profile)
                 && !(protocol == HostProtocol.V2
                         && (TimelineProfile.SQLITE_RESTART.equals(profile) || fleet || order || sports)))
             throw new IllegalArgumentException("Unsupported document configuration profile");
-        if ((!profile.equals(requested) && !orderRestart)
+        if ((!boundedStatic && !profile.equals(requested) && !orderRestart)
                 || ((fleet || order || sports) && !command.has("profile")))
             throw new IllegalArgumentException("Document profile agreement is required");
         if (fleet && generation.number() != 1)
@@ -208,6 +237,7 @@ public final class TimelineHost {
         var targets = command.has("observationTargets")
                 ? observationTargets(command.get("observationTargets"), config) : null;
         documentMode = true;
+        staticViews = boundedStatic;
         sequenceFleet = fleet;
         orderProfile = order;
         sportsProfile = sports;

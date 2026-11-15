@@ -1,4 +1,5 @@
 import { boundedFile, decode, inspectAdmission } from "./admission.js";
+import { inspectStaticConfiguration } from "./requested-admission.js";
 import { parseScenario } from "../scenario/scenario.js";
 import { assessLegacyScenario } from "./compatibility.js";
 import { parseTimelineDocument } from "./contract.js";
@@ -7,13 +8,29 @@ import { validateTrace } from "./trace-contract.js";
 
 const [mode, ...paths] = process.argv.slice(2);
 if (
-  !["scenario", "trace", "legacy", "admission"].includes(mode) ||
+  ![
+    "scenario",
+    "trace",
+    "legacy",
+    "admission",
+    "static-configuration",
+  ].includes(mode) ||
   paths.length === 0
 )
   throw new Error(
-    "Usage: timeline:inspect scenario|trace|legacy FILE... OR admission SCENARIO JAR (inspection only; never builds Java)",
+    "Usage: timeline:inspect scenario|trace|legacy FILE... OR admission SCENARIO JAR OR static-configuration CONFIG JAR [REFERENCE] (inspection only; never builds Java)",
   );
-if (mode === "admission") {
+if (mode === "static-configuration") {
+  if (paths.length < 2 || paths.length > 3)
+    throw new Error(
+      "Usage: timeline:inspect static-configuration CONFIG JAR [REFERENCE]",
+    );
+  console.log(
+    JSON.stringify(
+      await inspectStaticConfiguration(paths[0], paths[1], paths[2]),
+    ),
+  );
+} else if (mode === "admission") {
   if (paths.length !== 2)
     throw new Error("Usage: timeline:inspect admission SCENARIO JAR");
   console.log(JSON.stringify(await inspectAdmission(paths[0], paths[1])));

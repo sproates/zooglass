@@ -90,11 +90,11 @@ real browser/device behaviour and native concurrency need their separate tests.
 
 ## Environment and evidence
 
-| Environment   | Retained qualification                                    | Limit                                                                                   |
-| ------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order and Sports | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
-| Linux arm64   | Original v1 document campaign                             | Does not qualify later profiles                                                         |
-| Other systems | No retained qualification claim                           | Successful preparation alone is not qualification                                       |
+| Environment   | Retained qualification                                            | Limit                                                                                   |
+| ------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order, Sports and Static | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
+| Linux arm64   | Original v1 document campaign                                     | Does not qualify later profiles                                                         |
+| Other systems | No retained qualification claim                                   | Successful preparation alone is not qualification                                       |
 
 Replay requires the recorded executor/modules, host JAR and environment identities.
 Changing even CLI modules changes the current Workbench identity, so replay older

@@ -13,7 +13,7 @@ import {
   jarEntry,
   jarInventory,
   readJar,
-} from "./generation-clock-check.js";
+} from "./control-evidence.js";
 
 const definitions = {
   priority: {
@@ -289,6 +289,7 @@ async function main() {
   const files = [
     "order-control-check.ts",
     "generation-clock-check.ts",
+    "control-evidence.ts",
     "prepare-order-controls.py",
     "prepare-generation-clock-mutation.py",
   ];

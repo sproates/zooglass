@@ -14,7 +14,7 @@ import {
   jarEntry,
   jarInventory,
   readJar,
-} from "./generation-clock-check.js";
+} from "./control-evidence.js";
 
 const sourceFile =
   "src/main/java/io/zooglass/strategy/update/LatestBySequence.java";
@@ -283,7 +283,7 @@ export function checkFleetStrategyControl(
   };
 }
 
-async function captureSource() {
+export async function captureSource() {
   const sourceRevision = git(["rev-parse", "HEAD"]).toString().trim();
   const status = git(["status", "--porcelain", "--untracked-files=no"]);
   assert.equal(
@@ -327,6 +327,9 @@ async function captureSource() {
       ]),
     ),
     untrackedFiles,
+    controlEvidenceSha256: digest(
+      await readFile(new URL("control-evidence.ts", import.meta.url)),
+    ),
     checkerSha256: digest(await readFile(new URL(import.meta.url))),
     sharedCheckerSha256: digest(
       await readFile(new URL("generation-clock-check.ts", import.meta.url)),

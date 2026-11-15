@@ -13,7 +13,7 @@ import {
   jarEntry,
   jarInventory,
   readJar,
-} from "./generation-clock-check.js";
+} from "./control-evidence.js";
 
 const checkout = fileURLToPath(new URL("../..", import.meta.url));
 const sourceFile =
@@ -239,7 +239,7 @@ export function checkSportsStrategyControl(
   return { failedAssertion: assertion, timeMs: failed.key[0], mismatchIndex };
 }
 
-async function source() {
+export async function source() {
   return {
     revision: git("rev-parse", "HEAD").toString().trim(),
     javaTree: git("rev-parse", "HEAD:zooglass").toString().trim(),
@@ -253,6 +253,9 @@ async function source() {
       "zooglass",
     ).toString(),
     workbenchSha256: await workbenchIdentity(),
+    controlEvidenceSha256: sha(
+      await readFile(new URL("control-evidence.ts", import.meta.url)),
+    ),
     checkerSha256: sha(await readFile(new URL(import.meta.url))),
     helperSha256: sha(
       await readFile(new URL("generation-clock-check.ts", import.meta.url)),

@@ -917,12 +917,18 @@ flowchart TB
 ```mermaid
 flowchart LR
   control["scripts/generation-clock-check.ts"] -->|normal and wrong-clock executions| run["timeline/run-document.ts"]
-  control -->|validate retained semantic failure| replay["timeline/replay-document.ts"]
+  control -->|capture inputs, inspect JARs and compare runs| evidence["scripts/control-evidence.ts"]
+  evidence -->|validate retained semantic failure| replay["timeline/replay-document.ts"]
   prepare["scripts/prepare-generation-clock-mutation.py"] -->|copies committed source then changes one clock method| clock["simulation-host: runtime/ControlledReceiptClock.java"]
 ```
 
 Campaign checking is outside the runtime executor. Authored expectations decide
 correctness; exact within-group traces independently establish repeatability.
+Shared control-evidence helpers have no CLI entry point. Clock, Fleet, Order,
+Sports and static qualification import them directly. New control records pin the
+helper separately while retaining existing hash-field meanings; historical evidence
+remains tied to its original source.
+
 The control checker consumes separately prepared JARs and verifies the mutation's
 actual artifact contents. Only the explicit preparation script builds Java, in an
 isolated copy. See [memory qualification](timeline-memory-qualification.md),
@@ -1017,7 +1023,7 @@ and traces, and checks measured host pauses separately from virtual time.
 ```mermaid
 flowchart TB
   control["scripts/fleet-strategy-check.ts<br/>Normal and wrong-strategy comparison"]
-  helpers["scripts/generation-clock-check.ts<br/>Shared input and JAR inspection helpers"]
+  helpers["scripts/control-evidence.ts<br/>Shared input and JAR inspection helpers"]
   execution["timeline/run-document.ts<br/>Execute the unchanged fleet document"]
   prepare["scripts/prepare-fleet-strategy-mutation.py<br/>Explicit isolated artifact preparation"]
   preparation["scripts/prepare-generation-clock-mutation.py<br/>Shared archive and build helpers"]
@@ -1146,7 +1152,7 @@ flowchart LR
   campaign["scripts/order-repeat.ts"] -->|reuse bounded fresh-process scheduling| runner["scripts/restart-campaign.ts"]
   campaign -->|check literal scenarios and measured perturbations| checks["scripts/order-campaign-checks.ts"]
   controls["scripts/order-control-check.ts"] -->|verify actual class changes and semantic failures| preparation["scripts/prepare-order-controls.py"]
-  controls -->|reuse artifact and run comparison checks| evidence["scripts/generation-clock-check.ts"]
+  controls -->|reuse artifact and run comparison checks| evidence["scripts/control-evidence.ts"]
   parity["scripts/order-service-parity.ts"] -->|independent projected states| oracle["scripts/order-parity-oracle.ts"]
   parity -->|observe raw socket frames| socket["scripts/service-parity-socket.ts"]
   fleet["scripts/fleet-service-parity.ts"] -->|same observation helper| socket

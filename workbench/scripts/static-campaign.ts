@@ -18,7 +18,7 @@ import {
   writeEvidence,
 } from "./static-evidence.js";
 
-import { jarInventory, readJar } from "./generation-clock-check.js";
+import { jarInventory, readJar } from "./control-evidence.js";
 
 export const baselineMode: CampaignMode = {
   hostDelay: 0,

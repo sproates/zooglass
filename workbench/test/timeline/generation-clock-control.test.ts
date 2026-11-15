@@ -1,8 +1,8 @@
+import { captureControlInput } from "../../scripts/control-evidence.js";
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  captureControlInput,
   checkClockControl,
   checkRecoveryClockControl,
   verifyClockInventories,

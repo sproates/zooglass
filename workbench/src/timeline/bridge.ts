@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
+import { prepareCommand, validateCommandResponse } from "./bridge-command.js";
 import { requireHostArtifact } from "./host-artifact.js";
 
 import {
@@ -300,115 +301,35 @@ export class Bridge {
       if (this.failure) {
         throw this.failure;
       }
-      let commandEpoch = this.epoch;
-      if (operation.op === "initialize-document") {
-        if (
-          !Number.isSafeInteger(operation.epochMillis) ||
-          Number(operation.epochMillis) < 0
-        )
-          throw new Error("Invalid document epoch");
-        commandEpoch = Number(operation.epochMillis);
-      }
-      const turnId = this.turn;
-      const runtimeGeneration = this.generation?.runtimeGeneration ?? 1;
-      const monotonicMs = this.generation
-        ? timeMs - this.generation.startTimeMs
-        : timeMs;
-      const baseWall = commandEpoch + timeMs;
-      let offset = this.wallOffset;
-      if (
-        operation.op === "initialize-document" &&
-        operation.wallOffsetMillis !== undefined
-      ) {
-        if (
-          !this.generation ||
-          this.wallClockAdjustments !== 1 ||
-          !Number.isSafeInteger(operation.wallOffsetMillis)
-        )
-          throw new Error("Unsupported or invalid initial wall offset");
-        offset = Number(operation.wallOffsetMillis);
-      }
-      if (operation.op === "wall-clock-set") {
-        if (
-          !this.generation ||
-          this.wallClockAdjustments !== 1 ||
-          !Number.isSafeInteger(operation.wallMillis) ||
-          Number(operation.wallMillis) < 0
-        )
-          throw new Error("Unsupported or invalid wall adjustment");
-        offset = Number(operation.wallMillis) - baseWall;
-      }
-      const wallMillis = baseWall + offset;
-      if (
-        this.generation &&
-        (!Number.isSafeInteger(baseWall) ||
-          !Number.isSafeInteger(offset) ||
-          !Number.isSafeInteger(wallMillis) ||
-          wallMillis < 0)
-      )
-        throw new Error("Invalid generation wall clock");
-      const bytes = Buffer.from(
-        JSON.stringify({
-          ...operation,
-          ...(this.generation && operation.op === "initialize-document"
-            ? { startTimeMs: this.generation.startTimeMs }
-            : {}),
-          turnId,
-          runtimeGeneration,
-          timeMs,
-          monotonicMs,
-          wallMillis,
-        }),
+      const command = prepareCommand(
+        timeMs,
+        operation,
+        {
+          epoch: this.epoch,
+          turnId: this.turn,
+          wallOffset: this.wallOffset,
+          wallClockAdjustments: this.wallClockAdjustments,
+          generation: this.generation,
+        },
+        cap,
       );
-      if (bytes.length > cap) {
-        throw new Error("Command frame overflow");
-      }
-      this.epoch = commandEpoch;
+      this.epoch = command.epoch;
       this.turn++;
       const header = Buffer.alloc(4);
-      header.writeUInt32BE(bytes.length);
+      header.writeUInt32BE(command.bytes.length);
       const response = this.read();
-      this.child.stdin.write(Buffer.concat([header, bytes]));
+      this.child.stdin.write(Buffer.concat([header, command.bytes]));
       try {
         const frame = await response;
         if (this.failure) throw this.failure;
         const value = decodeResponse(frame, this.protocol);
-        if (
-          value.turnId !== turnId ||
-          value.runtimeGeneration !== runtimeGeneration ||
-          value.timeMs !== timeMs
-        )
-          throw new Error("Mismatched turn response");
-        if (
-          this.generation &&
-          (value.monotonicMs !== monotonicMs || value.wallMillis !== wallMillis)
-        )
-          throw new Error("Mismatched generation response clocks");
-        const targets =
-          operation.op === "initialize-document" ||
-          operation.op === "observe-installed"
-            ? operation.observationTargets
-            : undefined;
-        if (targets !== undefined) {
-          if (
-            !Array.isArray(targets) ||
-            value.snapshots?.length !== targets.length
-          )
-            throw new Error("Mismatched initialization snapshots");
-        } else if (value.snapshots !== undefined) {
-          throw new Error("Unrequested initialization snapshots");
-        }
-        const projected =
-          operation.op === "initialize-document"
-            ? operation.profile === "memory-static-views-v1"
-            : this.projectedObservations;
-        if (
-          (value.projectedSnapshots !== undefined) !==
-          (targets !== undefined && projected)
-        )
-          throw new Error("Mismatched public snapshot projection");
+        const projected = validateCommandResponse(
+          value,
+          command,
+          this.projectedObservations,
+        );
         this.projectedObservations = projected;
-        this.wallOffset = offset;
+        this.wallOffset = command.wallOffset;
         if (value.diagnostics) this.timing = value.diagnostics;
         if (this.generation)
           this.acknowledged = { operation: operation.op, timeMs };

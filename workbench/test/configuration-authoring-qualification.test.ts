@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -11,11 +11,21 @@ import {
   type ZooGlassSession,
 } from "../src/service/zooglass-session.js";
 import { jar, runConfiguration } from "./support/configuration-command.js";
-import { examples, verifyExample } from "./support/configuration-examples.js";
 
 const execute = promisify(execFile);
+const examples = resolve("../zooglass/docs/examples/configuration");
 const authoredFile = join(examples, "sales.authored.json");
 const ordinaryFile = join(examples, "sales-sqlite.json");
+
+// Expected receipts and snapshots remain in the shared runnable example script.
+async function verifyExample(mode: string, baseUrl: string) {
+  const { stdout } = await execute(
+    process.execPath,
+    [join(examples, "run-example.mjs"), mode, baseUrl],
+    { timeout: 20_000 },
+  );
+  return JSON.parse(stdout);
+}
 
 async function expand(input: string, output: string) {
   const result = await runConfiguration([

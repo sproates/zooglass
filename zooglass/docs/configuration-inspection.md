@@ -1,6 +1,6 @@
-# Check and explain a runtime configuration
+# Check, explain and expand configuration
 
-Inspect an ordinary runtime v2 JSON file before starting ZooGlass. These commands
+Inspect ordinary runtime v2 JSON or explicitly authored configuration before starting ZooGlass. These commands
 use the production decoder and validator, including strategy compatibility checks.
 They do not start Spring, open SQLite, bind a port or contact an access-policy service.
 
@@ -23,9 +23,44 @@ an existing database or admission to Workbench's deterministic timeline. SQLite
 configuration can be checked without a database path. Use the existing deployment,
 restart and timeline inspection procedures for those separate questions.
 
-Only ordinary runtime JSON is accepted. Authored templates and `config expand`
-remain proposed in [the authoring design](https://github.com/sproates/zooglass/pull/184).
-Neither command modifies the input or writes an expanded file.
+`check` and `explain` accept ordinary runtime JSON or the explicit
+`format: "zooglass-config/v1"` authoring format. They do not modify files.
+`expand` accepts authored input only and writes a new ordinary runtime JSON file:
+
+```sh
+java -jar zooglass/target/zooglass.jar config expand zooglass/docs/examples/configuration/sales.authored.json --output /tmp/sales.runtime.json
+```
+
+Use a destination that does not exist. The command validates before writing and
+never overwrites an existing file, including the input. Only use the output after
+exit 0. On a handled failure, cleanup removes the output only if its filesystem identity
+still matches the newly created file. If identity is unavailable or cleanup fails,
+a failed output may remain. Use a directory you control; cleanup is not atomic
+protection against concurrent directory mutation, and output is not crash-atomic. Pass the expanded file explicitly to the service or
+Workbench. Neither consumer accepts authored documents or expands them implicitly.
+
+### Local field templates
+
+The complete [authored sales example](examples/configuration/sales.authored.json)
+shares source/type and fact settings between `items` and `total`. Each use still
+names its update mode, and `total` still names `amount`. Storage, epochs and root
+capacity limits remain explicit. The [orders example](examples/configuration/orders-memory.json)
+has no equivalent duplication and remains ordinary runtime JSON.
+
+Templates may contain only `sourceId`, `type`, `inputs`, `conflict`, `late`,
+`freshness` and `facts`. A reference contains only `use`, required `mode` and
+optional `property`. No overrides are allowed, even with identical values.
+Inline runtime fields may coexist with references. Every template must be used;
+unknown names, unused templates, unknown keys, null template entries and nested
+references fail. Names are local, exact and case-sensitive. There are no includes,
+environment substitutions, expressions or inheritance. See the
+[accepted design](../../docs/design/configuration-authoring.md) for the full grammar.
+
+Expansion preserves declarations rather than filling in defaults. It sorts object
+keys lexically, retains array order and emits compact UTF-8 JSON with one final
+newline. Repeated runs with the same source/tool emit identical bytes. Changing a
+template can change several runtime fields and can make a SQLite restart
+incompatible; expansion does not migrate data or certify database compatibility.
 
 ## Effective settings and defaults
 
@@ -49,7 +84,7 @@ introduce additional accepted nulls, infer update modes or select capacity limit
 
 ## Script interface
 
-Add `--json` after the filename. Standard output contains exactly one JSON report,
+Add `--json` at the end of the command (after the destination for `expand`). Standard output contains exactly one JSON report,
 with no Spring banner or logs. Errors use the same report interface. Exit codes:
 
 | Code | Meaning |
@@ -75,32 +110,50 @@ A successful `check` report is:
 
 All keys shown are always present. `operation` is the requested command, or null
 when absent. Invalid reports have `inputFormat`, `storage` and `explanation` null;
-no format is certified for rejected input. They have one diagnostic. Successful
+no format is certified for rejected input. They have one diagnostic. Successful authored reports use `inputFormat: "zooglass-config/v1"`. Successful
 `explain` replaces `explanation` with `{"effective": {...}, "defaults": [...]}`;
 each default has `path` and `value`. Numeric values, including signed-64-bit delivery
 bounds, are emitted exactly. Consumers needing exact large integers must use a JSON
 parser that preserves them.
 
 Each diagnostic has `code`, `path`, `reason`, `line` and `column`. Paths are JSON
-pointers into the input document; the empty string means its root. Mapping errors
-use parser-provided property/index context. Semantic errors currently identify the
-root when no narrower structured context exists. Syntax locations are one-based
+pointers into the runtime input or authored grammar document; for authored
+post-expansion validation they instead refer to the expanded runtime document,
+with `origins` linking back to authored uses and templates. The empty string means
+the relevant document root. Mapping errors use parser-provided property/index context. Semantic errors identify the source, view, field or entity context supplied by
+production validation, with the root used when no narrower context exists. Syntax locations are one-based
 when available; otherwise `line` and `column` are null. The command's filename
 identifies the input. Reasons help a person correct the file but are not stable
 machine identifiers. Rejected values and raw parser exception text are not printed.
 
 | Stable code | Meaning |
 | --- | --- |
-| `usage` | Expected `config check\|explain FILE [--json]`. |
+| `usage` | Invalid operation or options; `expand` additionally requires `--output NEW_FILE`. |
 | `input-io` | Input cannot be read as a regular file. |
 | `input-too-large` | Input exceeds the tool's 16 MiB byte limit. |
 | `invalid-encoding` | Input is not valid UTF-8. |
 | `invalid-json` | Invalid JSON syntax, duplicate key or parser limit. |
 | `invalid-value` | Property/type or record-constructor settings cannot be decoded, or a trailing document follows the configuration. |
 | `invalid-configuration` | Production configuration validation rejects the settings. |
+| `invalid-authoring` | Authoring grammar or local reference error. |
+| `authoring-required` | Expansion was requested for ordinary runtime input. |
+| `expanded-too-large` | Substituted output exceeds 16 MiB. |
+| `output-exists` | The output destination already exists. |
+| `expansion-io` | Input/output or prepared-JAR identity cannot be accessed for expansion. |
 
 The command uses a bounded read and retains the production parser's depth, string,
-number, Unicode and coercion restrictions. The 16 MiB limit belongs to this offline
-tool; it does not introduce a new service input limit. Future authoring support will
-extend this report version with documented optional expansion metadata rather than
-changing the meaning of existing fields.
+number, Unicode and coercion restrictions. Input and expanded output each have a 16 MiB limit. Substituted bytes are bounded
+before the complete expanded tree is parsed. These limits belong to this offline
+tool; it does not introduce a new service input limit. Authored reports add an `origins` array. Each entry has `path` (expanded field),
+`usePath`, `templatePath` (both in the authored input), and `settings` (the names
+inherited from the template). Explicit mode/property remain use-site declarations.
+For runtime validation failures, `origins` includes only references at the failing
+field; nonfield failures have no matching origins. Authoring grammar errors point
+directly into the authored input. Defaults still refer to the effective object.
+
+Successful expansion also adds `expansion` with `inputSha256`, `outputSha256` and
+`toolJarSha256`, each a lowercase hexadecimal SHA-256. The tool hash identifies the
+actual running prepared production JAR; expansion is unavailable when that artifact
+cannot be identified. Input/output hashes cover exact bytes and are consistency
+checks, not signatures or semantic-equivalence hashes. Check/explain do not require
+packaged-JAR identity. Existing runtime-only reports retain their original fields.

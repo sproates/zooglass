@@ -38,12 +38,29 @@ class ConfigurationInspectionTests {
     }
 
     @Test
+    void malformedViewObjectsStillHaveRealDiagnosticPointers() {
+        var result = ConfigurationInspection.inspect(
+                "{\"views\":{\"odd/~\":{\"fields\":{\"f\":{\"facts\":null}}}}}");
+        assertThat(result.valid()).isFalse();
+        assertThat(result.diagnostic().path()).isEqualTo("/views/odd~1~0/fields/f");
+    }
+
+    @Test
+    void runtimeParserStillRejectsAuthoredInput() throws Exception {
+        String authored = Files.readString(Path.of("docs/examples/configuration/sales.authored.json"));
+        assertThat(ConfigurationInspection.inspect(authored).valid()).isFalse();
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> RuntimeConfiguration.parseConfiguration(authored))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
     void semanticReasonIsPreservedWithoutChangingExistingValidation() throws Exception {
         String json = Files.readString(Path.of("docs/examples/configuration/sales-sqlite.json"))
                 .replace("\"activeFacts\"", "\"arrival\"");
         var result = ConfigurationInspection.inspect(json);
         assertThat(result.diagnostic().code()).isEqualTo("invalid-configuration");
-        assertThat(result.diagnostic().path()).isEmpty();
+        assertThat(result.diagnostic().path()).isEqualTo("/views/0/fields/items");
         assertThat(result.diagnostic().reason()).isEqualTo("Fact settings require a fact projection");
     }
 }

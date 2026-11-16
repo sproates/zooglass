@@ -1,8 +1,9 @@
 # Simpler configuration authoring
 
-Status: proposed design, pending acceptance. No authoring commands or template
-format described here are implemented. Baseline: main `7316002`, including the
-[configuration guide](../../zooglass/docs/configuration.md).
+Status: accepted design. Offline inspection and local-template expansion are
+implemented; aggregate service/restart qualification remains the final delivery
+slice. See the [command guide](../../zooglass/docs/configuration-inspection.md)
+for the implemented interface. Original design baseline: main `7316002`.
 
 ## What should improve
 

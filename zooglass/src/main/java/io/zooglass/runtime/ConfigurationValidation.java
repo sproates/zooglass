@@ -27,6 +27,11 @@ final class ConfigurationValidation {
     private ConfigurationValidation() {}
 
     static void validate(RuntimeConfiguration config) {
+        validate(config, ignored -> {});
+    }
+
+    static void validate(RuntimeConfiguration config, java.util.function.Consumer<String> context) {
+        context.accept("");
         int contractVersion = config.contractVersion();
         String storage = config.storage();
         int maxStreams = config.maxStreams();
@@ -48,7 +53,9 @@ final class ConfigurationValidation {
         }
 
         Set<String> sourceIds = new HashSet<>();
-        for (Source source : sources) {
+        for (int sourceIndex = 0; sourceIndex < sources.size(); sourceIndex++) {
+            Source source = sources.get(sourceIndex);
+            context.accept("/sources/" + sourceIndex);
             if (source == null
                     || !name(source.id())
                     || !name(source.epoch())
@@ -58,7 +65,9 @@ final class ConfigurationValidation {
         }
 
         var progressBySource = new java.util.HashMap<String, Progress>();
-        for (Source source : sources) {
+        for (int sourceIndex = 0; sourceIndex < sources.size(); sourceIndex++) {
+            Source source = sources.get(sourceIndex);
+            context.accept("/sources/" + sourceIndex + "/progress");
             Progress progress = source.progress();
             ProgressStrategySelection.select(
                     progress.mode(),
@@ -69,7 +78,10 @@ final class ConfigurationValidation {
         }
 
         Set<String> viewIds = new HashSet<>();
-        for (View view : views) {
+        for (int viewIndex = 0; viewIndex < views.size(); viewIndex++) {
+            View view = views.get(viewIndex);
+            String viewPath = "/views/" + viewIndex;
+            context.accept(viewPath);
             if (view == null
                     || !name(view.id())
                     || !viewIds.add(view.id())
@@ -77,14 +89,18 @@ final class ConfigurationValidation {
                     || view.fields().isEmpty()) {
                 throw new IllegalArgumentException("Invalid or duplicate view");
             }
+            context.accept(viewPath + "/publication");
             view.publication().bind(view.fields().keySet());
             var usedSources = new HashSet<String>();
             for (var entry : view.fields().entrySet()) {
+                context.accept(viewPath + "/fields/" + ConfigurationInspection.pointerToken(entry.getKey()));
                 usedSources.addAll(
                         validateField(
                                 entry.getKey(), entry.getValue(), sourceIds, progressBySource));
             }
+            context.accept(viewPath);
             for (var entry : view.entities().entrySet()) {
+                context.accept(viewPath + "/entities/" + ConfigurationInspection.pointerToken(entry.getKey()));
                 Entity entity = entry.getValue();
                 if (!usedSources.contains(entry.getKey()) || entity == null) {
                     throw new IllegalArgumentException(

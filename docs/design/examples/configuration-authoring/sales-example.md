@@ -1,7 +1,7 @@
-# Proposed sales authoring example
+# Sales authoring example
 
-Design illustration only. The authoring format is not implemented.
-The [proposal](../../configuration-authoring.md) defines its expansion to the
+This design illustration now has a [runnable authored file](../../../../zooglass/docs/examples/configuration/sales.authored.json).
+The [accepted design](../../configuration-authoring.md) defines its expansion to the
 existing [sales runtime configuration](../../../../zooglass/docs/examples/configuration/sales-sqlite.json).
 
 ```json

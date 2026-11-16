@@ -17,12 +17,27 @@ public final class ConfigurationInspection {
         }
     }
 
+    public static JsonNode readDocument(String json) {
+        var document = RuntimeConfiguration.configurationMapper().readTree(json);
+        StoredJson.validateStrings(document);
+        return document;
+    }
+
     public static Result inspect(String json) {
+        return inspectDocument(() -> readDocument(json));
+    }
+
+    public static Result inspect(JsonNode document) {
+        return inspectDocument(() -> document);
+    }
+
+    private static Result inspectDocument(java.util.function.Supplier<JsonNode> input) {
+        String[] context = {""};
         var mapper = RuntimeConfiguration.configurationMapper();
         try {
-            var declared = mapper.readTree(json);
-            var configuration = RuntimeConfiguration.decode(mapper, declared);
-            configuration.validate();
+            var declared = input.get();
+            var configuration = RuntimeConfiguration.decode(mapper, declared, path -> context[0] = path);
+            ConfigurationValidation.validate(configuration, path -> context[0] = path);
             return new Result(configuration, declared, null);
         } catch (DatabindException failure) {
             StringBuilder path = new StringBuilder();
@@ -44,9 +59,9 @@ public final class ConfigurationInspection {
         } catch (IllegalArgumentException failure) {
             // Production validators use static reasons, never source values. Do not expose
             // Jackson exception messages: they can contain the input document and values.
-            return invalid("invalid-configuration", "", failure.getMessage(), null, null);
+            return invalid("invalid-configuration", context[0], failure.getMessage(), null, null);
         } catch (NullPointerException failure) {
-            return invalid("invalid-configuration", "", "Missing or null configuration value", null, null);
+            return invalid("invalid-configuration", context[0], "Missing or null configuration value", null, null);
         }
     }
 

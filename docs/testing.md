@@ -25,7 +25,10 @@ executes a prepared service JAR and checks the report schema, independently expe
 effective policies/defaults, explicit equivalents, accepted nulls, exact long values,
 priority order, redacted diagnostics and byte/encoding limits. It checks that valid,
 invalid and usage commands finish without Spring startup or filesystem changes.
-These tests never build the JAR.
+`configuration-templates.test.ts` adds literal expansion goldens, full-document
+comparison, independently computed hashes, template grammar and origin diagnostics,
+repeated expansion, exact numbers, limits and non-overwriting output. These tests
+never build the JAR.
 
 ## Publication ingestion
 

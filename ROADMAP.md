@@ -32,7 +32,7 @@ for what these applications demonstrate and their limits.
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
 
-- **Simpler configuration authoring (proposed).** [Local templates and offline checks](docs/design/configuration-authoring.md) would reduce repeated field settings while retaining explicit policies and ordinary runtime JSON. The design is pending acceptance; these commands are not implemented.
+- **Simpler configuration authoring.** [Local templates and offline checks](docs/design/configuration-authoring.md) provide explicit reuse, production-backed validation and ordinary runtime JSON output. Commands and grammar are implemented; aggregate service/restart qualification and adoption closeout remain.
 
 - **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
 

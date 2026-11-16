@@ -1,14 +1,11 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { promisify } from "node:util";
 import test from "node:test";
 
-const execute = promisify(execFile);
-const jar = resolve("../zooglass/target/zooglass.jar");
+import { runConfiguration as run } from "./support/configuration-command.js";
 const examples = resolve("../zooglass/docs/examples/configuration");
 const notChecked = [
   "deployment",
@@ -29,37 +26,6 @@ const basic = {
     },
   ],
 };
-
-async function run(args: string[], cwd?: string, properties: string[] = []) {
-  try {
-    const result = await execute(
-      "java",
-      [...properties, "-jar", jar, "config", ...args],
-      {
-        cwd,
-        timeout: 10_000,
-        maxBuffer: 4 * 1024 * 1024,
-      },
-    );
-    assert.equal(result.stderr, "");
-    return { code: 0, stdout: result.stdout };
-  } catch (error) {
-    const result = error as Error & {
-      code: number;
-      stdout: string;
-      stderr: string;
-      killed: boolean;
-    };
-    assert.equal(
-      result.killed,
-      false,
-      "offline command must finish without starting a service",
-    );
-    assert.equal(typeof result.code, "number");
-    assert.equal(result.stderr, "");
-    return { code: result.code, stdout: result.stdout };
-  }
-}
 
 async function withInput(
   value: unknown,

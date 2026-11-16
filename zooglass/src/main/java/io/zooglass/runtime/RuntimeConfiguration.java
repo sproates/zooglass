@@ -322,7 +322,13 @@ public record RuntimeConfiguration(
     }
 
     static RuntimeConfiguration decode(JsonMapper mapper, JsonNode document) {
+        return decode(mapper, document, ignored -> {});
+    }
+
+    static RuntimeConfiguration decode(
+            JsonMapper mapper, JsonNode document, java.util.function.Consumer<String> context) {
         StoredJson.validateStrings(document);
+        context.accept("/delivery");
         var delivery = document.path("delivery");
         if (document.has("delivery") && !delivery.isObject()) {
             throw new IllegalArgumentException("delivery must be an object");
@@ -339,9 +345,14 @@ public record RuntimeConfiguration(
                 throw new IllegalArgumentException(limit + " must be an integer");
             }
         }
-        for (var view : document.path("views")) {
-            validateViewDocument(view);
+        var views = document.path("views");
+        var viewNames = views.propertyNames().iterator();
+        int viewIndex = 0;
+        for (var view : views) {
+            String name = views.isObject() ? viewNames.next() : Integer.toString(viewIndex++);
+            validateViewDocument(view, context, "/views/" + ConfigurationInspection.pointerToken(name));
         }
+        context.accept("");
         return mapper.treeToValue(document, RuntimeConfiguration.class);
     }
 
@@ -361,10 +372,21 @@ public record RuntimeConfiguration(
     }
 
     private static void validateViewDocument(JsonNode view) {
+        validateViewDocument(view, ignored -> {}, "");
+    }
+
+    private static void validateViewDocument(
+            JsonNode view, java.util.function.Consumer<String> context, String path) {
+        context.accept(path);
         if (view == null || !view.isObject()) {
             throw new IllegalArgumentException("View must be an object");
         }
-        for (var field : view.path("fields")) {
+        var fields = view.path("fields");
+        var names = fields.propertyNames().iterator();
+        int fieldIndex = 0;
+        for (var field : fields) {
+            String name = fields.isObject() ? names.next() : Integer.toString(fieldIndex++);
+            context.accept(path + "/fields/" + ConfigurationInspection.pointerToken(name));
             if (field.has("property") && !field.path("property").isTextual()) {
                 throw new IllegalArgumentException("property must be a name");
             }
@@ -379,6 +401,7 @@ public record RuntimeConfiguration(
                 throw new IllegalArgumentException("Invalid freshness settings");
             }
         }
+        context.accept(path + "/publication");
         if (view.path("publication").isNull()) {
             throw new IllegalArgumentException("publication must be a policy object when supplied");
         }

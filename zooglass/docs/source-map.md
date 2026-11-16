@@ -24,6 +24,9 @@ flowchart LR
   cli -->|validates read-only input| inspect["runtime/ConfigurationInspection.java"]
   inspect -->|uses strict decoder| config["runtime/RuntimeConfiguration.java"]
   config -->|checks references and strategies| validation["runtime/ConfigurationValidation.java"]
+  cli -->|resolves explicit authored format| authored["config/ConfigurationAuthoring.java"]
+  cli -->|bounds expansion and writes new output| output["config/ExpansionOutput.java"]
+  output -->|serialises resolved fields| authored
   cli -->|presents decoded settings and defaults| explain["config/ConfigurationExplanation.java"]
 ```
 

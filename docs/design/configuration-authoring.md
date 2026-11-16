@@ -1,9 +1,9 @@
 # Simpler configuration authoring
 
 Status: accepted design. Offline inspection and local-template expansion are
-implemented; aggregate service/restart qualification remains the final delivery
-slice. See the [command guide](../../zooglass/docs/configuration-inspection.md)
-for the implemented interface. Original design baseline: main `7316002`.
+implemented and the finite service/restart qualification is complete. See the
+[adoption guide](../../zooglass/docs/configuration-authoring.md) and
+[command contract](../../zooglass/docs/configuration-inspection.md) for current usage. Original design baseline: main `7316002`.
 
 ## What should improve
 

@@ -30,6 +30,14 @@ comparison, independently computed hashes, template grammar and origin diagnosti
 repeated expansion, exact numbers, limits and non-overwriting output. These tests
 never build the JAR.
 
+`configuration-authoring-qualification.test.ts` compares entire effective production
+configurations, with explicit-default and changed-capacity controls. It runs expanded
+sales through real service interfaces, restarts the same SQLite store, rejects an
+incompatible but valid template revision, and reopens the original file to verify
+the full snapshot/version and duplicate receipt. `configuration-guide.test.ts`
+retains the direct-runtime orders/sales checks. The shared example runner contains
+literal expected outcomes; it does not derive them from expansion.
+
 ## Publication ingestion
 
 `PublicationFunctionalTests` sends publications through the real `/events` socket and

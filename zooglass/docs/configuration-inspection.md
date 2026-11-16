@@ -62,6 +62,9 @@ newline. Repeated runs with the same source/tool emit identical bytes. Changing 
 template can change several runtime fields and can make a SQLite restart
 incompatible; expansion does not migrate data or certify database compatibility.
 
+For a complete check, expand, review and deploy sequence, see
+[adopting local templates](configuration-authoring.md).
+
 ## Effective settings and defaults
 
 The explanation shows the configuration after production decoding. Source and view

@@ -12,7 +12,8 @@ an API prefix or a timeline document version.
 
 Use the offline [configuration commands](configuration-inspection.md) to validate
 a file, explain its effective policies or expand optional local templates before
-starting the service.
+starting the service. [Adopting local templates](configuration-authoring.md) explains
+when reuse helps and how to keep deployment choices explicit.
 
 ## Choose an example
 

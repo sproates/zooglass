@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 15 November 2026.
+Last reviewed: 16 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -27,12 +27,18 @@ See the [cross-domain comparison](docs/sports-developer-value.md) and
 [capability-to-demo mapping](docs/design/strategy-delivery.md#capability-to-demo-coverage)
 for what these applications demonstrate and their limits.
 
+## Configuration authoring
+
+Optional [local configuration templates](zooglass/docs/configuration-authoring.md)
+reduce repeated settings while keeping update modes explicit. Offline check, explain
+and expand commands use production validation and emit ordinary runtime JSON.
+Finite qualification covers complete configuration equality and real-service SQLite
+restart, including rejection of an incompatible template change without losing state.
+
 ## Further direction
 
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
-
-- **Simpler configuration authoring.** [Local templates and offline checks](docs/design/configuration-authoring.md) provide explicit reuse, production-backed validation and ordinary runtime JSON output. Commands and grammar are implemented; aggregate service/restart qualification and adoption closeout remain.
 
 - **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
 

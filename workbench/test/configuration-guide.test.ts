@@ -1,22 +1,14 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { promisify } from "node:util";
+import { join } from "node:path";
 import test from "node:test";
 import { startZooGlassSession } from "../src/service/zooglass-session.js";
 
-const examples = resolve("../zooglass/docs/examples/configuration");
-const run = promisify(execFile);
-const verify = async (mode: string, baseUrl: string) => {
-  const { stdout } = await run(
-    process.execPath,
-    [join(examples, "run-example.mjs"), mode, baseUrl],
-    { timeout: 20_000 },
-  );
-  return JSON.parse(stdout);
-};
+import {
+  examples,
+  verifyExample as verify,
+} from "./support/configuration-examples.js";
 
 test("configuration guide orders example verifies mapping, required contributions, priority and retry", async () => {
   const service = await startZooGlassSession({

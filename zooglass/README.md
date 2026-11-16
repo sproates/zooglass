@@ -141,6 +141,9 @@ Strategy tests include independent generated ordering expectations. Workbench ow
 scenario generation, fault orchestration and verification through real interfaces.
 It does not calculate replacement ZooGlass results.
 
+Use [offline configuration inspection](docs/configuration-inspection.md) to check
+runtime JSON and explain effective settings without starting the service.
+
 See the [source map](docs/source-map.md), [verification map](../docs/testing.md),
 [Workbench guide](../workbench/README.md) and [browser demo](../demos/vehicle-tracker/README.md).
 

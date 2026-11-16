@@ -1,6 +1,7 @@
 package io.zooglass;
 
 import io.zooglass.runtime.StoreAdoption;
+import io.zooglass.config.ConfigurationCommand;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,6 +20,10 @@ public class ZooGlassApplication {
     }
 
     public static void main(String[] args) {
+        if (args.length > 0 && "config".equals(args[0])) {
+            System.exit(ConfigurationCommand.run(args, System.out));
+            return;
+        }
         if (args.length > 0 && "adopt-store".equals(args[0])) {
             StoreAdoption.run(args);
             return;

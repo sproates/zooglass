@@ -10,6 +10,9 @@ admits a documented subset of these configurations; service support does not imp
 timeline support. Configuration `contractVersion: 2` is a data-format version, not
 an API prefix or a timeline document version.
 
+Use the offline [check and explain commands](configuration-inspection.md) to validate
+a file and inspect its effective policies before starting the service.
+
 ## Choose an example
 
 Both examples below are complete files, not fragments. Run from the repository

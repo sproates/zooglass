@@ -66,7 +66,7 @@ delivery date:
   in [PR #189](https://github.com/sproates/zooglass/pull/189), combines reusable
   configurations with memory or SQLite restart and explicit retries. Its
   [28-execution qualification](workbench/docs/timeline-recovery-qualification.md)
-  passes; this evidence/documentation closeout is pending merge.
+  passes and is delivered in [PR #190](https://github.com/sproates/zooglass/pull/190).
   Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.

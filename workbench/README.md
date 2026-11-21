@@ -848,22 +848,25 @@ policy revocation and connection loss against a real TLS service and the basic
 vehicle demo. It uses the existing service owner and client modules, with a
 controlled HTTPS authority and explicit protected-data clearing.
 
-## Deterministic timeline POC
+## Deterministic timeline simulation
 
-The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingress,
-freshness and subscription delivery under an explicit agenda. It is not a new
-implementation of `simulate` and does not yet support general scenarios. Prepare
-its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.
-CI splits the complete timeline suite across two Node test shards, each with its
-own prepared artifacts. Packaging and Java host checks run once; both shards
-must pass the required gate. The local test command still runs the full suite.
+Workbench's deterministic timeline simulator runs the real ZooGlass runtime under
+controlled time and event ordering. Supported profiles cover arrival, sequence,
+history and fact strategies, freshness, retries and recovery, with exact assertions
+and replay. These are explicitly supported combinations, not arbitrary runtime
+configurations: start with the [capability matrix and run guide](docs/timeline-guide.md).
 
-The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
-provides strict syntax/trace inspection and a census of the existing scenario
-format. The [bounded document executor](docs/timeline-execution.md) now runs
-versioned scenarios against the real configured runtime, with causal traces and
-exact observation assertions. Its `memory-arrival-v1` profile remains narrower than
-the full runtime and legacy format; validation alone does not certify execution.
+Prepare the service and simulation host explicitly with `npm run prepare:timeline`
+before running `npm run test:timeline`. Tests consume prepared artifacts and never
+build them. CI splits the complete timeline suite across two Node test shards,
+each with its own prepared artifacts. Packaging and Java host checks run once;
+both shards must pass the required gate. The local command runs the full suite.
+
+The original [fixed-fixture proof](docs/timeline-proof.md) and
+[format assessment](docs/timeline-format.md) retain the early proof and compatibility
+history. The [document executor](docs/timeline-execution.md) describes the original
+`memory-arrival-v1` profile; later profiles extend the supported scope separately.
+Validation alone does not certify execution.
 
 [Verification replay](docs/timeline-replay.md) starts a fresh JVM from saved inputs,
 checks artifact/environment identity and stops at the first differing semantic
@@ -918,7 +921,7 @@ configuration. These commands consume prepared artifacts and retain raw evidence
 the guide distinguishes smoke checks from clean-commit qualification.
 
 The [Order/Sports compatibility assessment](docs/timeline-order-sports-assessment.md)
-records the next profile and control-transport gaps against the completed demos.
+records the original profile and control-transport gaps against the completed demos.
 The [Order host foundation](docs/timeline-order-host.md) now admits its bounded
 SQLite configuration and progress endpoint. [Order document controls](docs/timeline-order-controls.md)
 add explicit watermark sends, complete acknowledgement assertions and replay.
@@ -931,7 +934,7 @@ boundary and durable progress. Qualification evidence is linked below; the
 real-service demos remain available.
 
 The [timeline completion contract](docs/timeline-completion.md) consolidates current
-evidence, the remaining delivery sequence and the first bounded release's explicit
+evidence, the completed delivery sequence and the first bounded release's explicit
 limits. The [CLI and capability guide](docs/timeline-guide.md) covers prepared
 setup, comparison and strict-default replay. [Aggregate checks](docs/timeline-acceptance.md)
 are complete; the bounded implementation is integrated into main alongside all

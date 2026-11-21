@@ -20,7 +20,7 @@ final class HistoryBySequence implements FieldUpdateStrategy {
     public FieldUpdate evaluate(JsonNode current, JsonNode incoming) {
         JsonNode nextSequence = SequenceValues.read(incoming, sequenceField);
         if (nextSequence == null) {
-            return FieldUpdate.unchanged();
+            return FieldUpdate.unchanged(FieldUpdate.Reason.SEQUENCE_MISSING);
         }
 
         List<JsonNode> events = new ArrayList<>();
@@ -34,7 +34,7 @@ final class HistoryBySequence implements FieldUpdateStrategy {
                                                 SequenceValues.read(event, sequenceField),
                                                 nextSequence)
                                         == 0)) {
-            return FieldUpdate.unchanged();
+            return FieldUpdate.unchanged(FieldUpdate.Reason.HISTORY_EXISTING);
         }
 
         events.add(incoming.deepCopy());
@@ -44,6 +44,6 @@ final class HistoryBySequence implements FieldUpdateStrategy {
                         SequenceValues::compare));
         ArrayNode history = JsonNodeFactory.instance.arrayNode();
         events.forEach(history::add);
-        return FieldUpdate.replaced(history);
+        return FieldUpdate.replaced(history, FieldUpdate.Reason.HISTORY_INSERTED);
     }
 }

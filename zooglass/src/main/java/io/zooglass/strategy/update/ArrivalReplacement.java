@@ -6,6 +6,6 @@ final class ArrivalReplacement implements FieldUpdateStrategy {
 
     @Override
     public FieldUpdate evaluate(JsonNode current, JsonNode incoming) {
-        return FieldUpdate.replaced(incoming.deepCopy());
+        return FieldUpdate.replaced(incoming.deepCopy(), FieldUpdate.Reason.ARRIVAL_REPLACED);
     }
 }

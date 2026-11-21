@@ -652,3 +652,25 @@ flowchart LR
 The static profile returns both internal and production public snapshots. The
 separate `publicSnapshots:1` capability prevents an admission-only host from being
 mistaken for a V3 execution host. Existing profiles retain their raw response shape.
+
+
+## Optional publication decision results
+
+`applyExplained` shares ordinary publication processing and checks production
+semantic coverage before mutation. The collector is attempt-local; it freezes the
+result before installation and returns it only after success. The ordinary receipt
+and storage records remain unchanged. Timeline integration is a separate step.
+
+```mermaid
+flowchart TB
+  coordinator["runtime/ViewCoordinator.java"] -->|checks coverage before processing| support["runtime/PublicationExplanationSupport.java"]
+  coordinator -->|same staging path| transitions["runtime/ViewTransitions.java"]
+  transitions -->|evaluates matched fields| bound["runtime/BoundView.java"]
+  bound -->|actual strategy result| update["strategy/update/FieldUpdate.java"]
+  bound -->|collects optional update reasons| collector["runtime/PublicationExplanation.java"]
+  transitions -->|finishes matched targets| collector
+  collector -->|compares existing public projection| projection["api/ViewSnapshot.java"]
+  coordinator -->|freezes before install| collector
+  collector -->|immutable current attempt| decision["runtime/PublicationDecision.java"]
+  collector -->|pairs with ordinary outcome| result["runtime/ExplainedPublication.java"]
+```

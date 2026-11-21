@@ -16,6 +16,10 @@ import {
 } from "./recovery-evidence.js";
 
 import { jarInventory, readJar } from "./control-evidence.js";
+import {
+  includeRecoveryEnvironment,
+  type RecoveryEnvironment,
+} from "./recovery-environment.js";
 
 export { baselineMode, perturbedMode } from "./static-campaign.js";
 import { baselineMode, perturbedMode } from "./static-campaign.js";
@@ -38,7 +42,7 @@ export async function runRecoveryCampaign(output: string, preparedJar: string) {
     { recursive: true, errorOnExist: true, force: false },
   );
   const rows = [];
-  let environment: DocumentRun["environment"] | undefined;
+  let environment: RecoveryEnvironment | undefined;
   let attemptedExecutions = 0;
   let scenarioExecutions = 0;
   let failure: string | undefined;
@@ -56,13 +60,11 @@ export async function runRecoveryCampaign(output: string, preparedJar: string) {
         scenarioExecutions++;
         const file = `${name}-${label}.json`;
         await writeEvidence(join(directory, file), run);
-        if (environment)
-          assert.deepEqual(
-            run.environment,
-            environment,
-            "campaign environment drift",
-          );
-        else environment = run.environment;
+        environment = includeRecoveryEnvironment(
+          environment,
+          run.environment,
+          JSON.parse(bytes).runtime.storage,
+        );
         const counts = checkRecoveryRun(name, run, bytes, baseline, mode);
         assert.equal(run.execution.artifactSha256, artifactSha256);
         assert.equal(run.execution.workbenchSha256, source.workbenchSha256);

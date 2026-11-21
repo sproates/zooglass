@@ -8,6 +8,10 @@ import { baselineMode, perturbedMode } from "./recovery-campaign.js";
 import { checkRecoveryRun } from "./recovery-campaign-checks.js";
 import { checkRecoveryControl } from "./recovery-control.js";
 import { digest, recoveryCases, writeEvidence } from "./recovery-evidence.js";
+import {
+  includeRecoveryEnvironment,
+  type RecoveryEnvironment,
+} from "./recovery-environment.js";
 
 const json = async (path: string) => JSON.parse(await readFile(path, "utf8"));
 export async function auditRecoveryCampaign(directory: string) {
@@ -48,7 +52,7 @@ export async function auditRecoveryCampaign(directory: string) {
       "retained fixture changed",
     );
   }
-  let environment: DocumentRun["environment"] | undefined;
+  let environment: RecoveryEnvironment | undefined;
   let assertions = 0,
     records = 0,
     nodePauses = 0,
@@ -65,13 +69,11 @@ export async function auditRecoveryCampaign(directory: string) {
       const raw = await readFile(join(directory, file)),
         replayRaw = await readFile(join(directory, replayFile));
       const run: DocumentRun = JSON.parse(raw.toString());
-      if (environment)
-        assert.deepEqual(
-          run.environment,
-          environment,
-          "campaign environment drift",
-        );
-      else environment = run.environment;
+      environment = includeRecoveryEnvironment(
+        environment,
+        run.environment,
+        JSON.parse(scenario).runtime.storage,
+      );
       const replay = JSON.parse(replayRaw.toString());
       const configuration = JSON.parse(scenario).runtime.configuration;
       assert.ok(configuration === "runtime.json");
@@ -233,8 +235,16 @@ export async function auditRecoveryEvidence(directory: string) {
     campaign.artifactSha256,
     "campaign must use the prepared normal host",
   );
+  assert.ok(
+    campaign.environment?.sqliteVersion,
+    "Campaign must qualify a SQLite native version",
+  );
   assert.deepEqual(
-    control.environment,
+    includeRecoveryEnvironment(
+      campaign.environment,
+      control.environment,
+      "sqlite",
+    ),
     campaign.environment,
     "control/campaign environment drift",
   );
@@ -254,7 +264,7 @@ export async function auditRecoveryEvidence(directory: string) {
     for (const field of ["node", "platform", "arch"] as const)
       assert.equal(
         evidence.environment[field],
-        campaign.environment![field],
+        campaign.environment.common[field],
         `service ${field} drift`,
       );
     assert.equal(

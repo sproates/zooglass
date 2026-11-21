@@ -1342,6 +1342,8 @@ they are not its completed campaign or retained release evidence.
 flowchart TB
   campaign["scripts/recovery-campaign.ts"] -->|run six pairs and strict replay| executor["timeline/run-document.ts + replay-document.ts"]
   campaign -->|check all generations| checks["scripts/recovery-campaign-checks.ts"]
+  campaign -->|compare common and SQLite identities| environment["scripts/recovery-environment.ts"]
+  audit -->|enforce the same environment| environment
   campaign -->|pin committed tools and recovery inputs| identity["scripts/recovery-evidence.ts"]
   prepare["scripts/prepare-static-recovery-mutation.py"] -->|isolated explicit builds| control["scripts/recovery-control.ts"]
   control -->|verify mutation and artifact inventories| artifact["scripts/recovery-preparation.ts"]

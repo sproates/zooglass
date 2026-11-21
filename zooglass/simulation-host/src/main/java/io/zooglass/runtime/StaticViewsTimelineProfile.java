@@ -17,8 +17,13 @@ public final class StaticViewsTimelineProfile {
     public record Issue(String path, String rule) {}
 
     public static List<Issue> inspect(RuntimeConfiguration config) {
+        return inspect(config, false);
+    }
+
+    static List<Issue> inspect(RuntimeConfiguration config, boolean recovery) {
         var issues = new ArrayList<Issue>();
-        require(issues, "$.storage", "memory storage required", "memory".equals(config.storage()));
+        require(issues, "$.storage", recovery ? "memory or sqlite storage required" : "memory storage required",
+                "memory".equals(config.storage()) || (recovery && "sqlite".equals(config.storage())));
         require(issues, "$.sources", "one to three sources required",
                 !config.sources().isEmpty() && config.sources().size() <= 3);
         require(issues, "$.views", "one to two views required",

@@ -1,4 +1,4 @@
-import { staticViewsProfile } from "./evidence-versions.js";
+import { hasStaticProjections } from "./evidence-versions.js";
 import {
   acceptedReceipt,
   publicationIdentity,
@@ -43,7 +43,7 @@ export class DocumentExecution {
       (effect, parent, publication) =>
         this.transport.effect(effect, parent, publication),
       scenario.observationTargets,
-      scenario.profile === staticViewsProfile,
+      hasStaticProjections(scenario.profile),
     );
     this.transport = new DocumentTransport(
       this.agenda,

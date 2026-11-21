@@ -515,6 +515,9 @@ flowchart TB
   host -->|receipt-age or explicit sequence qualification| profile["runtime/TimelineProfile.java"]
   host -->|requested-family inspection and comparison| requested["simulation/RequestedProfileAdmission.java"]
   requested -->|bounded static-memory predicate| static["runtime/StaticViewsTimelineProfile.java"]
+  requested -->|explicit memory or SQLite recovery family| recovery["runtime/StaticRecoveryTimelineProfile.java"]
+  recovery -->|shared field and resource rules| static
+  host -->|recheck recovery startup bytes and storage| recovery
   host -->|recheck actual startup configuration| static
   requested -->|production normalization and comparison| configuration
   host -->|modelled connections| session["simulation/TimelineSession.java"]

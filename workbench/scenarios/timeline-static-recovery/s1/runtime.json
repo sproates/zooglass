@@ -1,0 +1,73 @@
+{
+  "contractVersion": 2,
+  "storage": "sqlite",
+  "maxStreams": 20,
+  "identityWindow": 20,
+  "maxHistoryEntries": 20,
+  "sources": [
+    {
+      "id": "kiln-feed",
+      "epoch": "batch-7"
+    }
+  ],
+  "views": [
+    {
+      "id": "kiln-readings",
+      "fields": {
+        "arrival": {
+          "inputs": [
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.measured"
+            },
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.corrected"
+            }
+          ],
+          "mode": "arrival"
+        },
+        "history": {
+          "inputs": [
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.measured"
+            },
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.corrected"
+            }
+          ],
+          "mode": "historyBySequence"
+        },
+        "latest": {
+          "inputs": [
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.measured"
+            },
+            {
+              "sourceId": "kiln-feed",
+              "type": "temperature.corrected"
+            }
+          ],
+          "mode": "latestBySequence"
+        }
+      }
+    },
+    {
+      "id": "kiln-current",
+      "fields": {
+        "value": {
+          "sourceId": "kiln-feed",
+          "type": "temperature.measured",
+          "mode": "arrival"
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "maxQueuedMessages": 128,
+    "maxQueuedBytes": 1048576
+  }
+}

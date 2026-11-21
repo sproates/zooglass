@@ -73,7 +73,10 @@ export function validateStaticDocument(doc: { [key: string]: Json }) {
   }
 }
 
-export function validateProjectedAssertions(doc: { [key: string]: Json }) {
+export function validateProjectedAssertions(
+  doc: { [key: string]: Json },
+  recovery = false,
+) {
   const actions = list(doc.actions, "$.actions").map((value) =>
     object(value, "action"),
   );
@@ -129,7 +132,13 @@ export function validateProjectedAssertions(doc: { [key: string]: Json }) {
       if (
         send.actor !== assertion.actor ||
         integer(send.atMs, "send.atMs") !== at ||
-        [...sends.values()].filter(
+        (recovery
+          ? actions.filter(
+              (action) =>
+                action.kind === "source-send" || action.kind === "source-retry",
+            )
+          : [...sends.values()]
+        ).filter(
           (action) =>
             action.actor === assertion.actor &&
             integer(action.atMs, "action.atMs") === at,

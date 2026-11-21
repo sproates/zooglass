@@ -1,3 +1,4 @@
+import { hasStaticProjections } from "./evidence-versions.js";
 import type { Response } from "./host-protocol.js";
 
 type CommandState = Readonly<{
@@ -133,7 +134,7 @@ export function validateCommandResponse(
   }
   const projected =
     operation.op === "initialize-document"
-      ? operation.profile === "memory-static-views-v1"
+      ? hasStaticProjections(operation.profile)
       : projectedObservations;
   if (
     (value.projectedSnapshots !== undefined) !==

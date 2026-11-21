@@ -20,5 +20,12 @@ before new input. Fixtures are deliberately explicit artifacts for review, not
 runtime-derived baselines. B1 reaches the admitted shape; it is not a throughput
 or maximum-load test.
 
+S2's final frame is version 6: sequence 9 replaces arrival and joins history,
+while latest stays at sequence 12. S3's sequence 31 advances the admission floor
+to 12 and produces version 6; its next subscription returns that same version.
+The retained duplicate and two rejected publications emit no further view update.
+Final cumulative frame assertions cover those boundaries, and S3 also compares
+the complete installed snapshot after the rejections with its recovered snapshot.
+
 Use the [guide](../../docs/timeline-static-recovery.md). The finite qualification
 campaign and retained release evidence are still pending.

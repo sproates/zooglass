@@ -211,7 +211,9 @@ public final class TimelineHost {
             if ((!recovery && generation.number() != 1)
                     || (generation.number() == 1 && generation.startTimeMs() != 0)
                     || generation.wallMillis(0) != generation.epochMillis())
-                throw new IllegalArgumentException("Static views profile requires generation 1, initial time zero and no wall adjustment");
+                throw new IllegalArgumentException(recovery
+                        ? "Static recovery profile requires initial time zero in generation 1 and no wall adjustment"
+                        : "Static views profile requires generation 1, initial time zero and no wall adjustment");
             // Requested admission is independent of legacy first-match classification.
             fleet = false;
             order = false;
@@ -240,7 +242,9 @@ public final class TimelineHost {
         Path database = database(command, config.storage(), generation);
         if ((order || (recovery && database != null)) && generation.number() == 1
                 && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
-            throw new IllegalArgumentException("Order profile requires a new database path");
+            throw new IllegalArgumentException(recovery
+                    ? "Static recovery profile requires a new database path in generation 1"
+                    : "Order profile requires a new database path");
         if (sports && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
             throw new IllegalArgumentException("Sports profile requires a new database path");
         var targets = command.has("observationTargets")

@@ -17,6 +17,10 @@ export class TraceProjections {
   private readonly receipts: DeliveredReceipt[] = [];
   private readonly used = new Set<string>();
   private readonly sends = new Map<string, TraceEvent>();
+  private readonly connections = new Map<
+    string,
+    { runtime: number; connection: number; open: boolean; attached: boolean }
+  >();
 
   accept(event: TraceEvent, path: string) {
     if (
@@ -61,6 +65,7 @@ export class TraceProjections {
       if (event.data.actionKind === "source-send")
         this.sends.set(String(event.data.actionId), event);
     }
+    if (this.recovery) this.recoveryConnection(event, path);
     if (event.kind === "delivered" && event.data.channel === "source-receipt")
       this.receipts.push({
         eventId: event.id,
@@ -113,5 +118,61 @@ export class TraceProjections {
         "acceptance result differs from delivered receipt identity, status or count",
       );
     if (matched) this.used.add(matched);
+  }
+
+  /** Historical generation ownership alone does not keep a retired session live. */
+  private recoveryConnection(event: TraceEvent, path: string) {
+    const action = event.kind === "action" ? event.data.actionKind : undefined;
+    if (action === "service-stop") {
+      for (const connection of this.connections.values()) {
+        connection.open = false;
+        connection.attached = false;
+      }
+      return;
+    }
+    const current = this.connections.get(event.actor);
+    if (action === "connect") {
+      if (
+        current?.attached ||
+        event.runtimeGeneration === null ||
+        event.connectionGeneration === null
+      )
+        invalid(path, "connect cannot replace an active connection");
+      this.connections.set(event.actor, {
+        runtime: event.runtimeGeneration,
+        connection: event.connectionGeneration,
+        open: true,
+        attached: true,
+      });
+      return;
+    }
+    const matches =
+      current !== undefined &&
+      current.runtime === event.runtimeGeneration &&
+      current.connection === event.connectionGeneration;
+    if (action === "disconnect" || event.kind === "connection-closed") {
+      if (!matches) invalid(path, "close must identify the current connection");
+      if (action === "disconnect") {
+        if (!current.attached)
+          invalid(path, "disconnect requires an attached connection");
+        current.attached = false;
+      }
+      current.open = false;
+      return;
+    }
+    const publicationOrSubscription =
+      action !== undefined &&
+      [
+        "source-send",
+        "source-retry",
+        "client-subscribe",
+        "client-unsubscribe",
+      ].includes(String(action));
+    const traffic = ["receipt", "handoff", "frame", "delivered"].includes(
+      event.kind,
+    );
+    if ((publicationOrSubscription || traffic) && (!matches || !current.open))
+      invalid(path, "static recovery traffic requires the active connection");
+    // Cumulative assertions and cancellation/drop records may name a closed session.
   }
 }

@@ -288,6 +288,32 @@ for (const name of ["m1", "m2", "s1", "s2", "s3", "b1"]) {
         /differs from scenario|acceptance must reference/,
       );
       assert.equal(saved.scenario.profile, "static-views-restart-v1");
+      if (name !== "b1") {
+        for (const mutation of ["projection", "generation"] as const) {
+          const changed = run.trace
+            .trimEnd()
+            .split("\n")
+            .map((line) => JSON.parse(line));
+          const initialized = changed.find(
+            (record) =>
+              record.kind === "runtime-initialized" &&
+              record.runtimeGeneration === 2,
+          );
+          assert.ok(initialized);
+          if (mutation === "projection")
+            delete initialized.data.projectedSnapshots;
+          else initialized.runtimeGeneration = 1;
+          const modifiedTrace = changed
+            .map(
+              (record) => encodeJson(parseJson(JSON.stringify(record))) + "\n",
+            )
+            .join("");
+          assert.throws(
+            () => parseReplay(JSON.stringify({ ...run, trace: modifiedTrace })),
+            /invalid|generation|projection/,
+          );
+        }
+      }
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -299,12 +325,56 @@ test("V4 assertion failure remains valid evidence and replay reproduces it", asy
   value.document.assertions[1].expected = {};
   const input = await save(value);
   try {
-    const run = await runDocument(input.path, { jar });
+    const run = await runDocument(input.path, {
+      jar,
+      diagnosticDirectory: input.directory,
+    });
     assert.equal(run.outcome, "assertion-failed");
-    const report = await replaySaved(parseReplay(JSON.stringify(run)), { jar });
+    const report = await replaySaved(parseReplay(JSON.stringify(run)), {
+      jar,
+      diagnosticDirectory: input.directory,
+    });
     assert.equal(report.status, "verified");
     assert.equal(report.recordedOutcome, "assertion-failed");
   } finally {
     await rm(input.directory, { recursive: true, force: true });
   }
 });
+
+for (const storage of ["memory", "sqlite"] as const) {
+  for (const capability of ["staticViewsRestart", "publicSnapshots"] as const) {
+    test(`V4 ${storage} rejects missing ${capability} before runtime initialization`, async (context) => {
+      const { Bridge } = await import("../../src/timeline/bridge.js");
+      const input = await save(recovery(storage, "orderly"));
+      const open = Bridge.open;
+      let initialized = 0;
+      context.mock.method(
+        Bridge,
+        "open",
+        async (...args: Parameters<typeof Bridge.open>) => {
+          const opened = await open(...args);
+          if (
+            capability === "staticViewsRestart" ||
+            opened.bridge.protocol === 2
+          )
+            opened.bridge[capability] = 0;
+          const command = opened.bridge.command.bind(opened.bridge);
+          opened.bridge.command = async (...values) => {
+            if (values[1].op === "initialize-document") initialized++;
+            return command(...values);
+          };
+          return opened;
+        },
+      );
+      try {
+        await assert.rejects(
+          runDocument(input.path, { jar }),
+          /unsupported-admission|static public snapshot support/,
+        );
+        assert.equal(initialized, 0);
+      } finally {
+        await rm(input.directory, { recursive: true, force: true });
+      }
+    });
+  }
+}

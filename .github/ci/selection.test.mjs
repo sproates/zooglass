@@ -307,3 +307,24 @@ test("simulation host and timeline changes select shared static/core checks with
   ])
     assert.deepEqual(selected([path]), ["static", "core"], path);
 });
+
+test("timeline shards retain the complete suite and shared checks", () => {
+  const workflow = readFileSync(
+    new URL("../workflows/workbench.yml", import.meta.url),
+    "utf8",
+  );
+  const timeline = workflow
+    .split("  timeline:\n")[1]
+    .split("\n  browser-host:")[0];
+  assert.match(timeline, /fail-fast: false/);
+  assert.match(timeline, /shard: \["1\/2", "2\/2"\]/);
+  assert.match(timeline, /run: npm run prepare:timeline/);
+  assert.match(
+    timeline,
+    /if: matrix.shard == '1\/2'\n        run: \|\n          npm run test:timeline-packaging\n          .*surefire:test/,
+  );
+  assert.match(
+    timeline,
+    /run: node --import tsx --test --test-shard=\$\{\{ matrix.shard \}\} test\/timeline\/\*\.test\.ts/,
+  );
+});

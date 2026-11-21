@@ -854,6 +854,9 @@ The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingres
 freshness and subscription delivery under an explicit agenda. It is not a new
 implementation of `simulate` and does not yet support general scenarios. Prepare
 its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.
+CI splits the complete timeline suite across two Node test shards, each with its
+own prepared artifacts. Packaging and Java host checks run once; both shards
+must pass the required gate. The local test command still runs the full suite.
 
 The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
 provides strict syntax/trace inspection and a census of the existing scenario

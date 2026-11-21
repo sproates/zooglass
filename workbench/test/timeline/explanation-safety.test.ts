@@ -13,7 +13,12 @@ import { join } from "node:path";
 import test from "node:test";
 import { auditExplanationSafety } from "../../scripts/explanation-safety.js";
 import { canonicalJson } from "../../src/timeline/json.js";
-import { fixture, receipt, source } from "./document-fixture.js";
+import {
+  fixture,
+  receipt,
+  recordedEnvironment,
+  source,
+} from "./document-fixture.js";
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -192,7 +197,7 @@ async function safetyBundle(root: string) {
   ]
     .map((record) => canonicalJson(JSON.stringify(record)) + "\n")
     .join("");
-  const environment = { executor: "static-views-restart-v1/1" };
+  const environment = recordedEnvironment("static-views-restart-v1/1");
   const files = {
     "scenario.json": scenario,
     "configuration.json": configuration,

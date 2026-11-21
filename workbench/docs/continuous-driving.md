@@ -41,7 +41,11 @@ npm run demo -- vehicle-tracker --continuous --bind=<private IPv4 address>
 ```
 
 Replace the placeholder, including its angle brackets, with the actual address.
-Open the printed URL in Chrome, Safari or your usual browser. You can open the same
+Open the printed URL in Chrome/Edge 120+, Firefox 121+ or Safari/iOS 17+.
+JavaScript, modules, WebSocket, fetch, AbortController and ResizeObserver are
+required. Unsupported clients retain an upgrade message; required asset failures
+show a startup error with reload guidance. Optional map-tile failures retain their
+separate retry control. You can open the same
 URL on more than one device; no pairing link or controller role is involved. If a
 chat app opens the link in an embedded browser, copying that ordinary URL into your
 preferred browser is fine. It contains no single-use token.

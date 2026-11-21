@@ -5,7 +5,7 @@ import { parseTimelineDocument } from "../../src/timeline/contract.js";
 import { canonicalJson } from "../../src/timeline/json.js";
 import { parseReplay } from "../../src/timeline/replay-document.js";
 import { validateTrace } from "../../src/timeline/trace-contract.js";
-import { fixture } from "./document-fixture.js";
+import { fixture, recordedEnvironment } from "./document-fixture.js";
 
 const configuration = "{}";
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -177,7 +177,7 @@ function evidence(records: object[], outcome = "passed") {
     trace,
     run: JSON.stringify({
       format: "timeline-run/v2",
-      environment: { executor: "receipt-age-restart-v1/1" },
+      environment: recordedEnvironment("receipt-age-restart-v1/1"),
       outcome,
       execution,
       scenario: declaration.canonical,

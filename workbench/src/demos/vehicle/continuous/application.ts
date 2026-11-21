@@ -10,8 +10,10 @@ export async function drivingApplication(
   const assets = await fleetAssets(map);
   for (const [url, file, mime] of [
     ["/", "pages/continuous/index.html", "text/html"],
+    ["/driving/startup.js", "pages/continuous/startup.js", "text/javascript"],
     ["/driving.css", "pages/continuous/styles.css", "text/css"],
     ["/driving/report-age.js", "dist/driving/report-age.js", "text/javascript"],
+    ["/driving/bootstrap.js", "dist/driving/bootstrap.js", "text/javascript"],
     ["/driving/app.js", "dist/driving/app.js", "text/javascript"],
   ]) {
     assets.set(url, [

@@ -14,9 +14,11 @@ app a view it can consume without rebuilding that reconciliation itself.
 
 The ambition is to make that whole journey practical: from independently
 changing facts to a useful live application. This is the product direction.
-ZooGlass is an early prototype, and the contracts and capabilities described
-below are goals to work towards. The [current implementation](#where-we-are-now)
-covers a small part of them.
+This paper preserves the October 2026 product vision and implementation snapshot.
+Many capabilities described here as goals have since shipped. For current scope,
+start with the [capability delivery record](verification/capability-delivery.md),
+[runtime guide](../zooglass/README.md) and
+[timeline capability guide](../workbench/docs/timeline-guide.md).
 
 ## Where it fits
 
@@ -193,13 +195,13 @@ Workbench gives us a way to test whether the intended promises hold under
 specified conditions. Passing a finite scenario demonstrates that case; broader
 reliability and capacity claims need their own evidence.
 
-## Where we are now
+## Historical implementation snapshot
 
-As of October 2026, the project has a small in-memory service, a CLI Workbench
+At the October 2026 snapshot, the project had a small in-memory service, a CLI Workbench
 and an orchestrated browser demo.
 The distinction between that foundation and the intended product matters:
 
-| Area | Current position |
+| Area | Position at the October snapshot |
 | --- | --- |
 | View maintenance | Source/type matching, entity-scoped fields, runtime view definitions, and optional latest/history ordering by numeric sequence. |
 | Client delivery | HTTP view reads and WebSocket subscriptions with full snapshots. A reconnecting client can resubscribe for current state. |

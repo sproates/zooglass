@@ -28,6 +28,11 @@ h1 {
   letter-spacing: 0.09em;
   font-size: 0.65rem;
 }
+#startup {
+  padding: 12px 16px;
+  margin: 0;
+  background: #fff4d8;
+}
 #connection {
   font-size: 0.75rem;
   max-width: 35%;

@@ -1,10 +1,13 @@
 # Verification and coverage
 
-A proposed [deterministic timeline simulator](design/deterministic-timeline.md)
-would add virtual-time, same-artifact replay evidence using the actual runtime
-with controlled adapters. Its acceptance matrix keeps real-interface, browser,
-concurrency and physical crash checks separate. It is not implemented and does
-not replace any checks in this guide.
+The delivered [deterministic timeline simulator](../workbench/docs/timeline-guide.md)
+provides controlled-time execution, same-artifact replay and portable evidence
+using ZooGlass's real runtime. Its supported families and qualification limits are
+explicit. Timeline checks complement real-interface, browser, concurrency and
+physical crash checks; they do not replace them. The
+[explanation qualification](../workbench/docs/timeline-explanation-qualification.md)
+checks recorded production decisions, and [authorisation acceptance](verification/authorisation.md)
+covers protected serving and access loss.
 
 See the [CI selection and validation workflow](ci-validation.md) for the
 change-to-check baseline and optional development branch shortcuts.
@@ -625,8 +628,9 @@ results, coverage changes, deliberate regression checks and remaining gaps. It
 was accepted in [PR #46](https://github.com/sproates/zooglass/pull/46). The
 [readability plan](plans/readability-refactor.md) maps proposed extractions to
 protecting tests and keeps core protocol verification independent of demo UI checks. Real data-path fault injection and automatic retry now have focused browser
-coverage, including outage reset and deadline expiry. Permissions remain future
-feature work; these tests do not establish authorisation behaviour.
+coverage, including outage reset and deadline expiry. These browser fault tests do not establish authorisation behaviour; the
+separate [authorisation acceptance](verification/authorisation.md) covers the
+delivered permission checks and access-loss behaviour.
 
 Use the stronger suite to protect subsequent readability refactoring. Production
 and test modules both need clear responsibilities, explicit lifecycle ownership

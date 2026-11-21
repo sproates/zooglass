@@ -11,9 +11,10 @@ Use JDK 25, then build and start from this directory:
 
 ```sh
 ./mvnw --batch-mode verify
-java -jar target/zooglass.jar
+java -jar target/zooglass.jar --server.address=127.0.0.1
 ```
 
+This local example uses unauthenticated `openDemo` access on loopback only.
 The service listens on port 8080. `GET /actuator/health` reports readiness.
 The default `runtime-views.json` configures a match view with `match-feed` and
 `bookmaker` sources, both using epoch `run`. Supply another configuration with
@@ -155,5 +156,6 @@ Open demo access is the default. For application-owned permission decisions, see
 grants and a separate local operator connection.
 
 [Publication decision results](docs/publication-decisions.md) explain supported
-static publication updates through an optional Java API. Timeline explanation
-recording and reports remain planned.
+static publication updates through an optional Java API. [V5 timeline recording and offline reports](../workbench/docs/timeline-explanations.md)
+are available for static arrival/latest/history publications. Other families retain
+observed-event summaries without detailed decision reasons.

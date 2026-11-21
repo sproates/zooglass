@@ -20,6 +20,7 @@ import {
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
 import { executeDocument, type DocumentOptions } from "./run-document.js";
+import { validateRecordedEnvironment } from "./replay-environment.js";
 import { parseTrace } from "./trace-contract.js";
 import { choice, integer, list, object, text } from "./validation.js";
 
@@ -113,16 +114,15 @@ export function parseReplay(raw: string) {
     execution.profile !== scenario.profile
   )
     throw new Error("invalid-replay: execution identity mismatch");
-  const environment = object(saved.environment, "environment");
+  const environment = validateRecordedEnvironment(
+    saved.environment,
+    scenario.storage,
+  );
   if (
     versions.protocol === 2 &&
     environment.executor !== `${scenario.profile}/1`
   )
     throw new Error("invalid-replay: executor profile mismatch");
-  if (scenario.storage === "sqlite") {
-    const java = object(environment.java, "environment.java");
-    text(java.sqliteVersion, "environment.java.sqliteVersion");
-  }
   return {
     saved,
     scenario,

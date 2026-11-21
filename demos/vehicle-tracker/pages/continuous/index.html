@@ -6,7 +6,7 @@
     <title>ZooGlass · Gibraltar live fleet</title>
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/driving.css" />
-    <script type="module" src="/driving/app.js"></script>
+    <script defer src="/driving/startup.js"></script>
   </head>
   <body>
     <header>
@@ -16,6 +16,12 @@
       </div>
       <span id="connection" role="status">Connecting…</span>
     </header>
+    <p id="startup" role="status">
+      Fleet viewer requires Chrome/Edge 120+, Firefox 121+, Safari/iOS 17+ and
+      JavaScript. Upgrade your browser or use a supported browser. If you
+      already meet these requirements and the viewer does not start, check the
+      demo server and reload this page.
+    </p>
     <main>
       <div id="map" aria-label="Live vehicle positions in Gibraltar"></div>
       <div class="map-tools">

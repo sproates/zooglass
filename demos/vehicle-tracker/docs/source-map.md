@@ -176,7 +176,9 @@ Workbench command bridge or require a browser controller.
 
 ```mermaid
 flowchart TD
-  html["pages/continuous/index.html"] -->|loads passive viewer| app["driving/app.ts"]
+  html["pages/continuous/index.html"] -->|checks browser and displays startup failures| startup["pages/continuous/startup.js"]
+  startup -->|loads and watches completion| bootstrap["driving/bootstrap.ts"]
+  bootstrap -->|awaits required assets and application initialization| app["driving/app.ts"]
   html -->|defines map-first layout| css["pages/continuous/styles.css"]
   app -->|renders received coordinates| leaflet["Leaflet"]
   app -->|loads attributed map imagery| tiles["fleet/map-tiles.ts"]

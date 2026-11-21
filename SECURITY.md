@@ -4,10 +4,18 @@ ZooGlass is an early prototype. There are no supported production releases or
 maintenance branches. Security fixes are considered against current `main`;
 there is no guaranteed response time or backport commitment.
 
-The local Workbench runner binds its owned service to loopback. The prototype
-has no application authentication or access-control model, and holds view state
-in memory. These are documented limitations, not a basis for exposing it to
-untrusted networks or using it with sensitive data.
+The local Workbench runner binds its owned service to loopback. The runtime's
+`openDemo` mode is unauthenticated; bind local examples explicitly to loopback
+with `--server.address=127.0.0.1`. Do not expose open demos to untrusted networks
+or use them with sensitive data.
+
+The runtime supports memory and single-instance SQLite storage.
+[Protected deployment](zooglass/docs/protected-deployment.md) provides an
+application-owned access policy, HTTPS/WSS viewer listener, scoped grants and a
+separate local operator listener. Tenant-owned stores and grant checks are
+implemented; they do not make the open demo commands protected. Follow the
+protected deployment's configuration, transport and policy requirements before
+serving application data.
 
 The fleet demo also offers an explicit external-viewer mode, bound to one chosen
 private or loopback IPv4 address; other address ranges are rejected before

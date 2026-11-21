@@ -137,8 +137,8 @@ Use a new explicit document/evidence generation: `timeline-simulation/v4`,
 `timeline-trace/v4`, `timeline-run/v4` and `timeline-bundle/v4`, with the new profile.
 Keep host protocol 2 and advertise a separate `staticViewsRestart:1` capability
 only when the complete host contract is implemented. Require public
-snapshot support for both storage modes, and additionally require native SQLite
-and lifecycle identity when storage is SQLite. An older
+snapshot support for both storage modes, and additionally require the SQLite
+lifecycle capability and recorded native SQLite version when storage is SQLite. An older
 host must reject the request clearly before runtime effects.
 
 V4 is a closed contract, not permission to combine all V2 and V3 actions. Readers

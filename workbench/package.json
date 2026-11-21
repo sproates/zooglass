@@ -77,7 +77,8 @@
     "timeline:static-campaign": "node --import tsx scripts/static-campaign.ts",
     "timeline:static-selection-control": "node --import tsx scripts/static-selection-control.ts",
     "timeline:static-service-parity": "node --import tsx scripts/static-service-parity.ts",
-    "timeline:static-audit": "node --import tsx scripts/static-audit.ts"
+    "timeline:static-audit": "node --import tsx scripts/static-audit.ts",
+    "benchmark:run": "node --import tsx src/benchmark/cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

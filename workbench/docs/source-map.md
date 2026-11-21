@@ -1408,3 +1408,20 @@ flowchart TB
   audit -->|recompute retained inventory| evidence
   audit -->|repeat safety controls on disposable copies| safety
 ```
+
+## Performance driver
+
+The single-execution driver uses ordinary service interfaces, outside virtual-time
+execution and demo presentation. Campaign orchestration and resource reporting
+remain a later increment.
+
+```mermaid
+flowchart LR
+  cli["benchmark/cli.ts"] -->|runs one diagnostic and saves records| driver["benchmark/driver.ts"]
+  driver -->|owns prepared service| service["service/zooglass-session.ts"]
+  driver -->|fixed input and configuration| workload["benchmark/workload.ts"]
+  driver -->|global open-loop slots| schedule["benchmark/schedule.ts"]
+  driver -->|owns sockets and callback failures| connections["benchmark/connections.ts"]
+  driver -->|checks receipt and viewer obligations| oracle["benchmark/oracle.ts"]
+  oracle -->|bounded records and shared contracts| model["benchmark/model.ts"]
+```

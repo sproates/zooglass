@@ -1,6 +1,7 @@
 # Single-instance performance baseline
 
-Status: proposed. This plan defines the first measurement campaign; no performance
+Status: accepted in [PR #197](https://github.com/sproates/zooglass/pull/197).
+This plan defines the first measurement campaign; no performance
 results or capacity claims have been established by it.
 
 ZooGlass has correctness evidence for reconciliation, durable recovery and client

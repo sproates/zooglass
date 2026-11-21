@@ -16,7 +16,8 @@ export interface ZooGlassSession {
   baseUrl: string;
   /** Aborted on caller cancellation, shutdown, or unexpected service exit. */
   signal: AbortSignal;
-  close(): Promise<void>;
+  /** Strict callers reject forced, unsuccessful, or pre-existing exits after cleanup. */
+  close(options?: { requireOrderly?: boolean }): Promise<void>;
 }
 
 export interface ZooGlassSessionOptions {
@@ -68,9 +69,14 @@ export async function startZooGlassSession(
   let child: ChildProcess | undefined;
   let stopped: Promise<void> = Promise.resolve();
   let finished = false;
+  let exited = false;
+  let termination:
+    { code: number | null; signal: NodeJS.Signals | null } | undefined;
+  let requestedWhileRunning = false;
+  let forced = false;
   let closing: Promise<void> | undefined;
 
-  const close = (): Promise<void> => {
+  const cleanup = (): Promise<void> => {
     if (closing) {
       return closing;
     }
@@ -81,6 +87,10 @@ export async function startZooGlassSession(
         if (child?.pid !== undefined && !finished) {
           const ownedChild = child;
           const pid = child.pid;
+          requestedWhileRunning =
+            !exited &&
+            ownedChild.exitCode == null &&
+            ownedChild.signalCode == null;
 
           const terminate = async (force: boolean) => {
             if (process.platform === "win32") {
@@ -90,6 +100,7 @@ export async function startZooGlassSession(
                   "taskkill",
                   ["/PID", String(pid), "/T", ...(force ? ["/F"] : [])],
                   (error) => {
+                    if (error && !force) requestedWhileRunning = false;
                     // Some console processes refuse non-forced taskkill.
                     // Still allow the grace period and forced fallback.
                     if (error && force && !finished) {
@@ -108,7 +119,8 @@ export async function startZooGlassSession(
                   throw error;
                 }
 
-                ownedChild.kill(force ? "SIGKILL" : "SIGTERM");
+                const sent = ownedChild.kill(force ? "SIGKILL" : "SIGTERM");
+                if (!force && !sent) requestedWhileRunning = false;
               }
             }
           };
@@ -126,6 +138,7 @@ export async function startZooGlassSession(
             ]);
 
             if (result === "timeout") {
+              forced = true;
               await terminate(true);
             }
 
@@ -145,6 +158,36 @@ export async function startZooGlassSession(
     })();
 
     return closing;
+  };
+
+  const close = (
+    closeOptions: { requireOrderly?: boolean } = {},
+  ): Promise<void> => {
+    const completed = cleanup();
+    if (!closeOptions.requireOrderly) return completed;
+    // Check the retained outcome per caller: an earlier ordinary close cannot hide
+    // escalation, and a strict rejection must not poison ordinary cleanup callers.
+    return completed.then(() => {
+      if (forced)
+        throw new Error(
+          "Orderly shutdown required; forced termination was necessary.",
+        );
+      if (!requestedWhileRunning)
+        throw new Error(
+          "Orderly shutdown required; process already exited or graceful request failed.",
+        );
+      const accepted =
+        termination !== undefined &&
+        ((termination.code === 0 && termination.signal === null) ||
+          (process.platform !== "win32" &&
+            ((termination.code === 143 && termination.signal === null) ||
+              (termination.code === null &&
+                termination.signal === "SIGTERM"))));
+      if (!accepted)
+        throw new Error(
+          `Orderly shutdown required; process exited with ${termination?.signal ?? `code ${termination?.code ?? "unknown"}`}.`,
+        );
+    });
   };
 
   try {
@@ -248,6 +291,7 @@ export async function startZooGlassSession(
     stopped = new Promise((resolve) => {
       startedChild.once("error", (error) => controller.abort(error));
       startedChild.once("exit", (code, terminationSignal) => {
+        exited = true;
         controller.abort(
           new Error(
             `ZooGlass exited with ${terminationSignal ?? `code ${code}`}.`,
@@ -256,6 +300,7 @@ export async function startZooGlassSession(
       });
       startedChild.once("close", (code, terminationSignal) => {
         finished = true;
+        termination = { code, signal: terminationSignal };
         controller.abort(
           new Error(
             `ZooGlass exited with ${terminationSignal ?? `code ${code}`}.`,

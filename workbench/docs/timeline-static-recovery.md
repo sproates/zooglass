@@ -60,3 +60,10 @@ The six examples and focused tests demonstrate implementation behaviour. The
 planned baseline/paused trace comparison, wrong-recovery control and ordinary-service
 comparisons remain a separate qualification milestone. No cross-platform,
 arbitrary mid-commit crash or new performance guarantee is claimed.
+
+Qualification preparation includes a generation-aware evidence checker and focused
+negative tests. It requires the authored observations, equal normal/paused traces,
+correct restart clocks and measured long pauses at each exercised site. A generation
+that only rejects or recognises duplicate publications has no new state-effect
+pause requirement. The full campaign, wrong-recovery control, ordinary-service
+comparisons and published evidence are still pending.

@@ -18,8 +18,8 @@ final class PublicationExplanationSupport {
         if (!supported) {
             throw new IllegalArgumentException(
                     "Publication explanations require static independent fields with envelope"
-                        + " entities, partial publication, untracked progress and unspecified"
-                        + " freshness");
+                            + " entities, partial publication, untracked progress and unspecified"
+                            + " freshness");
         }
     }
 

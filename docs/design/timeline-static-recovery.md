@@ -2,7 +2,7 @@
 
 Status: accepted through PR #188, 21 November 2026. Implementation is delivered
 through PR #189. The [fixed qualification](../../workbench/docs/timeline-recovery-qualification.md)
-passes; its evidence/documentation closeout is pending merge. The
+passes and is delivered through [PR #190](https://github.com/sproates/zooglass/pull/190). The
 [current capability guide](../../workbench/docs/timeline-guide.md) describes the
 supported scope.
 

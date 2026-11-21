@@ -1,7 +1,8 @@
 # Static recovery qualification
 
 Status: qualification passed on 21 November 2026 at source
-`8a77d52ea409cf02c2d17b05b8bf36bd36cf6eb3`; delivery awaits this PR's merge.
+`8a77d52ea409cf02c2d17b05b8bf36bd36cf6eb3`; delivered through
+[PR #190](https://github.com/sproates/zooglass/pull/190).
 [Retained evidence](../evidence/README.md) includes exact inputs, raw runs and
 replays, service observations, mutation provenance and the offline audit.
 The [accepted design](../../docs/design/timeline-static-recovery.md) fixes the

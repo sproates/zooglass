@@ -2,8 +2,10 @@
 
 Status: accepted through PR #192, 21 November 2026. The
 [production decision result](../../zooglass/docs/publication-decisions.md) is the
-first delivered slice. The V5 recording and offline report implementation follows
-this design; finite qualification and its published evidence remain outstanding.
+first delivered slice. V5 recording and the offline report are delivered in
+[PR #194](https://github.com/sproates/zooglass/pull/194). The fixed
+[qualification and retained evidence](../../workbench/docs/timeline-explanation-qualification.md)
+pass for the bounded scope below.
 
 ## Why this work
 

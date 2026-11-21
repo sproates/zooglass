@@ -127,5 +127,6 @@ The existing V3 converter and its evidence contract are unchanged.
 
 The optional [V5 recording and offline report](timeline-explanations.md) explains
 production-owned static publication decisions without expanding the supported
-simulation combinations. Older bundles remain readable as observed-outcome
+simulation combinations. The [12-execution qualification](timeline-explanation-qualification.md) checks the
+reports and detects a deliberately wrong production reason. Older bundles remain readable as observed-outcome
 summaries; they do not contain detailed strategy reasons.

@@ -1387,3 +1387,22 @@ symlink parents. The model omits payload values and preserves runtime counters a
 exact decimal strings. It labels missing legacy detail explicitly. The context
 selector follows recorded edges and validated associations, never timestamp
 adjacency. Rendering changes neither evidence nor replay identity.
+
+## Explanation qualification
+
+The fixed runner uses prepared artifacts only. The offline audit repeats the
+independent evidence checks without running ZooGlass; preparation owns its isolated
+builds and verifies the deliberately changed production class.
+
+```mermaid
+flowchart TB
+  prepare["scripts/prepare-explanation-mutation.py"] -->|isolated normal and reason-mutant artifacts| preparation["scripts/explanation-preparation.ts"]
+  campaign["scripts/explanation-campaign.ts"] -->|verify prepared source and artifact inventories| preparation
+  campaign -->|record twelve fixed executions| bundle["timeline/artifact-bundle.ts"]
+  campaign -->|literal reasons and recorded event references| checks["scripts/explanation-checks.ts"]
+  campaign -->|source and retained file hashes| evidence["scripts/explanation-evidence.ts"]
+  campaign -->|offline negative controls| safety["scripts/explanation-safety.ts"]
+  audit["scripts/explanation-audit.ts"] -->|recheck expected reasons and unchanged mutant values| checks
+  audit -->|recompute retained inventory| evidence
+  audit -->|repeat safety controls on disposable copies| safety
+```

@@ -113,6 +113,11 @@ replace the demo systems; Workbench is development and verification tooling.
 | [`demos/`](#try-the-demos)          | Browser applications consuming ZooGlass views, with domain-specific presentation.                                |
 | [`docs/`](docs/what-is-zooglass.md) | Product explanation, designs, contracts and verification records.                                                |
 
+[Publication explanations](workbench/docs/timeline-explanations.md) turn supported
+timeline evidence into offline text or JSON reports, using reasons recorded by the
+real runtime. The [bounded qualification](workbench/docs/timeline-explanation-qualification.md)
+checks those reasons, replay and memory/SQLite duplicate history.
+
 Workbench's scenarios have a defined action order and can be run repeatedly. Its
 real-process execution does not make network delivery, service scheduling or
 wall-clock timing deterministic. The

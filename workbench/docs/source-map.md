@@ -33,6 +33,8 @@ src/
 ├── execution/       Execute actions, manage connections and check results
 ├── browser/         Browser lifecycle, local hosting and command execution
 ├── control/         Stepping, playback controls, reset and cancellation
+├── timeline/        Deterministic execution, evidence contracts and replay
+├── explanation/     Offline evidence presentation and report output
 ├── service/         ZooGlass process lifecycle
 └── demos/
     ├── vehicle/     Compose shared components for the vehicle demo
@@ -1357,3 +1359,31 @@ flowchart TB
 The recovery qualification tools have the same fixed 28-execution scope as the
 [qualification guide](timeline-recovery-qualification.md). The isolated mutant
 changes SQLite image installation only; it does not modify the production checkout.
+
+## Offline timeline explanations
+
+`timeline:explain` starts at `explanation/cli.ts`. Presentation consumes validated
+trace associations and recorded production decisions; it does not evaluate update
+strategies. Its modules live outside `timeline/`, so report-only changes do not
+change the executor source identity used for replay.
+
+```mermaid
+flowchart TB
+  cli["explanation/cli.ts"] -->|validate arguments and write new report| reader["explanation/reader.ts"]
+  reader -->|validate complete retained bundle| bundle["timeline/artifact-bundle.ts"]
+  bundle -->|validate saved run and trace| replay["timeline/replay-document.ts"]
+  replay -->|validate event records| trace["timeline/trace-contract.ts"]
+  replay -->|bind authored identities and configured fields| declarations["timeline/decision-declarations.ts"]
+  trace -->|closed production reason schema| schema["timeline/decision-contract.ts"]
+  bridge["timeline/bridge.ts"] -->|require opted-in complete ingress effects| effects["timeline/bridge-decisions.ts"]
+  trace -->|bind exactly one decision to its receipt and source attempt| decisions["timeline/trace-decisions.ts"]
+  reader -->|present validated evidence and hashes| model["explanation/model.ts"]
+  model -->|select explicit linked event context| context["explanation/context.ts"]
+  reader -->|render bounded JSON or escaped text| render["explanation/render.ts"]
+```
+
+The reader enforces exclusive output outside the bundle, including resolved
+symlink parents. The model omits payload values and preserves runtime counters as
+exact decimal strings. It labels missing legacy detail explicitly. The context
+selector follows recorded edges and validated associations, never timestamp
+adjacency. Rendering changes neither evidence nor replay identity.

@@ -659,10 +659,15 @@ mistaken for a V3 execution host. Existing profiles retain their raw response sh
 `applyExplained` shares ordinary publication processing and checks production
 semantic coverage before mutation. The collector is attempt-local; it freezes the
 result before installation and returns it only after success. The ordinary receipt
-and storage records remain unchanged. Timeline integration is a separate step.
+and storage records remain unchanged. Explained ingress shares ordinary parsing,
+processing failures and receipt delivery; the controlled host records a separate
+effect only when decision collection is explicitly enabled.
 
 ```mermaid
 flowchart TB
+  host["simulation/TimelineHost.java"] -->|opt-in explained ingress| ingress["runtime/EventIngress.java"]
+  ingress -->|shared processing with optional result| coordinator["runtime/ViewCoordinator.java"]
+  ingress -->|unchanged receipt bytes| session["simulation/TimelineSession.java"]
   coordinator["runtime/ViewCoordinator.java"] -->|checks coverage before processing| support["runtime/PublicationExplanationSupport.java"]
   coordinator -->|same staging path| transitions["runtime/ViewTransitions.java"]
   transitions -->|evaluates matched fields| bound["runtime/BoundView.java"]

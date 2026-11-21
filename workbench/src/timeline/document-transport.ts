@@ -163,6 +163,19 @@ export class DocumentTransport {
       return;
     }
     const envelope = parseJson(effect.wire);
+    if (effect.kind === "publication-decision") {
+      assert.equal(
+        this.scenario.format,
+        "timeline-simulation/v5",
+        "decision effect requires V5",
+      );
+      assert.ok(
+        publication && connection.open,
+        "decision requires active publication attempt",
+      );
+      this.event("publication-decision", { envelope }, parent, connection);
+      return;
+    }
     if (effect.kind === "control-receipt") {
       if (object(envelope, "control receipt").status === "failed")
         throw new Error(

@@ -2,9 +2,8 @@
 
 `ViewCoordinator.applyExplained(publication)` returns the ordinary
 `PublicationOutcome` beside a `PublicationDecision`. This is an optional Java
-runtime API. It does not yet enable a timeline report or a service endpoint;
-[the explanation design](../../docs/design/event-explanations.md) describes those
-planned integration steps.
+runtime API. The controlled timeline host can request these results explicitly;
+ordinary service endpoints continue to return receipts without diagnostic fields.
 
 The explained and ordinary methods use the same identity checks, strategies,
 staging and installation. The explanation is assembled before installation and
@@ -59,3 +58,19 @@ persisted or reconstructed on retry.
 Unexpected exceptions propagate without returning a decision result. Absence of a
 result is not proof of rollback: an exception after installation may leave installed
 state. Callers must not turn a missing result into a claim that nothing committed.
+
+## Explained ingress
+
+`EventIngress.handleExplainedMessage(session, message)` uses the ordinary parser,
+processing-failure boundary and receipt sender. It returns the receipt outcome
+and optional decision after sending the same receipt bytes. Malformed envelopes
+return `invalidEnvelope` without a decision; unexpected processing exceptions
+return `processingFailure` without a decision. Transport exceptions still propagate.
+Neither missing detail nor a failed acknowledgement proves that installation was
+rolled back. A retry follows ordinary publication identity handling.
+
+The simulation host advertises `publicationDecisions: 1` and requires explicit
+`publicationDecisions: true` at initialization under the static recovery profile.
+It emits a separate session-bound `publication-decision` effect after the receipt,
+with either the actual decision or an explicit unavailable reason. Existing host
+execution without that opt-in emits no additional effects.

@@ -53,7 +53,9 @@ export function selectChecks(paths, { forceFull = false } = {}) {
     if (isDocumentation(path)) continue;
     if (
       /^zooglass\/simulation-host\//.test(path) ||
-      /^workbench\/(src\/timeline|test\/(timeline|packaging))\//.test(path)
+      /^workbench\/(src\/(?:timeline|explanation)|test\/(timeline|packaging))\//.test(
+        path,
+      )
     ) {
       add(["static", "core"], path);
     } else if (/^zooglass\/src\/test\/.*\.java$/.test(path)) {

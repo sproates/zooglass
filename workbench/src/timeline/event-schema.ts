@@ -1,3 +1,4 @@
+import { decisionEnvelope } from "./decision-contract.js";
 import { controlEnvelope, retirementEnvelope } from "./control-contract.js";
 import { progressControl, watermarkEnvelope } from "./progress-contract.js";
 import { encodeJson, type Json } from "./json.js";
@@ -59,13 +60,16 @@ export function eventData(
   path: string,
   time: number,
   until: number,
-  version: 1 | 2 | 3 | 4 = 1,
+  version: 1 | 2 | 3 | 4 | 5 = 1,
   storage: "memory" | "sqlite" | undefined = version === 1
     ? "memory"
     : undefined,
 ) {
   const data = object(value, path);
-  if (kind === "runtime-initialized" && version >= 2) {
+  if (kind === "publication-decision" && version === 5) {
+    object(data, path, ["envelope"]);
+    decisionEnvelope(data.envelope, `${path}.envelope`);
+  } else if (kind === "runtime-initialized" && version >= 2) {
     object(data, path, [
       "startTimeMs",
       "wallMillis",

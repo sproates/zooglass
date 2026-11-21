@@ -1337,3 +1337,21 @@ The recovery checker owns fixed generation clock/pause expectations and counts
 publication attempts, including explicit retries. It verifies every authored
 observation. These focused checks prepare the separate recovery qualification;
 they are not its completed campaign or retained release evidence.
+
+```mermaid
+flowchart TB
+  campaign["scripts/recovery-campaign.ts"] -->|run six pairs and strict replay| executor["timeline/run-document.ts + replay-document.ts"]
+  campaign -->|check all generations| checks["scripts/recovery-campaign-checks.ts"]
+  campaign -->|pin committed tools and recovery inputs| identity["scripts/recovery-evidence.ts"]
+  prepare["scripts/prepare-static-recovery-mutation.py"] -->|isolated explicit builds| control["scripts/recovery-control.ts"]
+  control -->|verify mutation and artifact inventories| artifact["scripts/recovery-preparation.ts"]
+  service["scripts/recovery-service-parity.ts"] -->|literal receipt and snapshot barriers| observations["scripts/recovery-service-observations.ts"]
+  service -->|own service and require orderly close| session["service/zooglass-session.ts"]
+  audit["scripts/recovery-audit.ts"] -->|recheck retained evidence| checks
+  audit -->|verify named recovery failure| control
+  audit -->|verify raw ordinary-service observations| observations
+```
+
+The recovery qualification tools have the same fixed 28-execution scope as the
+[qualification guide](timeline-recovery-qualification.md). The isolated mutant
+changes SQLite image installation only; it does not modify the production checkout.

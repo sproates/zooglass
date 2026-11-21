@@ -6,10 +6,10 @@ Status: proposed, 21 November 2026. This is a design, not a delivered capability
 
 The timeline records what happened, but a reader still has to join actions,
 receipts, state changes and deliveries by hand. Some useful reasons aren't
-recorded at all. For example, an accepted publication can leave public data
-unchanged because an older sequence was ignored, or because an arrival replacement
-retained equivalent public data. A receipt saying `accepted` with `changed: false`
-does not explain which update decision occurred.
+recorded at all. For example, one publication can be ignored by a
+latest-by-sequence field but inserted into a history-by-sequence field. The receipt
+records the field outcomes, but an accepted, unchanged latest field does not
+itself say that the incoming sequence was older than its retained sequence.
 
 Provide a readable explanation of publication processing, with each statement
 linked to recorded evidence. ZooGlass supplies decision reasons while executing
@@ -124,8 +124,10 @@ to fill that gap, and do not confuse publication identity with connection genera
 Detailed explanation recording is explicit. Add V5 scenario/trace/run/bundle
 identities and a host `publicationDecisions:1` capability while retaining the
 `static-views-restart-v1` configuration profile and its existing admission rules.
-V5 requires decision evidence for each processed publication attempt; V4 remains
-unchanged. Do not create a second configuration profile just for diagnostics,
+V5 requires exactly one decision sidecar for each normally returned publication
+outcome, including semantic rejection and duplicate recognition. An explicitly
+recorded failed command may have unavailable detail; a missing sidecar for a
+successfully completed command is invalid evidence. V4 remains unchanged. Do not create a second configuration profile just for diagnostics,
 silently insert events into V1–V4, or reinterpret their hashes. Unsupported hosts
 fail before execution.
 Existing converter output remains V3; no automatic format upgrade is introduced.

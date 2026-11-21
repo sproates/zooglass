@@ -1,3 +1,5 @@
+import { boundedFile, decode } from "../src/timeline/file-input.js";
+import { jsonLimits } from "../src/timeline/json.js";
 import assert from "node:assert/strict";
 import { lstat, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -58,4 +60,12 @@ export async function explanationInventory(directory: string) {
   }
   await walk("");
   return entries;
+}
+
+/** Bound audit metadata before parsing, including the manifest outside its own inventory. */
+export async function readExplanationJson<T>(path: string): Promise<T> {
+  const info = await lstat(path);
+  assert.ok(info.isFile(), "audit JSON requires a regular file, not a symlink");
+  assert.ok(info.size <= jsonLimits.bytes, "audit JSON byte limit");
+  return JSON.parse(decode(await boundedFile(path))) as T;
 }

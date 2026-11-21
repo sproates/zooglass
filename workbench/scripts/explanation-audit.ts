@@ -17,6 +17,7 @@ import {
 } from "./explanation-checks.js";
 import {
   explanationInventory,
+  readExplanationJson as readJson,
   digest,
   writeEvidence,
 } from "./explanation-evidence.js";
@@ -32,8 +33,6 @@ import {
 } from "./recovery-environment.js";
 import type { runExplanationCampaign } from "./explanation-campaign.js";
 
-const readJson = async <T>(path: string): Promise<T> =>
-  JSON.parse(await readFile(path, "utf8"));
 export async function auditExplanationCampaign(directory: string) {
   const summary = await readJson<
     Awaited<ReturnType<typeof runExplanationCampaign>>

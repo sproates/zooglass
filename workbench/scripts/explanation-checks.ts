@@ -226,24 +226,82 @@ export function checkExplanationPauses(
 ) {
   assert.equal(paused.trace, normal.trace, "paused semantic equality");
   assert.deepEqual(paused.environment, normal.environment);
-  const pauses =
-    paused.diagnostics.generations?.flatMap(
-      (generation) => generation.jvm?.pauses ?? [],
-    ) ?? [];
-  for (const site of ["state-effect", "writer-handoff"])
-    assert.ok(
-      pauses.some(
-        (pause) => pause.site === site && pause.requestedMillis === 70,
-      ),
-      `observed JVM pause at ${site}`,
+  const storage = object(
+    parseJson(normal.configuration),
+    "configuration",
+  ).storage;
+  const expectedJvm = [
+    [
+      ["writer-handoff", 0],
+      ["state-effect", 10],
+    ],
+    storage === "memory" ? [["state-effect", 70]] : [],
+  ];
+  const expectedNode = [
+    [
+      ["initialize-document", 0],
+      ["ingress", 10],
+      ["ingress", 20],
+      ["ingress", 30],
+      ["ingress", 40],
+    ],
+    [
+      ["initialize-document", 60],
+      ["ingress", 70],
+      ["ingress", 80],
+    ],
+  ];
+  let count = 0;
+  for (const [run, enabled] of [
+    [normal, false],
+    [paused, true],
+  ] as const) {
+    const generations = run.diagnostics.generations ?? [];
+    assert.deepEqual(
+      generations.map((generation) => generation.runtimeGeneration),
+      [1, 2],
+      "complete ordered generation diagnostics",
     );
-  for (const pause of pauses) {
-    assert.equal(pause.requestedMillis, 70);
-    assert.ok(pause.elapsedNanos >= 70_000_000);
-    assert.ok(
-      [0, 10, 20, 30, 70].includes(pause.virtualMs),
-      "pause occurred at an expected virtual timestamp",
-    );
+    generations.forEach((generation, index) => {
+      assert.ok(
+        generation.jvm,
+        "JVM diagnostics required for every generation",
+      );
+      assert.equal(
+        generation.jvm.pauseMillis,
+        enabled ? 70 : 0,
+        "JVM pause setting",
+      );
+      assert.deepEqual(
+        generation.jvm.pauses.map((pause) => [pause.site, pause.virtualMs]),
+        enabled ? expectedJvm[index] : [],
+        "JVM site/time witnesses",
+      );
+      for (const pause of generation.jvm.pauses) {
+        assert.equal(pause.requestedMillis, 70);
+        assert.ok(pause.elapsedNanos >= 70_000_000, "JVM measured pause");
+        count++;
+      }
+      const nodeWitnesses = generation.node
+        .filter((pause) =>
+          ["initialize-document", "ingress"].includes(pause.operation),
+        )
+        .map((pause) => [pause.operation, pause.timeMs]);
+      assert.deepEqual(
+        nodeWitnesses,
+        enabled ? expectedNode[index] : [],
+        "Node initialization/ingress witnesses",
+      );
+      if (!enabled)
+        assert.equal(generation.node.length, 0, "baseline Node pauses absent");
+      for (const pause of generation.node) {
+        assert.equal(pause.requestedMillis, 70, "Node requested pause");
+        assert.ok(
+          pause.elapsedNanos > 50_000_000,
+          "Node measured pause exceeds 50ms",
+        );
+      }
+    });
   }
-  return pauses.length;
+  return count;
 }

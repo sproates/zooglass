@@ -182,6 +182,18 @@ public final class ViewCoordinator implements AutoCloseable {
     }
 
     public synchronized PublicationOutcome apply(Publication event) {
+        return apply(event, null);
+    }
+
+    /** Optional production decision evidence; unsupported configurations fail before mutation. */
+    public synchronized ExplainedPublication applyExplained(Publication event) {
+        PublicationExplanationSupport.requireSupported(configuration);
+        var explanation = new PublicationExplanation();
+        var outcome = apply(event, explanation);
+        return explanation.complete(outcome);
+    }
+
+    private PublicationOutcome apply(Publication event, PublicationExplanation explanation) {
         expire();
         StateImage state = storage.current();
         String epoch = epochs.get(event.sourceId());
@@ -225,7 +237,7 @@ public final class ViewCoordinator implements AutoCloseable {
 
         try {
             FactOrigins.validate(event, state, views.byId());
-            return stageAndInstall(event, stream);
+            return stageAndInstall(event, stream, explanation);
         } catch (FactRejected exception) {
             return new PublicationOutcome(
                     "rejected",
@@ -244,7 +256,8 @@ public final class ViewCoordinator implements AutoCloseable {
         }
     }
 
-    private PublicationOutcome stageAndInstall(Publication event, StreamState stream) {
+    private PublicationOutcome stageAndInstall(
+            Publication event, StreamState stream, PublicationExplanation explanation) {
         StateImage state = storage.current();
         long version = Math.incrementExact(state.version());
         JsonNode contribution =
@@ -277,7 +290,8 @@ public final class ViewCoordinator implements AutoCloseable {
                         contribution,
                         historyLimit,
                         version,
-                        sample.wall());
+                        sample.wall(),
+                        explanation);
 
         var receipts = new TreeMap<Long, Receipt>();
         if (stream != null) {
@@ -304,6 +318,9 @@ public final class ViewCoordinator implements AutoCloseable {
                         version,
                         staged.changedViews(),
                         staged.targets());
+        if (explanation != null) {
+            explanation.prepare(result);
+        }
         install(state, version, streams, staged, sample);
         return result;
     }

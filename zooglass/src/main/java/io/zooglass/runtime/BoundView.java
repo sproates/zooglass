@@ -51,6 +51,7 @@ final class BoundView {
                                     var conflict = config.conflict();
                                     return new Field(
                                             entry.getKey(),
+                                            config.mode(),
                                             config.allInputs(),
                                             config.mode().equals("historyBySequence"),
                                             FieldStrategySelection.select(
@@ -108,6 +109,18 @@ final class BoundView {
             int historyLimit,
             Long watermark,
             long wallMillis) {
+        return evaluate(
+                publication, contribution, current, historyLimit, watermark, wallMillis, null);
+    }
+
+    Evaluation evaluate(
+            Publication publication,
+            JsonNode contribution,
+            StateImage.StoredView current,
+            int historyLimit,
+            Long watermark,
+            long wallMillis,
+            PublicationExplanation.Target explanation) {
         var candidates =
                 new HashMap<String, Map<String, SelectedContribution>>(
                         current == null ? Map.of() : current.candidates());
@@ -162,6 +175,9 @@ final class BoundView {
             var update =
                     field.strategy.evaluate(
                             previous == null ? null : previous.value(), contribution);
+            if (explanation != null) {
+                explanation.update(field.name, field.mode, update);
+            }
             if (!update.changed()) {
                 continue;
             }
@@ -278,6 +294,7 @@ final class BoundView {
 
     record Field(
             String name,
+            String mode,
             List<RuntimeConfiguration.Input> inputs,
             boolean history,
             FieldUpdateStrategy strategy,

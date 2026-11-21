@@ -55,6 +55,28 @@ final class ViewTransitions {
             int historyLimit,
             long version,
             long wallMillis) {
+        return stage(
+                state,
+                streams,
+                source,
+                event,
+                contribution,
+                historyLimit,
+                version,
+                wallMillis,
+                null);
+    }
+
+    Result stage(
+            StateImage state,
+            Map<Publication.StreamKey, StateImage.StreamState> streams,
+            Publication.StreamKey source,
+            Publication event,
+            JsonNode contribution,
+            int historyLimit,
+            long version,
+            long wallMillis,
+            PublicationExplanation explanation) {
         var candidates = new HashMap<>(state.views());
         var touched = new ArrayList<StateImage.ViewEntity>();
         var changed = new ArrayList<String>();
@@ -87,10 +109,27 @@ final class ViewTransitions {
             var current = state.views().get(key);
             var next = current;
             if (matched) {
+                var decision = explanation == null ? null : new PublicationExplanation.Target();
                 var evaluated =
                         binding.view.evaluate(
-                                event, contribution, current, historyLimit, watermark, wallMillis);
+                                event,
+                                contribution,
+                                current,
+                                historyLimit,
+                                watermark,
+                                wallMillis,
+                                decision);
                 next = evaluated.stored();
+                if (explanation != null) {
+                    explanation.target(
+                            decision,
+                            binding,
+                            key.entityId(),
+                            current,
+                            next,
+                            state.streams(),
+                            streams);
+                }
                 if (next != null && next.pending() && (current == null || !current.pending())) {
                     long pending =
                             state.views().entrySet().stream()

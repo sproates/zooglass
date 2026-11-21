@@ -1,6 +1,8 @@
 # Explain publication decisions on the deterministic timeline
 
-Status: proposed, 21 November 2026. This is a design, not a delivered capability.
+Status: accepted through PR #192, 21 November 2026. The
+[production decision result](../../zooglass/docs/publication-decisions.md) is the
+first implementation slice. Timeline recording and reports remain planned.
 
 ## Why this work
 

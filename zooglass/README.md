@@ -153,3 +153,7 @@ See the [source map](docs/source-map.md), [verification map](../docs/testing.md)
 Open demo access is the default. For application-owned permission decisions, see
 [protected deployment](docs/protected-deployment.md): HTTPS/WSS viewers, scoped
 grants and a separate local operator connection.
+
+[Publication decision results](docs/publication-decisions.md) explain supported
+static publication updates through an optional Java API. Timeline explanation
+recording and reports remain planned.

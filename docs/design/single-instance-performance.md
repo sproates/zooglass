@@ -104,13 +104,93 @@ are harness deadlines, not service guarantees. Use a fixed interleaved schedule
 across storage modes and replicates so time-of-day and host drift are visible.
 Allow a fixed 30-second idle interval between executions; record actual intervals.
 
-The campaign has at most 60 measured executions, plus at most six replacements
-for independently evidenced infrastructure failures. Keep every original failure
-and its replacement relationship. Never replace a valid slow or failing result.
-Stop after eight hours wall time or any safety limit; publish unfinished cells and
+The campaign has at most 60 scheduled run slots and six replacement attempts
+shared between evidenced infrastructure failures and interrupted attempts. At most
+66 attempts may start, including failed startup and partial measurements. Keep every
+original attempt and its replacement relationship. Never replace a completed valid
+slow or failing result. Stop after eight cumulative hours of active campaign time
+or any safety limit; publish unfinished cells and
 seek a bounded amendment rather than silently extending the campaign. Reaching
 1000/s without a failure establishes only a lower bound under the measured budgets.
 It does not establish maximum capacity.
+
+## Pause, checkpoint and resume
+
+Campaign execution must be scripted and resumable. One invocation can run the whole
+campaign or stop after a requested number of completed attempts. An ordinary pause
+request finishes the current attempt, saves its outcome and stops before starting
+another. Resume is an explicit command against the existing campaign directory;
+it does not require an agent to supervise individual runs or reconstruct progress.
+This belongs to campaign implementation, not the initial diagnostic driver.
+
+Before the first attempt, save an immutable manifest containing the campaign ID,
+ordered run slots, workload templates, baseline-to-comparison selection rule,
+limits, configuration/input hashes and execution identity. Record the JAR, driver
+and dependency hashes, JVM options, Node/JVM versions, OS, architecture and host
+hardware identity. Comparison rates are resolved only after baseline slots have validated results or
+are explicitly terminal/incomplete because limits prevent replacement. Only three
+validated passing replicates can qualify a rate; incomplete triples never supply
+a comparison rate. Apply the frozen rule to qualifying triples, or skip that storage
+mode's comparisons if none qualify. Save the resolution once, with baseline evidence
+hashes and incomplete-slot reasons.
+Resume preserves this order and resolution rather than selecting easier runs.
+
+Every attempt has a unique directory and lifecycle record: planned, running,
+completed, interrupted or infrastructure-failed. Save inputs before launch. Write
+bounded observations and the result, close the owned service and output files,
+then publish a completion record atomically with file hashes and outcome. A valid
+completed failure is a completed attempt, not permission to retry. No completion
+record may describe an unfinished write. This is restart consistency for the
+runner, not a power-loss durability guarantee.
+
+Resume validates the manifest, attempt records, file inventory/hashes, accounting
+and execution identity before launching anything. It skips every validated
+completed run, including slow or failed outcomes. If an attempt was marked running
+when the runner stopped, preserve it as interrupted unless a valid completion
+record already exists. Never join a partial interval to a later measurement.
+A replacement starts with a new JVM, new store, preseed and warm-up, linked to the
+original attempt, and consumes the shared six-attempt replacement allowance.
+An exhausted allowance leaves that slot incomplete. A corrupted completed result
+or mismatched identity stops resume; do not silently discard it or rerun it.
+Changing code, configuration, dependencies or the recorded stable environment
+requires a new campaign, not relabelling previous results as comparable.
+
+Use exclusive campaign ownership so two commands cannot resume the same directory
+concurrently. Recovery from an abandoned ownership record must establish that the
+previous runner and its owned service are stopped before starting a replacement.
+Do not kill an unrelated process or infer safe ownership from a reused PID alone.
+
+Persist attempt counts and the remaining active-time budget across sessions.
+Active time includes startup, seeding, warm-up, measurement, drain, cleanup, report
+writing and mandatory inter-run waits. Intentional offline pauses do not consume
+the eight-hour budget, but are recorded separately with UTC start/resume times.
+Account active durations with a monotonic clock within each session; never compare
+monotonic timestamps across processes. Persist the unique attempt ID, running state, attempt/replacement debit and active-time
+reservation together as one recoverable launch decision before spawning. Freeze a
+30-minute outer attempt deadline in the manifest, covering all phases, cleanup and
+output writing; retain the shorter phase deadlines too. Do not launch without
+sufficient reserved active budget. Reconcile the reservation with the completed
+record exactly once. A crash after reservation consumes it even if launch cannot
+be proved. Mandatory settling waits also reserve and reconcile active time; an
+interrupted wait cannot disappear from budget accounting. After interruption, retain the
+reservation for any duration that cannot be established rather than resetting or
+increasing the remaining budget. Resume cannot reset deadlines or global limits.
+
+Record session boundaries, pause reasons, actual gaps and host operating conditions
+for each session. Retain the normal 30-second settling wait before the first resumed
+attempt. Even with matching identities, sessions can differ in thermal state,
+background load and filesystem cache; show those boundaries in the report instead
+of implying one uninterrupted controlled run. No automatic retry of a valid slow
+result is permitted because it occurred in a less favourable session.
+
+Acceptance tests must interrupt the runner during setup, measurement, result writing
+and between attempts, including a crash after reservation but before launch and
+repeated resume; prove reservations are charged once, completed work is skipped and partial work is preserved
+and restarted only within the replacement budget. Cover a completion record saved
+before the campaign index update, corrupted evidence, changed identity, concurrent
+resume, exhausted limits and a multi-session run whose report includes every original
+attempt and pause. These are short fixture tests plus a small real-service resume
+smoke, not repeated executions of the full campaign.
 
 ## Scheduling and latency
 
@@ -223,7 +303,8 @@ Deliver through three implementation PRs after design acceptance:
    oracle. Unit/fixture checks prove missing work cannot disappear from results.
    Artifact-only service smoke covers one changing stream and terminal state.
 2. **Campaign and reporting:** explicit configurations, deterministic campaign order,
-   fresh-store lifecycle, per-process sampling, classification, machine-readable
+   fresh-store lifecycle, checkpoint/resume and durable budget accounting,
+   per-process sampling, classification, machine-readable
    results and a human-readable comparison. Fixture tests check percentile/slope
    calculations, phase boundaries, early-stop denominators and failure categories.
    Include low-rate real memory/SQLite smoke with multiple views and viewers.

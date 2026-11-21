@@ -69,6 +69,7 @@ delivery date:
   passes and is delivered in [PR #190](https://github.com/sproates/zooglass/pull/190).
   Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
+- **Event explanations.** The [proposed publication explanation design](docs/design/event-explanations.md) adds production-owned decision reasons and readable, evidence-linked timeline reports. This is planned work, not an implemented capability.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

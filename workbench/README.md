@@ -854,6 +854,9 @@ The separate [fixed-fixture proof](docs/timeline-proof.md) runs real Java ingres
 freshness and subscription delivery under an explicit agenda. It is not a new
 implementation of `simulate` and does not yet support general scenarios. Prepare
 its JAR explicitly before running `npm run test:timeline` or `npm run timeline:proof`.
+CI splits the complete timeline suite across two Node test shards, each with its
+own prepared artifacts. Packaging and Java host checks run once; both shards
+must pass the required gate. The local test command still runs the full suite.
 
 The POC's [timeline format and compatibility assessment](docs/timeline-format.md)
 provides strict syntax/trace inspection and a census of the existing scenario
@@ -957,5 +960,6 @@ delivered to main in [PR #179](https://github.com/sproates/zooglass/pull/179).
 
 [Static-view recovery](docs/timeline-static-recovery.md) adds an explicit V4 family
 for reusable static configurations with memory or SQLite restart and exact retries.
-Its six authored witnesses and focused implementation tests are distinct from the
-separate finite qualification, which remains pending. V3 conversion is unchanged.
+Its [fixed 28-execution qualification](docs/timeline-recovery-qualification.md)
+checks six authored cases, pause invariance, strict replay, deliberately broken
+recovery and ordinary-service comparisons. V3 conversion is unchanged.

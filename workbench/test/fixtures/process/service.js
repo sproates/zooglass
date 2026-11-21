@@ -29,6 +29,11 @@ if (mode === "exit" || mode === "database-exit") {
 if (mode === "stubborn") {
   process.on("SIGTERM", () => {});
 }
+if (mode.startsWith("term-")) {
+  process.on("SIGTERM", () => {
+    process.exit(Number(mode.slice("term-".length)));
+  });
+}
 
 const argument = process.argv.find((arg) => arg.includes("--server.port="));
 const port = Number(argument.match(/--server.port=(\d+)/)[1]);

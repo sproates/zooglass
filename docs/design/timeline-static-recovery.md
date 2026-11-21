@@ -1,8 +1,10 @@
 # Reusable static-view recovery on the deterministic timeline
 
-Status: accepted through PR #188, 21 November 2026. Implementation and the separate
-qualification follow this bounded contract; acceptance is not a claim of delivered support. The [current capability guide](../../workbench/docs/timeline-guide.md)
-remains authoritative until implementation and qualification are complete.
+Status: accepted through PR #188, 21 November 2026. Implementation is delivered
+through PR #189. The [fixed qualification](../../workbench/docs/timeline-recovery-qualification.md)
+passes; its evidence/documentation closeout is pending merge. The
+[current capability guide](../../workbench/docs/timeline-guide.md) describes the
+supported scope.
 
 ## Outcome and finish line
 

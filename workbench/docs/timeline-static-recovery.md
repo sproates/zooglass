@@ -1,10 +1,10 @@
 # Static-view recovery
 
-Implementation candidate: `static-views-restart-v1` combines the existing static
-arrival/latest/history family with memory or SQLite, orderly or abrupt stops
-between completed turns, and explicit reconnects and exact retries. The separate
-finite qualification in the [accepted design](../../docs/design/timeline-static-recovery.md)
-has not yet been run. Focused tests are not a substitute for that qualification.
+`static-views-restart-v1` combines the existing static arrival/latest/history family
+with memory or SQLite, orderly or abrupt stops between completed turns, and explicit
+reconnects and exact retries. The [fixed qualification](timeline-recovery-qualification.md)
+passes for six authored cases, pause invariance, strict replay, a wrong-recovery
+control and two ordinary-service comparisons. See its recorded environment and limits.
 
 ## Author and run
 
@@ -56,7 +56,6 @@ retains its original artifact/environment requirements. Standalone trace checks
 validate the recovery action boundary; bundle replay also binds actions and
 assertions to the exact scenario and re-executes the production runtime.
 
-The six examples and focused tests demonstrate implementation behaviour. The
-planned baseline/paused trace comparison, wrong-recovery control and ordinary-service
-comparisons remain a separate qualification milestone. No cross-platform,
-arbitrary mid-commit crash or new performance guarantee is claimed.
+The [qualification record](timeline-recovery-qualification.md) reports the fixed
+28-execution set and retained raw evidence. No cross-platform, arbitrary mid-commit
+crash or new performance guarantee is claimed.

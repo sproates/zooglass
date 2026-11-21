@@ -121,7 +121,11 @@ flowchart TB
 ZooGlass binds an OS-assigned loopback port and writes its number into the session directory. Workbench reads that file before checking service health.
 
 [`service/zooglass-session.ts`](../src/service/zooglass-session.ts) owns the Java process, temporary
-configuration, readiness checks and shutdown. It launches the already-built
+configuration, readiness checks and shutdown. Ordinary close ensures cleanup;
+`close({ requireOrderly: true })` additionally rejects forced, unsuccessful or
+pre-existing exits after cleanup. Repeated callers retain the original outcome.
+This records observed termination, not proof that every shutdown hook succeeded.
+It launches the already-built
 `zooglass/target/zooglass.jar` directly with Java, without a shell or Maven.
 [`scripts/prepare-service.js`](../scripts/prepare-service.js), outside `src/`, is
 an explicit developer/CI preparation command. Session modules do not import or
@@ -1318,3 +1322,38 @@ V4 static recovery reuses these projection and generation owners. Its validator
 adds explicit lifecycle actions without changing V3. The requested host profile
 selects shared static-field rules plus memory/SQLite recovery; no reconciliation
 is implemented in Workbench. See [static recovery](timeline-static-recovery.md).
+
+### Static recovery qualification checks
+
+```mermaid
+flowchart LR
+  fixtures["scenarios/timeline-static-recovery/*"] -->|authored observations| checks["scripts/recovery-campaign-checks.ts"]
+  checks -->|validate V4 evidence| replay["timeline/replay-document.ts"]
+  checks -->|compare traces and per-generation pauses| timing["timeline/campaign-checks.ts"]
+  tests["test/timeline/recovery-campaign.test.ts"] -->|exercise real runs and reject corrupted evidence| checks
+```
+
+The recovery checker owns fixed generation clock/pause expectations and counts
+publication attempts, including explicit retries. It verifies every authored
+observation. These focused checks prepare the separate recovery qualification;
+they are not its completed campaign or retained release evidence.
+
+```mermaid
+flowchart TB
+  campaign["scripts/recovery-campaign.ts"] -->|run six pairs and strict replay| executor["timeline/run-document.ts + replay-document.ts"]
+  campaign -->|check all generations| checks["scripts/recovery-campaign-checks.ts"]
+  campaign -->|compare common and SQLite identities| environment["scripts/recovery-environment.ts"]
+  audit -->|enforce the same environment| environment
+  campaign -->|pin committed tools and recovery inputs| identity["scripts/recovery-evidence.ts"]
+  prepare["scripts/prepare-static-recovery-mutation.py"] -->|isolated explicit builds| control["scripts/recovery-control.ts"]
+  control -->|verify mutation and artifact inventories| artifact["scripts/recovery-preparation.ts"]
+  service["scripts/recovery-service-parity.ts"] -->|literal receipt and snapshot barriers| observations["scripts/recovery-service-observations.ts"]
+  service -->|own service and require orderly close| session["service/zooglass-session.ts"]
+  audit["scripts/recovery-audit.ts"] -->|recheck retained evidence| checks
+  audit -->|verify named recovery failure| control
+  audit -->|verify raw ordinary-service observations| observations
+```
+
+The recovery qualification tools have the same fixed 28-execution scope as the
+[qualification guide](timeline-recovery-qualification.md). The isolated mutant
+changes SQLite image installation only; it does not modify the production checkout.

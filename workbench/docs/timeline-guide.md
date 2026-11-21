@@ -71,15 +71,16 @@ Standalone replay requires a new report file; keep it outside any bundle directo
 These are bounded profiles, not automatic conversion of ordinary Workbench JSON.
 Configuration admission is authoritative; follow each profile's linked limits.
 
-| Profile                         | Storage and strategies                                       | Lifecycle and controls                                                           | Evidence                                                                               |
-| ------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `memory-arrival-v1` (v1)        | Memory, one latest-by-arrival field                          | No restart; fixed links, receipt loss/retry, viewer control                      | [Document proof](timeline-execution.md)                                                |
-| `receipt-age-restart-v1` (v2)   | Memory or SQLite, bounded latest-by-arrival                  | Stop/start between turns, receipt-age continuity; wall adjustments               | [Memory](timeline-memory-qualification.md), [SQLite](timeline-sqlite-qualification.md) |
-| `memory-sequence-fleet-v1` (v2) | Memory, bounded latest-by-sequence/history                   | Multi-source fleet; no restart                                                   | [Fleet](timeline-fleet-qualification.md)                                               |
-| `sqlite-order-v1` (v2)          | SQLite, bounded mapping, priority and required contributions | Progress/watermarks; no restart                                                  | [Order](timeline-order-qualification.md)                                               |
-| `sqlite-order-restart-v1` (v2)  | Same Order configuration                                     | Explicit restart, retained identity/progress; no wall adjustment                 | [Order recovery](timeline-order-recovery.md)                                           |
-| `sqlite-sports-v1` (v2)         | SQLite, bounded latest/first fact revision, count/sum        | Progress and per-view atomic retirement; no restart                              | [Sports](timeline-sports-qualification.md)                                             |
-| `memory-static-views-v1` (v3)   | Memory, bounded arrival/latest/history mixtures and aliases  | Explicit conversion or authoring; zero-latency links, no retries/faults/restarts | [Static configuration](timeline-static-qualification.md)                               |
+| Profile                         | Storage and strategies                                                | Lifecycle and controls                                                                 | Evidence                                                                               |
+| ------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `memory-arrival-v1` (v1)        | Memory, one latest-by-arrival field                                   | No restart; fixed links, receipt loss/retry, viewer control                            | [Document proof](timeline-execution.md)                                                |
+| `receipt-age-restart-v1` (v2)   | Memory or SQLite, bounded latest-by-arrival                           | Stop/start between turns, receipt-age continuity; wall adjustments                     | [Memory](timeline-memory-qualification.md), [SQLite](timeline-sqlite-qualification.md) |
+| `memory-sequence-fleet-v1` (v2) | Memory, bounded latest-by-sequence/history                            | Multi-source fleet; no restart                                                         | [Fleet](timeline-fleet-qualification.md)                                               |
+| `sqlite-order-v1` (v2)          | SQLite, bounded mapping, priority and required contributions          | Progress/watermarks; no restart                                                        | [Order](timeline-order-qualification.md)                                               |
+| `sqlite-order-restart-v1` (v2)  | Same Order configuration                                              | Explicit restart, retained identity/progress; no wall adjustment                       | [Order recovery](timeline-order-recovery.md)                                           |
+| `sqlite-sports-v1` (v2)         | SQLite, bounded latest/first fact revision, count/sum                 | Progress and per-view atomic retirement; no restart                                    | [Sports](timeline-sports-qualification.md)                                             |
+| `memory-static-views-v1` (v3)   | Memory, bounded arrival/latest/history mixtures and aliases           | Explicit conversion or authoring; zero-latency links, no retries/faults/restarts       | [Static configuration](timeline-static-qualification.md)                               |
+| `static-views-restart-v1` (v4)  | Memory or SQLite, bounded arrival/latest/history mixtures and aliases | Orderly/abrupt restart between turns; explicit reconnect and exact retry; zero latency | [Static recovery](timeline-recovery-qualification.md)                                  |
 
 Unsupported fields, combinations and resource bounds reject admission. Declared
 presend omission/order, fixed FIFO latency, lost source receipts and exact retries,
@@ -90,11 +91,11 @@ real browser/device behaviour and native concurrency need their separate tests.
 
 ## Environment and evidence
 
-| Environment   | Retained qualification                                            | Limit                                                                                   |
-| ------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order, Sports and Static | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
-| Linux arm64   | Original v1 document campaign                                     | Does not qualify later profiles                                                         |
-| Other systems | No retained qualification claim                                   | Successful preparation alone is not qualification                                       |
+| Environment   | Retained qualification                                                                   | Limit                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| macOS arm64   | Document proof, lifecycle/SQLite, Fleet, Order, Sports and static configuration/recovery | Each archive pins its own Node, JVM, SQLite, locale, timezone and dependency identities |
+| Linux arm64   | Original v1 document campaign                                                            | Does not qualify later profiles                                                         |
+| Other systems | No retained qualification claim                                                          | Successful preparation alone is not qualification                                       |
 
 Replay requires the recorded executor/modules, host JAR and environment identities.
 Changing even CLI modules changes the current Workbench identity, so replay older
@@ -114,11 +115,10 @@ timeline alongside all three existing live demos, delivered in
 
 [Static configuration admission](timeline-static-admission.md) checks the broader family; [V3 conversion and execution](timeline-conversion.md) add projected assertions and retained conversion provenance.
 
-## Static recovery implementation candidate
+## Static recovery
 
 The [static recovery guide](timeline-static-recovery.md) describes the V4 family
 combining reusable static configurations with memory/SQLite restart and explicit
-retries. The [accepted contract](../../docs/design/timeline-static-recovery.md)
-keeps it distinct from V3. Implementation tests and six authored witnesses are
-provided; the separate finite qualification and retained evidence are pending.
-The qualified capability matrix above is unchanged.
+retries. Its [fixed qualification](timeline-recovery-qualification.md) passes,
+including pause-invariant traces, strict replay and ordinary-service comparisons.
+The existing V3 converter and its evidence contract are unchanged.

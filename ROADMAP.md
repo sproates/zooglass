@@ -62,10 +62,11 @@ delivery date:
   [V3 conversion/execution](workbench/docs/timeline-conversion.md) are implemented
   on main, with [six authored fixtures](workbench/scenarios/timeline-static/README.md)
   and a passing [fixed qualification](workbench/docs/timeline-static-qualification.md).
-  An [accepted static-view recovery expansion](docs/design/timeline-static-recovery.md)
-  combines reusable configurations with memory or SQLite restart and explicit
-  retries. The V4 implementation and six authored witnesses are available in this
-  change; finite qualification and retained evidence remain pending.
+  [Static-view recovery](workbench/docs/timeline-static-recovery.md), implemented
+  in [PR #189](https://github.com/sproates/zooglass/pull/189), combines reusable
+  configurations with memory or SQLite restart and explicit retries. Its
+  [28-execution qualification](workbench/docs/timeline-recovery-qualification.md)
+  passes; this evidence/documentation closeout is pending merge.
   Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.

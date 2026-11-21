@@ -1360,7 +1360,6 @@ The recovery qualification tools have the same fixed 28-execution scope as the
 [qualification guide](timeline-recovery-qualification.md). The isolated mutant
 changes SQLite image installation only; it does not modify the production checkout.
 
-
 ## Offline timeline explanations
 
 `timeline:explain` starts at `explanation/cli.ts`. Presentation consumes validated

@@ -208,10 +208,19 @@ host must pass S1; the mutant must reach and fail the named restored-state asser
 A startup error, artifact mismatch or missing evidence does not count as detection.
 Prepare the control artifact explicitly and retain its recipe/hash. Two executions.
 
-Run two ordinary-service comparisons, M1 and S2, with exact configuration/input
-bytes and the same independently authored expected outcomes. Compare state,
-receipts and a reconnect snapshot at explicit barriers; do not require real socket
-traces to equal the virtual trace. Two executions. Total fixed qualification:
+Run two ordinary-service comparisons, M1 and S1, with exact configuration/input
+bytes and the same independently authored expected outcomes. Both comparisons
+exercise orderly shutdown and recovery through the owned service process. Require
+successful orderly termination before restarting; a timeout followed by forced
+termination fails the comparison rather than counting as orderly shutdown.
+Compare state, receipts and a reconnect snapshot at explicit barriers; do not
+require real socket traces to equal the virtual trace.
+
+M2 and S2 retain abrupt-stop coverage in the actual simulation host, between
+acknowledged turns. The ordinary-service comparisons do not claim abrupt-stop
+parity; adding an abrupt-stop control for the ordinary service is outside this
+milestone. Existing production process-crash tests remain separate evidence.
+The two ordinary-service comparisons still count as two executions. Total fixed qualification:
 **28 executions**, excluding focused tests and CI, not a count of OS processes.
 
 Focused tests additionally cover each excluded dimension, every numeric boundary,

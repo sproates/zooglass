@@ -957,5 +957,6 @@ delivered to main in [PR #179](https://github.com/sproates/zooglass/pull/179).
 
 [Static-view recovery](docs/timeline-static-recovery.md) adds an explicit V4 family
 for reusable static configurations with memory or SQLite restart and exact retries.
-Its six authored witnesses and focused implementation tests are distinct from the
-separate finite qualification, which remains pending. V3 conversion is unchanged.
+Its [fixed 28-execution qualification](docs/timeline-recovery-qualification.md)
+checks six authored cases, pause invariance, strict replay, deliberately broken
+recovery and ordinary-service comparisons. V3 conversion is unchanged.

@@ -27,5 +27,5 @@ The retained duplicate and two rejected publications emit no further view update
 Final cumulative frame assertions cover those boundaries, and S3 also compares
 the complete installed snapshot after the rejections with its recovered snapshot.
 
-Use the [guide](../../docs/timeline-static-recovery.md). The finite qualification
-campaign and retained release evidence are still pending.
+Use the [guide](../../docs/timeline-static-recovery.md). The [finite qualification](../../docs/timeline-recovery-qualification.md) records
+the completed campaign, limits and retained release evidence.

@@ -1,6 +1,9 @@
 # Static recovery qualification
 
-Status: tools under review; retained qualification results are not yet published.
+Status: qualification passed on 21 November 2026 at source
+`8a77d52ea409cf02c2d17b05b8bf36bd36cf6eb3`; delivery awaits this PR's merge.
+[Retained evidence](../evidence/README.md) includes exact inputs, raw runs and
+replays, service observations, mutation provenance and the offline audit.
 The [accepted design](../../docs/design/timeline-static-recovery.md) fixes the
 scope at 28 executions on the recorded macOS arm64 environment.
 
@@ -51,3 +54,34 @@ Raw evidence belongs in a release asset; the repository retains its source commi
 SHA-256, environment and download link. Archive verification and a second audit of
 the downloaded evidence precede publication of a qualification claim. Hashes prove
 consistency, not authenticity against an attacker able to replace all evidence.
+
+## Results and limits
+
+The final set completed all 28 executions. Twelve campaign recordings contain
+252 authored assertion observations and 2,200 trace records; all twelve strict
+replays verify. Measured perturbations include 417 Node pauses and 22 JVM pauses.
+Each normal/paused pair has exactly the same semantic trace.
+
+The normal recovery control passes; the mutant reaches generation 2 and fails
+`restored-a` at virtual time 60 with empty version-0 state instead of restored
+version 4. Each ordinary-service case checks six full receipts, three full
+subscription snapshots and two orderly shutdowns; M1 has ten HTTP checkpoints,
+S1 twelve. Both use the same production runtime as the simulation host.
+
+The offline audit passes, and nine tampering cases are rejected even when relevant
+summary hashes are recomputed. The recorded environment is macOS arm64, Node
+26.0.0, Homebrew Java runtime 25.0.5.0.2 and SQLite 3.53.2. Memory correctly omits
+SQLite metadata; all SQLite runs agree on the native version. Other environment
+fields and within-case replay identities remain exact.
+
+One earlier nine-execution attempt is retained separately. Its scenario runs
+passed, but the campaign checker wrongly required memory and SQLite metadata to
+have identical fields. A fail-before/pass-after regression corrected that check.
+Those nine executions are not counted as passed qualification.
+
+This evidence covers the bounded static recovery family only. It does not qualify
+arbitrary configurations, cross-platform equality, mid-commit crashes, nonzero
+link latency, automatic retries, richer transport faults or performance. Service
+comparisons establish observed orderly termination; they do not prove execution
+of every shutdown hook. Prepared artifacts and failed-run diagnostic databases
+are retained locally, outside the release archive.

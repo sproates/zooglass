@@ -113,3 +113,10 @@ timeline alongside all three existing live demos, delivered in
 [PR #172](https://github.com/sproates/zooglass/pull/172).
 
 [Static configuration admission](timeline-static-admission.md) checks the broader family; [V3 conversion and execution](timeline-conversion.md) add projected assertions and retained conversion provenance.
+
+## Proposed expansion
+
+The [static-view recovery proposal](../../docs/design/timeline-static-recovery.md)
+would combine the reusable static family with memory or SQLite storage, controlled
+restart and explicit retries. It is under design review, not admitted by current
+execution. The delivered matrix above remains unchanged.

@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 16 November 2026.
+Last reviewed: 21 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -62,6 +62,9 @@ delivery date:
   [V3 conversion/execution](workbench/docs/timeline-conversion.md) are implemented
   on main, with [six authored fixtures](workbench/scenarios/timeline-static/README.md)
   and a passing [fixed qualification](workbench/docs/timeline-static-qualification.md).
+  A [proposed static-view recovery expansion](docs/design/timeline-static-recovery.md)
+  would combine reusable configurations with memory or SQLite restart and explicit
+  retries. Its bounded contract is under design review; it is not implemented.
   Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.

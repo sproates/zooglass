@@ -1,7 +1,9 @@
 # Publication explanation qualification
 
 This is the final, bounded qualification for [publication explanations](timeline-explanations.md).
-The implementation is delivered; qualification results are pending execution.
+The implementation was delivered in [PR #194](https://github.com/sproates/zooglass/pull/194).
+The fixed qualification passed on 21 November 2026 at
+[`5ac16cc`](https://github.com/sproates/zooglass/commit/5ac16cc341df5839b6f5b6c49f73bec7980f4052).
 No simulation family is expanded by this work.
 
 ## Fixed matrix
@@ -29,6 +31,49 @@ changes exactly one reason constant in the real `LatestBySequence` branch. Artif
 inventory checks permit only that implementation class and its containing runtime
 JAR to change, apart from Maven metadata. No mutant is installed into the normal
 checkout. The control is detected by its reason, not by a failed value assertion.
+
+## Recorded results
+
+All **12 executions** completed: eight retained bundles and four fresh replay
+results. Both normal/paused pairs have identical semantic traces. The audit checks
+five in-turn JVM pauses and all 70 Node pauses across the two perturbed runs,
+including initialization and ingress after restart. There are no timer alarms in
+this static family, so no alarm-dispatch pause is claimed.
+
+The deliberately faulty runtime still passes its scenario assertions. Exactly one
+semantic record changes: the older-alias update says `LATEST_EQUAL` instead of
+`LATEST_OLDER`. All non-decision records, including state, receipts and assertions,
+remain identical after the header's artifact identity is excluded. The independent
+reason oracle detects that error.
+
+The eleven offline safety controls pass. An independent offline audit agrees
+exactly with the retained result. The published archive was downloaded, its hash
+and complete inventory verified, and its extracted evidence audited again with an
+identical result. There were no aborted qualification attempts.
+
+[Download the retained evidence](https://github.com/sproates/zooglass/releases/download/timeline-explanation-evidence-20261121/macos-arm64-timeline-explanations-20261121.tar.gz) or see the
+[committed hash manifest](../evidence/README.md). The archive contains 73 files and
+1,853,774 uncompressed bytes; prepared JARs and dependencies remain outside it.
+Preparation used committed production source `80e777f`; its Java tree is identical
+to the campaign revision. Only `LatestBySequence.class` and the nested runtime JAR
+differ between the verified normal and mutant artifacts.
+
+### Example: an older alias input
+
+In the retained memory baseline, authored action `older-alias` is `event-55`.
+Its receipt is `event-58` and decision is `event-59`:
+
+| Field   | Recorded reason  | Retained changed | Public changed |
+| ------- | ---------------- | ---------------- | -------------- |
+| arrival | ARRIVAL_REPLACED | true             | true           |
+| history | HISTORY_INSERTED | true             | true           |
+| latest  | LATEST_OLDER     | false            | false          |
+
+The same-value action's decision (`event-42`) records retained changes for arrival
+and latest, but no public change. After memory restart, `event-87` links its
+original detail to `event-83`, not the first lifetime's `event-25`, even though
+publication identity and receipt version repeat. SQLite's corresponding retry
+links back to the original durable application.
 
 ## Reproduce
 

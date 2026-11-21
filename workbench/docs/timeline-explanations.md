@@ -75,3 +75,10 @@ explicitly instead of truncating the explanation.
 
 These exits describe the retained scenario result, not a new execution. Incomplete
 bundles and infrastructure-failure prefixes cannot produce a complete explanation.
+
+## Qualification evidence
+
+The [fixed 12-execution qualification](timeline-explanation-qualification.md) covers
+mixed strategies and aliases, memory/SQLite restart and duplicates, staged rejection,
+assertion failure, older evidence and an actual production reason mutant. It includes
+literal event-reference examples and downloadable, independently audited evidence.

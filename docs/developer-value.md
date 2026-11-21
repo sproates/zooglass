@@ -108,7 +108,7 @@ the current API and ordering rules.
 
 ## Evidence and adoption limits
 
-The [continuous delivery checks](../workbench/test/browser/continuous-delivery.test.ts)
+The [continuous delivery checks](../workbench/test/continuous-delivery.test.ts)
 exercise the real service with six source sockets through repeated faults.
 The [fleet recovery check](../workbench/test/browser/fleet-recovery.test.ts)
 verifies snapshots after sources advance while a viewer is offline, with no later

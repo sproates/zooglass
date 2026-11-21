@@ -1,3 +1,4 @@
+import type { ScenarioView } from "../../../scenario/scenario-model.js";
 import { startZooGlassSession } from "../../../service/zooglass-session.js";
 import { startBrowserHttpServer } from "../../../browser/browser-http-server.js";
 import { createBrowserDataRoute } from "../../../browser/browser-data-route.js";
@@ -11,30 +12,30 @@ interface SimulationOptions extends ProducerOptions {
   map?: FleetMapConfiguration;
 }
 
+export const drivingView: ScenarioView = {
+  id: "driving",
+  fields: {
+    position: [{ sourceId: "fleet", type: "position" }],
+    notice: [{ sourceId: "fleet", type: "notice" }],
+  },
+  ordering: {
+    position: {
+      mode: "latestBySequence",
+      sequenceField: "publicationSequence",
+    },
+    notice: {
+      mode: "latestBySequence",
+      sequenceField: "publicationSequence",
+    },
+  },
+};
+
 /** Composition for the continuous demonstration: service, sources, read-only viewer. */
 export async function startSimulation(options: SimulationOptions = {}) {
   const cars = await loadCars();
   const service = await startZooGlassSession({
     signal: options.signal,
-    views: [
-      {
-        id: "driving",
-        fields: {
-          position: [{ sourceId: "fleet", type: "position" }],
-          notice: [{ sourceId: "fleet", type: "notice" }],
-        },
-        ordering: {
-          position: {
-            mode: "latestBySequence",
-            sequenceField: "publicationSequence",
-          },
-          notice: {
-            mode: "latestBySequence",
-            sequenceField: "publicationSequence",
-          },
-        },
-      },
-    ],
+    views: [drivingView],
   });
   let http: Awaited<ReturnType<typeof startBrowserHttpServer>> | undefined;
   let producer: Awaited<ReturnType<typeof startProducer>> | undefined;

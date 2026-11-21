@@ -14,6 +14,7 @@ import type { ScenarioSource, ScenarioView } from "../scenario/scenario.js";
 
 export interface ZooGlassSession {
   baseUrl: string;
+  processId?: number;
   /** Aborted on caller cancellation, shutdown, or unexpected service exit. */
   signal: AbortSignal;
   /** Strict callers reject forced, unsuccessful, or pre-existing exits after cleanup. */
@@ -32,6 +33,9 @@ export interface ZooGlassSessionOptions {
   serviceDirectory?: string;
   /** Override the Java executable for process-ownership fixtures. */
   javaExecutable?: string;
+  /** Keep campaign ownership alive until the service exits. POSIX only. */
+  inheritedLockFd?: number;
+  javaOptions?: string[];
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
   protectedAccess?: ProtectedSessionSettings;
@@ -61,6 +65,13 @@ export async function startZooGlassSession(
   if (options.databasePath !== undefined && !isAbsolute(options.databasePath)) {
     throw new Error("Database path must be absolute.");
   }
+  if (
+    options.inheritedLockFd !== undefined &&
+    (process.platform === "win32" ||
+      !Number.isSafeInteger(options.inheritedLockFd) ||
+      options.inheritedLockFd < 3)
+  )
+    throw new Error("Invalid inherited campaign lock");
   const controller = new AbortController();
   const signal = options.signal
     ? AbortSignal.any([controller.signal, options.signal])
@@ -248,6 +259,7 @@ export async function startZooGlassSession(
         : "java");
     const protectedAccess = options.protectedAccess;
     const args = [
+      ...(options.javaOptions ?? []),
       ...(protectedAccess
         ? [
             `-Djavax.net.ssl.trustStore=${protectedAccess.trustStore}`,
@@ -270,7 +282,10 @@ export async function startZooGlassSession(
 
     const startedChild = spawn(java, args, {
       cwd: serviceDirectory,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio:
+        options.inheritedLockFd === undefined
+          ? ["ignore", "pipe", "pipe"]
+          : ["ignore", "pipe", "pipe", options.inheritedLockFd],
       shell: false,
       detached: process.platform !== "win32",
       env: {
@@ -349,7 +364,7 @@ export async function startZooGlassSession(
 
         if (response.ok) {
           signal.throwIfAborted();
-          return { baseUrl, signal, close };
+          return { baseUrl, signal, close, processId: startedChild.pid };
         }
       } catch {
         signal.throwIfAborted();

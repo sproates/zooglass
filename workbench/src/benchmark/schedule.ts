@@ -81,6 +81,7 @@ export async function driveWindows(
     slot: number,
     plannedMs: number,
   ) => void,
+  beforeWindow?: (phase: "warmup" | "measurement") => Promise<void>,
 ) {
   let nextStart = startMs;
   for (const [i, window] of windows.entries()) {
@@ -91,6 +92,7 @@ export async function driveWindows(
   for (const [i, schedule] of schedules.entries()) {
     const window = windows[i];
     const origin = window.startMs!;
+    await beforeWindow?.(window.phase);
     while (schedule.remaining || clock.now() < window.endMs!) {
       check();
       const step = schedule.wake(clock.now() - origin);

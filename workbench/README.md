@@ -978,5 +978,6 @@ checks six authored cases, pause invariance, strict replay, deliberately broken
 recovery and ordinary-service comparisons. V3 conversion is unchanged.
 
 The [single-execution performance driver](docs/benchmark-driver.md) checks real
-service receipts and delivery under scheduled load. It is the first increment of
-the performance baseline; campaign execution and capacity results are not yet available.
+service receipts and delivery under scheduled load. The [resumable campaign](docs/performance-campaign.md)
+adds saved progress, fixed comparison rules, resource observations and reporting.
+The full baseline and audited capacity results have not yet been published.

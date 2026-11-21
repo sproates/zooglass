@@ -1,9 +1,11 @@
 # Fleet wrong-strategy control
 
 This negative control leaves the valid fleet configuration and literal expectations
-unchanged. In an isolated source archive it removes the ordering guards from
-production `LatestBySequence.evaluate`, retaining unconditional replacement with
-the incoming copy. Both runtime classifiers and simulation hosts are built
+unchanged. In an isolated source archive it replaces the body of production
+`LatestBySequence.evaluate` with unconditional replacement of the incoming copy
+and the arrival-replacement reason. The source-match regression checks that the
+preparation recipe and verifier agree with the current strategy without building
+Java. Both runtime classifiers and simulation hosts are built
 explicitly. The checkout's production sources remain unchanged.
 
 From a clean committed checkout, in `workbench/`:

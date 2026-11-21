@@ -18,14 +18,27 @@ SOURCE = 'src/main/java/io/zooglass/strategy/update/LatestBySequence.java'
 CLASS = 'io/zooglass/strategy/update/LatestBySequence.class'
 BEFORE = '''        JsonNode nextSequence = SequenceValues.read(incoming, sequenceField);
         if (nextSequence == null) {
-            return FieldUpdate.unchanged();
+            return FieldUpdate.unchanged(FieldUpdate.Reason.SEQUENCE_MISSING);
         }
 
         JsonNode currentSequence = SequenceValues.read(current, sequenceField);
-        if (currentSequence != null && SequenceValues.compare(nextSequence, currentSequence) <= 0) {
-            return FieldUpdate.unchanged();
+        if (currentSequence != null) {
+            int order = SequenceValues.compare(nextSequence, currentSequence);
+            if (order <= 0) {
+                return FieldUpdate.unchanged(
+                        order == 0
+                                ? FieldUpdate.Reason.LATEST_EQUAL
+                                : FieldUpdate.Reason.LATEST_OLDER);
+            }
         }
 
+        return FieldUpdate.replaced(
+                incoming.deepCopy(),
+                currentSequence == null
+                        ? FieldUpdate.Reason.LATEST_INITIAL
+                        : FieldUpdate.Reason.LATEST_NEWER);
+'''.encode()
+AFTER = '''        return FieldUpdate.replaced(incoming.deepCopy(), FieldUpdate.Reason.ARRIVAL_REPLACED);
 '''.encode()
 
 
@@ -54,7 +67,7 @@ def prepare(root):
     original = rule.read_bytes()
     if original.count(BEFORE) != 1:
         raise ValueError('LatestBySequence mutation site changed')
-    mutant = original.replace(BEFORE, b'')
+    mutant = original.replace(BEFORE, AFTER)
     (root / 'strategy-original.java').write_bytes(original)
     (root / 'strategy-mutant.java').write_bytes(mutant)
     repository = root / 'maven-repository'
@@ -82,7 +95,7 @@ def prepare(root):
         'recipeSha256': common.file_digest(pathlib.Path(__file__)),
         'helperSha256': common.file_digest(HELPER), 'commands': commands,
         'java': subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True).strip(),
-        'mutation': {'file': SOURCE, 'before': BEFORE.decode(), 'after': '',
+        'mutation': {'file': SOURCE, 'before': BEFORE.decode(), 'after': AFTER.decode(),
                      'originalSha256': common.digest(original), 'mutatedSha256': common.digest(mutant),
                      'class': CLASS, 'originalClassSha256': runtimes['normal'][CLASS], 'mutatedClassSha256': runtimes['mutant'][CLASS]},
         'runtime': {'entry': entry, **{name: common.file_digest(root / f'{name}-runtime.jar') for name in hosts}},

@@ -1,3 +1,5 @@
+import { isRuntimeAction } from "./event-schema.js";
+import { recoveryActionKinds } from "./recovery-contract.js";
 import {
   acceptedReceipt,
   type DeliveredReceipt,
@@ -8,6 +10,8 @@ import { staticActionKinds } from "./static-contract.js";
 
 /** Binds projected receipt assertions to real arrivals, without consuming full observations. */
 export class TraceProjections {
+  constructor(private readonly recovery = false) {}
+
   readonly assertions: TraceEvent[] = [];
   readonly actions: TraceEvent[] = [];
   private readonly receipts: DeliveredReceipt[] = [];
@@ -15,7 +19,11 @@ export class TraceProjections {
   private readonly sends = new Map<string, TraceEvent>();
 
   accept(event: TraceEvent, path: string) {
-    if (event.runtimeGeneration !== null && event.runtimeGeneration !== 1)
+    if (
+      !this.recovery &&
+      event.runtimeGeneration !== null &&
+      event.runtimeGeneration !== 1
+    )
       invalid(path, "static trace requires generation one");
     if (
       ["fault-decision", "link-send", "control-receipt"].includes(event.kind) ||
@@ -26,8 +34,29 @@ export class TraceProjections {
         "static trace does not admit faults, retries or control traffic",
       );
     if (event.kind === "action") {
+      if (this.recovery && !isRuntimeAction(String(event.data.actionKind))) {
+        if (event.runtimeGeneration === null)
+          invalid(
+            path,
+            "static recovery actor actions require a running service",
+          );
+        if (
+          ["source-send", "source-retry"].includes(
+            String(event.data.actionKind),
+          ) &&
+          event.connectionGeneration === null
+        )
+          invalid(
+            path,
+            "static recovery publication requires an active connection",
+          );
+      }
       this.actions.push(event);
-      if (!staticActionKinds.includes(String(event.data.actionKind)))
+      if (
+        !(this.recovery ? recoveryActionKinds : staticActionKinds).includes(
+          String(event.data.actionKind),
+        )
+      )
         invalid(path, "unsupported static action");
       if (event.data.actionKind === "source-send")
         this.sends.set(String(event.data.actionId), event);
@@ -54,7 +83,14 @@ export class TraceProjections {
       send.actor !== event.actor ||
       send.timeMs !== event.timeMs ||
       send.data.publication !== event.data.publication ||
-      [...this.sends.values()].filter(
+      (this.recovery
+        ? this.actions.filter((action) =>
+            ["source-send", "source-retry"].includes(
+              String(action.data.actionKind),
+            ),
+          )
+        : [...this.sends.values()]
+      ).filter(
         (value) => value.actor === event.actor && value.timeMs === event.timeMs,
       ).length !== 1
     )

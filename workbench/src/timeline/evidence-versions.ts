@@ -16,6 +16,13 @@ export function hasProgressControl(profile: unknown) {
 
 export const staticViewsProfile = "memory-static-views-v1";
 
+export const staticRecoveryProfile = "static-views-restart-v1";
+export function hasStaticProjections(
+  profile: unknown,
+): profile is typeof staticViewsProfile | typeof staticRecoveryProfile {
+  return profile === staticViewsProfile || profile === staticRecoveryProfile;
+}
+
 export const fleetProfile = "memory-sequence-fleet-v1";
 
 export const evidenceV1 = {
@@ -46,8 +53,17 @@ export const evidenceV3 = {
   protocol: 2,
 } as const;
 
+export const evidenceV4 = {
+  scenario: "timeline-simulation/v4",
+  trace: "timeline-trace/v4",
+  run: "timeline-run/v4",
+  bundle: "timeline-bundle/v4",
+  profile: staticRecoveryProfile,
+  protocol: 2,
+} as const;
+
 export type EvidenceVersions =
-  typeof evidenceV1 | typeof evidenceV2 | typeof evidenceV3;
+  typeof evidenceV1 | typeof evidenceV2 | typeof evidenceV3 | typeof evidenceV4;
 export function documentEvidenceVersions(
   format: Json | undefined,
 ): EvidenceVersions {
@@ -55,10 +71,13 @@ export function documentEvidenceVersions(
     evidenceV1.scenario,
     evidenceV2.scenario,
     evidenceV3.scenario,
+    evidenceV4.scenario,
   ]);
-  return admitted === evidenceV3.scenario
-    ? evidenceV3
-    : admitted === evidenceV2.scenario
-      ? evidenceV2
-      : evidenceV1;
+  return admitted === evidenceV4.scenario
+    ? evidenceV4
+    : admitted === evidenceV3.scenario
+      ? evidenceV3
+      : admitted === evidenceV2.scenario
+        ? evidenceV2
+        : evidenceV1;
 }

@@ -113,6 +113,7 @@ enum HostProtocol {
                 "environment", environment);
         var capabilities = new LinkedHashMap<String, Object>(handshake);
         capabilities.put("memoryStaticViews", 1);
+        capabilities.put("staticViewsRestart", 1);
         if (this == V1) return capabilities;
         capabilities.put("installedObservations", 1);
         capabilities.put("publicSnapshots", 1);

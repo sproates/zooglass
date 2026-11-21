@@ -53,6 +53,7 @@ export type Response = {
 };
 export type Handshake = {
   memoryStaticViews?: 1;
+  staticViewsRestart?: 1;
   fixture: string;
   artifact: string;
   frameCap: number;
@@ -119,6 +120,8 @@ function strings(value: unknown, path: string) {
 export function decodeHandshake(value: unknown): Handshake {
   const data = record(value, "handshake");
   integer(data.protocol, "handshake.protocol", 1, 2);
+  if (data.staticViewsRestart !== undefined && data.staticViewsRestart !== 1)
+    invalid("handshake.staticViewsRestart");
   if (data.memoryStaticViews !== undefined && data.memoryStaticViews !== 1)
     invalid("handshake.memoryStaticViews");
   if (data.protocol !== 2 && data.sqliteOrder !== undefined)

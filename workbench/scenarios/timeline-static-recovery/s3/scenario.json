@@ -1,0 +1,3358 @@
+{
+  "format": "timeline-simulation/v4",
+  "id": "static-recovery-s3",
+  "clock": {
+    "epochMillis": 1700000000000
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "runtime": {
+    "configuration": "runtime.json",
+    "sha256": "90eb13419854f65e3e52698ed7696aead205dd2fb97f011d78b5dde9b844afa4",
+    "storage": "sqlite",
+    "access": "unprotected",
+    "initialState": "empty",
+    "profile": "static-views-restart-v1"
+  },
+  "actors": [
+    {
+      "id": "kiln-source",
+      "role": "source"
+    },
+    {
+      "id": "kiln-observer",
+      "role": "client"
+    }
+  ],
+  "links": [
+    {
+      "actor": "kiln-source",
+      "latencyMs": 0
+    },
+    {
+      "actor": "kiln-observer",
+      "latencyMs": 0
+    }
+  ],
+  "observationTargets": [
+    {
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    },
+    {
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b"
+    },
+    {
+      "viewId": "kiln-current",
+      "entityId": "kiln-a"
+    }
+  ],
+  "publications": [
+    {
+      "id": "a-10",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 10,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 720,
+          "sample": "A10"
+        }
+      }
+    },
+    {
+      "id": "b-10",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-b",
+        "publicationSequence": 10,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 610,
+          "sample": "B10"
+        }
+      }
+    },
+    {
+      "id": "a-12",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 12,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "a-11",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 11,
+        "type": "temperature.corrected",
+        "payload": {
+          "temperatureC": 740,
+          "sample": "A11"
+        }
+      }
+    },
+    {
+      "id": "b-11",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-b",
+        "publicationSequence": 11,
+        "type": "temperature.corrected",
+        "payload": {
+          "temperatureC": 625,
+          "sample": "B11"
+        }
+      }
+    },
+    {
+      "id": "a-31",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 31,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 800,
+          "sample": "A31"
+        }
+      }
+    },
+    {
+      "id": "conflict-12",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 12,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 999,
+          "sample": "conflict"
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "connect-source",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "kiln-source"
+    },
+    {
+      "id": "connect-observer",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "kiln-observer"
+    },
+    {
+      "id": "subscribe-a",
+      "atMs": 1,
+      "kind": "client-subscribe",
+      "actor": "kiln-observer",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    },
+    {
+      "id": "subscribe-b",
+      "atMs": 2,
+      "kind": "client-subscribe",
+      "actor": "kiln-observer",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b"
+    },
+    {
+      "id": "send-a-10",
+      "atMs": 10,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "a-10"
+    },
+    {
+      "id": "send-b-10",
+      "atMs": 15,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "b-10"
+    },
+    {
+      "id": "send-a-12",
+      "atMs": 20,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "a-12"
+    },
+    {
+      "id": "send-a-11",
+      "atMs": 30,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "a-11"
+    },
+    {
+      "id": "send-b-11",
+      "atMs": 35,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "b-11"
+    },
+    {
+      "id": "stop",
+      "atMs": 50,
+      "kind": "service-stop",
+      "mode": "orderly"
+    },
+    {
+      "id": "start",
+      "atMs": 60,
+      "kind": "service-start"
+    },
+    {
+      "id": "reconnect-source",
+      "atMs": 61,
+      "kind": "connect",
+      "actor": "kiln-source"
+    },
+    {
+      "id": "reconnect-observer",
+      "atMs": 61,
+      "kind": "connect",
+      "actor": "kiln-observer"
+    },
+    {
+      "id": "resubscribe",
+      "atMs": 62,
+      "kind": "client-subscribe",
+      "actor": "kiln-observer",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    },
+    {
+      "id": "retry-original",
+      "atMs": 70,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "a-10"
+    },
+    {
+      "id": "send-a-31",
+      "atMs": 80,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "a-31"
+    },
+    {
+      "id": "stop-again",
+      "atMs": 90,
+      "kind": "service-stop",
+      "mode": "abrupt"
+    },
+    {
+      "id": "start-again",
+      "atMs": 100,
+      "kind": "service-start"
+    },
+    {
+      "id": "third-source",
+      "atMs": 101,
+      "kind": "connect",
+      "actor": "kiln-source"
+    },
+    {
+      "id": "third-observer",
+      "atMs": 101,
+      "kind": "connect",
+      "actor": "kiln-observer"
+    },
+    {
+      "id": "third-subscription",
+      "atMs": 102,
+      "kind": "client-subscribe",
+      "actor": "kiln-observer",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    },
+    {
+      "id": "retry-floor",
+      "atMs": 110,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "a-12"
+    },
+    {
+      "id": "conflict-floor",
+      "atMs": 111,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "conflict-12"
+    },
+    {
+      "id": "retry-below-floor",
+      "atMs": 112,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "a-10"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "accepted-a-10",
+      "atMs": 10,
+      "kind": "source-accepted",
+      "actor": "kiln-source",
+      "send": "send-a-10"
+    },
+    {
+      "id": "data-a-10",
+      "atMs": 10,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 720,
+          "sample": "A10"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          }
+        ],
+        "latest": {
+          "temperatureC": 720,
+          "sample": "A10"
+        }
+      }
+    },
+    {
+      "id": "accepted-b-10",
+      "atMs": 15,
+      "kind": "source-accepted",
+      "actor": "kiln-source",
+      "send": "send-b-10"
+    },
+    {
+      "id": "data-b-10",
+      "atMs": 15,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b",
+      "expected": {
+        "arrival": {
+          "temperatureC": 610,
+          "sample": "B10"
+        },
+        "history": [
+          {
+            "temperatureC": 610,
+            "sample": "B10"
+          }
+        ],
+        "latest": {
+          "temperatureC": 610,
+          "sample": "B10"
+        }
+      }
+    },
+    {
+      "id": "accepted-a-12",
+      "atMs": 20,
+      "kind": "source-accepted",
+      "actor": "kiln-source",
+      "send": "send-a-12"
+    },
+    {
+      "id": "data-a-12",
+      "atMs": 20,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 760,
+          "sample": "A12"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          },
+          {
+            "temperatureC": 760,
+            "sample": "A12"
+          }
+        ],
+        "latest": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "accepted-a-11",
+      "atMs": 30,
+      "kind": "source-accepted",
+      "actor": "kiln-source",
+      "send": "send-a-11"
+    },
+    {
+      "id": "data-a-11",
+      "atMs": 30,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 740,
+          "sample": "A11"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          },
+          {
+            "temperatureC": 740,
+            "sample": "A11"
+          },
+          {
+            "temperatureC": 760,
+            "sample": "A12"
+          }
+        ],
+        "latest": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "accepted-b-11",
+      "atMs": 35,
+      "kind": "source-accepted",
+      "actor": "kiln-source",
+      "send": "send-b-11"
+    },
+    {
+      "id": "data-b-11",
+      "atMs": 35,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b",
+      "expected": {
+        "arrival": {
+          "temperatureC": 625,
+          "sample": "B11"
+        },
+        "history": [
+          {
+            "temperatureC": 610,
+            "sample": "B10"
+          },
+          {
+            "temperatureC": 625,
+            "sample": "B11"
+          }
+        ],
+        "latest": {
+          "temperatureC": 625,
+          "sample": "B11"
+        }
+      }
+    },
+    {
+      "id": "stored-kiln-a",
+      "atMs": 40,
+      "kind": "runtime-snapshot",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "outcome": "available",
+        "snapshot": {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 4,
+          "data": {
+            "arrival": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 740,
+                "sample": "A11"
+              }
+            },
+            "history": [
+              {
+                "publicationSequence": 10,
+                "payload": {
+                  "temperatureC": 720,
+                  "sample": "A10"
+                }
+              },
+              {
+                "publicationSequence": 11,
+                "payload": {
+                  "temperatureC": 740,
+                  "sample": "A11"
+                }
+              },
+              {
+                "publicationSequence": 12,
+                "payload": {
+                  "temperatureC": 760,
+                  "sample": "A12"
+                }
+              }
+            ],
+            "latest": {
+              "publicationSequence": 12,
+              "payload": {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "stored-kiln-b",
+      "atMs": 40,
+      "kind": "runtime-snapshot",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b",
+      "expected": {
+        "outcome": "available",
+        "snapshot": {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 5,
+          "data": {
+            "arrival": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            },
+            "history": [
+              {
+                "publicationSequence": 10,
+                "payload": {
+                  "temperatureC": 610,
+                  "sample": "B10"
+                }
+              },
+              {
+                "publicationSequence": 11,
+                "payload": {
+                  "temperatureC": 625,
+                  "sample": "B11"
+                }
+              }
+            ],
+            "latest": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "all-receipts",
+      "atMs": 40,
+      "kind": "source-receipts",
+      "actor": "kiln-source",
+      "expected": [
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 1,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 10,
+          "version": 2,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 12,
+          "version": 3,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 11,
+          "version": 4,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 11,
+          "version": 5,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "all-client-frames",
+      "atMs": 40,
+      "kind": "client-frames",
+      "actor": "kiln-observer",
+      "expected": [
+        {
+          "type": "subscribed",
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": ["arrival", "history", "latest"],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {}
+        },
+        {
+          "type": "subscribed",
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": ["arrival", "history", "latest"],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {}
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 1,
+          "data": {
+            "arrival": {
+              "temperatureC": 720,
+              "sample": "A10"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              }
+            ],
+            "latest": {
+              "temperatureC": 720,
+              "sample": "A10"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [10],
+            "history": [10],
+            "latest": [10]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 2,
+          "data": {
+            "arrival": {
+              "temperatureC": 610,
+              "sample": "B10"
+            },
+            "history": [
+              {
+                "temperatureC": 610,
+                "sample": "B10"
+              }
+            ],
+            "latest": {
+              "temperatureC": 610,
+              "sample": "B10"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [10],
+            "history": [10],
+            "latest": [10]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 3,
+          "data": {
+            "arrival": {
+              "temperatureC": 760,
+              "sample": "A12"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              },
+              {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            ],
+            "latest": {
+              "temperatureC": 760,
+              "sample": "A12"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [12],
+            "history": [10, 12],
+            "latest": [12]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 4,
+          "data": {
+            "arrival": {
+              "temperatureC": 740,
+              "sample": "A11"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              },
+              {
+                "temperatureC": 740,
+                "sample": "A11"
+              },
+              {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            ],
+            "latest": {
+              "temperatureC": 760,
+              "sample": "A12"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [11],
+            "history": [10, 11, 12],
+            "latest": [12]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 5,
+          "data": {
+            "arrival": {
+              "temperatureC": 625,
+              "sample": "B11"
+            },
+            "history": [
+              {
+                "temperatureC": 610,
+                "sample": "B10"
+              },
+              {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            ],
+            "latest": {
+              "temperatureC": 625,
+              "sample": "B11"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [11],
+            "history": [10, 11],
+            "latest": [11]
+          }
+        }
+      ]
+    },
+    {
+      "id": "second-view-before",
+      "atMs": 40,
+      "kind": "runtime-data",
+      "viewId": "kiln-current",
+      "entityId": "kiln-a",
+      "expected": {
+        "value": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "restored-a",
+      "atMs": 60,
+      "kind": "runtime-snapshot",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "outcome": "available",
+        "snapshot": {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 4,
+          "data": {
+            "arrival": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 740,
+                "sample": "A11"
+              }
+            },
+            "history": [
+              {
+                "publicationSequence": 10,
+                "payload": {
+                  "temperatureC": 720,
+                  "sample": "A10"
+                }
+              },
+              {
+                "publicationSequence": 11,
+                "payload": {
+                  "temperatureC": 740,
+                  "sample": "A11"
+                }
+              },
+              {
+                "publicationSequence": 12,
+                "payload": {
+                  "temperatureC": 760,
+                  "sample": "A12"
+                }
+              }
+            ],
+            "latest": {
+              "publicationSequence": 12,
+              "payload": {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "restored-b",
+      "atMs": 60,
+      "kind": "runtime-snapshot",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-b",
+      "expected": {
+        "outcome": "available",
+        "snapshot": {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 5,
+          "data": {
+            "arrival": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            },
+            "history": [
+              {
+                "publicationSequence": 10,
+                "payload": {
+                  "temperatureC": 610,
+                  "sample": "B10"
+                }
+              },
+              {
+                "publicationSequence": 11,
+                "payload": {
+                  "temperatureC": 625,
+                  "sample": "B11"
+                }
+              }
+            ],
+            "latest": {
+              "publicationSequence": 11,
+              "payload": {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "second-view-restored",
+      "atMs": 60,
+      "kind": "runtime-data",
+      "viewId": "kiln-current",
+      "entityId": "kiln-a",
+      "expected": {
+        "value": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "after-retry",
+      "atMs": 70,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 740,
+          "sample": "A11"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          },
+          {
+            "temperatureC": 740,
+            "sample": "A11"
+          },
+          {
+            "temperatureC": 760,
+            "sample": "A12"
+          }
+        ],
+        "latest": {
+          "temperatureC": 760,
+          "sample": "A12"
+        }
+      }
+    },
+    {
+      "id": "reconnected-frames",
+      "atMs": 70,
+      "kind": "client-frames",
+      "actor": "kiln-observer",
+      "expected": [
+        {
+          "type": "subscribed",
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": ["arrival", "history", "latest"],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {}
+        },
+        {
+          "type": "subscribed",
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 0,
+          "data": {},
+          "provenance": {},
+          "status": {
+            "publication": "partial",
+            "missingFields": ["arrival", "history", "latest"],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "absent",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "notObserved",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": null,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {}
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 1,
+          "data": {
+            "arrival": {
+              "temperatureC": 720,
+              "sample": "A10"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              }
+            ],
+            "latest": {
+              "temperatureC": 720,
+              "sample": "A10"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [10],
+            "history": [10],
+            "latest": [10]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 2,
+          "data": {
+            "arrival": {
+              "temperatureC": 610,
+              "sample": "B10"
+            },
+            "history": [
+              {
+                "temperatureC": 610,
+                "sample": "B10"
+              }
+            ],
+            "latest": {
+              "temperatureC": 610,
+              "sample": "B10"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [10],
+            "history": [10],
+            "latest": [10]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 3,
+          "data": {
+            "arrival": {
+              "temperatureC": 760,
+              "sample": "A12"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              },
+              {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            ],
+            "latest": {
+              "temperatureC": 760,
+              "sample": "A12"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [12],
+            "history": [10, 12],
+            "latest": [12]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 4,
+          "data": {
+            "arrival": {
+              "temperatureC": 740,
+              "sample": "A11"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              },
+              {
+                "temperatureC": 740,
+                "sample": "A11"
+              },
+              {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            ],
+            "latest": {
+              "temperatureC": 760,
+              "sample": "A12"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [11],
+            "history": [10, 11, 12],
+            "latest": [12]
+          }
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-b",
+          "version": 5,
+          "data": {
+            "arrival": {
+              "temperatureC": 625,
+              "sample": "B11"
+            },
+            "history": [
+              {
+                "temperatureC": 610,
+                "sample": "B10"
+              },
+              {
+                "temperatureC": 625,
+                "sample": "B11"
+              }
+            ],
+            "latest": {
+              "temperatureC": 625,
+              "sample": "B11"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-b"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-b",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [11],
+            "history": [10, 11],
+            "latest": [11]
+          }
+        },
+        {
+          "type": "subscribed",
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "recovery": "freshSnapshot"
+        },
+        {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 4,
+          "data": {
+            "arrival": {
+              "temperatureC": 740,
+              "sample": "A11"
+            },
+            "history": [
+              {
+                "temperatureC": 720,
+                "sample": "A10"
+              },
+              {
+                "temperatureC": 740,
+                "sample": "A11"
+              },
+              {
+                "temperatureC": 760,
+                "sample": "A12"
+              }
+            ],
+            "latest": {
+              "temperatureC": 760,
+              "sample": "A12"
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 1,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          },
+          "type": "view-update",
+          "publicationSequences": {
+            "arrival": [11],
+            "history": [10, 11, 12],
+            "latest": [12]
+          }
+        }
+      ]
+    },
+    {
+      "id": "retry-receipts",
+      "atMs": 70,
+      "kind": "source-receipts",
+      "actor": "kiln-source",
+      "expected": [
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 1,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 10,
+          "version": 2,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 12,
+          "version": 3,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 11,
+          "version": 4,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 11,
+          "version": 5,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "duplicate",
+          "reason": "alreadyCommitted",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 1,
+          "changedViews": [],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "out-of-order-or-floor",
+      "atMs": 80,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 800,
+          "sample": "A31"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          },
+          {
+            "temperatureC": 740,
+            "sample": "A11"
+          },
+          {
+            "temperatureC": 760,
+            "sample": "A12"
+          },
+          {
+            "temperatureC": 800,
+            "sample": "A31"
+          }
+        ],
+        "latest": {
+          "temperatureC": 800,
+          "sample": "A31"
+        }
+      }
+    },
+    {
+      "id": "restored-floor-state",
+      "atMs": 100,
+      "kind": "runtime-snapshot",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "outcome": "available",
+        "snapshot": {
+          "viewId": "kiln-readings",
+          "entityId": "kiln-a",
+          "version": 6,
+          "data": {
+            "arrival": {
+              "publicationSequence": 31,
+              "payload": {
+                "temperatureC": 800,
+                "sample": "A31"
+              }
+            },
+            "history": [
+              {
+                "publicationSequence": 10,
+                "payload": {
+                  "temperatureC": 720,
+                  "sample": "A10"
+                }
+              },
+              {
+                "publicationSequence": 11,
+                "payload": {
+                  "temperatureC": 740,
+                  "sample": "A11"
+                }
+              },
+              {
+                "publicationSequence": 12,
+                "payload": {
+                  "temperatureC": 760,
+                  "sample": "A12"
+                }
+              },
+              {
+                "publicationSequence": 31,
+                "payload": {
+                  "temperatureC": 800,
+                  "sample": "A31"
+                }
+              }
+            ],
+            "latest": {
+              "publicationSequence": 31,
+              "payload": {
+                "temperatureC": 800,
+                "sample": "A31"
+              }
+            }
+          },
+          "provenance": {
+            "arrival": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "history": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            },
+            "latest": {
+              "sourceId": "kiln-feed",
+              "epoch": "batch-7",
+              "sourceEntityId": "kiln-a"
+            }
+          },
+          "status": {
+            "publication": "ready",
+            "missingFields": [],
+            "missingRequiredFields": [],
+            "fields": {
+              "arrival": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "history": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              },
+              "latest": {
+                "freshness": "unspecified",
+                "receivedAtMillis": null,
+                "inputs": ["kiln-feed"]
+              }
+            },
+            "inputs": {
+              "kiln-feed": {
+                "state": "observed",
+                "mode": "untracked",
+                "epoch": "batch-7",
+                "sourceEntityId": "kiln-a",
+                "startSequence": null,
+                "observedThrough": null,
+                "watermarkThrough": null,
+                "completeThrough": null,
+                "completeness": "unknown",
+                "admissionFloor": 12,
+                "sourceContractViolated": false,
+                "missingRanges": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "floor-rejections-preserve-state",
+      "atMs": 112,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 800,
+          "sample": "A31"
+        },
+        "history": [
+          {
+            "temperatureC": 720,
+            "sample": "A10"
+          },
+          {
+            "temperatureC": 740,
+            "sample": "A11"
+          },
+          {
+            "temperatureC": 760,
+            "sample": "A12"
+          },
+          {
+            "temperatureC": 800,
+            "sample": "A31"
+          }
+        ],
+        "latest": {
+          "temperatureC": 800,
+          "sample": "A31"
+        }
+      }
+    },
+    {
+      "id": "final-receipts",
+      "atMs": 112,
+      "kind": "source-receipts",
+      "actor": "kiln-source",
+      "expected": [
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 1,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 10,
+          "version": 2,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 12,
+          "version": 3,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 11,
+          "version": 4,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-b"
+          },
+          "publicationSequence": 11,
+          "version": 5,
+          "changedViews": ["kiln-readings"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-b",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "duplicate",
+          "reason": "alreadyCommitted",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 1,
+          "changedViews": [],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "committed",
+          "reason": "sqlite",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 31,
+          "version": 6,
+          "changedViews": ["kiln-readings", "kiln-current"],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "duplicate",
+          "reason": "alreadyCommitted",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 12,
+          "version": 3,
+          "changedViews": [],
+          "targets": [
+            {
+              "viewId": "kiln-readings",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["arrival", "history", "latest"],
+              "fields": [
+                {
+                  "field": "arrival",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "history",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                },
+                {
+                  "field": "latest",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            },
+            {
+              "viewId": "kiln-current",
+              "entityId": "kiln-a",
+              "status": "accepted",
+              "reason": null,
+              "changedFields": ["value"],
+              "fields": [
+                {
+                  "field": "value",
+                  "status": "accepted",
+                  "reason": null,
+                  "changed": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "status": "rejected",
+          "reason": "identityConflict",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 12,
+          "version": 6,
+          "changedViews": [],
+          "targets": []
+        },
+        {
+          "status": "rejected",
+          "reason": "outsideRetention",
+          "stream": {
+            "sourceId": "kiln-feed",
+            "epoch": "batch-7",
+            "sourceEntityId": "kiln-a"
+          },
+          "publicationSequence": 10,
+          "version": 6,
+          "changedViews": [],
+          "targets": []
+        }
+      ]
+    }
+  ],
+  "untilMs": 112,
+  "end": {
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0,
+    "heldFrames": 0
+  },
+  "limits": {
+    "turns": 2000,
+    "rounds": 100,
+    "queuedEvents": 1000,
+    "pendingMessages": 1000,
+    "traceBytes": 16777216
+  }
+}

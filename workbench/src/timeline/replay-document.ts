@@ -13,6 +13,7 @@ import {
   evidenceV1,
   evidenceV2,
   evidenceV3,
+  evidenceV4,
 } from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
@@ -54,6 +55,7 @@ export function parseReplay(raw: string) {
     evidenceV1.run,
     evidenceV2.run,
     evidenceV3.run,
+    evidenceV4.run,
   ]);
   const outcome = choice(saved.outcome, "outcome", [
     "passed",
@@ -196,7 +198,10 @@ function checkProjectedDeclarations(
   scenario: TimelineDocument,
   trace: ReturnType<typeof parseTrace>,
 ) {
-  if (scenario.format === evidenceV3.scenario) {
+  if (
+    scenario.format === evidenceV3.scenario ||
+    scenario.format === evidenceV4.scenario
+  ) {
     const actions = list(scenario.document.actions, "actions").map((value) =>
       object(value, "action"),
     );
@@ -212,7 +217,7 @@ function checkProjectedDeclarations(
       if (
         !declared ||
         seen.has(id) ||
-        declared.actor !== event.actor ||
+        (declared.actor ?? "@runtime") !== event.actor ||
         integer(declared.atMs, "atMs") !== event.timeMs
       )
         throw new Error("invalid-replay: static action differs from scenario");
@@ -268,7 +273,7 @@ function checkProjectedDeclarations(
         .map((value) => object(value, "publication"))
         .find((value) => value.id === send.publication)!;
       if (
-        declared.actor !== event.actor ||
+        (declared.actor ?? "@runtime") !== event.actor ||
         declared.send !== event.data.send ||
         send.publication !== event.data.publication ||
         encodeJson(publicationIdentity(publication.body)) !==

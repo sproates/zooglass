@@ -1,3 +1,4 @@
+import { requireConfigurationStorage } from "./admission.js";
 import { inspectRequestedConfiguration } from "./requested-admission.js";
 import {
   validateConversionProvenance,
@@ -15,6 +16,7 @@ import {
 import {
   capabilities,
   staticCapabilities,
+  recoveryCapabilities,
   orderCapabilities,
   sportsCapabilities,
   lifecycleCapabilities,
@@ -26,7 +28,8 @@ import { RuntimeGenerations } from "./runtime-generations.js";
 import {
   documentEvidenceVersions,
   fleetProfile,
-  staticViewsProfile,
+  staticRecoveryProfile,
+  hasStaticProjections,
   sportsProfile,
   isOrderProfile,
 } from "./evidence-versions.js";
@@ -82,19 +85,18 @@ export async function executeDocument(
       throw new Error(
         "unsupported-execution: artifact does not implement documents",
       );
-    const requested =
-      scenario.profile === staticViewsProfile
-        ? await inspectRequestedConfiguration(
-            bridge,
-            wire,
-            provenance
-              ? conversionReferenceConfiguration(provenance)
-              : undefined,
-          )
-        : undefined;
+    const requested = hasStaticProjections(scenario.profile)
+      ? await inspectRequestedConfiguration(
+          bridge,
+          wire,
+          provenance ? conversionReferenceConfiguration(provenance) : undefined,
+          scenario.profile,
+        )
+      : undefined;
     const inspected =
       requested?.configuration ??
       (await inspectRuntimeConfiguration(bridge, wire, scenario.storage));
+    requireConfigurationStorage(inspected, scenario.storage);
     const profile = requiredConfigurationProfile(scenario);
     if (
       requested
@@ -108,8 +110,10 @@ export async function executeDocument(
     checkConfiguredTargets(scenario, wire);
     requireExecutionCapabilities(
       scenario,
-      scenario.profile === staticViewsProfile
-        ? staticCapabilities
+      hasStaticProjections(scenario.profile)
+        ? scenario.profile === staticRecoveryProfile
+          ? recoveryCapabilities
+          : staticCapabilities
         : scenario.profile === sportsProfile
           ? sportsCapabilities
           : isOrderProfile(scenario.profile)
@@ -163,7 +167,7 @@ export async function executeDocument(
         generations = new RuntimeGenerations({
           jar: options.jar,
           configuration: wire,
-          ...(scenario.profile === staticViewsProfile ||
+          ...(hasStaticProjections(scenario.profile) ||
           scenario.profile === fleetProfile ||
           scenario.profile === sportsProfile ||
           isOrderProfile(scenario.profile)

@@ -59,7 +59,7 @@ export function eventData(
   path: string,
   time: number,
   until: number,
-  version: 1 | 2 | 3 = 1,
+  version: 1 | 2 | 3 | 4 = 1,
   storage: "memory" | "sqlite" | undefined = version === 1
     ? "memory"
     : undefined,
@@ -71,7 +71,7 @@ export function eventData(
       "wallMillis",
       "monotonicMs",
       "snapshots",
-      ...(version === 3 ? ["projectedSnapshots"] : []),
+      ...(version >= 3 ? ["projectedSnapshots"] : []),
     ]);
     if (integer(data.startTimeMs, `${path}.startTimeMs`, until) !== time)
       invalid(path, "runtime start time differs from agenda key");
@@ -86,7 +86,7 @@ export function eventData(
         invalid(snapshotPath, "duplicate observation target");
       targets.add(id);
     });
-    if (version === 3) {
+    if (version >= 3) {
       const projected = list(
         data.projectedSnapshots,
         `${path}.projectedSnapshots`,
@@ -105,7 +105,7 @@ export function eventData(
         sameSnapshotMetadata(snapshot, publicValue, path);
       });
     }
-  } else if (kind === "runtime-data-observation" && version === 3) {
+  } else if (kind === "runtime-data-observation" && version >= 3) {
     object(data, path, ["viewId", "entityId", "snapshot", "publicSnapshot"]);
     const target = observationTarget(data, path);
     const raw = installedSnapshot(data.snapshot, `${path}.snapshot`, target);
@@ -333,7 +333,7 @@ export function eventData(
             "source-receipts",
             "runtime-snapshot",
             "control-receipts",
-            ...(version === 3 ? ["runtime-data", "source-accepted"] : []),
+            ...(version >= 3 ? ["runtime-data", "source-accepted"] : []),
           ]
         : ["client-frames", "source-receipts"],
     );

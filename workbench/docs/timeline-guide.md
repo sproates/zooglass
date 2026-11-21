@@ -114,9 +114,11 @@ timeline alongside all three existing live demos, delivered in
 
 [Static configuration admission](timeline-static-admission.md) checks the broader family; [V3 conversion and execution](timeline-conversion.md) add projected assertions and retained conversion provenance.
 
-## Proposed expansion
+## Static recovery implementation candidate
 
-The [static-view recovery proposal](../../docs/design/timeline-static-recovery.md)
-would combine the reusable static family with memory or SQLite storage, controlled
-restart and explicit retries. It is under design review, not admitted by current
-execution. The delivered matrix above remains unchanged.
+The [static recovery guide](timeline-static-recovery.md) describes the V4 family
+combining reusable static configurations with memory/SQLite restart and explicit
+retries. The [accepted contract](../../docs/design/timeline-static-recovery.md)
+keeps it distinct from V3. Implementation tests and six authored witnesses are
+provided; the separate finite qualification and retained evidence are pending.
+The qualified capability matrix above is unchanged.

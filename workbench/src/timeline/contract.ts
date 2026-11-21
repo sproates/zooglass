@@ -1,3 +1,4 @@
+import { validateRecoveryDocument } from "./recovery-contract.js";
 import {
   validateStaticDocument,
   validateProjectedAssertions,
@@ -29,7 +30,7 @@ import {
   evidenceV1,
   evidenceV2,
   evidenceV3,
-  staticViewsProfile,
+  evidenceV4,
 } from "./evidence-versions.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
@@ -57,6 +58,7 @@ export const staticCapabilities = [
   "runtime-observations",
   "projected-observations",
 ] as const;
+export const recoveryCapabilities = [...staticCapabilities, "sqlite"] as const;
 export const capabilities = [
   "memory",
   "source-publication",
@@ -87,7 +89,11 @@ export const sportsCapabilities = [
   "fact-retirement-control",
 ] as const;
 export type TimelineDocument = {
-  format: typeof format | typeof lifecycleFormat | typeof staticFormat;
+  format:
+    | typeof format
+    | typeof lifecycleFormat
+    | typeof staticFormat
+    | typeof evidenceV4.scenario;
   storage: "memory" | "sqlite";
   profile: string;
   observationTargets: ObservationTarget[];
@@ -103,7 +109,8 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const rawDocument = object(parseJson(raw), "$");
   const versions = documentEvidenceVersions(rawDocument.format);
   const lifecycle = versions.protocol === 2;
-  const staticViews = versions === evidenceV3;
+  const recovery = versions === evidenceV4;
+  const staticViews = versions === evidenceV3 || recovery;
   const doc = object(rawDocument, "$", [
     "format",
     "id",
@@ -118,7 +125,8 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     "limits",
     "untilMs",
     "end",
-    ...(staticViews && Object.hasOwn(rawDocument, "conversionReport")
+    ...(versions === evidenceV3 &&
+    Object.hasOwn(rawDocument, "conversionReport")
       ? ["conversionReport"]
       : []),
     ...(Object.hasOwn(rawDocument, "faults") ? ["faults"] : []),
@@ -127,7 +135,8 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
       ? ["observationTargets"]
       : []),
   ]);
-  if (staticViews) validateStaticDocument(doc);
+  if (recovery) validateRecoveryDocument(doc);
+  else if (staticViews) validateStaticDocument(doc);
   text(doc.id, "$.id");
   const clock = object(doc.clock, "$.clock", ["epochMillis"]);
   const epoch = integer(clock.epochMillis, "$.clock.epochMillis");
@@ -158,7 +167,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
           runtime.profile,
           "$.runtime.profile",
           staticViews
-            ? [staticViewsProfile]
+            ? [versions.profile]
             : [fleetProfile, sportsProfile, orderProfile, orderRestartProfile],
         );
   if (profile === fleetProfile && storage !== "memory")
@@ -358,7 +367,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
     } else required.add("client-lifecycle");
   });
   validateWallSchedule(until, wallSettings);
-  if (staticViews) validateProjectedAssertions(doc);
+  if (staticViews) validateProjectedAssertions(doc, recovery);
   list(doc.assertions, "$.assertions").forEach((value, i) => {
     const path = `$.assertions[${i}]`;
     const record = object(value, path);

@@ -5,6 +5,7 @@ import static io.zooglass.simulation.HostProtocol.text;
 
 import io.zooglass.runtime.RuntimeConfiguration;
 import io.zooglass.runtime.StaticViewsTimelineProfile;
+import io.zooglass.runtime.StaticRecoveryTimelineProfile;
 import io.zooglass.runtime.StaticViewsTimelineProfile.Issue;
 import io.zooglass.runtime.TimelineRuntime;
 
@@ -25,7 +26,9 @@ final class RequestedProfileAdmission {
         String profile = text(command, "profile");
         var issues = StaticViewsTimelineProfile.NAME.equals(profile)
                 ? StaticViewsTimelineProfile.inspect(config)
-                : List.of(new Issue("$.profile", "unsupported requested profile"));
+                : StaticRecoveryTimelineProfile.NAME.equals(profile)
+                        ? StaticRecoveryTimelineProfile.inspect(config)
+                        : List.of(new Issue("$.profile", "unsupported requested profile"));
         var result = new LinkedHashMap<String, Object>();
         result.put("profile", profile);
         result.put("eligible", issues.isEmpty());

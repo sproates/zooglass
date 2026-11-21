@@ -56,6 +56,7 @@ export class Bridge {
   }[] = [];
   configurationAdmission = 0;
   memoryStaticViews: 0 | 1 = 0;
+  staticViewsRestart: 0 | 1 = 0;
   publicSnapshots: 0 | 1 = 0;
   private projectedObservations = false;
   sqliteLifecycle: 0 | 1 = 0;
@@ -189,6 +190,7 @@ export class Bridge {
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
       bridge.memoryStaticViews = handshake.memoryStaticViews ?? 0;
+      bridge.staticViewsRestart = handshake.staticViewsRestart ?? 0;
       bridge.environment = handshake.environment;
       return { bridge, artifact };
     } catch (error) {

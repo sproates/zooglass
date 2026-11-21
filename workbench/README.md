@@ -954,3 +954,8 @@ are rejected; the existing demos and V1/V2 profiles retain their meaning. The
 [fixed qualification](docs/timeline-static-qualification.md) passes for five
 converted scenarios and the independent mixed-mode witness. This capability was
 delivered to main in [PR #179](https://github.com/sproates/zooglass/pull/179).
+
+[Static-view recovery](docs/timeline-static-recovery.md) adds an explicit V4 family
+for reusable static configurations with memory or SQLite restart and exact retries.
+Its six authored witnesses and focused implementation tests are distinct from the
+separate finite qualification, which remains pending. V3 conversion is unchanged.

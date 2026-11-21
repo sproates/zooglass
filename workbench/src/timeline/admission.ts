@@ -20,7 +20,8 @@ import {
 } from "./document-profile.js";
 import {
   fleetProfile,
-  staticViewsProfile,
+  staticRecoveryProfile,
+  hasStaticProjections,
   documentEvidenceVersions,
   sportsProfile,
   orderProfile,
@@ -76,8 +77,10 @@ export async function probeLifecycle(
         "unsupported-execution: prepared artifact does not support memory lifecycle",
       );
     if (
-      scenario.profile === staticViewsProfile &&
-      (opened.bridge.memoryStaticViews !== 1 ||
+      hasStaticProjections(scenario.profile) &&
+      ((scenario.profile === staticRecoveryProfile
+        ? opened.bridge.staticViewsRestart
+        : opened.bridge.memoryStaticViews) !== 1 ||
         opened.bridge.publicSnapshots !== 1)
     )
       throw new Error(
@@ -155,14 +158,18 @@ export async function inspectRuntimeConfiguration(
     throw new Error(
       "invalid-admission: configuration inspection produced runtime work or omitted result",
     );
-  if (
-    response.configuration.storage !== storage ||
-    response.configuration.contractVersion !== 2
-  )
+  requireConfigurationStorage(response.configuration, storage);
+  return response.configuration;
+}
+
+export function requireConfigurationStorage(
+  configuration: { storage: unknown; contractVersion: unknown },
+  storage: TimelineDocument["storage"],
+) {
+  if (configuration.storage !== storage || configuration.contractVersion !== 2)
     throw new Error(
       "invalid-admission: runtime configuration disagrees with scenario storage/version",
     );
-  return response.configuration;
 }
 
 export function requiredConfigurationProfile(
@@ -219,19 +226,20 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
   const lifecycle = documentEvidenceVersions(scenario.format).protocol === 2;
   const { bridge, artifact } = await Bridge.open(jarPath);
   try {
-    const requested =
-      scenario.profile === staticViewsProfile
-        ? await inspectRequestedConfiguration(
-            bridge,
-            wire,
-            conversionProvenance
-              ? conversionReferenceConfiguration(conversionProvenance)
-              : undefined,
-          )
-        : undefined;
+    const requested = hasStaticProjections(scenario.profile)
+      ? await inspectRequestedConfiguration(
+          bridge,
+          wire,
+          conversionProvenance
+            ? conversionReferenceConfiguration(conversionProvenance)
+            : undefined,
+          scenario.profile,
+        )
+      : undefined;
     const configuration =
       requested?.configuration ??
       (await inspectRuntimeConfiguration(bridge, wire, scenario.storage));
+    requireConfigurationStorage(configuration, scenario.storage);
     const requiredProfile = requiredConfigurationProfile(scenario);
     let reason: string | undefined;
     if (

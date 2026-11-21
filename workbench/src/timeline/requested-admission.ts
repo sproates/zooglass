@@ -2,21 +2,31 @@ import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { boundedFile, decode } from "./file-input.js";
 import { Bridge } from "./bridge.js";
-import { staticViewsProfile } from "./evidence-versions.js";
+import {
+  staticViewsProfile,
+  staticRecoveryProfile,
+} from "./evidence-versions.js";
 
 /** Ask the production decoder about a family without reclassifying older profiles. */
 export async function inspectRequestedConfiguration(
-  bridge: Pick<Bridge, "memoryStaticViews" | "command">,
+  bridge: Pick<Bridge, "memoryStaticViews" | "staticViewsRestart" | "command">,
   wire: string,
   referenceWire?: string,
+  profile:
+    | typeof staticViewsProfile
+    | typeof staticRecoveryProfile = staticViewsProfile,
 ) {
-  if (bridge.memoryStaticViews !== 1)
+  if (
+    (profile === staticRecoveryProfile
+      ? bridge.staticViewsRestart
+      : bridge.memoryStaticViews) !== 1
+  )
     throw new Error(
       "unsupported-admission: prepared artifact has no static-view admission capability",
     );
   const response = await bridge.command(0, {
     op: "inspect-requested-profile",
-    profile: staticViewsProfile,
+    profile,
     wire,
     ...(referenceWire === undefined ? {} : { referenceWire }),
   });
@@ -26,7 +36,7 @@ export async function inspectRequestedConfiguration(
     response.heldFrames ||
     response.snapshots !== undefined ||
     response.configuration?.contractVersion !== 2 ||
-    response.requestedProfile?.profile !== staticViewsProfile ||
+    response.requestedProfile?.profile !== profile ||
     (response.requestedProfile.comparison !== undefined) !==
       (referenceWire !== undefined)
   )

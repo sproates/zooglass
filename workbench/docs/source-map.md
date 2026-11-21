@@ -1257,6 +1257,8 @@ flowchart LR
 ```mermaid
 flowchart LR
   contract["timeline/contract.ts"] -->|closed V3 actions and assertion references| static["timeline/static-contract.ts"]
+  contract -->|V4 recovery action and availability boundaries| recovery["timeline/recovery-contract.ts"]
+  recovery -->|same phase and declaration ordering as execution| lifecycle["timeline/lifecycle.ts"]
   execution["timeline/document-execution.ts"] -->|timestamp-scoped acceptance| assertions["timeline/projected-assertions.ts"]
   transport["timeline/document-transport.ts"] -->|retain delivery event IDs and full receipts| execution
   execution -->|same installed read: internal and public| turns["timeline/runtime-turns.ts"]
@@ -1311,3 +1313,8 @@ flowchart TB
 The offline auditor verifies the fixed matrix, literal observations, retained
 input hashes and executable identities. It never runs ZooGlass; archive inventory
 verification additionally protects every retained file's bytes.
+
+V4 static recovery reuses these projection and generation owners. Its validator
+adds explicit lifecycle actions without changing V3. The requested host profile
+selects shared static-field rules plus memory/SQLite recovery; no reconciliation
+is implemented in Workbench. See [static recovery](timeline-static-recovery.md).

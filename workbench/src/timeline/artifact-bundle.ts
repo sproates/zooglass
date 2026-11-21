@@ -11,6 +11,7 @@ import {
   evidenceV1,
   evidenceV2,
   evidenceV3,
+  evidenceV4,
   type EvidenceVersions,
 } from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
@@ -224,15 +225,18 @@ export async function readBundle(directory: string) {
   if (
     manifest.format !== evidenceV1.bundle &&
     manifest.format !== evidenceV2.bundle &&
-    manifest.format !== evidenceV3.bundle
+    manifest.format !== evidenceV3.bundle &&
+    manifest.format !== evidenceV4.bundle
   )
     throw new Error("invalid-bundle: unsupported format");
   const versions =
-    manifest.format === evidenceV3.bundle
-      ? evidenceV3
-      : manifest.format === evidenceV2.bundle
-        ? evidenceV2
-        : evidenceV1;
+    manifest.format === evidenceV4.bundle
+      ? evidenceV4
+      : manifest.format === evidenceV3.bundle
+        ? evidenceV3
+        : manifest.format === evidenceV2.bundle
+          ? evidenceV2
+          : evidenceV1;
   same(
     manifest.versions,
     parseJson(JSON.stringify(bundleVersions(versions))),

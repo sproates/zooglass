@@ -1,7 +1,7 @@
 # Reusable static-view recovery on the deterministic timeline
 
-Status: proposed, 21 November 2026. This is a design for the next bounded
-expansion, not a claim of delivered support. The [current capability guide](../../workbench/docs/timeline-guide.md)
+Status: accepted through PR #188, 21 November 2026. Implementation and the separate
+qualification follow this bounded contract; acceptance is not a claim of delivered support. The [current capability guide](../../workbench/docs/timeline-guide.md)
 remains authoritative until implementation and qualification are complete.
 
 ## Outcome and finish line

@@ -1,6 +1,8 @@
 import {
   fleetProfile,
   staticViewsProfile,
+  staticRecoveryProfile,
+  hasStaticProjections,
   sportsProfile,
   orderProfile,
   orderRestartProfile,
@@ -20,6 +22,7 @@ export type GenerationOptions = Readonly<{
   profile?:
     | typeof sportsProfile
     | typeof staticViewsProfile
+    | typeof staticRecoveryProfile
     | typeof fleetProfile
     | typeof orderProfile
     | typeof orderRestartProfile;
@@ -234,8 +237,10 @@ export class RuntimeGenerations {
       if (this.options.database && opened.bridge.sqliteLifecycle !== 1)
         throw new Error("Prepared artifact does not support SQLite lifecycle");
       if (
-        this.options.profile === staticViewsProfile &&
-        (opened.bridge.memoryStaticViews !== 1 ||
+        hasStaticProjections(this.options.profile) &&
+        ((this.options.profile === staticRecoveryProfile
+          ? opened.bridge.staticViewsRestart
+          : opened.bridge.memoryStaticViews) !== 1 ||
           opened.bridge.publicSnapshots !== 1)
       )
         throw new Error(

@@ -40,6 +40,14 @@ function disconnect(state: ActorState) {
   state.subscriptions.clear();
 }
 
+export function actionPhase(kind: string): 0 | 2 {
+  return ["connect", "disconnect", "writer-stall", "writer-release"].includes(
+    kind,
+  ) || isRuntimeAction(kind)
+    ? 0
+    : 2;
+}
+
 /** Admit declared controls, not runtime-derived closes or successful publications. */
 export function admitLifecycle(
   doc: { [key: string]: Json },
@@ -62,12 +70,7 @@ export function admitLifecycle(
       const action = object(value, path);
       const kind = text(action.kind, `${path}.kind`) as
         ActorActionKind | RuntimeActionKind;
-      const phase: 0 | 2 =
-        ["connect", "disconnect", "writer-stall", "writer-release"].includes(
-          kind,
-        ) || isRuntimeAction(kind)
-          ? 0
-          : 2;
+      const phase = actionPhase(kind);
       return {
         action,
         path,

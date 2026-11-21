@@ -15,6 +15,7 @@ import io.zooglass.runtime.ProgressIngress;
 import io.zooglass.runtime.PublicationJson;
 import io.zooglass.runtime.RuntimeConfiguration;
 import io.zooglass.runtime.StaticViewsTimelineProfile;
+import io.zooglass.runtime.StaticRecoveryTimelineProfile;
 import io.zooglass.api.ViewSnapshot;
 import io.zooglass.runtime.TimelineProfile;
 import io.zooglass.runtime.TimelineRuntime;
@@ -200,14 +201,19 @@ public final class TimelineHost {
         boolean order = TimelineProfile.SQLITE_ORDER.equals(profile);
         boolean sports = TimelineProfile.SQLITE_SPORTS.equals(profile);
         String requested = command.has("profile") ? text(command, "profile") : profile;
-        boolean boundedStatic = StaticViewsTimelineProfile.NAME.equals(requested);
+        boolean recovery = StaticRecoveryTimelineProfile.NAME.equals(requested);
+        boolean boundedStatic = recovery || StaticViewsTimelineProfile.NAME.equals(requested);
         if (boundedStatic) {
-            var issues = StaticViewsTimelineProfile.inspect(config);
+            var issues = recovery ? StaticRecoveryTimelineProfile.inspect(config)
+                    : StaticViewsTimelineProfile.inspect(config);
             if (protocol != HostProtocol.V2 || !issues.isEmpty())
                 throw new IllegalArgumentException("Unsupported static views configuration profile: " + issues);
-            if (generation.number() != 1 || generation.startTimeMs() != 0
+            if ((!recovery && generation.number() != 1)
+                    || (generation.number() == 1 && generation.startTimeMs() != 0)
                     || generation.wallMillis(0) != generation.epochMillis())
-                throw new IllegalArgumentException("Static views profile requires generation 1, initial time zero and no wall adjustment");
+                throw new IllegalArgumentException(recovery
+                        ? "Static recovery profile requires initial time zero in generation 1 and no wall adjustment"
+                        : "Static views profile requires generation 1, initial time zero and no wall adjustment");
             // Requested admission is independent of legacy first-match classification.
             fleet = false;
             order = false;
@@ -230,12 +236,15 @@ public final class TimelineHost {
         if (sports && (generation.number() != 1 || generation.startTimeMs() != 0
                 || generation.wallMillis(0) != generation.epochMillis()))
             throw new IllegalArgumentException("Sports profile requires generation 1, initial time zero and no wall adjustment");
-        if ((TimelineProfile.SQLITE_RESTART.equals(profile) || order || sports) && !sqliteAvailable)
+        if ("sqlite".equals(config.storage()) && !sqliteAvailable)
             throw new IllegalArgumentException("SQLite lifecycle is unavailable");
 
         Path database = database(command, config.storage(), generation);
-        if (order && generation.number() == 1 && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
-            throw new IllegalArgumentException("Order profile requires a new database path");
+        if ((order || (recovery && database != null)) && generation.number() == 1
+                && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
+            throw new IllegalArgumentException(recovery
+                    ? "Static recovery profile requires a new database path in generation 1"
+                    : "Order profile requires a new database path");
         if (sports && Files.exists(database, LinkOption.NOFOLLOW_LINKS))
             throw new IllegalArgumentException("Sports profile requires a new database path");
         var targets = command.has("observationTargets")

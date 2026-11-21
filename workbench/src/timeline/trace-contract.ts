@@ -10,6 +10,7 @@ import {
   evidenceV1,
   evidenceV2,
   evidenceV3,
+  evidenceV4,
   fleetProfile,
   sportsProfile,
   orderProfile,
@@ -83,21 +84,24 @@ export function parseTrace(
   const header = traceHeader(readRecord(0));
   const until = header.untilMs;
   const version =
-    header.format === evidenceV3.trace
-      ? 3
-      : header.format === evidenceV2.trace
-        ? 2
-        : 1;
+    header.format === evidenceV4.trace
+      ? 4
+      : header.format === evidenceV3.trace
+        ? 3
+        : header.format === evidenceV2.trace
+          ? 2
+          : 1;
   const kinds =
     version >= 2
       ? [
           ...eventKinds,
           ...lifecycleEventKinds,
           "control-receipt",
-          ...(version === 3 ? ["runtime-data-observation"] : []),
+          ...(version >= 3 ? ["runtime-data-observation"] : []),
         ]
       : eventKinds;
-  const projections = version === 3 ? new TraceProjections() : undefined;
+  const projections =
+    version >= 3 ? new TraceProjections(version === 4) : undefined;
   const controls = new TraceControls(header.execution?.profile);
   const generations =
     version >= 2 ? new TraceGenerations(until, observationTargets) : undefined;
@@ -238,13 +242,16 @@ function traceHeader(value: ReturnType<typeof object>) {
     evidenceV1.trace,
     evidenceV2.trace,
     evidenceV3.trace,
+    evidenceV4.trace,
   ]);
   const versions =
-    format === evidenceV3.trace
-      ? evidenceV3
-      : format === evidenceV2.trace
-        ? evidenceV2
-        : evidenceV1;
+    format === evidenceV4.trace
+      ? evidenceV4
+      : format === evidenceV3.trace
+        ? evidenceV3
+        : format === evidenceV2.trace
+          ? evidenceV2
+          : evidenceV1;
   let execution;
   if (versions.protocol === 2 && record.execution === undefined)
     invalid(`${path}.execution`, "required for lifecycle evidence");

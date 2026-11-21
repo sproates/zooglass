@@ -1,0 +1,268 @@
+{
+  "format": "timeline-simulation/v5",
+  "id": "explanation-memory",
+  "clock": {
+    "epochMillis": 1700000000000
+  },
+  "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+  "runtime": {
+    "configuration": "runtime.json",
+    "sha256": "577afa2f0e0b6e94bed99e8d695a06b73231bcaaeef4d6970f1b016fed6a1dad",
+    "storage": "memory",
+    "access": "unprotected",
+    "initialState": "empty",
+    "profile": "static-views-restart-v1"
+  },
+  "actors": [
+    {
+      "id": "kiln-source",
+      "role": "source"
+    },
+    {
+      "id": "kiln-observer",
+      "role": "client"
+    }
+  ],
+  "links": [
+    {
+      "actor": "kiln-source",
+      "latencyMs": 0
+    },
+    {
+      "actor": "kiln-observer",
+      "latencyMs": 0
+    }
+  ],
+  "observationTargets": [
+    {
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    }
+  ],
+  "publications": [
+    {
+      "id": "first",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 20,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 720
+        }
+      }
+    },
+    {
+      "id": "same-value",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 21,
+        "type": "temperature.measured",
+        "payload": {
+          "temperatureC": 720
+        }
+      }
+    },
+    {
+      "id": "older-alias",
+      "body": {
+        "sourceId": "kiln-feed",
+        "epoch": "batch-7",
+        "sourceEntityId": "kiln-a",
+        "publicationSequence": 10,
+        "type": "temperature.corrected",
+        "payload": {
+          "temperatureC": 700
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "source-open",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "kiln-source"
+    },
+    {
+      "id": "client-open",
+      "atMs": 0,
+      "kind": "connect",
+      "actor": "kiln-observer"
+    },
+    {
+      "id": "watch",
+      "atMs": 0,
+      "kind": "client-subscribe",
+      "actor": "kiln-observer",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a"
+    },
+    {
+      "id": "first",
+      "atMs": 10,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "first"
+    },
+    {
+      "id": "same-value",
+      "atMs": 20,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "same-value"
+    },
+    {
+      "id": "older-alias",
+      "atMs": 30,
+      "kind": "source-send",
+      "actor": "kiln-source",
+      "publication": "older-alias"
+    },
+    {
+      "id": "retry-older",
+      "atMs": 40,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "older-alias"
+    },
+    {
+      "id": "stop",
+      "atMs": 50,
+      "kind": "service-stop",
+      "mode": "abrupt"
+    },
+    {
+      "id": "start",
+      "atMs": 60,
+      "kind": "service-start"
+    },
+    {
+      "id": "reconnect",
+      "atMs": 65,
+      "kind": "connect",
+      "actor": "kiln-source"
+    },
+    {
+      "id": "after-restart",
+      "atMs": 70,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "first"
+    },
+    {
+      "id": "retry-after-restart",
+      "atMs": 80,
+      "kind": "source-retry",
+      "actor": "kiln-source",
+      "publication": "first"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "first-data",
+      "atMs": 10,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 720
+        },
+        "latest": {
+          "temperatureC": 720
+        },
+        "history": [
+          {
+            "temperatureC": 720
+          }
+        ]
+      }
+    },
+    {
+      "id": "same-data",
+      "atMs": 20,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 720
+        },
+        "latest": {
+          "temperatureC": 720
+        },
+        "history": [
+          {
+            "temperatureC": 720
+          },
+          {
+            "temperatureC": 720
+          }
+        ]
+      }
+    },
+    {
+      "id": "older-data",
+      "atMs": 30,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 700
+        },
+        "latest": {
+          "temperatureC": 720
+        },
+        "history": [
+          {
+            "temperatureC": 700
+          },
+          {
+            "temperatureC": 720
+          },
+          {
+            "temperatureC": 720
+          }
+        ]
+      }
+    },
+    {
+      "id": "final-data",
+      "atMs": 80,
+      "kind": "runtime-data",
+      "viewId": "kiln-readings",
+      "entityId": "kiln-a",
+      "expected": {
+        "arrival": {
+          "temperatureC": 720
+        },
+        "latest": {
+          "temperatureC": 720
+        },
+        "history": [
+          {
+            "temperatureC": 720
+          }
+        ]
+      }
+    }
+  ],
+  "untilMs": 80,
+  "end": {
+    "pendingFutureTasks": "forbid",
+    "pendingMessages": 0,
+    "heldFrames": 0
+  },
+  "limits": {
+    "turns": 2000,
+    "rounds": 100,
+    "queuedEvents": 1000,
+    "pendingMessages": 1000,
+    "traceBytes": 16777216
+  }
+}

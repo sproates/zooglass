@@ -2,7 +2,6 @@ import { stat, realpath } from "node:fs/promises";
 import { relative, isAbsolute, sep } from "node:path";
 import { boundedFile, decode } from "./admission.js";
 import { readBundle } from "./artifact-bundle.js";
-import { object, text } from "./validation.js";
 import { encodeJson } from "./json.js";
 import { parseReplay } from "./replay-document.js";
 
@@ -10,8 +9,6 @@ type Run = ReturnType<typeof parseReplay>;
 
 /** Compare saved evidence only: equality is neither re-execution nor a passing outcome. */
 export function compareRuns(left: Run, right: Run) {
-  validateEnvironment(left);
-  validateEnvironment(right);
   const mismatches = [
     ["scenario", left.saved.scenario, right.saved.scenario],
     ["configuration", left.saved.configuration, right.saved.configuration],
@@ -58,46 +55,4 @@ export async function readComparisonInput(path: string, destination: string) {
     return readBundle(path);
   }
   return parseReplay(decode(await boundedFile(path)));
-}
-
-// Offline comparison cannot rely on a live handshake to reject incomplete identities.
-function validateEnvironment(run: Run) {
-  const environment = object(run.saved.environment, "environment", [
-    "executor",
-    "node",
-    "v8",
-    "platform",
-    "arch",
-    "locale",
-    "timezone",
-    "dependencyLockSha256",
-    "java",
-  ]);
-  for (const key of [
-    "executor",
-    "node",
-    "v8",
-    "platform",
-    "arch",
-    "locale",
-    "timezone",
-  ])
-    text(environment[key], `environment.${key}`);
-  if (
-    !/^[a-f0-9]{64}$/.test(
-      text(environment.dependencyLockSha256, "dependencyLockSha256"),
-    )
-  )
-    throw new Error("Invalid environment dependency hash");
-  const java = object(environment.java, "environment.java", [
-    "javaRuntime",
-    "javaVendor",
-    "os",
-    "arch",
-    "locale",
-    "timezone",
-    ...(run.scenario.storage === "sqlite" ? ["sqliteVersion"] : []),
-  ]);
-  for (const key of Object.keys(java))
-    text(java[key], `environment.java.${key}`);
 }

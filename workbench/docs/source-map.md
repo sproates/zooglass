@@ -74,7 +74,7 @@ flowchart TB
   scenario["scenario/scenario.ts<br/>Load and validate fixtures"]
   playback["scenario/playback.ts<br/>Build and format ordered traces"]
   vehicle["demos/vehicle/vehicle-demo.ts<br/>Interactive demo composition"]
-  demo["demos/vehicle/demo.ts<br/>Interactive CLI"]
+  browser["demos/vehicle/vehicle-browser.ts<br/>Browser composition"]
   fleetAssets["demos/vehicle/fleet-assets.ts<br/>Map configuration and fleet assets"]
   demo -->|chooses interactive tile configuration| fleetAssets
   browser -->|loads fleet modules and Leaflet assets| fleetAssets
@@ -1221,6 +1221,7 @@ pinned producer schedule, independent expected values and actual runtime evidenc
 flowchart LR
   comparecli["timeline/compare-cli.ts"] -->|validate and compare saved evidence| compare["timeline/compare.ts"]
   compare -->|validate run| replay["timeline/replay-document.ts"]
+  replay -->|validate recorded Node and JVM identity| environment["timeline/replay-environment.ts"]
   compare -->|validate bundle inventory| bundle["timeline/artifact-bundle.ts"]
   replaycli["timeline/replay-cli.ts"] -->|re-execute and compare| replay
   bundlecli["timeline/bundle-cli.ts"] -->|record or re-execute bundle| bundle
@@ -1373,6 +1374,7 @@ flowchart TB
   reader -->|validate complete retained bundle| bundle["timeline/artifact-bundle.ts"]
   bundle -->|validate saved run and trace| replay["timeline/replay-document.ts"]
   replay -->|validate event records| trace["timeline/trace-contract.ts"]
+  replay -->|validate recorded environment without a local match| environment["timeline/replay-environment.ts"]
   replay -->|bind authored identities and configured fields| declarations["timeline/decision-declarations.ts"]
   trace -->|closed production reason schema| schema["timeline/decision-contract.ts"]
   bridge["timeline/bridge.ts"] -->|require opted-in complete ingress effects| effects["timeline/bridge-decisions.ts"]

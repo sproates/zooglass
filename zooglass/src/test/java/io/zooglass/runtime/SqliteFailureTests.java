@@ -115,6 +115,7 @@ class SqliteFailureTests {
                         "DELETE FROM runtime",
                         "UPDATE streams SET state='{}'",
                         "UPDATE runtime SET version=0",
+                        "UPDATE runtime SET version=1.5",
                         "UPDATE streams SET epoch='unknown'",
                         "UPDATE streams SET state=json_set(state, '$.floor', 0)",
                         "UPDATE streams SET state=json_set(state, '$.receipts', json('{}'))",

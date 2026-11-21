@@ -1,8 +1,11 @@
 # Capability delivery record
 
 Service evidence reviewed against `7eff641` on 9 November 2026. Order demo
-coverage updated against `2837dc5` on 12 November; final acceptance is proposed
-in the [Order record](2026-11-12-order-acceptance.md).
+coverage was updated against `2837dc5` on 12 November. The final
+[Order](2026-11-12-order-acceptance.md) and
+[Sports](2026-11-13-sports-acceptance.md) acceptance is delivered on main through
+[PR #170](https://github.com/sproates/zooglass/pull/170). This index was reconciled
+with that delivery on 21 November; historical evidence retains its original scope.
 
 ZooGlass now applies configurable reconciliation, recovery and access policies to
 shared live views. This record links those behaviours to their contracts and
@@ -55,13 +58,13 @@ remains vehicles, orders and sports. Here is what is available at this baseline:
 | [Continuous vehicles](../../workbench/docs/continuous-driving.md) | Six cars, automatic activity, delayed/duplicate/lost reports, source interruptions and returning viewers. | Grey markers use the demo's observation-age rule. The demo does not yet expose ZooGlass receipt-age or confirmed-gap metadata. |
 | [Interactive vehicles](../../demos/vehicle-tracker/README.md) | Three-car fleet and single-car fixtures; latest/history views, independent status fields, controlled faults and recovery. | Does not present durable restart or retained-fact corrections. |
 | [Protected basic client](../../workbench/docs/protected-client-acceptance.md) | Real policy enforcement clears protected data on access loss and obtains a fresh authorised baseline. | An automated acceptance fixture; normal vehicle commands remain open demos. Order access-loss acceptance is now available separately. |
-| [Order desk](../../demos/order-tracker/README.md) | Six orders, five independent sources and two views in continuous and interactive browsers: mappings, priority, required inputs, receipt-age freshness, progress gaps, same-store restart and protected access acceptance. | Final [acceptance and value evidence](2026-11-12-order-acceptance.md) is delivered on the shared branch. Synthetic slots, fixed mappings and separate protected fixture; no production adapters or producer-process recovery. |
-| [Sports match centre](../../demos/live-sports/README.md), both browser modes delivered | Three matches and two sources; supplied scores, corrected/first-reported views, receipt age, gaps, cycle-window gating and fresh returning-viewer baselines. Source foundation is delivered on the shared branch. | Interactive walkthrough adds checked scenes and fresh-store Reset. Final [acceptance and cross-domain evidence](2026-11-13-sports-acceptance.md) is proposed for review. |
+| [Order desk](../../demos/order-tracker/README.md) | Six orders, five independent sources and two views in continuous and interactive browsers: mappings, priority, required inputs, receipt-age freshness, progress gaps, same-store restart and protected access acceptance. | Final [acceptance and value evidence](2026-11-12-order-acceptance.md) is delivered on main. Synthetic slots, fixed mappings and separate protected fixture; no production adapters or producer-process recovery. |
+| [Sports match centre](../../demos/live-sports/README.md), both browser modes delivered | Three matches and two sources; supplied scores, corrected/first-reported views, receipt age, gaps, cycle-window gating and fresh returning-viewer baselines. Source foundation is delivered on main. | Interactive walkthrough adds checked scenes and fresh-store Reset. Final [acceptance and cross-domain evidence](2026-11-13-sports-acceptance.md) is delivered on main. |
 
 The vehicle demonstrations remain useful consumers of the shared service. They
 have not been expanded to display every newly delivered strategy. Both Order
 browser modes now make the listed policies visible; the Sports continuous browser makes corrections and window transitions visible
-on the shared branch. A service test alone is not counted as a browser experience.
+on main. A service test alone is not counted as a browser experience.
 
 The [Order acceptance record](2026-11-12-order-acceptance.md) links its separate
 Chromium/Firefox/WebKit layout checks and fresh desktop/phone captures for both

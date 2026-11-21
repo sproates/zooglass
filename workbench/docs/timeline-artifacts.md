@@ -52,7 +52,10 @@ all evidence. An incomplete or malformed manifest never qualifies.
 
 ## Replay admission
 
-Replay requires exactly the five documented regular files. Missing/extra members,
+Native runs require exactly the five regular files listed above. Converted runs
+also require `conversion-report.json` and `legacy.json`: seven files in total.
+Keep both [conversion provenance files](timeline-conversion.md) when copying or
+archiving a converted bundle. Missing/extra members,
 symlink members/directories, unsupported versions and size/hash mismatches reject
 before starting Java. The loader also cross-checks the copied inputs and trace
 against the run envelope, validates the complete trace and result, and checks

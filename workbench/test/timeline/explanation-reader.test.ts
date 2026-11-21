@@ -18,10 +18,14 @@ import {
   writeExplanation,
 } from "../../src/explanation/reader.js";
 import { canonicalJson } from "../../src/timeline/json.js";
-import { fixture } from "./document-fixture.js";
+import { fixture, recordedEnvironment } from "./document-fixture.js";
 
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
-async function retainedLegacy(root: string, outcome = "passed") {
+async function retainedLegacy(
+  root: string,
+  outcome = "passed",
+  environment: object = recordedEnvironment("memory-arrival-v1/5"),
+) {
   const directory = join(root, outcome);
   await mkdir(directory);
   const input = fixture();
@@ -54,7 +58,6 @@ async function retainedLegacy(root: string, outcome = "passed") {
   ]
     .map((value) => canonicalJson(JSON.stringify(value)) + "\n")
     .join("");
-  const environment = {};
   const files = {
     "scenario.json": scenario,
     "configuration.json": configuration,
@@ -146,6 +149,45 @@ test("offline CLI validates retained bundle without Java or matching local artif
     );
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("offline explanation rejects matching but malformed recorded environments", async (t) => {
+  const valid = recordedEnvironment("memory-arrival-v1/5");
+  for (const [label, environment, error] of [
+    ["missing identity", {}, /environment\.executor/],
+    [
+      "malformed lock hash",
+      { ...valid, dependencyLockSha256: "short" },
+      /dependency hash/,
+    ],
+    [
+      "missing JVM identity",
+      { ...valid, java: {} },
+      /environment\.java\.javaRuntime/,
+    ],
+    [
+      "SQLite identity on a memory run",
+      { ...valid, java: { ...valid.java, sqliteVersion: "3" } },
+      /environment\.java\.sqliteVersion/,
+    ],
+  ] as const) {
+    await t.test(label, async () => {
+      const root = await mkdtemp(
+        join(tmpdir(), "timeline-explain-environment-"),
+      );
+      try {
+        const { directory } = await retainedLegacy(root, "passed", environment);
+        const output = join(root, "report.json");
+        await assert.rejects(
+          writeExplanation(directory, output, "json"),
+          error,
+        );
+        await assert.rejects(readFile(output), /ENOENT/);
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    });
   }
 });
 

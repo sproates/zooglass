@@ -15,10 +15,15 @@ interface Position {
   observedAt: number;
 }
 const cars: Car[] = await fetch("/cars.json").then((response) =>
-  response.json(),
+  response.ok
+    ? response.json()
+    : Promise.reject(new Error("Car catalogue unavailable")),
 );
 const configuration: MapConfiguration = await fetch("/map-config.json").then(
-  (response) => response.json(),
+  (response) =>
+    response.ok
+      ? response.json()
+      : Promise.reject(new Error("Map configuration unavailable")),
 );
 const map = L.map("map", { attributionControl: false }).setView(
   [36.146, -5.355],

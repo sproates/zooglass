@@ -6,6 +6,28 @@ import { join } from "node:path";
 export const epoch = 1700000000000;
 export const source = "viewer-logical-source";
 export const client = "source-logical-client";
+// Fixed foreign environment for tests of saved evidence, independent of this machine.
+export function recordedEnvironment(executor: string) {
+  return {
+    executor,
+    node: "v26.1.0",
+    v8: "14.6",
+    platform: "linux",
+    arch: "s390x",
+    locale: "de-DE",
+    timezone: "Europe/Berlin",
+    dependencyLockSha256: "c".repeat(64),
+    java: {
+      javaRuntime: "25.0.1",
+      javaVendor: "Fixture",
+      os: "Linux",
+      arch: "s390x",
+      locale: "de-DE",
+      timezone: "Europe/Berlin",
+    },
+  };
+}
+
 const identity = {
   sourceId: "warehouse-feed",
   epoch: "day-1",

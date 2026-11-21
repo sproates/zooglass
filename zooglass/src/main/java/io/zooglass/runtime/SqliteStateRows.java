@@ -73,8 +73,11 @@ final class SqliteStateRows {
         try (var statement = connection.createStatement();
                 var metadata =
                         statement.executeQuery(
-                                "SELECT version, configuration FROM runtime WHERE id=1")) {
+                                "SELECT version, configuration, typeof(version) FROM runtime WHERE id=1")) {
             if (metadata.next()) {
+                if (!"integer".equals(metadata.getString(3))) {
+                    throw new SQLException("Invalid runtime version");
+                }
                 version = metadata.getLong(1);
                 var previous =
                         RuntimeConfiguration.decode(JSON, JSON.readTree(metadata.getString(2)));

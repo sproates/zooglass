@@ -35,16 +35,8 @@ and expand commands use production validation and emit ordinary runtime JSON.
 Finite qualification covers complete configuration equality and real-service SQLite
 restart, including rejection of an incompatible template change without losing state.
 
-## Further direction
+## Delivered timeline verification
 
-These are planned directions, not delivered capabilities, and have no scheduled
-delivery date:
-
-- **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
-
-- **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
-- **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
-- **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
 - **Deterministic timeline simulation — bounded integration delivered.** The bounded
   [timeline capability](workbench/docs/timeline-guide.md) implements controlled time,
   real production runtime execution, exact replay and portable evidence. Qualified
@@ -70,6 +62,17 @@ delivery date:
   Ordinary socket/browser checks and
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Event explanations.** [Production publication decisions](zooglass/docs/publication-decisions.md) are delivered. The [V5 evidence and offline report](workbench/docs/timeline-explanations.md) are delivered in [PR #194](https://github.com/sproates/zooglass/pull/194). The [fixed 12-execution qualification](workbench/docs/timeline-explanation-qualification.md) passes, including a production reason mutant and independently audited retained evidence. Coverage remains the static arrival/latest/history family.
+
+## Further direction
+
+These are planned directions, not delivered capabilities, and have no scheduled
+delivery date:
+
+- **Server-Sent Events (SSE).** Add SSE delivery for live views, with explicit snapshot, reconnect, slow-client and access behaviour consistent with the client-recovery contract.
+
+- **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
+- **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
+- **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
 - **Performance measurement and optimisation.** Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 

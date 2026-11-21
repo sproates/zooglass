@@ -27,6 +27,7 @@ import { Bridge } from "./bridge.js";
 import { RuntimeGenerations } from "./runtime-generations.js";
 import {
   documentEvidenceVersions,
+  evidenceV5,
   fleetProfile,
   staticRecoveryProfile,
   hasStaticProjections,
@@ -84,6 +85,10 @@ export async function executeDocument(
     if (!bridge.documentFormats.includes("timeline-simulation/v1"))
       throw new Error(
         "unsupported-execution: artifact does not implement documents",
+      );
+    if (evidence === evidenceV5 && bridge.publicationDecisions !== 1)
+      throw new Error(
+        "unsupported-execution: artifact lacks publication decisions",
       );
     const requested = hasStaticProjections(scenario.profile)
       ? await inspectRequestedConfiguration(
@@ -165,6 +170,7 @@ export async function executeDocument(
         if (scenario.storage === "sqlite")
           store = await RunStore.create(options.diagnosticDirectory);
         generations = new RuntimeGenerations({
+          publicationDecisions: evidence === evidenceV5,
           jar: options.jar,
           configuration: wire,
           ...(hasStaticProjections(scenario.profile) ||

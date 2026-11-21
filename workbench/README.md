@@ -894,6 +894,16 @@ separately prepared mutant and long command-boundary pause evidence.
 Use [portable run bundles](docs/timeline-artifacts.md) to retain inputs, a live
 trace, results and a completeness manifest for later replay.
 
+[Explain a retained bundle](docs/timeline-explanations.md) without Java:
+
+```sh
+npm run timeline:explain -- /path/to/bundle /tmp/explanation.txt --format text
+```
+
+V5 records real static publication decisions, including unchanged-field reasons
+and duplicate-attempt links. Older evidence gets explicit observed-outcome
+summaries. Reports validate retained evidence; they do not claim fresh replay.
+
 [Raw qualification evidence](evidence/README.md) is retained as GitHub Release assets,
 with hashes and provenance in Git; see the
 [Linux qualification procedure](docs/timeline-linux.md) for the separate environment.

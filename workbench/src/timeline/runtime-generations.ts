@@ -17,6 +17,7 @@ export type RuntimeGeneration = Readonly<{
 }>;
 
 export type GenerationOptions = Readonly<{
+  publicationDecisions?: boolean;
   jar: string;
   configuration: string;
   profile?:
@@ -230,6 +231,11 @@ export class RuntimeGenerations {
       );
       this.bridge = opened.bridge;
       if (
+        this.options.publicationDecisions &&
+        opened.bridge.publicationDecisions !== 1
+      )
+        throw new Error("Prepared artifact lacks publication decisions");
+      if (
         !opened.bridge.environment ||
         !Object.keys(opened.bridge.environment).length
       )
@@ -300,6 +306,9 @@ export class RuntimeGenerations {
       this.environment = environment;
       const response = await this.send(opened.bridge, timeMs, {
         op: "initialize-document",
+        ...(this.options.publicationDecisions
+          ? { publicationDecisions: true }
+          : {}),
         wire: this.options.configuration,
         ...(this.options.profile ? { profile: this.options.profile } : {}),
         epochMillis: this.options.epochMillis,

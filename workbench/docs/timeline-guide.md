@@ -80,7 +80,7 @@ Configuration admission is authoritative; follow each profile's linked limits.
 | `sqlite-order-restart-v1` (v2)  | Same Order configuration                                              | Explicit restart, retained identity/progress; no wall adjustment                       | [Order recovery](timeline-order-recovery.md)                                           |
 | `sqlite-sports-v1` (v2)         | SQLite, bounded latest/first fact revision, count/sum                 | Progress and per-view atomic retirement; no restart                                    | [Sports](timeline-sports-qualification.md)                                             |
 | `memory-static-views-v1` (v3)   | Memory, bounded arrival/latest/history mixtures and aliases           | Explicit conversion or authoring; zero-latency links, no retries/faults/restarts       | [Static configuration](timeline-static-qualification.md)                               |
-| `static-views-restart-v1` (v4)  | Memory or SQLite, bounded arrival/latest/history mixtures and aliases | Orderly/abrupt restart between turns; explicit reconnect and exact retry; zero latency | [Static recovery](timeline-recovery-qualification.md)                                  |
+| `static-views-restart-v1` (v4/v5)  | Memory or SQLite, bounded arrival/latest/history mixtures and aliases | Orderly/abrupt restart between turns; explicit reconnect and exact retry; zero latency | [Static recovery](timeline-recovery-qualification.md)                                  |
 
 Unsupported fields, combinations and resource bounds reject admission. Declared
 presend omission/order, fixed FIFO latency, lost source receipts and exact retries,
@@ -122,3 +122,10 @@ combining reusable static configurations with memory/SQLite restart and explicit
 retries. Its [fixed qualification](timeline-recovery-qualification.md) passes,
 including pause-invariant traces, strict replay and ordinary-service comparisons.
 The existing V3 converter and its evidence contract are unchanged.
+
+### Explain recorded publication decisions
+
+The optional [V5 recording and offline report](timeline-explanations.md) explains
+production-owned static publication decisions without expanding the supported
+simulation combinations. Older bundles remain readable as observed-outcome
+summaries; they do not contain detailed strategy reasons.

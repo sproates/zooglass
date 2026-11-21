@@ -114,6 +114,7 @@ enum HostProtocol {
         var capabilities = new LinkedHashMap<String, Object>(handshake);
         capabilities.put("memoryStaticViews", 1);
         capabilities.put("staticViewsRestart", 1);
+        capabilities.put("publicationDecisions", 1);
         if (this == V1) return capabilities;
         capabilities.put("installedObservations", 1);
         capabilities.put("publicSnapshots", 1);
@@ -172,7 +173,7 @@ enum HostProtocol {
                     case "initialize-document" -> this == V1
                             ? Set.of("wire", "epochMillis")
                             : Set.of("wire", "epochMillis", "startTimeMs", "database",
-                                    "observationTargets", "wallOffsetMillis", "profile");
+                                    "observationTargets", "wallOffsetMillis", "profile", "publicationDecisions");
                     case "wall-clock-set" -> {
                         if (this != V2) throw new IllegalArgumentException("Wall adjustments require protocol 2");
                         yield Set.of();

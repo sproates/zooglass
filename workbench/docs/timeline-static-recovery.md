@@ -59,3 +59,12 @@ assertions to the exact scenario and re-executes the production runtime.
 The [qualification record](timeline-recovery-qualification.md) reports the fixed
 28-execution set and retained raw evidence. No cross-platform, arbitrary mid-commit
 crash or new performance guarantee is claimed.
+
+## Optional publication decisions
+
+Use `timeline-simulation/v5` to record production-owned arrival/latest/history
+reasons alongside receipts. It keeps this profile and all its admission bounds,
+including zero latency and explicit retries; it does not add new fault models.
+The host must advertise `publicationDecisions:1` for inspection and each runtime
+generation. V4 remains unchanged. See [explanation reports](timeline-explanations.md)
+for the offline reader, evidence references and unavailable-detail rules.

@@ -1,5 +1,6 @@
 /** Private pipe metadata uses safe integers; domain payloads remain exact wire strings. */
 export type SessionEffect =
+  | { kind: "publication-decision"; session: string; wire: string }
   | { kind: "receipt"; session: string; wire: string }
   | { kind: "control-receipt"; session: string; wire: string }
   | { kind: "handoff"; session: string; wire: string }
@@ -52,6 +53,7 @@ export type Response = {
   };
 };
 export type Handshake = {
+  publicationDecisions?: 1;
   memoryStaticViews?: 1;
   staticViewsRestart?: 1;
   fixture: string;
@@ -119,6 +121,11 @@ function strings(value: unknown, path: string) {
 
 export function decodeHandshake(value: unknown): Handshake {
   const data = record(value, "handshake");
+  if (
+    data.publicationDecisions !== undefined &&
+    data.publicationDecisions !== 1
+  )
+    invalid("handshake.publicationDecisions");
   integer(data.protocol, "handshake.protocol", 1, 2);
   if (data.staticViewsRestart !== undefined && data.staticViewsRestart !== 1)
     invalid("handshake.staticViewsRestart");
@@ -230,6 +237,7 @@ function effect(value: unknown, index: number) {
     case "state":
       string(data.wire, `${path}.wire`);
       return;
+    case "publication-decision":
     case "control-receipt":
     case "receipt":
     case "handoff":
@@ -270,8 +278,10 @@ export function decodeResponse(value: unknown, protocol: 1 | 2 = 1): Response {
   data.effects.forEach(effect);
   if (
     protocol === 1 &&
-    data.effects.some(
-      (entry) => record(entry, "effect").kind === "control-receipt",
+    data.effects.some((entry) =>
+      ["control-receipt", "publication-decision"].includes(
+        String(record(entry, "effect").kind),
+      ),
     )
   )
     invalid("response.control-receipt requires protocol 2");

@@ -54,6 +54,7 @@
     "timeline:convert": "node --import tsx src/timeline/convert-cli.ts",
     "timeline:execute": "node --import tsx src/timeline/document-cli.ts",
     "timeline:replay": "node --import tsx src/timeline/replay-cli.ts",
+    "timeline:explain": "node --import tsx src/explanation/cli.ts",
     "timeline:bundle": "node --import tsx src/timeline/bundle-cli.ts",
     "timeline:clock-leak": "node --import tsx scripts/clock-leak-check.ts",
     "timeline:document-repeat": "node --import tsx scripts/document-repeat.ts",

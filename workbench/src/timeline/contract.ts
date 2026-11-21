@@ -31,6 +31,7 @@ import {
   evidenceV2,
   evidenceV3,
   evidenceV4,
+  evidenceV5,
 } from "./evidence-versions.js";
 import { admitLifecycle, type AdmittedAction } from "./lifecycle.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
@@ -93,7 +94,8 @@ export type TimelineDocument = {
     | typeof format
     | typeof lifecycleFormat
     | typeof staticFormat
-    | typeof evidenceV4.scenario;
+    | typeof evidenceV4.scenario
+    | typeof evidenceV5.scenario;
   storage: "memory" | "sqlite";
   profile: string;
   observationTargets: ObservationTarget[];
@@ -109,7 +111,7 @@ export function parseTimelineDocument(raw: string): TimelineDocument {
   const rawDocument = object(parseJson(raw), "$");
   const versions = documentEvidenceVersions(rawDocument.format);
   const lifecycle = versions.protocol === 2;
-  const recovery = versions === evidenceV4;
+  const recovery = versions === evidenceV4 || versions === evidenceV5;
   const staticViews = versions === evidenceV3 || recovery;
   const doc = object(rawDocument, "$", [
     "format",

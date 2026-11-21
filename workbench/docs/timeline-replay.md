@@ -20,6 +20,12 @@ files need not exist, and the saved configuration path is never opened.
 
 V1 execution outputs have `format: timeline-run/v1`. Lifecycle, Fleet, Order and
 Sports profiles use `timeline-run/v2` and matching scenario/trace/bundle versions.
+Static views use V3, static recovery V4, and opt-in publication decisions V5.
+V5 replay compares the decision records as well as values and receipts; a changed
+reason diverges even when the resulting data is unchanged. The derived
+[explanation report](timeline-explanations.md) is outside replay identity and does
+not itself replay a run.
+
 Replay requires a complete
 canonical trace ending in `passed`, `assertion-failed` or `limit-exceeded`. It checks
 the scenario hash, exact configuration hash, header/result consistency, prepared

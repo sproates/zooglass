@@ -58,6 +58,7 @@ public final class TimelineHost {
     private boolean durable;
     private boolean sequenceFleet;
     private boolean staticViews;
+    private boolean publicationDecisions;
     private RuntimeConfiguration documentConfiguration;
 
     private enum Role { CLIENT, SOURCE, PROGRESS, RETIREMENT }
@@ -95,7 +96,15 @@ public final class TimelineHost {
             case "connect" -> connect(command);
             case "ingress" -> {
                 var session = session(command, Role.SOURCE);
-                ingress.handleMessage(session, new TextMessage(text(command, "wire")));
+                var message = new TextMessage(text(command, "wire"));
+                if (publicationDecisions) {
+                    var result = ingress.handleExplainedMessage(session, message);
+                    var detail = result.decision() == null
+                            ? Map.of("availability", "unavailable", "reason", result.outcome().reason())
+                            : Map.of("availability", "recorded", "decision", result.decision());
+                    turns.effect(Map.of("kind", "publication-decision", "session", session.getId(),
+                            "wire", JSON.writeValueAsString(detail)));
+                } else ingress.handleMessage(session, message);
                 if (durable) TimelineRuntime.verifyStorageAvailable(runtime);
             }
             case "progress" -> {
@@ -203,6 +212,11 @@ public final class TimelineHost {
         String requested = command.has("profile") ? text(command, "profile") : profile;
         boolean recovery = StaticRecoveryTimelineProfile.NAME.equals(requested);
         boolean boundedStatic = recovery || StaticViewsTimelineProfile.NAME.equals(requested);
+        if (command.has("publicationDecisions")
+                && (!command.path("publicationDecisions").isBoolean()
+                        || !command.path("publicationDecisions").asBoolean()
+                        || !recovery || protocol != HostProtocol.V2))
+            throw new IllegalArgumentException("Publication decisions require explicit true and the static recovery profile");
         if (boundedStatic) {
             var issues = recovery ? StaticRecoveryTimelineProfile.inspect(config)
                     : StaticViewsTimelineProfile.inspect(config);
@@ -251,6 +265,7 @@ public final class TimelineHost {
                 ? observationTargets(command.get("observationTargets"), config) : null;
         documentMode = true;
         staticViews = boundedStatic;
+        publicationDecisions = command.has("publicationDecisions");
         sequenceFleet = fleet;
         orderProfile = order;
         sportsProfile = sports;

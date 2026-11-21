@@ -62,8 +62,22 @@ export const evidenceV4 = {
   protocol: 2,
 } as const;
 
+/** Decision evidence opts in without expanding configuration admission. */
+export const evidenceV5 = {
+  scenario: "timeline-simulation/v5",
+  trace: "timeline-trace/v5",
+  run: "timeline-run/v5",
+  bundle: "timeline-bundle/v5",
+  profile: staticRecoveryProfile,
+  protocol: 2,
+} as const;
+
 export type EvidenceVersions =
-  typeof evidenceV1 | typeof evidenceV2 | typeof evidenceV3 | typeof evidenceV4;
+  | typeof evidenceV1
+  | typeof evidenceV2
+  | typeof evidenceV3
+  | typeof evidenceV4
+  | typeof evidenceV5;
 export function documentEvidenceVersions(
   format: Json | undefined,
 ): EvidenceVersions {
@@ -72,12 +86,15 @@ export function documentEvidenceVersions(
     evidenceV2.scenario,
     evidenceV3.scenario,
     evidenceV4.scenario,
+    evidenceV5.scenario,
   ]);
-  return admitted === evidenceV4.scenario
-    ? evidenceV4
-    : admitted === evidenceV3.scenario
-      ? evidenceV3
-      : admitted === evidenceV2.scenario
-        ? evidenceV2
-        : evidenceV1;
+  return admitted === evidenceV5.scenario
+    ? evidenceV5
+    : admitted === evidenceV4.scenario
+      ? evidenceV4
+      : admitted === evidenceV3.scenario
+        ? evidenceV3
+        : admitted === evidenceV2.scenario
+          ? evidenceV2
+          : evidenceV1;
 }

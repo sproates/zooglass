@@ -328,3 +328,10 @@ test("timeline shards retain the complete suite and shared checks", () => {
     /run: node --import tsx --test --test-shard=\$\{\{ matrix.shard \}\} test\/timeline\/\*\.test\.ts/,
   );
 });
+
+test("offline explanation modules use the timeline checks", () => {
+  assert.deepEqual(selected(["workbench/src/explanation/reader.ts"]), [
+    "static",
+    "core",
+  ]);
+});

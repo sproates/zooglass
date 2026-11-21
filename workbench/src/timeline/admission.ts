@@ -20,6 +20,7 @@ import {
 } from "./document-profile.js";
 import {
   fleetProfile,
+  evidenceV5,
   staticRecoveryProfile,
   hasStaticProjections,
   documentEvidenceVersions,
@@ -72,6 +73,13 @@ export async function probeLifecycle(
     firstTurnId: 0,
   });
   try {
+    if (
+      scenario.format === evidenceV5.scenario &&
+      opened.bridge.publicationDecisions !== 1
+    )
+      throw new Error(
+        "unsupported-execution: prepared artifact lacks publication decisions",
+      );
     if (opened.artifact !== artifact || opened.bridge.memoryLifecycle !== 1)
       throw new Error(
         "unsupported-execution: prepared artifact does not support memory lifecycle",
@@ -242,6 +250,11 @@ export async function inspectAdmission(scenarioPath: string, jar: string) {
     requireConfigurationStorage(configuration, scenario.storage);
     const requiredProfile = requiredConfigurationProfile(scenario);
     let reason: string | undefined;
+    if (
+      scenario.format === evidenceV5.scenario &&
+      bridge.publicationDecisions !== 1
+    )
+      reason = "Prepared artifact lacks publication decisions.";
     if (
       !bridge.documentFormats.includes(format) ||
       (requested

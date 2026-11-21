@@ -2,7 +2,8 @@
 
 Status: accepted through PR #192, 21 November 2026. The
 [production decision result](../../zooglass/docs/publication-decisions.md) is the
-first implementation slice. Timeline recording and reports remain planned.
+first delivered slice. The V5 recording and offline report implementation follows
+this design; finite qualification and its published evidence remain outstanding.
 
 ## Why this work
 

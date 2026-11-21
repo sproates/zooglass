@@ -25,37 +25,61 @@ public final class EventIngress extends TextWebSocketHandler {
         this.json = json;
     }
 
+    /** A missing decision describes unavailable detail, never proof that processing rolled back. */
+    public record Result(PublicationOutcome outcome, PublicationDecision decision) {}
+
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message)
             throws IOException {
+        handle(session, message, false);
+    }
+
+    /**
+     * Opt-in diagnostics alongside the unchanged receipt sent through the ordinary ingress path.
+     */
+    public Result handleExplainedMessage(WebSocketSession session, TextMessage message)
+            throws IOException {
+        return handle(session, message, true);
+    }
+
+    private Result handle(WebSocketSession session, TextMessage message, boolean explained)
+            throws IOException {
+        Result result = process(session.getId(), message.getPayload(), explained);
+        // Transport failure after application cannot undo state. A retry recovers the result.
+        send(session, result.outcome());
+        return result;
+    }
+
+    private Result process(String sessionId, String wire, boolean explained) {
         Publication event;
         try {
-            event = PublicationJson.parse(message.getPayload());
+            event = PublicationJson.parse(wire);
         } catch (RuntimeException exception) {
-            send(session, PublicationOutcome.malformed());
-            return;
+            return new Result(PublicationOutcome.malformed(), null);
         }
 
-        PublicationOutcome outcome;
         try {
-            outcome = coordinator.apply(event);
+            if (explained) {
+                var result = coordinator.applyExplained(event);
+                return new Result(result.outcome(), result.decision());
+            }
+            return new Result(coordinator.apply(event), null);
         } catch (RuntimeException exception) {
             // Do not label a strategy/storage failure as malformed source input or log payloads.
             LOG.warn(
                     "Publication processing failed in session {} ({})",
-                    session.getId(),
+                    sessionId,
                     exception.getClass().getSimpleName());
-            outcome =
+            return new Result(
                     new PublicationOutcome(
                             "failed",
                             "processingFailure",
                             event.stream(),
                             event.publicationSequence(),
                             null,
-                            List.of());
+                            List.of()),
+                    null);
         }
-        // Transport failure after application cannot undo state. A retry recovers the result.
-        send(session, outcome);
     }
 
     private void send(WebSocketSession session, PublicationOutcome outcome) throws IOException {

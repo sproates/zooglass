@@ -1,3 +1,4 @@
+import { validateDecisionEffects } from "./bridge-decisions.js";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -56,9 +57,11 @@ export class Bridge {
   }[] = [];
   configurationAdmission = 0;
   memoryStaticViews: 0 | 1 = 0;
+  publicationDecisions: 0 | 1 = 0;
   staticViewsRestart: 0 | 1 = 0;
   publicSnapshots: 0 | 1 = 0;
   private projectedObservations = false;
+  private decisionEffects = false;
   sqliteLifecycle: 0 | 1 = 0;
   sqliteOrder: 0 | 1 = 0;
   sqliteSports: 0 | 1 = 0;
@@ -190,6 +193,7 @@ export class Bridge {
         bridge.wallClockAdjustments = handshake.wallClockAdjustments ?? 0;
       }
       bridge.memoryStaticViews = handshake.memoryStaticViews ?? 0;
+      bridge.publicationDecisions = handshake.publicationDecisions ?? 0;
       bridge.staticViewsRestart = handshake.staticViewsRestart ?? 0;
       bridge.environment = handshake.environment;
       return { bridge, artifact };
@@ -329,6 +333,11 @@ export class Bridge {
           value,
           command,
           this.projectedObservations,
+        );
+        this.decisionEffects = validateDecisionEffects(
+          value,
+          operation,
+          this.decisionEffects,
         );
         this.projectedObservations = projected;
         this.wallOffset = command.wallOffset;

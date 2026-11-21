@@ -1,3 +1,4 @@
+import { checkDecisionDeclarations } from "./decision-declarations.js";
 import {
   validateConversionProvenance,
   type ConversionProvenance,
@@ -14,6 +15,7 @@ import {
   evidenceV2,
   evidenceV3,
   evidenceV4,
+  evidenceV5,
 } from "./evidence-versions.js";
 import { encodeJson, parseJson, type Json } from "./json.js";
 import { workbenchIdentity } from "./manifest.js";
@@ -56,6 +58,7 @@ export function parseReplay(raw: string) {
     evidenceV2.run,
     evidenceV3.run,
     evidenceV4.run,
+    evidenceV5.run,
   ]);
   const outcome = choice(saved.outcome, "outcome", [
     "passed",
@@ -88,6 +91,8 @@ export function parseReplay(raw: string) {
   if (trace.canonical !== saved.trace)
     throw new Error("invalid-replay: noncanonical trace");
   if (versions.protocol === 2) checkRuntimeDeclarations(scenario, trace);
+  if (versions === evidenceV5)
+    checkDecisionDeclarations(scenario, wire, trace.publicationDecisions);
   if (
     trace.header.scenarioSha256 !== sha(scenario.canonical) ||
     trace.header.untilMs !== integer(scenario.document.untilMs, "untilMs") ||
@@ -126,6 +131,7 @@ export function parseReplay(raw: string) {
     ...(conversionProvenance ? { conversionProvenance } : {}),
     execution,
     versions,
+    trace,
     lines: trace.lines,
     outcome,
   };
@@ -200,7 +206,8 @@ function checkProjectedDeclarations(
 ) {
   if (
     scenario.format === evidenceV3.scenario ||
-    scenario.format === evidenceV4.scenario
+    scenario.format === evidenceV4.scenario ||
+    scenario.format === evidenceV5.scenario
   ) {
     const actions = list(scenario.document.actions, "actions").map((value) =>
       object(value, "action"),

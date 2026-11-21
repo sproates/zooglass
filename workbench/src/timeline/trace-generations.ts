@@ -19,6 +19,7 @@ export type TraceEvent = {
 const sessionKinds = new Set([
   "frame",
   "receipt",
+  "publication-decision",
   "control-receipt",
   "handoff",
   "delivered",

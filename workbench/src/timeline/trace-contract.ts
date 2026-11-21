@@ -1,3 +1,5 @@
+import { TraceDecisions } from "./trace-decisions.js";
+import type { TraceEvent } from "./trace-generations.js";
 import { TraceProjections } from "./trace-projections.js";
 import { TraceControls } from "./trace-controls.js";
 import {
@@ -11,6 +13,7 @@ import {
   evidenceV2,
   evidenceV3,
   evidenceV4,
+  evidenceV5,
   fleetProfile,
   sportsProfile,
   orderProfile,
@@ -84,24 +87,29 @@ export function parseTrace(
   const header = traceHeader(readRecord(0));
   const until = header.untilMs;
   const version =
-    header.format === evidenceV4.trace
-      ? 4
-      : header.format === evidenceV3.trace
-        ? 3
-        : header.format === evidenceV2.trace
-          ? 2
-          : 1;
+    header.format === evidenceV5.trace
+      ? 5
+      : header.format === evidenceV4.trace
+        ? 4
+        : header.format === evidenceV3.trace
+          ? 3
+          : header.format === evidenceV2.trace
+            ? 2
+            : 1;
   const kinds =
     version >= 2
       ? [
           ...eventKinds,
+          ...(version === 5 ? ["publication-decision"] : []),
           ...lifecycleEventKinds,
           "control-receipt",
           ...(version >= 3 ? ["runtime-data-observation"] : []),
         ]
       : eventKinds;
   const projections =
-    version >= 3 ? new TraceProjections(version === 4) : undefined;
+    version >= 3 ? new TraceProjections(version >= 4) : undefined;
+  const events: TraceEvent[] = [];
+  const decisions = version === 5 ? new TraceDecisions(storage) : undefined;
   const controls = new TraceControls(header.execution?.profile);
   const generations =
     version >= 2 ? new TraceGenerations(until, observationTargets) : undefined;
@@ -191,6 +199,8 @@ export function parseTrace(
       connectionGeneration,
       data,
     };
+    events.push(event);
+    decisions?.accept(event, path);
     generations?.accept(event, path);
     controls.accept(event, path);
     projections?.accept(event, path);
@@ -215,7 +225,10 @@ export function parseTrace(
   );
   const epochMillis = generations?.finish(outcome);
   controls.finish(outcome);
+  decisions?.finish(outcome);
   return {
+    events,
+    publicationDecisions: decisions?.entries ?? [],
     canonical: canonical.join(""),
     lines: canonical,
     header,
@@ -243,15 +256,18 @@ function traceHeader(value: ReturnType<typeof object>) {
     evidenceV2.trace,
     evidenceV3.trace,
     evidenceV4.trace,
+    evidenceV5.trace,
   ]);
   const versions =
-    format === evidenceV4.trace
-      ? evidenceV4
-      : format === evidenceV3.trace
-        ? evidenceV3
-        : format === evidenceV2.trace
-          ? evidenceV2
-          : evidenceV1;
+    format === evidenceV5.trace
+      ? evidenceV5
+      : format === evidenceV4.trace
+        ? evidenceV4
+        : format === evidenceV3.trace
+          ? evidenceV3
+          : format === evidenceV2.trace
+            ? evidenceV2
+            : evidenceV1;
   let execution;
   if (versions.protocol === 2 && record.execution === undefined)
     invalid(`${path}.execution`, "required for lifecycle evidence");

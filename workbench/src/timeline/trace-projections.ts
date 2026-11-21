@@ -168,9 +168,13 @@ export class TraceProjections {
         "client-subscribe",
         "client-unsubscribe",
       ].includes(String(action));
-    const traffic = ["receipt", "handoff", "frame", "delivered"].includes(
-      event.kind,
-    );
+    const traffic = [
+      "publication-decision",
+      "receipt",
+      "handoff",
+      "frame",
+      "delivered",
+    ].includes(event.kind);
     if ((publicationOrSubscription || traffic) && (!matches || !current.open))
       invalid(path, "static recovery traffic requires the active connection");
     // Cumulative assertions and cancellation/drop records may name a closed session.

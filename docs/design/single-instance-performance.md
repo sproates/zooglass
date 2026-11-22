@@ -3,6 +3,9 @@
 Status: accepted in [PR #197](https://github.com/sproates/zooglass/pull/197).
 This plan defines the first measurement campaign; no performance
 results or capacity claims have been established by it.
+The [campaign command](../../workbench/docs/performance-campaign.md) implements
+checkpoint/resume and reporting on macOS and Linux local filesystems. The frozen
+campaign and publication audit remain separate work.
 
 ZooGlass has correctness evidence for reconciliation, durable recovery and client
 delivery. We now need to measure the workload one instance can sustain and where

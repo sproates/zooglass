@@ -14,7 +14,10 @@ export class Connections {
     this.signal.throwIfAborted();
     if (this.error) throw this.error;
   }
-  async open(url: string, receive: (value: unknown, atMs: number) => void) {
+  async open(
+    url: string,
+    receive: (value: unknown, atMs: number, bytes: number) => void,
+  ) {
     this.check();
     const socket = new WebSocket(url, { maxPayload: 1024 * 1024 });
     this.sockets.push(socket);
@@ -26,7 +29,13 @@ export class Connections {
     socket.on("message", (bytes) => {
       const atMs = performance.now();
       try {
-        receive(JSON.parse(bytes.toString()), atMs);
+        receive(
+          JSON.parse(bytes.toString()),
+          atMs,
+          Array.isArray(bytes)
+            ? bytes.reduce((n, b) => n + b.length, 0)
+            : bytes.byteLength,
+        );
       } catch (cause) {
         this.fail(cause);
       }

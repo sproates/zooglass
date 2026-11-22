@@ -1425,3 +1425,29 @@ flowchart LR
   driver -->|checks receipt and viewer obligations| oracle["benchmark/oracle.ts"]
   oracle -->|bounded records and shared contracts| model["benchmark/model.ts"]
 ```
+
+## Resumable performance campaigns
+
+The campaign owns measurement sessions and retained evidence. It does not run
+inside the deterministic timeline or change ZooGlass reconciliation.
+
+```mermaid
+flowchart TD
+  cli["benchmark/campaign/cli.ts"] -->|exclusive POSIX ownership| lock["scripts/benchmark-lock.py"]
+  lock -->|inherited lock descriptor| worker["campaign/worker.ts"]
+  worker -->|frozen executable and host identity| identity["campaign/identity.ts"]
+  worker -->|ordered finite schedule| plan["campaign/plan.ts"]
+  worker -->|executes a resumable piece| runner["campaign/runner.ts"]
+  runner -->|reserve and seal work| journal["campaign/journal.ts"]
+  journal -->|strict state checks| validation["campaign/journal-validation.ts"]
+  journal -->|atomic records and file inventories| files["campaign/journal-files.ts"]
+  journal -->|verify inherited lock| ownership["campaign/ownership.ts"]
+  journal -->|shared evidence types| model["campaign/model.ts"]
+  journal -->|recompute saved outcomes| evidence["campaign/evidence.ts"]
+  runner -->|real service and socket accounting| driver["benchmark/driver.ts"]
+  runner -->|client-only qualification| diagnostic["benchmark/diagnostic.ts"]
+  runner -->|per-process observations| resources["benchmark/resources.ts"]
+  runner -->|conditional distributions and budgets| metrics["benchmark/metrics.ts"]
+  evidence -->|same reproducible reduction| metrics
+  runner -->|derived human-readable comparison| report["campaign/report.ts"]
+```

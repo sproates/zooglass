@@ -25,7 +25,7 @@ export interface DriverOptions {
   databasePath?: string;
   inheritedLockFd?: number;
   javaOptions?: string[];
-  onReady?: (pid: number) => void;
+  onReady?: (pid: number) => void | Promise<void>;
   onBoundary?: (
     phase: "before-warmup" | "measurement-start" | "measurement-end",
   ) => Promise<void>;
@@ -132,7 +132,8 @@ export async function runDriver(options: DriverOptions) {
     );
   };
   try {
-    if (session.processId !== undefined) options.onReady?.(session.processId);
+    if (session.processId !== undefined)
+      await options.onReady?.(session.processId);
     for (let i = 0; i < options.workload.sourceSockets; i++)
       sources.push(
         await connections.open(

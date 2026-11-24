@@ -31,7 +31,7 @@ export async function executeAttempt(
   diagnostic: Diagnostic,
   checkpoint: () => Promise<void>,
 ) {
-  let resources: ReturnType<typeof startResources> | undefined;
+  let resources: Awaited<ReturnType<typeof startResources>> | undefined;
   const boundaries: Record<string, unknown> = {};
   const databasePath =
     token.slot.storage === "sqlite"
@@ -50,8 +50,8 @@ export async function executeAttempt(
       javaOptions,
       inheritedLockFd: lockFd,
       signal,
-      onReady(pid) {
-        resources = startResources(pid);
+      async onReady(pid) {
+        resources = await startResources(pid);
       },
       async onBoundary(phase) {
         boundaries[phase] = {

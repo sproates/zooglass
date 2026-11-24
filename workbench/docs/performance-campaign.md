@@ -96,3 +96,18 @@ are marked. A successful command exit means the requested piece finished, not th
 its attempts passed. Invalid evidence or an operational command failure exits non-zero.
 The published baseline will need independent audit and downloadable, hash-checked
 Release assets. That is a separate delivery step.
+
+Resource probes run in a worker thread, with one non-overlapping sample per second
+on a best-effort basis. Probe durations and start times use the sender's clock
+origin. The sender's event-loop histogram is captured when a completed sample
+arrives; it is not the worker's event-loop delay. CPU/RSS still describe whole
+processes, so client CPU includes the worker but excludes its external probe
+children. Sampling errors remain explicit unavailable fields; worker failure or
+shutdown failure aborts evidence collection instead of silently claiming success.
+Each external probe has a 1.5-second timeout with forced termination; normal
+worker shutdown waits for in-flight probes to exit. Startup and shutdown have
+five-second deadlines; at most 3,600 samples are kept
+per sampler. The sampler is ready before seeding or timed diagnostic work begins.
+Existing campaign evidence and acceptance criteria are unchanged. New executable
+identity requires a new campaign, rather than resuming an older campaign with
+a different sampler.

@@ -11,7 +11,7 @@ for (const storage of ["memory", "sqlite"] as const) {
     { timeout: 30000 },
     async () => {
       const boundaries: string[] = [];
-      let sampler: ReturnType<typeof startResources> | undefined;
+      let sampler: Awaited<ReturnType<typeof startResources>> | undefined;
       const result = await runDriver({
         workload: {
           ...baseline,
@@ -21,8 +21,8 @@ for (const storage of ["memory", "sqlite"] as const) {
           views: 2,
           viewers: 2,
         },
-        onReady(pid) {
-          sampler = startResources(pid);
+        async onReady(pid) {
+          sampler = await startResources(pid);
         },
         async onBoundary(phase) {
           boundaries.push(phase);

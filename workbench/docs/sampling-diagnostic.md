@@ -24,7 +24,9 @@ The output directory must be new. There is no automatic resume or rerun.
 Each `trial-NN.json` preserves the planned/actual submission times, scheduler
 wakes and missed slots, accounting, event-loop delay and sampling records. Both
 arms enable event-loop monitoring and timing capture; the sampled arm adds the
-existing process, I/O and JVM sampler. Capture stops at one million wake records.
+process, I/O and JVM sampler in a worker thread. The worker returns its first
+sample before timed client work starts; both arms begin their diagnostic event-loop
+histogram after setup. The sampler retains a separate sender-thread histogram. Capture stops at one million wake records.
 `completion.json` marks a completed set after orderly JVM shutdown. An error
 exits nonzero; retain partial trials but do not treat them as a complete comparison.
 
@@ -41,3 +43,8 @@ load. A failed 1000/s control points to a separate driver scheduling limitation.
 Do not infer a service capacity limit, change durability, or switch providers
 from this diagnostic alone. Run a reviewed targeted follow-up before another
 full campaign.
+
+Worker isolation removes probe launches and parsing from the sending thread; it
+does not remove host CPU/I/O contention or the cost of receiving one sample per
+second. Treat reduced interference as a hypothesis until the paired control is
+rerun. The separate 1000/s scheduler limitation is unchanged.

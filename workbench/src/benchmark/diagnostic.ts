@@ -6,22 +6,56 @@ import { BenchmarkOracle } from "./oracle.js";
 import { Schedule } from "./schedule.js";
 import { Workload, type WorkloadOptions } from "./workload.js";
 
+export interface DiagnosticTiming {
+  rate: number;
+  durationMs: number;
+  signal?: AbortSignal;
+  capture?: boolean;
+  clock?: { now(): number; sleep(ms: number): Promise<void> };
+}
+
 /** Client-only protocol parsing/accounting check. Never a service capacity measurement. */
-export async function clientDiagnostic(options: WorkloadOptions) {
+export async function clientDiagnostic(
+  options: WorkloadOptions,
+  timing?: DiagnosticTiming,
+) {
+  const rate = timing?.rate ?? 1000;
+  const durationMs = timing?.durationMs ?? 1000;
+  const clock = timing?.clock ?? {
+    now: () => performance.now(),
+    sleep: (ms: number) =>
+      ms > 0
+        ? delay(ms, undefined, { signal: timing?.signal })
+        : yieldTurn(undefined, { signal: timing?.signal }),
+  };
+  const wakes: {
+    atMs: number;
+    slot?: number;
+    plannedMs?: number;
+    missed: number;
+  }[] = [];
+  const submissions: { plannedMs: number; atMs: number }[] = [];
   const workload = new Workload(options);
   const oracle = new BenchmarkOracle({
     storage: options.storage,
     viewIds: workload.viewIds,
     viewerIds: workload.viewerIds,
   });
-  const schedule = new Schedule(1000, 1000);
-  const start = performance.now();
+  const schedule = new Schedule(rate, durationMs);
+  const start = clock.now();
   let missed = 0,
     submitted = 0,
     frameBytes = 0,
     envelopeBytes = 0;
   while (schedule.remaining) {
-    const step = schedule.wake(performance.now() - start);
+    timing?.signal?.throwIfAborted();
+    const atMs = clock.now();
+    const step = schedule.wake(atMs - start);
+    if (timing?.capture) {
+      if (wakes.length >= 1000000)
+        throw new Error("Diagnostic wake-record bound reached");
+      wakes.push({ atMs, ...step });
+    }
     missed += step.missed;
     if (step.slot !== undefined) {
       const p = workload.publication(step.slot % options.hotEntities);
@@ -33,10 +67,16 @@ export async function clientDiagnostic(options: WorkloadOptions) {
       const wire = JSON.stringify(p);
       envelopeBytes += Buffer.byteLength(wire);
       const parsed = JSON.parse(wire);
+      const submittedMs = clock.now();
+      if (timing?.capture)
+        submissions.push({
+          plannedMs: start + step.plannedMs!,
+          atMs: submittedMs,
+        });
       oracle.register(parsed, {
         phase: "measurement",
         plannedMs: start + step.plannedMs!,
-        submittedMs: performance.now(),
+        submittedMs,
       });
       for (const viewerId of workload.viewerIds)
         for (const viewId of workload.viewIds) {
@@ -50,7 +90,7 @@ export async function clientDiagnostic(options: WorkloadOptions) {
             data: { value: p.payload },
           });
           frameBytes += Buffer.byteLength(frame);
-          const at = performance.now();
+          const at = clock.now();
           oracle.recordUpdate(viewerId, JSON.parse(frame), at);
         }
       const receipt = JSON.stringify({
@@ -71,25 +111,41 @@ export async function clientDiagnostic(options: WorkloadOptions) {
           ],
         })),
       });
-      const at = performance.now();
+      const at = clock.now();
       oracle.recordReceipt(JSON.parse(receipt), at);
       submitted++;
     }
-    const wait = start + schedule.nextMs - performance.now();
-    if (wait > 0) await delay(wait);
-    else await yieldTurn();
+    const wait = start + schedule.nextMs - clock.now();
+    await clock.sleep(wait);
   }
   return {
     kind: "client-only",
-    offeredRate: 1000,
-    durationMs: 1000,
+    offeredRate: rate,
+    durationMs,
     submitted,
     missed,
     envelopeBytes,
     frameBytes,
-    qualified: missed === 0 && submitted === 1000 && oracle.pendingCount === 0,
+    qualified:
+      missed === 0 && submitted === schedule.total && oracle.pendingCount === 0,
     limitation:
       "Local serialization, parsing and oracle only; excludes sockets and ZooGlass",
     accounting: oracle.summary(),
+    ...(timing?.capture
+      ? {
+          timing: {
+            startMs: start,
+            endMs: clock.now(),
+            wakes,
+            submissions,
+            lateSubmissions: submissions.filter(
+              (s) =>
+                s.atMs - s.plannedMs > 10 ||
+                s.atMs - s.plannedMs >= 1000 / rate ||
+                s.atMs >= start + durationMs,
+            ).length,
+          },
+        }
+      : {}),
   };
 }

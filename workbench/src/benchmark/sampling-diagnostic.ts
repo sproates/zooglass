@@ -67,11 +67,11 @@ export async function runSamplingDiagnostic(
     for (const [index, trial] of manifest.plan.entries()) {
       session.signal.throwIfAborted();
       await delay(smoke ? 50 : 2000, undefined, { signal: session.signal });
+      const sampler = trial.sampled
+        ? await startResources(session.processId)
+        : undefined;
       const loop = monitorEventLoopDelay({ resolution: 10 });
       loop.enable();
-      const sampler = trial.sampled
-        ? startResources(session.processId)
-        : undefined;
       try {
         const result = await clientDiagnostic(baseline, {
           rate: trial.rate,

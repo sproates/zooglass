@@ -1464,3 +1464,14 @@ flowchart LR
   client -->|unchanged slot policy| schedule["benchmark/schedule.ts"]
   client -->|verifies generated protocol traffic| oracle["benchmark/oracle.ts"]
 ```
+
+### Resource collection isolation
+
+```mermaid
+flowchart LR
+  resources["benchmark/resources.ts"] -->|owns startup, stop and sample delivery| worker["benchmark/resource-worker.ts"]
+  resources -->|sender-thread event-loop histogram| perf["node:perf_hooks"]
+  worker -->|bounded probes outside sending thread| readings["benchmark/resource-readings.ts"]
+  readings -->|CPU/RSS, process I/O and JVM heap| external["ps, procfs, jstat"]
+  worker -->|readings on sender clock origin| resources
+```

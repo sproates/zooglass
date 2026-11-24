@@ -47,4 +47,9 @@ full campaign.
 Worker isolation removes probe launches and parsing from the sending thread; it
 does not remove host CPU/I/O contention or the cost of receiving one sample per
 second. Treat reduced interference as a hypothesis until the paired control is
-rerun. The separate 1000/s scheduler limitation is unchanged.
+rerun. The sender and client control share a deadline-waiting clock: longer gaps
+use timers, and the final portion (less than 2 ms) yields to the event loop until
+the deadline. Internal clock polls do not become diagnostic wake records. This
+avoids requesting sub-millisecond timers, but repeated yields cost CPU and cannot
+guarantee punctuality under host load. Compare CPU as well as missed/late slots
+in the next paired run; high-rate qualification remains an evidence requirement.

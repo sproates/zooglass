@@ -1,7 +1,5 @@
-import {
-  setTimeout as delay,
-  setImmediate as yieldTurn,
-} from "node:timers/promises";
+import { setTimeout as delay } from "node:timers/promises";
+import { benchmarkClock } from "./clock.js";
 import type WebSocket from "ws";
 import { startZooGlassSession } from "../service/zooglass-session.js";
 import { BenchmarkOracle } from "./oracle.js";
@@ -220,13 +218,7 @@ export async function runDriver(options: DriverOptions) {
       [warmup, measurement],
       windows,
       startMs,
-      {
-        now: () => performance.now(),
-        sleep: (ms) =>
-          ms > 0
-            ? delay(ms, undefined, { signal: session.signal })
-            : yieldTurn(undefined, { signal: session.signal }),
-      },
+      benchmarkClock(session.signal),
       () => connections.check(),
       (phase, slot, plannedMs) => {
         const entity = slot % options.workload.hotEntities;

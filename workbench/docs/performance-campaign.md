@@ -111,3 +111,14 @@ per sampler. The sampler is ready before seeding or timed diagnostic work begins
 Existing campaign evidence and acceptance criteria are unchanged. New executable
 identity requires a new campaign, rather than resuming an older campaign with
 a different sampler.
+
+### Sender pacing
+
+The service driver and client-only qualification use the same monotonic clock.
+Long waits use a timer with a one-millisecond lead; with less than two milliseconds
+remaining, the sender yields to the event loop and checks the deadline again.
+This avoids sub-millisecond timer clamping without blocking socket callbacks.
+It can consume substantial client CPU at high rates; report that cost alongside
+punctuality. Host scheduling can still cause late or missed slots. The existing
+slot policy, fixed windows and qualification thresholds remain unchanged: overdue
+slots are skipped, never sent as a catch-up burst.

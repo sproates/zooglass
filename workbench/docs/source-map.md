@@ -1421,6 +1421,7 @@ flowchart LR
   driver -->|owns prepared service| service["service/zooglass-session.ts"]
   driver -->|fixed input and configuration| workload["benchmark/workload.ts"]
   driver -->|global open-loop slots| schedule["benchmark/schedule.ts"]
+  driver -->|cancellable deadline waits| clock["benchmark/clock.ts"]
   driver -->|owns sockets and callback failures| connections["benchmark/connections.ts"]
   driver -->|checks receipt and viewer obligations| oracle["benchmark/oracle.ts"]
   oracle -->|bounded records and shared contracts| model["benchmark/model.ts"]
@@ -1462,6 +1463,7 @@ flowchart LR
   experiment -->|owns idle prepared JVM| session["service/zooglass-session.ts"]
   experiment -->|records environment and executable inputs| identity["benchmark/campaign/identity.ts"]
   client -->|unchanged slot policy| schedule["benchmark/schedule.ts"]
+  client -->|same deadline waits as service driver| clock["benchmark/clock.ts"]
   client -->|verifies generated protocol traffic| oracle["benchmark/oracle.ts"]
 ```
 

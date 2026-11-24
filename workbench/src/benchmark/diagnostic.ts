@@ -1,7 +1,4 @@
-import {
-  setTimeout as delay,
-  setImmediate as yieldTurn,
-} from "node:timers/promises";
+import { benchmarkClock } from "./clock.js";
 import { BenchmarkOracle } from "./oracle.js";
 import { Schedule } from "./schedule.js";
 import { Workload, type WorkloadOptions } from "./workload.js";
@@ -21,13 +18,7 @@ export async function clientDiagnostic(
 ) {
   const rate = timing?.rate ?? 1000;
   const durationMs = timing?.durationMs ?? 1000;
-  const clock = timing?.clock ?? {
-    now: () => performance.now(),
-    sleep: (ms: number) =>
-      ms > 0
-        ? delay(ms, undefined, { signal: timing?.signal })
-        : yieldTurn(undefined, { signal: timing?.signal }),
-  };
+  const clock = timing?.clock ?? benchmarkClock(timing?.signal);
   const wakes: {
     atMs: number;
     slot?: number;

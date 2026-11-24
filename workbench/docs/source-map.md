@@ -1451,3 +1451,16 @@ flowchart TD
   evidence -->|same reproducible reduction| metrics
   runner -->|derived human-readable comparison| report["campaign/report.ts"]
 ```
+
+### Sampling diagnostic
+
+```mermaid
+flowchart LR
+  cli["benchmark/sampling-cli.ts"] -->|validates command| experiment["benchmark/sampling-diagnostic.ts"]
+  experiment -->|same client workload in both arms| client["benchmark/diagnostic.ts"]
+  experiment -->|on/off treatment| resources["benchmark/resources.ts"]
+  experiment -->|owns idle prepared JVM| session["service/zooglass-session.ts"]
+  experiment -->|records environment and executable inputs| identity["benchmark/campaign/identity.ts"]
+  client -->|unchanged slot policy| schedule["benchmark/schedule.ts"]
+  client -->|verifies generated protocol traffic| oracle["benchmark/oracle.ts"]
+```

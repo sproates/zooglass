@@ -981,3 +981,6 @@ The [single-execution performance driver](docs/benchmark-driver.md) checks real
 service receipts and delivery under scheduled load. The [resumable campaign](docs/performance-campaign.md)
 adds saved progress, fixed comparison rules, resource observations and reporting.
 The full baseline and audited capacity results have not yet been published.
+
+The [sampling diagnostic](docs/sampling-diagnostic.md) isolates resource-monitoring
+overhead with paired client-only trials; it does not measure service capacity.

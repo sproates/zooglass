@@ -23,9 +23,10 @@ the runtime and exercised by [acceptance tests](docs/verification/capability-del
 
 ZooGlass is under active development. The capabilities below are implemented;
 the [bounded deterministic timeline](workbench/docs/timeline-guide.md) is also
-delivered. The [roadmap](ROADMAP.md#further-direction) sets out future work on
-performance measurement, clustering and high availability; those are not current
-guarantees.
+delivered. A [measured 100/s baseline](workbench/docs/performance-baseline-20261125.md)
+covers a specific single-instance memory/SQLite workload. The
+[roadmap](ROADMAP.md#further-direction) sets out broader performance measurement,
+clustering and high availability; those are not current guarantees.
 
 ## What ZooGlass handles
 

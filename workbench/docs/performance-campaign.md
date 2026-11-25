@@ -3,7 +3,9 @@
 The campaign runs the [accepted single-instance baseline](../../docs/design/single-instance-performance.md)
 against a prepared ZooGlass service. It saves each attempt, checks saved evidence
 before resume, and reports failures as well as passing results. The runner is
-implemented; the frozen campaign and independent publication audit have not run.
+implemented. The first wider campaign exposed harness limitations; a subsequent
+[targeted 100/s memory/SQLite comparison](performance-baseline-20261125.md) passed
+all six runs and independent raw-data audit. The wider matrix is not qualified.
 No capacity claim follows from installing or testing this command.
 
 ## Prepare and run a piece

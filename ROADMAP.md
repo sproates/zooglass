@@ -1,6 +1,6 @@
 # ZooGlass roadmap
 
-Last reviewed: 21 November 2026.
+Last reviewed: 25 November 2026.
 
 We are building configurable ways to maintain useful live views when events
 arrive late, go missing, conflict or are corrected, and when services or clients
@@ -73,7 +73,7 @@ delivery date:
 - **New demo scenarios.** Build on vehicles, orders and sports with scenarios that show a different problem ZooGlass solves and what the application developer gains.
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
-- **Performance measurement and optimisation.** The accepted [single-instance baseline](docs/design/single-instance-performance.md) defines a finite measurement campaign before clustering work. Publish reproducible throughput, end-to-end latency and resource measurements under stated workloads, hardware and storage modes. Establish a single-instance baseline, identify bottlenecks and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
+- **Performance measurement and optimisation.** The accepted [single-instance baseline](docs/design/single-instance-performance.md) defines a finite measurement campaign before clustering work. A [scoped 100/s memory/SQLite result](workbench/docs/performance-baseline-20261125.md) is documented with raw evidence and independent audit; the wider matrix remains unqualified. Extend workload-specific throughput, latency and resource measurements, investigate the recorded harness limits and SQLite backlog, and use the evidence to guide optimisation. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
 - **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
 
 Broader replay, query and distributed-storage

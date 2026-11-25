@@ -55,8 +55,8 @@ persisted entities against expected payloads and final observed versions.
 
 Peak tracked in-flight work was two or three publications. The largest one-second
 endpoint backlog was zero for memory and one for SQLite; all runs ended at zero.
-The largest positive fitted backlog slope was below 0.00212 publications/s, below the
-existing 1/s limit. There was no sustained backlog growth.
+The largest positive fitted backlog slope was 0.00211 publications/s, compared
+with the existing limit of one publication per second. There was no sustained backlog growth.
 
 CPU figures use only measurement-window sample deltas, spanning about 357 seconds
 per storage mode. Memory used 85 Node and 23 JVM CPU-seconds; SQLite used 88 and 44.

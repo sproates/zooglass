@@ -1,5 +1,8 @@
 # Retained timeline evidence
 
+For ordinary-service measurements, see the separate
+[performance evidence manifest](performance-20261125.md).
+
 Raw qualification archives are downloadable GitHub Release assets. The original
 v1 campaigns use [timeline-evidence-20261113](https://github.com/sproates/zooglass/releases/tag/timeline-evidence-20261113);
 the v2 memory campaign uses [timeline-memory-evidence-20261114](https://github.com/sproates/zooglass/releases/tag/timeline-memory-evidence-20261114),

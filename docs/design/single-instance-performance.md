@@ -82,13 +82,13 @@ measurement. Give each execution a stable ID and retain its inputs and hashes.
 2. **One-factor comparisons:** the following five variants, both storage modes,
    three independent executions each: at most 30 further executions.
 
-| Variant | Change from the baseline | Question |
-| --- | --- | --- |
-| Resident state | 10000 resident entities, same 16 hot entities | Does cold retained state affect publication cost? |
-| Concurrent senders | Eight source sockets, two disjoint hot entities per socket; same source identity and total offered rate | Does concurrent ingestion alter latency or throughput? |
-| Views per publication | Four identical-policy views; subscribe to each hot entity in each view | What does additional projection and delivery cost? |
-| Payload | 4096-byte encoded payload, same shape and changing marker | How does message size affect processing and delivery? |
-| Viewer fan-out | Eight viewers, each subscribed to all hot entities | What is the cost of delivering each update to more clients? |
+| Variant               | Change from the baseline                                                                                | Question                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Resident state        | 10000 resident entities, same 16 hot entities                                                           | Does cold retained state affect publication cost?           |
+| Concurrent senders    | Eight source sockets, two disjoint hot entities per socket; same source identity and total offered rate | Does concurrent ingestion alter latency or throughput?      |
+| Views per publication | Four identical-policy views; subscribe to each hot entity in each view                                  | What does additional projection and delivery cost?          |
+| Payload               | 4096-byte encoded payload, same shape and changing marker                                               | How does message size affect processing and delivery?       |
+| Viewer fan-out        | Eight viewers, each subscribed to all hot entities                                                      | What is the cost of delivering each update to more clients? |
 
 Choose each storage mode's comparison rate from its baseline results: the greatest
 rate that passed all three executions and is at or below half its highest
@@ -335,3 +335,11 @@ mixes, protected serving and multi-host tests remain explicit future measurement
 This baseline supports later [clustering and high availability](../../ROADMAP.md#further-direction)
 planning. Operational logging remains the next agreed initiative; neither requires
 an endless search for a larger benchmark number.
+
+## Measurement status, 25 November 2026
+
+The driver and resumable campaign are delivered. The first wider campaign exposed
+harness limitations. The [targeted 100/s comparison](../../workbench/docs/performance-baseline-20261125.md)
+passed three memory and three SQLite runs, with independent raw-data audit. This
+is a scoped operating point, not completion of the frozen matrix or a capacity
+ceiling. The report retains prior failures and identifies the remaining questions.

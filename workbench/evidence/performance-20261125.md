@@ -74,7 +74,7 @@ python3 campaign-audit/audit-campaign.py evidence/campaign > replay.json
 ```
 
 Compare the result with `campaign-audit/audit-results.json`. The audit checks the
-pinned manifest/journal, 45 input/completion pairs, 210 artifact inventories and
+pinned manifest/journal, 45 input/completion pairs, 210 inventoried files and
 2,322,994 observations. It reconstructs phase counts, latency distributions,
 5,400 one-second buckets, backlog slopes, classifications and selection rules.
 It does not re-execute the service, independently validate application payloads

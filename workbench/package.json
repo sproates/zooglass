@@ -79,6 +79,7 @@
     "timeline:static-service-parity": "node --import tsx scripts/static-service-parity.ts",
     "timeline:static-audit": "node --import tsx scripts/static-audit.ts",
     "benchmark:run": "node --import tsx src/benchmark/cli.ts",
+    "benchmark:sqlite-profile": "node --import tsx src/benchmark/profile/cli.ts",
     "benchmark:sampling": "node --import tsx src/benchmark/sampling-cli.ts",
     "benchmark:campaign": "node --import tsx src/benchmark/campaign/cli.ts"
   },

@@ -84,7 +84,8 @@ production network latency, long-running soak behaviour, larger configurations
 or crash durability. Hardware identity changed between sessions and physical placement was unobserved,
 so earlier results
 are not controlled comparisons on the same physical machine. The wider frozen
-workload/rate matrix and full performance publication milestone remain open.
+workload/rate matrix remains unqualified. The [coverage report](performance-coverage-20261128.md)
+distinguishes its completed schedule from its missing qualified comparisons.
 
 ## Evidence and verification
 
@@ -98,6 +99,7 @@ Java, rerun the benchmark or use a cloud account.
 
 The [campaign guide](performance-campaign.md) describes the general runner;
 the retained comparison wrapper records the exact six-run experiment. Further
-measurement should answer a bounded question, such as the SQLite 300/s backlog
-or a separately designed higher-rate load generator. No capacity improvement is
-claimed from merely improving the benchmark harness.
+measurement should answer a concrete application or engineering question with a
+bounded scope. SQLite optimisation and alternative backends are separate work,
+not prerequisites for reporting this baseline. No capacity improvement is claimed
+from merely improving the benchmark harness.

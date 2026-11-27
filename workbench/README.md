@@ -981,8 +981,9 @@ The [single-execution performance driver](docs/benchmark-driver.md) checks real
 service receipts and delivery under scheduled load. The [resumable campaign](docs/performance-campaign.md)
 adds saved progress, fixed comparison rules, resource observations and reporting.
 A [targeted 100/s baseline](docs/performance-baseline-20261125.md) passed three
-runs per storage mode with independently checked results. The wider matrix and
-maximum capacity remain unqualified.
+runs per storage mode with independently checked results. The [coverage report](docs/performance-coverage-20261128.md)
+accounts for the original campaign and its gaps. The wider matrix and maximum
+capacity remain unqualified.
 
 The [sampling diagnostic](docs/sampling-diagnostic.md) isolates resource-monitoring
 overhead with paired client-only trials; it does not measure service capacity.

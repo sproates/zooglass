@@ -1,7 +1,8 @@
 # Performance evidence, 25 November 2026
 
-Publication status: prepared for review. The Release is a draft until the report
-and evidence are approved; download links below become public on publication.
+Published 27 November 2026. All six archives were downloaded through their public
+URLs and checked against the hashes below. The downloaded service comparison and
+companion passed the offline audit.
 
 The [scoped findings](../docs/performance-baseline-20261125.md) describe the passed
 100/s comparison and its limits. Earlier unsuccessful runs are retained alongside

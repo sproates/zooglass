@@ -986,3 +986,7 @@ maximum capacity remain unqualified.
 
 The [sampling diagnostic](docs/sampling-diagnostic.md) isolates resource-monitoring
 overhead with paired client-only trials; it does not measure service capacity.
+
+The [SQLite profiling diagnostic](docs/sqlite-profile-diagnostic.md) retains one
+unprofiled/profiled pair to separate changed-row write time from JDBC commit
+time. It preserves FULL durability and makes no capacity claim.

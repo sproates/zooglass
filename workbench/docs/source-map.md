@@ -1477,3 +1477,22 @@ flowchart LR
   readings -->|CPU/RSS, process I/O and JVM heap| external["ps, procfs, jstat"]
   worker -->|readings on sender clock origin| resources
 ```
+
+### SQLite persistence profiling
+
+```mermaid
+flowchart LR
+  cli["benchmark/profile/cli.ts"] -->|holds exclusive output ownership| lock["scripts/benchmark-lock.py"]
+  lock -->|inherited lock| worker["profile/worker.ts"]
+  worker -->|finite pair and cancellation| runner["profile/runner.ts"]
+  runner -->|capture each attempt| arm["profile/arm.ts"]
+  arm -->|service lifecycle and input accounting| driver["benchmark/driver.ts"]
+  arm -->|same sampling in both arms| resources["benchmark/resources.ts"]
+  runner -->|retained executable identity| identity["campaign/identity.ts"]
+  runner -->|raw results and hashes| evidence["campaign/evidence.ts + journal-files.ts"]
+  runner -->|settings and offline cumulative timing analysis| recording["profile/recording.ts"]
+  runner -->|matched event-time counts and backlog| interval["profile/interval.ts"]
+```
+
+The profiler changes observation only. It does not alter durability, retention,
+publication sequencing or the campaign's qualification rules.

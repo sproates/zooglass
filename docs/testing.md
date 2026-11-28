@@ -926,11 +926,18 @@ requirements to HTTP/WSS, grant-deadline, tenant-store and browser checks, with
 commands to repeat them. It separates exact release-cutoff evidence from the
 client's visible access-loss outcome.
 
-## PostgreSQL storage foundation
+## PostgreSQL ownership and HA transport
 
-The [internal PostgreSQL storage guide](../zooglass/docs/postgresql-storage.md)
-describes the explicit real-database gate. Java CI runs it after preparing test
-classes. The owned Docker fixture checks complete-state recovery, uncertain commits,
-corrupted evidence and ownership between real PostgreSQL connections. Both
-`PostgresStaticStoreIT` and `PostgresOwnershipIT` must be prepared and executed;
-these checks do not qualify clustered serving or two-process failover.
+The [PostgreSQL guide](../zooglass/docs/postgresql-storage.md) describes the explicit
+real-database gate. Java CI runs it after preparing test classes. The owned Docker
+fixture runs `PostgresStaticStoreIT`, `PostgresOwnershipIT` and `HaTransportIT`:
+complete-state recovery, uncertain commits, corrupted evidence, ownership,
+protected TLS transport, readiness contention and HTTP grant cutoffs.
+
+Workbench CI separately runs the [Node client](../workbench/docs/ha-client.md)
+against the prepared Java service and an owned PostgreSQL fixture over real TLS.
+Focused client tests cover stale callbacks, exact numbers, retained retries and
+bounded recovery. The [service guide](../zooglass/docs/ha-service.md#verify-locally)
+gives repeatable commands. Tests never build Java. This is integration-branch
+transport evidence; the full two-process and real proxy fault campaign remains
+outstanding.

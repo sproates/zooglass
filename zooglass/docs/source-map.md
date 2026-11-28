@@ -354,8 +354,10 @@ strategies remain in `strategy/update`, selected by `FieldStrategySelection`.
 ## Publication path
 
 The `runtime/` package contains the single coordinator and its memory/SQLite
-storage, plus an internal [PostgreSQL foundation](postgresql-storage.md). Public
-PostgreSQL serving is not enabled. See the [publication guide](publications.md) for configuration and wire examples.
+storage, plus [PostgreSQL ownership](postgresql-storage.md) for the explicit
+[HA service profile](ha-service.md) on the integration branch. Standalone serving
+remains memory/SQLite. See the [publication guide](publications.md) for ordinary
+configuration and wire examples.
 
 Each box below is a file in
 [`src/main/java/io/zooglass/runtime/`](../src/main/java/io/zooglass/runtime/), except the

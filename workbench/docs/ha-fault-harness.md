@@ -5,11 +5,10 @@ PostgreSQL and HAProxy. Node clients publish through the service and check recei
 snapshots, generations and independently authored expected values. It does not
 supply recovered state on ZooGlass's behalf.
 
-A complete single run checks the harness implementation. It is not the later
-[finite qualification](../../docs/design/clustering-high-availability.md#finite-qualification):
-that requires all fourteen cases normally and again with additional pauses, plus
-two negative fence controls and retained evidence. This guide does not record a
-passing qualification or promise a production failover time.
+A complete single run checks the harness implementation. The separate
+[finite qualification](ha-qualification.md) runs all fourteen cases normally and
+again with additional pauses, plus two negative fence controls and retained
+evidence. Neither acceptance nor qualification promises a production failover time.
 
 ## Prepare once, then run
 

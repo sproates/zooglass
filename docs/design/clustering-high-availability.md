@@ -1,8 +1,9 @@
 # Clustering and high availability
 
-Status: accepted design, 28 November 2026. Implementation is proceeding on the
-clustering integration branch. The PostgreSQL storage foundation is internal;
-clustered serving and failover qualification are not yet available.
+Status: accepted design, 28 November 2026. Storage, serving, client recovery and
+the fault harness are implemented on the clustering integration branch. The
+[finite qualification](../../workbench/docs/ha-qualification.md) passed on its
+review branch. Integration merge and main promotion remain pending.
 
 ## The first outcome
 

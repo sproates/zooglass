@@ -29,8 +29,8 @@ covers a specific single-instance memory/SQLite workload. The
 clustering and high availability; those are not current guarantees. The
 [first HA profile](docs/design/clustering-high-availability.md) is accepted for
 bounded process failover. The integration branch adds [HA transport and client
-recovery](zooglass/docs/ha-service.md); full two-process and proxy qualification
-remains pending.
+recovery](zooglass/docs/ha-service.md). The [bounded two-process and proxy qualification](workbench/docs/ha-qualification.md)
+passed on its review branch; integration merge and main promotion remain pending.
 
 ## What ZooGlass handles
 

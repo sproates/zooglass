@@ -1,5 +1,8 @@
 # Retained timeline evidence
 
+For the separate real-process HA campaign, see the
+[HA static-profile evidence manifest](ha-static-20261128.md).
+
 For ordinary-service measurements, see the separate
 [performance evidence manifest](performance-20261125.md).
 

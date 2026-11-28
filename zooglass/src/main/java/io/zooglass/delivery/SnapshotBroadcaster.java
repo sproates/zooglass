@@ -9,8 +9,8 @@ import io.zooglass.access.ViewerHandshake;
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 import io.zooglass.runtime.ViewCoordinator;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.ViewerLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -29,7 +29,6 @@ import java.util.function.Function;
 @Component
 public class SnapshotBroadcaster implements AutoCloseable {
 
-    private static final Logger logger = LoggerFactory.getLogger(SnapshotBroadcaster.class);
     private static final CloseStatus slowClientCloseStatus =
             new CloseStatus(1013, "Live view client is too slow");
 
@@ -40,6 +39,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
     private final ActiveViewGrants grants;
     private final GrantRenewals renewals;
     private final DeliveryDriver driver;
+    private final ViewerLog log;
     private final SubscriptionIndex subscriptions = new SubscriptionIndex();
     private final Map<WebSocketSession, OutboundWriter> writersBySession = new LinkedHashMap<>();
     private boolean closed;
@@ -48,10 +48,15 @@ public class SnapshotBroadcaster implements AutoCloseable {
         this(objectMapper, coordinator, new AdmissionAccess());
     }
 
-    @Autowired
     public SnapshotBroadcaster(
             ObjectMapper objectMapper, ViewCoordinator coordinator, AdmissionAccess access) {
         this(objectMapper, coordinator, access, new SocketDeliveryDriver());
+    }
+
+    @Autowired
+    public SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator,
+            AdmissionAccess access, OperationalLog operations) {
+        this(objectMapper, coordinator, access, new SocketDeliveryDriver(operations.viewers()), operations.viewers());
     }
 
     SnapshotBroadcaster(
@@ -59,6 +64,12 @@ public class SnapshotBroadcaster implements AutoCloseable {
             ViewCoordinator coordinator,
             AdmissionAccess access,
             DeliveryDriver driver) {
+        this(objectMapper, coordinator, access, driver, ViewerLog.NONE);
+    }
+
+    SnapshotBroadcaster(ObjectMapper objectMapper, ViewCoordinator coordinator, AdmissionAccess access,
+            DeliveryDriver driver, ViewerLog log) {
+        this.log = log;
         this.driver = driver;
         this.grants =
                 access.protectedMode()
@@ -139,8 +150,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
                                 .map(this::frame)
                                 .toList();
             } catch (RuntimeException failure) {
-                logger.warn(
-                        "Could not prepare subscription opening for client {}", session.getId());
+                defer(ViewerLog.Event.OPENING, session);
                 removeSession(session);
                 return Admission.FAILED;
             }
@@ -233,10 +243,7 @@ public class SnapshotBroadcaster implements AutoCloseable {
         try {
             shared = frame(ViewUpdate.from(snapshot));
         } catch (RuntimeException exception) {
-            logger.warn(
-                    "Could not prepare live view update for {}: {}",
-                    snapshot.viewId(),
-                    exception.getMessage());
+            log.deferred(ViewerLog.Event.UPDATE, null);
             for (var session : recipients.keySet()) {
                 removeSession(session);
                 requestClose(session, CloseStatus.SERVER_ERROR);
@@ -298,19 +305,17 @@ public class SnapshotBroadcaster implements AutoCloseable {
         try {
             var admission = offer.apply(writer);
             if (admission != OutboundQueue.Admission.ACCEPTED) {
-                logger.warn("Closing live view client {}: {}", session.getId(), admission);
                 removeSession(session);
                 requestClose(
                         session,
                         admission == OutboundQueue.Admission.TOO_LARGE
                                 ? CloseStatus.TOO_BIG_TO_PROCESS
                                 : slowClientCloseStatus);
+                defer(admission == OutboundQueue.Admission.TOO_LARGE ? ViewerLog.Event.TOO_LARGE : ViewerLog.Event.FULL,
+                        session);
             }
         } catch (Exception exception) {
-            logger.warn(
-                    "Could not queue a live view message for client {}: {}",
-                    session.getId(),
-                    exception.getMessage());
+            defer(ViewerLog.Event.ENQUEUE, session);
             removeSession(session);
         }
     }
@@ -322,13 +327,14 @@ public class SnapshotBroadcaster implements AutoCloseable {
                 return;
             }
 
-            logger.warn(
-                    "Could not send a live view message to client {}: {}",
-                    session.getId(),
-                    exception.getMessage());
             removeSession(session);
             requestClose(session, slowClientCloseStatus);
+            defer(ViewerLog.Event.WRITE, session);
         }
+    }
+
+    private void defer(ViewerLog.Event event, WebSocketSession session) {
+        log.deferred(event, ViewerConnections.reference(log, session));
     }
 
     private void requestClose(WebSocketSession session, CloseStatus status) {

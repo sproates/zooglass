@@ -1,5 +1,6 @@
 package io.zooglass.access;
 
+import io.zooglass.logging.ViewerLog;
 import io.zooglass.api.ViewSnapshot;
 import io.zooglass.runtime.ViewCoordinator;
 
@@ -31,6 +32,7 @@ public final class SnapshotAdmission {
         }
         var decision = access.authorise(credential, resource);
         if (decision instanceof AccessDecision.Rejected rejected) {
+            access.recordRejection(ViewerLog.Boundary.SNAPSHOT, rejected.reason());
             return response(AdmissionAccess.status(rejected), null);
         }
         var snapshot = coordinator.snapshot(viewId, entityId).map(ViewSnapshot::from);

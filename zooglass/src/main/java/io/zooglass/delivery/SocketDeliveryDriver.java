@@ -2,8 +2,7 @@ package io.zooglass.delivery;
 
 import io.zooglass.access.ActiveViewGrants;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.zooglass.logging.ViewerLog;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -16,8 +15,16 @@ import java.util.function.Consumer;
 
 /** Native execution of the same writer turns used by controlled delivery. */
 final class SocketDeliveryDriver implements DeliveryDriver {
-    private static final Logger logger = LoggerFactory.getLogger(SocketDeliveryDriver.class);
+    private final ViewerLog log;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+    SocketDeliveryDriver() {
+        this(ViewerLog.NONE);
+    }
+
+    SocketDeliveryDriver(ViewerLog log) {
+        this.log = log;
+    }
 
     public Writer writer(WebSocketSession session, ActiveViewGrants grants) {
         return new SocketWriter(session, grants);
@@ -29,15 +36,13 @@ final class SocketDeliveryDriver implements DeliveryDriver {
 
     public void closeSession(WebSocketSession session, CloseStatus status) {
         // Close must remain possible after executor shutdown and must never block a coordinator.
+        var reference = ViewerConnections.reference(log, session);
         Thread.startVirtualThread(
                 () -> {
                     try {
                         if (session.isOpen()) session.close(status);
                     } catch (IOException | RuntimeException failure) {
-                        logger.warn(
-                                "Could not close live view client {}: {}",
-                                session.getId(),
-                                failure.getMessage());
+                        log.socket(ViewerLog.Event.CLOSE, reference);
                     }
                 });
     }

@@ -6,8 +6,8 @@ import io.zooglass.access.ViewResource;
 import io.zooglass.access.ViewerHandshake;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.ViewerLog;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -21,7 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class SnapshotSubscriptions extends TextWebSocketHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(SnapshotSubscriptions.class);
+    private final ViewerLog log;
 
     private final AdmissionAccess access;
     private final ObjectMapper objectMapper;
@@ -31,9 +31,19 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
         this(objectMapper, broadcaster, new AdmissionAccess());
     }
 
+    public SnapshotSubscriptions(ObjectMapper objectMapper, SnapshotBroadcaster broadcaster, AdmissionAccess access) {
+        this(objectMapper, broadcaster, access, ViewerLog.NONE);
+    }
+
     @Autowired
     public SnapshotSubscriptions(ObjectMapper objectMapper, SnapshotBroadcaster broadcaster,
-            AdmissionAccess access) {
+            AdmissionAccess access, OperationalLog operations) {
+        this(objectMapper, broadcaster, access, operations.viewers());
+    }
+
+    SnapshotSubscriptions(ObjectMapper objectMapper, SnapshotBroadcaster broadcaster,
+            AdmissionAccess access, ViewerLog log) {
+        this.log = log;
         this.access = access;
         this.objectMapper = objectMapper;
         this.broadcaster = broadcaster;
@@ -47,7 +57,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             return;
         }
         broadcaster.registerSession(session);
-        logger.info("WebSocket client connected: {}", session.getId());
+        ViewerConnections.opened(log, session);
     }
 
     @Override
@@ -56,8 +66,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
         try {
             request = objectMapper.readTree(message.getPayload());
         } catch (JacksonException exception) {
-            logger.warn(
-                    "Ignoring invalid live view request from client {}", session.getId());
+            invalid(session);
             broadcaster.sendError(session, "Could not read live view request.");
             return;
         }
@@ -68,6 +77,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
                     || !hasText(request, "action")
                     || !hasText(request, "viewId")
                     || !hasText(request, "entityId")) {
+                invalid(session);
                 broadcaster.sendError(
                         session, "Expected action, viewId, and entityId text fields.");
                 return;
@@ -80,6 +90,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
                 if (request.has("cursor")
                         || (request.has("recovery")
                                 && !FreshSnapshot.MODE.equals(request.path("recovery").asText()))) {
+                    invalid(session);
                     broadcaster.sendError(
                             session, "Subscribe supports freshSnapshot without a cursor.");
                     return;
@@ -88,15 +99,17 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             } else if (action.equals("unsubscribe")) {
                 broadcaster.unsubscribe(session, viewId, entityId);
             } else {
+                invalid(session);
                 broadcaster.sendError(session, "Unknown action: " + action);
             }
         } catch (RuntimeException exception) {
-            logger.error(
-                    "Could not process live view request from client {}",
-                    session.getId(),
-                    exception);
+            log.socket(ViewerLog.Event.REQUEST, ViewerConnections.reference(log, session));
             broadcaster.sendError(session, "Could not process live view request.");
         }
+    }
+
+    private void invalid(WebSocketSession session) {
+        log.socket(ViewerLog.Event.INVALID, ViewerConnections.reference(log, session));
     }
 
     private void subscribe(WebSocketSession session, ViewResource resource) {
@@ -117,6 +130,7 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
             String code = rejected.reason() == AccessDecision.Reason.UNAVAILABLE
                     ? "accessUnavailable" : "accessDenied";
             broadcaster.refuseSubscription(session, resource.viewId(), resource.entityId(), code);
+            access.recordRejection(ViewerLog.Boundary.SUBSCRIPTION, rejected.reason());
             return;
         }
         var grant = ((AccessDecision.Granted) decision).grant();
@@ -144,6 +158,6 @@ public class SnapshotSubscriptions extends TextWebSocketHandler {
         if (access.protectedMode()) {
             session.getAttributes().remove(ViewerHandshake.IDENTITY);
         }
-        logger.info("WebSocket client disconnected: {}", session.getId());
+        ViewerConnections.closed(log, session, status);
     }
 }

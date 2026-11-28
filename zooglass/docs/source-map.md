@@ -264,13 +264,14 @@ flowchart LR
   gate -.->|implements| policy
 ```
 
-## Operational logging foundation
+## Operational logging
 
 The service owns a typed recorder; ordinary runtime and controlled-host constructors
 keep a no-op recorder. Operational fields and suppression do not enter state,
 receipts or replay identities. Storage loss is signalled once and emitted outside
 the coordinator monitor. Ingress records distinguish processing from sending its
-receipt. Delivery/access logging migration belongs to the next slice.
+receipt. Viewer failures use a finite catalogue; callbacks under runtime locks
+hand off bounded signals before any appender is called.
 
 ```mermaid
 flowchart LR
@@ -286,6 +287,16 @@ flowchart LR
   closeFailure -->|reported after leaving runtime monitor| coordinator["runtime/ViewCoordinator.java"]
   coordinator -->|cleanup failure signal| log
   endpoints["runtime/RuntimeEndpoints.java"] -->|registration parsing/validation rejection| log
+  log -->|same process identity and sink| viewer["logging/ViewerLog.java"]
+  subscriptions["delivery/SnapshotSubscriptions.java"] -->|request failures| viewer
+  subscriptions -->|actual connection callbacks| references["delivery/ViewerConnections.java"]
+  references -->|locally generated reference and fixed close category| viewer
+  access["access/AdmissionAccess.java / ActiveViewGrants.java"] -->|admission and current renewal outcomes| viewer
+  delivery["delivery/SnapshotBroadcaster.java / SocketDeliveryDriver.java"] -->|delivery failures and close requests| viewer
+  coordinator -->|listener failure| viewer
+  viewer -->|under-lock signals only| deferred["logging/DeferredViewerEvents.java"]
+  deferred -->|bounded worker emission outside runtime monitors| viewer
+  viewer -->|fixed fields and bounded repetition| sink
 ```
 
 See the [operator guide](operational-logging.md) for event meanings and the explicit

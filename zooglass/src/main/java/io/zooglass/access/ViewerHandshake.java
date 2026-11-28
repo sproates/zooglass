@@ -1,5 +1,6 @@
 package io.zooglass.access;
 
+import io.zooglass.logging.ViewerLog;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -34,6 +35,7 @@ public final class ViewerHandshake implements HandshakeInterceptor {
             var credential = access.credential(servlet.getServletRequest(), true);
             var decision = access.authenticate(credential);
             if (decision instanceof AccessDecision.Rejected rejected) {
+                access.recordRejection(ViewerLog.Boundary.HANDSHAKE, rejected.reason());
                 throw new AccessRefused(AdmissionAccess.status(rejected));
             }
             var grant = ((AccessDecision.Granted) decision).grant();

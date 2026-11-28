@@ -76,6 +76,7 @@ public final class OperationalLog {
     private final String instance;
     private final LongSupplier nanos;
     private final Executor deferStorage;
+    private final ViewerLog viewers;
     private final EnumMap<Signal, Bucket> buckets = new EnumMap<>(Signal.class);
     private volatile boolean reachedReady;
     private volatile Signal startupFailure = Signal.START_UNEXPECTED;
@@ -93,6 +94,11 @@ public final class OperationalLog {
         this.instance = instance;
         this.nanos = nanos;
         this.deferStorage = deferStorage;
+        this.viewers = logger == null ? ViewerLog.NONE : new ViewerLog(logger, instance, nanos);
+    }
+
+    public ViewerLog viewers() {
+        return viewers;
     }
 
     public void startupConfigurationFailed() {
@@ -196,17 +202,26 @@ public final class OperationalLog {
         private long suppressed;
 
         Bucket(long now) {
+            this(now, 0);
+        }
+
+        Bucket(long now, long suppressed) {
             emittedAt = now;
+            this.suppressed = suppressed;
         }
 
         long admit(long now) {
+            return admit(now, 1);
+        }
+
+        long admit(long now, long occurrences) {
             if (now - emittedAt < TimeUnit.SECONDS.toNanos(30)) {
-                if (suppressed < Long.MAX_VALUE) suppressed++;
+                suppressed += Math.min(occurrences, Long.MAX_VALUE - suppressed);
                 return -1;
             }
             long count = suppressed;
             emittedAt = now;
-            suppressed = 0;
+            suppressed = occurrences - 1;
             return count;
         }
     }

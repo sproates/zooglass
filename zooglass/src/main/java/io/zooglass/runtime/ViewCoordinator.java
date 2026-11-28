@@ -1,5 +1,6 @@
 package io.zooglass.runtime;
 
+import io.zooglass.logging.ViewerLog;
 import io.zooglass.access.AdmissionAccess;
 import io.zooglass.logging.OperationalLog;
 import io.zooglass.runtime.StateImage.Receipt;
@@ -12,7 +13,6 @@ import io.zooglass.strategy.progress.ProgressStrategySelection;
 
 import jakarta.annotation.PreDestroy;
 
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
@@ -601,10 +601,7 @@ public final class ViewCoordinator implements AutoCloseable {
                     }
                 } catch (RuntimeException failure) {
                     // Delivery cannot turn a committed publication into an uncommitted one.
-                    LoggerFactory.getLogger(ViewCoordinator.class)
-                            .warn(
-                                    "Snapshot listener failed ({})",
-                                    failure.getClass().getSimpleName());
+                    operations.viewers().deferred(ViewerLog.Event.LISTENER, null);
                 }
             }
         }

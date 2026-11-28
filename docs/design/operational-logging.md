@@ -1,7 +1,7 @@
 # Operational logging
 
-Status: accepted design. The foundation implementation is proposed in the current
-PR; delivery and access logging remain pending.
+Status: accepted design. The foundation is delivered in PR #208; delivery and
+access completion is proposed in the current implementation PR.
 
 An operator should be able to tell whether ZooGlass started with the intended
 operating modes, why it stopped serving useful work, and whether a fault requires
@@ -9,7 +9,7 @@ a client reconnect, a dependency check or a service restart. Routine publication
 must not bury those signals. This is a bounded service-logging change, not a new
 telemetry platform or a performance-optimisation programme.
 
-## Current behaviour and scope
+## Original behaviour and scope
 
 The service already uses SLF4J through Spring Boot. Ingress failures generally
 report only an exception class, but some delivery/subscription paths log arbitrary
@@ -49,7 +49,7 @@ The logging framework supplies timestamp, level and logger.
 | `processing.failed`                       | ERROR | Unexpected publication/progress/retirement failure; operation and safe failure category. Never asserts rollback or absence of a committed effect.                                                                             |
 | `receipt.send_failed`                     | WARN  | Receipt transport fails after processing; opaque connection reference if available. State may already be committed; a retry follows existing receipt semantics.                                                               |
 | `delivery.failed`                         | WARN  | Preparing an opening/update, notifying a listener or completing a requested transport close fails. Record the stage. A failure after installation does not establish rollback.                                                |
-| `delivery.close_requested`                | WARN  | The delivery owner requests a close after a frame is too large, queue admission returns FULL, or a write fails. FULL also covers a stopped queue. The actual close callback is separate.                                      |
+| `delivery.close_requested`                | WARN  | The delivery owner requests a close after a frame is too large, queue admission returns FULL, or the outbound writer fails. FULL also covers a stopped queue. The actual close callback is separate.                          |
 | `access.unavailable`                      | WARN  | An admission or renewal decision returns `UNAVAILABLE`. Record operation and transport. Timeout, malformed response and capacity exhaustion can all produce that outcome. Grant loss alone does not identify a policy outage. |
 | `access.refused`                          | DEBUG | Existing unauthenticated/denied outcome; transport and reason only. Not a security audit trail.                                                                                                                               |
 | `request.invalid`                         | DEBUG | Malformed wire input or unsupported request shape; operation and fixed reason. Expected domain rejections remain in receipts/explanations.                                                                                    |

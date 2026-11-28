@@ -1,5 +1,7 @@
 package io.zooglass.access;
 
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.ViewerLog;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -17,6 +19,16 @@ public final class AdmissionAccess {
     private final String tenant;
     private final String origin;
     private final String cookie;
+    private ViewerLog diagnostics = ViewerLog.NONE;
+
+    @Autowired(required = false)
+    void configureLogging(OperationalLog log) {
+        diagnostics = log.viewers();
+    }
+
+    public void recordRejection(ViewerLog.Boundary boundary, AccessDecision.Reason reason) {
+        diagnostics.access(boundary, reason);
+    }
 
     @Autowired
     public AdmissionAccess(Environment environment) {
@@ -71,26 +83,31 @@ public final class AdmissionAccess {
         // TLS attributes originate at the connector, not client forwarding headers.
         if (!request.isSecure()
                 || !(request.getAttribute("jakarta.servlet.request.cipher_suite") instanceof String)) {
-            throw new AccessRefused(403);
+            throw refusedCredential(socket, AccessDecision.Reason.DENIED);
         }
         var origins = Collections.list(request.getHeaders("Origin"));
         if (origins.size() > 1 || (!origins.isEmpty() && !origin.equals(origins.getFirst()))) {
-            throw new AccessRefused(403);
+            throw refusedCredential(socket, AccessDecision.Reason.DENIED);
         }
         ViewerCredential credential;
         try {
             credential = ViewerCredential.read(Collections.list(request.getHeaders("Authorization")),
                     Collections.list(request.getHeaders("Cookie")), cookie);
         } catch (IllegalArgumentException invalid) {
-            throw new AccessRefused(401);
+            throw refusedCredential(socket, AccessDecision.Reason.UNAUTHENTICATED);
         }
         if (credential == null) {
-            throw new AccessRefused(401);
+            throw refusedCredential(socket, AccessDecision.Reason.UNAUTHENTICATED);
         }
         if (socket && credential.kind() == ViewerCredential.Kind.SESSION && origins.isEmpty()) {
-            throw new AccessRefused(403);
+            throw refusedCredential(socket, AccessDecision.Reason.DENIED);
         }
         return credential;
+    }
+
+    private AccessRefused refusedCredential(boolean socket, AccessDecision.Reason reason) {
+        recordRejection(socket ? ViewerLog.Boundary.SOCKET_CREDENTIAL : ViewerLog.Boundary.HTTP_CREDENTIAL, reason);
+        return new AccessRefused(reason == AccessDecision.Reason.UNAUTHENTICATED ? 401 : 403);
     }
 
     public AccessDecision authenticate(ViewerCredential credential) {

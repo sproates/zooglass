@@ -1,5 +1,6 @@
 package io.zooglass.access;
 
+import io.zooglass.logging.ViewerLog;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.ArrayList;
@@ -125,6 +126,9 @@ public final class ActiveViewGrants {
         }
         if (lost) {
             onLoss.accept(renewal.session);
+            if (decision instanceof AccessDecision.Rejected rejected) {
+                access.recordRejection(ViewerLog.Boundary.RENEWAL, rejected.reason());
+            }
         }
     }
 

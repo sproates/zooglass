@@ -7,6 +7,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.zooglass.access.AdmissionAccess;
 import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.ViewerLogCapture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,6 +41,19 @@ class OperationalBoundaryTests {
             """;
     private final JsonMapper json = new JsonMapper();
     @TempDir Path temporary;
+
+    @Test
+    void failedSnapshotListenerIsReportedWithoutUndoingTheInstalledPublication() throws Exception {
+        try (var capture = new ViewerLogCapture();
+                var runtime = new ViewCoordinator(IdentityFixtures.configuration(2, 10, 3), "",
+                        ReceiptClock.SYSTEM, null, SystemAlarmScheduler::new, capture.operations)) {
+            runtime.listen(snapshot -> { throw new IllegalStateException("SENTINEL-listener"); });
+            runtime.apply(IdentityFixtures.event(1));
+            assertThat(runtime.snapshot("arrival", "car").orElseThrow().version()).isEqualTo(1);
+            assertThat(capture.next("delivery.failed")).containsEntry("stage", "listener")
+                    .containsEntry("reason", "listenerFailed").doesNotContainKey("connectionRef");
+        }
+    }
 
     @Test
     void lostReceiptIsLoggedAtSendAndRetryRemainsADuplicate() throws Exception {

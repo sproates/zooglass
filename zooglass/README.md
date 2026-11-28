@@ -163,8 +163,9 @@ observed-event summaries without detailed decision reasons.
 ## Operational logging
 
 [Operational logs](docs/operational-logging.md) describe lifecycle, storage and
-processing failures with safe structured fields and bounded repetition. Readable
+processing, delivery and access failures with safe structured fields and bounded
+repetition. Readable
 console output is the default; optional JSON output uses Spring Boot's existing
-logging controls. Delivery/access event migration remains a subsequent slice.
+logging controls. Routine viewer connection records are DEBUG.
 Logs complement health and receipts; they are not per-publication explanations
 or a durable audit trail.

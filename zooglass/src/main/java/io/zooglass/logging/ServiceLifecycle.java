@@ -43,6 +43,11 @@ public final class ServiceLifecycle {
         }
     }
 
+    @jakarta.annotation.PreDestroy
+    void stopViewerDiagnostics() {
+        log.viewers().close();
+    }
+
     /** Installed before run(), so failure can be reported even when beans could not be created. */
     public record StartupFailureListener(OperationalLog log) implements ApplicationListener<ApplicationFailedEvent> {
         @Override

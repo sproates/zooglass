@@ -77,8 +77,10 @@ The [first high-availability design](docs/design/clustering-high-availability.md
 is accepted. It specifies one active ZooGlass instance and one takeover candidate
 with PostgreSQL authority, a limited static-view profile and explicit client
 recovery. Storage, ownership, [service transport and a Node client](zooglass/docs/ha-service.md)
-are implemented on `integration/clustering-ha`, with the transport PR pending merge.
-The two-process fault harness and direct/proxy failover qualification remain outstanding. Horizontal scaling and database failover remain outside this profile.
+are integrated on `integration/clustering-ha`. The [real-process fault harness](workbench/docs/ha-fault-harness.md)
+is implemented on its review branch; CI and merge are pending. Recorded
+direct/proxy failover qualification remains outstanding. Horizontal scaling and
+database failover remain outside this profile.
 
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
@@ -89,10 +91,10 @@ delivery date:
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
 - **Performance measurement and optimisation.** The accepted [single-instance baseline](docs/design/single-instance-performance.md) defines a finite measurement campaign before clustering work. A [scoped 100/s memory/SQLite result](workbench/docs/performance-baseline-20261125.md) is documented with raw evidence and independent audit; the [coverage report](workbench/docs/performance-coverage-20261128.md) distinguishes the finished campaign schedule from the wider matrix that remains unqualified. Further measurement should answer a concrete workload question. SQLite optimisation and alternative storage backends are separate decisions; the tested persistence configuration is not a universal ZooGlass throughput ceiling. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
-- **Clustering and high availability.** Review the proposed first profile above,
-  its ownership and output boundaries, finite qualification and implementation
-  sequence before starting code. Broader profiles and distributing work across
-  instances need later decisions.
+- **Clustering and high availability.** Complete the first profile's real-process
+  verification and finite qualification before promotion from its integration
+  branch. Broader profiles and distributing work across instances need later
+  decisions.
 
 Broader replay, query and distributed-storage
 capabilities can be considered separately as concrete needs emerge; they are not

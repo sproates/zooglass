@@ -939,5 +939,11 @@ against the prepared Java service and an owned PostgreSQL fixture over real TLS.
 Focused client tests cover stale callbacks, exact numbers, retained retries and
 bounded recovery. The [service guide](../zooglass/docs/ha-service.md#verify-locally)
 gives repeatable commands. Tests never build Java. This is integration-branch
-transport evidence; the full two-process and real proxy fault campaign remains
-outstanding.
+transport evidence. The [HA fault harness](../workbench/docs/ha-fault-harness.md)
+adds fourteen fixed two-process and real-proxy cases, including protected access,
+actual service fault barriers and owned-resource cancellation. Prepare Java, the
+test fault agent and capture controls explicitly; `npm run prepare:ha` prepares
+Node modules only. `npm run ha:run -- --output NEW_DIR` runs the fixed acceptance
+set without building Java. The separate `test-postgresql.py --ha-controls` check
+must detect both prepared read-fence controls. One complete acceptance run does
+not replace the later normal/additional-pause qualification campaign.

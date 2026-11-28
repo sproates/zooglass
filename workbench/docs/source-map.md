@@ -35,6 +35,8 @@ src/
 ├── control/         Stepping, playback controls, reset and cancellation
 ├── timeline/        Deterministic execution, evidence contracts and replay
 ├── explanation/     Offline evidence presentation and report output
+├── ha-cases/        Fixed two-process fault cases and evidence runner
+├── ha-fixture/      Owned Docker topology, TLS and service fault controls
 ├── service/         ZooGlass process lifecycle
 └── demos/
     ├── vehicle/     Compose shared components for the vehicle demo
@@ -1518,3 +1520,54 @@ flowchart TB
   protocol -->|preserve numbers and reject ambiguous JSON| json["json/lossless.ts"]
   timeline["timeline/json.ts"] -->|compatibility export| json
 ```
+
+## Two-process HA fault harness
+
+[`ha-cases/run.ts`](../src/ha-cases/run.ts) is the `ha:run` command. It verifies
+prepared inputs, runs the fixed manifest and records observations and cleanup.
+It does not build Java or replace real service decisions with simulated results.
+The [harness guide](ha-fault-harness.md) distinguishes one acceptance run from the
+later repeated qualification.
+
+```mermaid
+flowchart TB
+  run["ha-cases/run.ts"] -->|fixed cases and access modes| manifest["ha-cases/manifest.ts"]
+  run -->|verify executable identities| prepared["ha-cases/prepared.ts"]
+  run -->|bounded evidence and cleanup checks| support["ha-cases/runner-support.ts"]
+  run -->|cases 1 to 6| process["ha-cases/process-cases.ts"]
+  run -->|cases 7 and 8| ordering["ha-cases/ordering-cases.ts"]
+  run -->|cases 9 to 12| semantic["ha-cases/semantic-cases.ts"]
+  run -->|cases 13 and 14| proxy["ha-cases/proxy-cases.ts"]
+  process -->|checked reads and retained publications| context["ha-cases/context.ts"]
+  ordering -->|observe service database lock| database["ha-cases/database-barrier.ts"]
+  semantic -->|authored semantic assertions| context
+  semantic -->|observe expired lease and real acquisition rollback| binding["ha-cases/binding-observation.ts"]
+  proxy -->|real TLS frames and delayed callbacks| wire["ha-cases/wire.ts"]
+  proxy -->|require completed failed backend probes| health["ha-fixture/proxy-health.ts"]
+  context -->|verified HTTP and WebSocket transport| transport["service/ha/transport.ts"]
+  wire -->|real service socket observations| transport
+  run -->|own two JVMs and supporting containers| cluster["ha-fixture/cluster.ts"]
+```
+
+```mermaid
+flowchart TB
+  cluster["ha-fixture/cluster.ts"] -->|owned resource creation and removal| docker["ha-fixture/docker.ts"]
+  cluster -->|service and proxy settings| config["ha-fixture/configuration.ts"]
+  cluster -->|ephemeral verified TLS| tls["ha-fixture/certificates.ts"]
+  cluster -->|deadline-bound control requests| requests["ha-fixture/requests.ts"]
+  cluster -->|arm and release prepared JVM hooks| barriers["ha-fixture/barriers.ts"]
+  cluster -->|parse bounded backend health statistics| health["ha-fixture/proxy-health.ts"]
+  run["ha-cases/run.ts"] -->|immutable container versions| images["ha-fixture/images.ts"]
+  run -->|pass verified images and artifacts| cluster
+  sidecar["ha-fixture/sidecar.ts"] -->|partition only its JVM database connection| gate["ha-fixture/tcp-gate.ts"]
+  sidecar -->|trusted local source and retained retries| producer["service/ha/producer.ts"]
+  sidecar -->|source hello and operator requests| transport["service/ha/transport.ts"]
+  sidecar -->|bounded delayed policy replies and cancellation| policyDelay["ha-fixture/policy-delay.ts"]
+```
+
+`sidecar.ts` executes inside the owned Node container beside a JVM. Its controlled
+policy service and local source adapter support the protected cases; its database
+gate controls connectivity without inventing a database outcome. The cluster
+launches this prepared entry point as a process, rather than importing it into the
+runner. The barrier file protocol coordinates the separately prepared Java agent
+shown in the [ZooGlass source map](../../zooglass/docs/source-map.md#ha-test-tooling).

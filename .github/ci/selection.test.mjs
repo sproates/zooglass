@@ -104,7 +104,7 @@ test("gate rejects failed, cancelled, skipped and missing selected jobs", () => 
   );
 });
 
-test("Workbench gate requires the separate timeline job whenever core is selected", () => {
+test("Workbench gate requires timeline and HA jobs whenever core is selected", () => {
   const workflow = readFileSync(
     new URL("../workflows/workbench.yml", import.meta.url),
     "utf8",
@@ -114,33 +114,36 @@ test("Workbench gate requires the separate timeline job whenever core is selecte
   const successful = Object.fromEntries(
     Object.keys(groups).map((job) => [job, { result: "success" }]),
   );
-  for (const result of ["failure", "cancelled", "skipped", undefined]) {
-    const results = { ...successful, timeline: { result } };
-    if (result === undefined) delete results.timeline;
-    assert.equal(
-      requiredResultErrors({ core: true }, results, groups).length,
-      1,
+  for (const job of ["timeline", "ha-faults"]) {
+    for (const result of ["failure", "cancelled", "skipped", undefined]) {
+      const results = { ...successful, [job]: { result } };
+      if (result === undefined) delete results[job];
+      assert.equal(
+        requiredResultErrors({ core: true }, results, groups).length,
+        1,
+        `${job} must pass when core is selected`,
+      );
+    }
+    assert.deepEqual(
+      requiredResultErrors({ core: true }, successful, groups),
+      [],
+    );
+    assert.deepEqual(
+      requiredResultErrors(
+        { static: true },
+        { ...successful, [job]: { result: "skipped" } },
+        groups,
+      ),
+      [],
+    );
+    const needs = workflow.match(/workbench-gate:\s+needs:\s*\[([^\]]+)\]/)[1];
+    assert.ok(
+      needs
+        .split(",")
+        .map((job) => job.trim())
+        .includes(job),
     );
   }
-  assert.deepEqual(
-    requiredResultErrors({ core: true }, successful, groups),
-    [],
-  );
-  assert.deepEqual(
-    requiredResultErrors(
-      { static: true },
-      { ...successful, timeline: { result: "skipped" } },
-      groups,
-    ),
-    [],
-  );
-  const needs = workflow.match(/workbench-gate:\s+needs:\s*\[([^\]]+)\]/)[1];
-  assert.ok(
-    needs
-      .split(",")
-      .map((job) => job.trim())
-      .includes("timeline"),
-  );
 });
 
 test("accepted update-strategy namespace keeps core validation on new modules", () => {

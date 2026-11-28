@@ -50,11 +50,16 @@ def interrupted(signum, _frame):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--node-client", action="store_true", help="Run Node client interoperability against the prepared service JAR")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--ha-controls", action="store_true", help="Verify prepared non-serving capture controls against real PostgreSQL")
+    mode.add_argument("--node-client", action="store_true", help="Run Node client interoperability against the prepared service JAR")
     args = parser.parse_args()
     if args.node_client and not (SERVICE / "target/zooglass.jar").is_file():
         raise RuntimeError("Prepared service JAR missing; prepare it explicitly first")
-    if not args.node_client and any(not (TEST_DIRECTORY / (name.replace(".", "/") + ".class")).is_file() for name in TEST_NAMES):
+    tests = ("io.zooglass.runtime.PostgresFenceControlsIT",) if args.ha_controls else TEST_NAMES
+    if args.ha_controls:
+        command([sys.executable, str(SERVICE / "scripts/prepare-ha-controls.py"), "--verify"], capture=False)
+    if not args.node_client and any(not (TEST_DIRECTORY / (name.replace(".", "/") + ".class")).is_file() for name in tests):
         raise RuntimeError("Prepared PostgreSQL test classes are missing. Run ./mvnw -DskipTests package explicitly first.")
     # A unique owned container; no shared host directories or existing databases.
     name = "zooglass-postgres-test-" + secrets.token_hex(8)
@@ -92,7 +97,7 @@ def main():
         suite = (["node", "--import", str(SERVICE.parent / "workbench/node_modules/tsx/dist/loader.mjs"),
                   "--test", str(SERVICE.parent / "workbench/test/ha-service/client.test.ts")]
                  if args.node_client else
-                 ["./mvnw", "--batch-mode", "-Dtest=" + ",".join(TEST_NAMES), "surefire:test"])
+                 ["./mvnw", "--batch-mode", "-Dtest=" + ",".join(tests), "surefire:test"])
         result = command(suite,
                          timeout=300, capture=False, check=False, env=environment)
         return result.returncode

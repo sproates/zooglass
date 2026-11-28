@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
+import { performance } from "node:perf_hooks";
 import { Ownership } from "../src/service/ha/ownership.js";
 import { HaViewer } from "../src/service/ha/viewer.js";
 import { HaProducer } from "../src/service/ha/producer.js";
@@ -194,25 +195,58 @@ test("conflict receipts and mismatched identities never discard the retained pub
   }
 });
 
-test("receipt deadline bounds an unresponsive source and preserves one pending publication", async () => {
-  const source = new TestChannel();
-  source.push(wire("hello"));
-  const transport = new TestTransport([source]),
-    writer = producer(transport, new Ownership(), {
-      episodeMillis: 40,
-      stepMillis: 20,
+test(
+  "receipt deadline bounds an unresponsive source and preserves one pending publication",
+  { timeout: 2000 },
+  async (t) => {
+    let now = 0;
+    t.mock.method(performance, "now", () => now);
+    const source = new TestChannel();
+    source.push(wire("hello"));
+    const transport = new TestTransport([source]),
+      writer = producer(transport, new Ownership(), {
+        episodeMillis: 40,
+        stepMillis: 20,
+      });
+    let receiptSignal: AbortSignal | undefined;
+    const next = source.next.bind(source);
+    t.mock.method(source, "next", (signal: AbortSignal) => {
+      if (source.sent.length > 0) {
+        receiptSignal = signal;
+        // Exercise the real receipt timer, then exhaust the episode deterministically.
+        // A real backoff timer can wake just before its deadline and permit another try.
+        signal.addEventListener(
+          "abort",
+          () => {
+            now = 40;
+          },
+          { once: true },
+        );
+      }
+      return next(signal);
     });
-  try {
-    const pending = writer.publish(publication);
-    assert.throws(() => writer.publish(publication), /unresolved publication/);
-    assert.equal((await pending).status, "unresolved");
-    assert.equal(transport.connections.length, 1);
-    assert.equal(source.closed, true);
-    assert.equal(writer.retained?.bytes, publication);
-  } finally {
-    writer.close();
-  }
-});
+    try {
+      const pending = writer.publish(publication);
+      assert.throws(
+        () => writer.publish(publication),
+        /unresolved publication/,
+      );
+      const result = await pending;
+      assert.equal(result.status, "unresolved");
+      assert.ok(receiptSignal?.aborted);
+      assert.equal(receiptSignal.reason.name, "TimeoutError");
+      assert.deepEqual(source.sent, [publication]);
+      assert.equal(source.closed, true);
+      assert.deepEqual(writer.retained, { bytes: publication, incarnation });
+      assert.throws(
+        () => writer.publish(publication),
+        /unresolved publication/,
+      );
+    } finally {
+      writer.close();
+    }
+  },
+);
 
 test("delayed HTTP error and reply are discarded after a live baseline takes presentation ownership", async (t) => {
   for (const fail of [false, true]) {

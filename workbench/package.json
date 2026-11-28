@@ -81,7 +81,11 @@
     "benchmark:run": "node --import tsx src/benchmark/cli.ts",
     "benchmark:sqlite-profile": "node --import tsx src/benchmark/profile/cli.ts",
     "benchmark:sampling": "node --import tsx src/benchmark/sampling-cli.ts",
-    "benchmark:campaign": "node --import tsx src/benchmark/campaign/cli.ts"
+    "benchmark:campaign": "node --import tsx src/benchmark/campaign/cli.ts",
+    "prepare:ha": "node scripts/prepare-ha.js",
+    "ha:verify": "node scripts/prepare-ha.js --verify",
+    "ha:run": "node dist/ha-cases/run.js",
+    "test:ha-fixture": "node --import tsx --test test/ha-fixture.test.ts test/ha-runner.test.ts test/ha-proxy-health.test.ts test/ha-policy-delay.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

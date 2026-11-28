@@ -175,6 +175,7 @@ async function stableTakeover(ctx: CaseContext): Promise<void> {
     const oldToken = viewer.state.token,
       before = events.length,
       policyBefore = await ctx.cluster.policyState();
+    const faultStarted = performance.now();
     const successor = await takeover(ctx, owner);
     assertScore(
       await waitFor(
@@ -188,6 +189,7 @@ async function stableTakeover(ctx: CaseContext): Promise<void> {
       ),
       1,
     );
+    const baselineMillis = Math.round(performance.now() - faultStarted);
     const afterBaseline = events.length;
     held.release();
     assert.equal(await staleRead, undefined);
@@ -212,6 +214,8 @@ async function stableTakeover(ctx: CaseContext): Promise<void> {
       2,
     );
     ctx.record("stable-origin-failover", {
+      elapsedMillis: String(baselineMillis),
+      timingBoundary: "termination-request-to-harness-confirmed-client-baseline",
       from: String(owner.index),
       to: String(successor.index),
       generation: String(successor.generation),

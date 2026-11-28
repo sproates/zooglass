@@ -65,6 +65,11 @@ restart, including rejection of an incompatible template change without losing s
 
 ## Further direction
 
+- **Operational logging — design proposed.** The [logging plan](docs/design/operational-logging.md)
+  defines quiet defaults, safe structured context and bounded lifecycle, storage,
+  access and delivery failure records. Implementation awaits design acceptance.
+  Per-event explanations remain a separate capability.
+
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
 

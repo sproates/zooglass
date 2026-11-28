@@ -1,6 +1,7 @@
 package io.zooglass.runtime;
 
 import io.zooglass.access.AdmissionAccess;
+import io.zooglass.logging.OperationalLog;
 import io.zooglass.runtime.StateImage.Receipt;
 import io.zooglass.runtime.StateImage.StoredView;
 import io.zooglass.runtime.StateImage.StreamState;
@@ -46,6 +47,7 @@ public final class ViewCoordinator implements AutoCloseable {
     private final int identityWindow;
     private final int historyLimit;
     private final StateStore storage;
+    private final OperationalLog operations;
     private final ReceiptClock clock;
     private final Supplier<AlarmScheduler> alarms;
     private FreshnessRuntime freshness;
@@ -58,14 +60,26 @@ public final class ViewCoordinator implements AutoCloseable {
     private final List<Listener> listeners = new ArrayList<>();
     private boolean closed;
 
+    public ViewCoordinator(ResourceLoader resources, Environment environment, AdmissionAccess access) {
+        this(resources, environment, access, Optional.empty());
+    }
+
     @Autowired
-    public ViewCoordinator(
-            ResourceLoader resources, Environment environment, AdmissionAccess access) {
-        this(
-                loadConfiguration(resources, environment),
-                environment.getProperty("zooglass.database", ""),
-                ReceiptClock.SYSTEM,
-                access.tenant());
+    public ViewCoordinator(ResourceLoader resources, Environment environment, AdmissionAccess access,
+            Optional<OperationalLog> recorder) {
+        this(loadConfiguration(resources, environment, recorder.orElse(OperationalLog.NONE)),
+                environment.getProperty("zooglass.database", ""), ReceiptClock.SYSTEM, access.tenant(),
+                SystemAlarmScheduler::new, recorder.orElse(OperationalLog.NONE));
+    }
+
+    private static RuntimeConfiguration loadConfiguration(ResourceLoader resources, Environment environment,
+            OperationalLog recorder) {
+        try {
+            return loadConfiguration(resources, environment);
+        } catch (RuntimeException failure) {
+            recorder.startupConfigurationFailed();
+            throw failure;
+        }
     }
 
     private static RuntimeConfiguration loadConfiguration(
@@ -116,6 +130,12 @@ public final class ViewCoordinator implements AutoCloseable {
             ReceiptClock clock,
             String tenant,
             Supplier<AlarmScheduler> alarms) {
+        this(configuration, database, clock, tenant, alarms, OperationalLog.NONE);
+    }
+
+    ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant,
+            Supplier<AlarmScheduler> alarms, OperationalLog operations) {
+        this.operations = operations;
         this.clock = Objects.requireNonNull(clock);
         this.alarms = Objects.requireNonNull(alarms);
         this.configuration = configuration;
@@ -154,7 +174,7 @@ public final class ViewCoordinator implements AutoCloseable {
                                 database,
                                 configuration,
                                 freshness == null ? UnaryOperator.identity() : freshness::recover,
-                                tenant);
+                                tenant, operations);
             } else {
                 storage = new InMemoryState();
                 if (freshness != null) {
@@ -162,6 +182,7 @@ public final class ViewCoordinator implements AutoCloseable {
                 }
             }
         } catch (RuntimeException failure) {
+            if (configuration.storage().equals("sqlite")) operations.startupStorageFailed();
             if (freshness != null) {
                 freshness.close();
             }
@@ -608,9 +629,23 @@ public final class ViewCoordinator implements AutoCloseable {
         }
     }
 
+    public synchronized OperationalLog.Modes operatingModes(boolean protectedAccess) {
+        return new OperationalLog.Modes(storage.durable(), protectedAccess,
+                configuration.sources().size(), configuration.views().size());
+    }
+
     @Override
     @PreDestroy
-    public synchronized void close() {
+    public void close() {
+        try {
+            closeRuntime();
+        } catch (StorageCloseFailure failure) {
+            operations.storageCloseFailed();
+            throw failure;
+        }
+    }
+
+    private synchronized void closeRuntime() {
         closed = true;
         listeners.clear();
         try {

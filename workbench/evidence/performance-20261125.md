@@ -53,3 +53,30 @@ service explicitly, and adapt the retained launcher paths to an otherwise idle
 host. Preserve the workload, durations, heap settings, storage mode and recorded
 conditions. Repeated latency and CPU values will vary; offline re-auditing of the
 retained bytes is distinct from reproducing performance on another host.
+
+## Original-campaign accounting audit
+
+The [coverage report](../docs/performance-coverage-20261128.md) reconciles the
+original frozen campaign separately from the later 100/s comparison. Its
+[portable accounting audit](https://github.com/sproates/zooglass/releases/download/performance-evidence-20261125/zooglass-campaign-audit-20261128.tar.gz)
+was prepared on 28 November against the original `c7502fe` evidence. It contains
+`audit-campaign.py`, expected `audit-results.json` and a README; no service binary
+or additional measurement is included.
+
+SHA-256: `c4da5b84f093e76c7d1633766baf1ead2000e8a3c52b44dd52813829e91b7229`.
+Check this additional asset against the hash above before extracting it.
+The original six archives and their checksum file are unchanged.
+
+Extract the original campaign and this companion, then run with Python 3.10+:
+
+```sh
+python3 campaign-audit/audit-campaign.py evidence/campaign > replay.json
+```
+
+Compare the result with `campaign-audit/audit-results.json`. The audit checks the
+pinned manifest/journal, 45 input/completion pairs, 210 inventoried files and
+2,322,994 observations. It reconstructs phase counts, latency distributions,
+5,400 one-second buckets, backlog slopes, classifications and selection rules.
+It does not re-execute the service, independently validate application payloads
+or stopped-store contents, or recompute resource-sample CPU figures. Reproducing
+the accounting does not qualify a harness-limited or skipped comparison.

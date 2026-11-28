@@ -27,8 +27,9 @@ delivered. A [measured 100/s baseline](workbench/docs/performance-baseline-20261
 covers a specific single-instance memory/SQLite workload. The
 [roadmap](ROADMAP.md#further-direction) sets out broader performance measurement,
 clustering and high availability; those are not current guarantees. The
-[first HA profile](docs/design/clustering-high-availability.md) is a proposed
-design for bounded process failover, awaiting acceptance.
+[first HA profile](docs/design/clustering-high-availability.md) is accepted for
+bounded process failover. Its internal foundations are being implemented on an
+integration branch; clustered serving is not yet available.
 
 ## What ZooGlass handles
 

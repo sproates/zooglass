@@ -11,7 +11,6 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,8 +35,8 @@ class PostgresStaticStoreIT {
         if (db != null) db.close();
     }
 
-    private ViewCoordinator open() {
-        return ViewCoordinator.postgres(binding, db::open);
+    private AdmittedPostgresRuntime open() {
+        return new AdmittedPostgresRuntime(binding, db::open);
     }
 
     private static Publication event(String source, long sequence, String type, String number) {
@@ -45,7 +44,7 @@ class PostgresStaticStoreIT {
     }
 
     @Test
-    void restartsPreserveHiddenCandidatesOriginalReceiptsFloorsAndRequiredRelease() {
+    void restartsPreserveHiddenCandidatesOriginalReceiptsFloorsAndRequiredRelease() throws SQLException {
         var low = event("backup", 2, "score", PRECISE);
         var high = event("primary", 1, "score", "7");
         PublicationOutcome original;
@@ -61,8 +60,11 @@ class PostgresStaticStoreIT {
             assertThat(runtime.apply(high).version()).isEqualTo(2L);
             assertThat(runtime.snapshot("position", ENTITY).orElseThrow().data()).isEmpty();
         }
-        try (var store = new PostgresState(binding, db::open)) {
-            var hidden = store.current().views().get(new StateImage.ViewEntity("position", ENTITY)).candidates().get("chosen");
+        try (var conn = db.open(); var sql = conn.createStatement();
+                var row = sql.executeQuery("SELECT image, revision FROM zooglass_runtime")) {
+            row.next();
+            var restored = PostgresImage.restore(row.getString(1), row.getLong(2), binding.configuration());
+            var hidden = restored.views().get(new StateImage.ViewEntity("position", ENTITY)).candidates().get("chosen");
             assertThat(hidden).containsOnlyKeys("primary", "backup");
             assertThat(hidden.get("backup").value().at("/payload/value").decimalValue()).isEqualByComparingTo(PRECISE);
             assertThat(hidden.get("primary").provenance()).isEqualTo(new Provenance("primary", "v1", ENTITY));
@@ -94,25 +96,22 @@ class PostgresStaticStoreIT {
             assertThat(trail.data().get("history").at("/1/payload/value").decimalValue()).isEqualByComparingTo(PRECISE);
             assertThat(runtime.advance(new ProgressControl("primary", "v1", ENTITY, 7)).status()).isEqualTo("rejected");
             assertThat(runtime.retire(new FactRetirement("position", ENTITY, List.of("chosen"), 2)).status()).isEqualTo("rejected");
-            assertThatThrownBy(() -> runtime.define(TRAIL)).isInstanceOf(UnsupportedOperationException.class);
             assertThat(runtime.apply(event("primary", 7, "unmatched", "0")).version()).isEqualTo(6L);
         }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void uncertainCommitStopsReadsAndWritesAndReloadDeterminesRetry(boolean committed) {
+    void uncertainCommitStopsReadsAndWritesAndReloadDeterminesRetry(boolean committed) throws SQLException {
         var armed = new AtomicBoolean();
         var input = event("backup", 1, "score", PRECISE);
-        try (var runtime = ViewCoordinator.postgres(binding, () -> db.interruptCommit(armed, committed))) {
-            var delivered = new ArrayList<ViewCoordinator.Snapshot>();
-            runtime.listen(delivered::add);
+        try (var runtime = new AdmittedPostgresRuntime(binding, () -> db.interruptCommit(armed, committed))) {
             armed.set(true);
             assertThatThrownBy(() -> runtime.apply(input)).isInstanceOf(StorageUnavailable.class);
-            assertThat(delivered).isEmpty();
             assertThatThrownBy(() -> runtime.snapshot("trail", ENTITY)).isInstanceOf(StorageUnavailable.class);
             assertThatThrownBy(() -> runtime.apply(input)).isInstanceOf(StorageUnavailable.class);
         }
+        db.expireLease(); // An uncertain owner leaves release to database expiry.
         try (var runtime = open()) {
             var before = runtime.snapshot("trail", ENTITY).orElseThrow();
             assertThat(before.version()).isEqualTo(committed ? 1L : 0L);
@@ -141,12 +140,12 @@ class PostgresStaticStoreIT {
                 profile(config(List.of(PRIMARY, BACKUP), List.of(TRAIL), null)),
                 profile(config(List.of(PRIMARY, differentEpoch), List.of(TRAIL, POSITION), null)),
                 profile(config(List.of(PRIMARY, BACKUP), List.of(TRAIL, POSITION), delivery)))) {
-            assertThatThrownBy(() -> ViewCoordinator.postgres(incompatible, db::open))
+            assertThatThrownBy(() -> new AdmittedPostgresRuntime(incompatible, db::open))
                     .isInstanceOf(IllegalStateException.class);
         }
-        db.execute("UPDATE zooglass_runtime SET schema_version=2");
+        db.execute("UPDATE zooglass_runtime SET schema_version=99");
         assertThatThrownBy(this::open).isInstanceOf(IllegalStateException.class);
-        db.execute("UPDATE zooglass_runtime SET schema_version=1");
+        db.execute("UPDATE zooglass_runtime SET schema_version=2");
         try (var restored = open()) {
             assertThat(restored.apply(input).reason()).isEqualTo("alreadyCommitted");
         }
@@ -197,9 +196,11 @@ class PostgresStaticStoreIT {
                 case "lost targets" -> ((ArrayNode) receipt.path("targets")).removeAll();
                 default -> throw new AssertionError(corruption);
             }
+            db.expireLease();
             replaceImage(image);
             assertThatThrownBy(this::open).as(corruption).isInstanceOf(IllegalStateException.class);
         }
+        db.expireLease();
         replaceImage(StateRowJson.JSON.readTree(saved));
         try (var restored = open()) {
             assertThat(restored.apply(event("backup", 1, "score", "3")).reason()).isEqualTo("alreadyCommitted");
@@ -230,7 +231,7 @@ class PostgresStaticStoreIT {
             try (var runtime = open()) {
                 runtime.apply(second);
             }
-            try (var restored = ViewCoordinator.postgres(binding, () -> connection)) {
+            try (var restored = new AdmittedPostgresRuntime(binding, () -> connection)) {
                 assertThat(restored.apply(second).reason()).isEqualTo("alreadyCommitted");
                 sql.execute("SET search_path TO pg_temp");
                 var outcome = restored.apply(event("primary", 2, "label", "9"));
@@ -248,12 +249,10 @@ class PostgresStaticStoreIT {
     }
 
     @Test
-    void revisionConflictCannotOverwriteTheCommittedWinner() {
-        try (var first = open(); var stale = open()) {
+    void competingOpenCannotOverwriteTheCommittedWinner() {
+        try (var first = open()) {
             first.apply(event("backup", 1, "score", "1"));
-            assertThatThrownBy(() -> stale.apply(event("backup", 1, "score", "2")))
-                    .isInstanceOf(StorageUnavailable.class);
-            assertThatThrownBy(() -> stale.snapshot("trail", ENTITY)).isInstanceOf(StorageUnavailable.class);
+            assertThatThrownBy(this::open).isInstanceOf(StorageUnavailable.class);
         }
         try (var recovered = open()) {
             assertThat(recovered.apply(event("backup", 1, "score", "1")).reason()).isEqualTo("alreadyCommitted");

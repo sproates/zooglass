@@ -384,11 +384,11 @@ flowchart TB
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
-  postgres["PostgresState.java<br/>Internal complete-image transactions"]
+  postgres["PostgresState.java<br/>Internal checked transactions"]
   profile["HaStaticProfile.java<br/>Static admission and immutable binding"]
   image["PostgresImage.java<br/>Typed image and recovery checks"]
   rowJson["StateRowJson.java<br/>Shared strict storage JSON"]
-  coordinator -->|internal construction only| postgres
+  coordinator -->|internal owned transition| postgres
   postgres -->|binds configuration| profile
   postgres -->|encodes and validates state| image
   image -->|strict decoding| rowJson
@@ -728,3 +728,30 @@ flowchart TB
   collector -->|immutable current attempt| decision["runtime/PublicationDecision.java"]
   collector -->|pairs with ordinary outcome| result["runtime/ExplainedPublication.java"]
 ```
+
+
+## Internal PostgreSQL ownership
+
+These files live in `runtime/`. `OwnedRuntime` is constructed through the private
+coordinator factory; it exposes captures and checked handoff, never a raw
+coordinator. Public service configuration cannot enable this path yet.
+
+```mermaid
+flowchart LR
+  owner["OwnedRuntime.java<br/>Acquire, recover, activate and hand off"]
+  runtime["ViewCoordinator.java<br/>Real reconciliation, privately owned"]
+  state["PostgresState.java<br/>Transactions and cache invalidation"]
+  authority["PostgresAuthority.java<br/>Locked generation, lease and revision checks"]
+  schema["PostgresSchema.java<br/>Pinned schema and bootstrap"]
+  image["PostgresImage.java<br/>Complete state validation"]
+  owner -->|construct and apply| runtime
+  owner -->|checked capture and output permit| state
+  runtime -->|install detached transition| state
+  state -->|lock and check shared authority row| authority
+  state -->|initialise namespace| schema
+  state -->|restore validated cache| image
+```
+
+Handoff callbacks run after runtime and database locks are released. Immutable
+content stays opaque until its single-use authority check succeeds. See the
+[storage and ownership guide](postgresql-storage.md) for boundaries and tests.

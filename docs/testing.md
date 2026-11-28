@@ -930,5 +930,7 @@ client's visible access-loss outcome.
 
 The [internal PostgreSQL storage guide](../zooglass/docs/postgresql-storage.md)
 describes the explicit real-database gate. Java CI runs it after preparing test
-classes. The owned Docker fixture checks complete-state recovery, uncertain commits
-and corrupted evidence; it does not qualify clustered serving or failover.
+classes. The owned Docker fixture checks complete-state recovery, uncertain commits,
+corrupted evidence and ownership between real PostgreSQL connections. Both
+`PostgresStaticStoreIT` and `PostgresOwnershipIT` must be prepared and executed;
+these checks do not qualify clustered serving or two-process failover.

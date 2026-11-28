@@ -1,7 +1,8 @@
 # Clustering and high availability
 
-Status: proposed design, 28 November 2026. No clustered capability is implemented.
-This proposal needs acceptance before implementation.
+Status: accepted design, 28 November 2026. Implementation is proceeding on the
+clustering integration branch. The PostgreSQL storage foundation is internal;
+clustered serving and failover qualification are not yet available.
 
 ## The first outcome
 
@@ -278,11 +279,10 @@ record tested values rather than presenting them as universal recovery promises.
 
 ## Five implementation slices and stop conditions
 
-Use a short-lived integration branch for incomplete HA work, proposed name
-`integration/clustering-ha`. Each slice gets its own reviewed PR into that branch;
-only the complete qualified profile is proposed for main. This workflow needs
-owner acceptance with the design. No implementation or merge is authorised by
-publishing this document. Keep the design itself on the normal main-targeted PR.
+Use `integration/clustering-ha` for incomplete HA work. Each slice gets its own
+reviewed PR into that branch; only the complete qualified profile is proposed for
+main. The integration workflow was accepted with this design. Each merge still
+requires owner approval.
 
 | Slice                          | Concrete result                                                                                                              | Gate before continuing                                                                                                                                                                    |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

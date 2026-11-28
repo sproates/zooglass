@@ -74,10 +74,11 @@ repetition. Per-event explanations remain a separate capability.
 ## Further direction
 
 The [first high-availability design](docs/design/clustering-high-availability.md)
-is proposed for review. It recommends one active ZooGlass instance and one takeover
-candidate with PostgreSQL authority, a limited static-view profile and explicit
-client recovery. No clustering capability is implemented yet. Horizontal scaling
-and database failover remain outside that first proposal.
+is accepted. It specifies one active ZooGlass instance and one takeover candidate
+with PostgreSQL authority, a limited static-view profile and explicit client
+recovery. Internal storage and ownership foundations are being developed on
+`integration/clustering-ha`; clustered serving and failover qualification are not
+yet available. Horizontal scaling and database failover remain outside this profile.
 
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:

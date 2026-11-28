@@ -49,12 +49,16 @@ final class PostgresTestDatabase implements AutoCloseable {
     }
 
     Connection interruptCommit(AtomicBoolean armed, boolean afterCommit) throws SQLException {
+        return interruptCommit(armed, afterCommit, new SQLException("Simulated loss of commit response"));
+    }
+
+    Connection interruptCommit(AtomicBoolean armed, boolean afterCommit, Exception failureAfterCommit) throws SQLException {
         var db = open();
         return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]{Connection.class},
                 (proxy, method, args) -> {
                     if (method.getName().equals("commit") && armed.compareAndSet(true, false)) {
                         if (afterCommit) db.commit();
-                        throw new SQLException("Simulated loss of commit response");
+                        throw failureAfterCommit;
                     }
                     try {
                         return method.invoke(db, args);
@@ -62,6 +66,10 @@ final class PostgresTestDatabase implements AutoCloseable {
                         throw failure.getCause();
                     }
                 });
+    }
+
+    void expireLease() throws SQLException {
+        execute("UPDATE zooglass_runtime SET lease_until=clock_timestamp()-interval '1 second' WHERE attempt IS NOT NULL");
     }
 
     void execute(String sql) throws SQLException {

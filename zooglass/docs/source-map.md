@@ -354,7 +354,8 @@ strategies remain in `strategy/update`, selected by `FieldStrategySelection`.
 ## Publication path
 
 The `runtime/` package contains the single coordinator and its memory/SQLite
-storage. See the [publication guide](publications.md) for configuration and wire examples.
+storage, plus an internal [PostgreSQL foundation](postgresql-storage.md). Public
+PostgreSQL serving is not enabled. See the [publication guide](publications.md) for configuration and wire examples.
 
 Each box below is a file in
 [`src/main/java/io/zooglass/runtime/`](../src/main/java/io/zooglass/runtime/), except the
@@ -383,6 +384,16 @@ flowchart TB
   state["InMemoryState.java<br/>Memory-only installation"]
   sqlite["SqliteState.java<br/>Commit before memory installation"]
   rows["SqliteStateRows.java<br/>Schema and changed-row persistence"]
+  postgres["PostgresState.java<br/>Internal complete-image transactions"]
+  profile["HaStaticProfile.java<br/>Static admission and immutable binding"]
+  image["PostgresImage.java<br/>Typed image and recovery checks"]
+  rowJson["StateRowJson.java<br/>Shared strict storage JSON"]
+  coordinator -->|internal construction only| postgres
+  postgres -->|binds configuration| profile
+  postgres -->|encodes and validates state| image
+  image -->|strict decoding| rowJson
+  rows -->|strict decoding| rowJson
+  postgres -.->|implements| store
   storedJson["StoredJson.java<br/>UTF-8 validation and wrapped JSON depth"]
   rows -->|uses row encoding limits| storedJson
   publication -->|validates identifiers and payload| storedJson

@@ -925,3 +925,10 @@ The [authorisation acceptance record](verification/authorisation.md) maps the
 requirements to HTTP/WSS, grant-deadline, tenant-store and browser checks, with
 commands to repeat them. It separates exact release-cutoff evidence from the
 client's visible access-loss outcome.
+
+## PostgreSQL storage foundation
+
+The [internal PostgreSQL storage guide](../zooglass/docs/postgresql-storage.md)
+describes the explicit real-database gate. Java CI runs it after preparing test
+classes. The owned Docker fixture checks complete-state recovery, uncertain commits
+and corrupted evidence; it does not qualify clustered serving or failover.

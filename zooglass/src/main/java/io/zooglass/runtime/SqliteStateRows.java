@@ -4,19 +4,13 @@ import io.zooglass.runtime.StateImage.StoredView;
 import io.zooglass.runtime.StateImage.StreamState;
 import io.zooglass.runtime.StateImage.ViewEntity;
 
-import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.MapperFeature;
-import tools.jackson.databind.cfg.CoercionAction;
-import tools.jackson.databind.cfg.CoercionInputShape;
-import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
-import tools.jackson.databind.type.LogicalType;
+
+import static io.zooglass.runtime.StateRowJson.JSON;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /** Schema and row encoding. Transaction boundaries belong to SqliteState. */
@@ -25,27 +19,6 @@ final class SqliteStateRows {
     private static final int PROGRESS_SCHEMA = 4;
     private static final int RECEIPT_AGE_SCHEMA = 5;
     private static final int FACT_SCHEMA = 6;
-    private static final JsonMapper JSON =
-            JsonMapper.builder(StoredJson.rowFactory())
-                    .withCoercionConfig(
-                            LogicalType.Textual,
-                            coercion -> {
-                                for (var shape :
-                                        List.of(
-                                                CoercionInputShape.Integer,
-                                                CoercionInputShape.Float,
-                                                CoercionInputShape.Boolean)) {
-                                    coercion.setCoercion(shape, CoercionAction.Fail);
-                                }
-                            })
-                    .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-                    .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
-                    .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
-                    .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-                    .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                    .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-                    .build();
-
     private final Connection connection;
 
     SqliteStateRows(Connection connection) {

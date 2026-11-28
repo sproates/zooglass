@@ -1,9 +1,9 @@
-# PostgreSQL storage foundation
+# PostgreSQL storage and ownership foundations
 
 PostgreSQL storage is an internal foundation for the accepted
 [clustering design](../../docs/design/clustering-high-availability.md).
 Public service configuration still rejects `storage: postgresql`. This slice
-provides storage and recovery tests, not a deployable clustered service.
+provides internal storage and ownership APIs, not a deployable clustered service.
 
 The internal `ha-static-v1` profile admits up to three sources, two views and four
 fields in total, with at most three fields per view. It supports arrival,
@@ -18,16 +18,53 @@ One runtime occupies one database schema. Its immutable binding includes runtime
 identity, tenant and canonical configuration, including delivery settings. Recovery
 rejects a different binding or an invalid persisted image.
 
-Each transaction stores a complete typed state image, including hidden candidates,
+Each state commit stores a complete typed image, including hidden candidates,
 provenance, histories, retained receipts and sequence floors. It checks the previous
 revision and commits before replacing the local cache. Receipts report PostgreSQL
 persistence. A failed or uncertain commit invalidates that cache; reopening the store
-and retrying resolves whether the original publication committed.
+under a new attempt and retrying resolves whether the original publication committed.
 
 The initial implementation rewrites the whole image per commit. This makes state
 preservation explicit but makes write cost grow with retained state. No throughput
-or scaling claim follows. Revision checks prevent stale installation; they are not
-ownership leases or permission to serve clients. Those gates remain future work.
+or scaling claim follows.
+
+## Ownership and output admission
+
+The authority and image share one locked runtime row. Each acquisition records a
+fresh attempt and advances the generation before recovering state. The runtime
+becomes active only after reconstruction and a checked activation. An expired
+attempt must acquire a new generation and recover; renewal cannot revive it.
+The internal lease argument accepts whole milliseconds from 1 to 300,000.
+Database sessions bound lock waits to 3 seconds, statements to 10 seconds and
+idle transactions to 10 seconds. These bounds are exercised locally; they are
+not a production takeover-time promise.
+
+Transactions sample database time after acquiring the row lock. New mutations,
+renewals and output permits check the current attempt, generation and lease. A
+connection failure, revision conflict or uncertain transaction invalidates the
+local attempt. Reusing its cache is not a recovery mechanism.
+
+New snapshot captures require the local global revision to match the database.
+An immutable frame captured by the same owner at revision 7 can still be admitted
+after revision 8 commits. Its content revision stays 7; the permit separately
+records the revision checked at handoff. The original view or receipt version is
+unchanged. Permits are bound to captured content and cannot be reused.
+
+The internal API returns opaque captures, including for new committed receipts.
+A separate checked handoff supplies immutable response bytes and authority
+metadata to a callback outside runtime and database locks. Even a new receipt
+therefore receives a fresh handoff check; capture alone does not expose its bytes.
+A failed callback does not make that capture reusable.
+
+These internal checks authorise admission, not arrival at a remote client. A
+process can pause after permission is granted, so previously admitted bytes may
+arrive after takeover. HA protocol negotiation, client generation handling,
+protected readiness and transport integration remain separate work. Standalone
+HTTP and WebSocket paths cannot construct this PostgreSQL runtime.
+
+The internal schema is version 2. Version 1 fixtures from the earlier storage-only
+slice are rejected; there is no automatic migration or destructive reset. This
+is an integration-stage format change, not support for rolling upgrades.
 
 ## Run the database checks
 
@@ -52,5 +89,8 @@ the runtime dependency is pgJDBC 42.7.15. See the
 
 The database suite exercises recovery, duplicate receipts, hidden candidates,
 rollback, a lost commit acknowledgement, conflicting revisions and corrupted
-images. These are real database tests. They do not establish failover, client
+images. Ownership checks add competing acquisitions, stale entry points, exact
+generation counters, uncertain authority commits, single-use handoff and actual
+server-side timeout cases. These are real database connection tests. They do not
+establish two-process failover, client
 continuity, database replication or deterministic multi-node simulation.

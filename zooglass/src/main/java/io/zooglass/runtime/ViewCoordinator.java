@@ -138,15 +138,28 @@ public final class ViewCoordinator implements AutoCloseable {
         this(configuration, database, clock, tenant, alarms, operations, null, null);
     }
 
-    /** Internal store qualification only. No HTTP, WebSocket or Spring path constructs this profile. */
-    static ViewCoordinator postgres(HaStaticProfile profile, PostgresState.Connections connections) {
-        return new ViewCoordinator(profile.configuration(), "", ReceiptClock.SYSTEM, profile.tenant(),
-                SystemAlarmScheduler::new, OperationalLog.NONE, profile, Objects.requireNonNull(connections));
+    /** Internal ownership protocol only. The standalone coordinator never escapes to a caller. */
+    static OwnedRuntime postgres(HaStaticProfile profile, PostgresState.Connections connections, java.time.Duration lease) {
+        return new OwnedRuntime(new HaFactory(profile), connections, lease);
+    }
+
+    /** The factory cannot be supplied or substituted by a caller and the owned runtime never exposes it. */
+    static final class HaFactory {
+        final HaStaticProfile profile;
+
+        private HaFactory(HaStaticProfile profile) {
+            this.profile = profile;
+        }
+
+        ViewCoordinator build(PostgresState store) {
+            return new ViewCoordinator(profile.configuration(), "", ReceiptClock.SYSTEM, profile.tenant(),
+                    SystemAlarmScheduler::new, OperationalLog.NONE, profile, store);
+        }
     }
 
     private ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant,
             Supplier<AlarmScheduler> alarms, OperationalLog operations, HaStaticProfile profile,
-            PostgresState.Connections postgres) {
+            PostgresState postgres) {
         this.operations = operations;
         this.clock = Objects.requireNonNull(clock);
         this.alarms = Objects.requireNonNull(alarms);
@@ -181,7 +194,7 @@ public final class ViewCoordinator implements AutoCloseable {
                         : null;
         try {
             if (profile != null) {
-                storage = new PostgresState(profile, postgres);
+                storage = Objects.requireNonNull(postgres);
             } else if (configuration.storage().equals("sqlite")) {
                 storage =
                         new SqliteState(

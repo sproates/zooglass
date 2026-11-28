@@ -11,7 +11,8 @@ import time
 
 IMAGE = "postgres:18.7-bookworm@sha256:e742a2668255221388004f3a42b6150a2103f5054ab3a4a93ae9e4f01e551c35"
 SERVICE = Path(__file__).resolve().parents[1]
-TEST_CLASS = SERVICE / "target/test-classes/io/zooglass/runtime/PostgresStaticStoreIT.class"
+TEST_NAMES = ("PostgresStaticStoreIT", "PostgresOwnershipIT")
+TEST_DIRECTORY = SERVICE / "target/test-classes/io/zooglass/runtime"
 
 
 def command(arguments, *, timeout=30, capture=True, check=True, env=None):
@@ -43,7 +44,7 @@ def interrupted(signum, _frame):
 
 
 def main():
-    if not TEST_CLASS.is_file():
+    if any(not (TEST_DIRECTORY / f"{name}.class").is_file() for name in TEST_NAMES):
         raise RuntimeError("Prepared PostgreSQL test classes are missing. Run ./mvnw -DskipTests package explicitly first.")
     # A unique owned container; no shared host directories or existing databases.
     name = "zooglass-postgres-test-" + secrets.token_hex(8)
@@ -78,7 +79,7 @@ def main():
         if not version.startswith("18.7 ") and version != "18.7":
             raise RuntimeError("Pinned fixture did not report PostgreSQL 18.7")
         print(f"PostgreSQL fixture: {version}; image {IMAGE}", flush=True)
-        result = command(["./mvnw", "--batch-mode", "-Dtest=PostgresStaticStoreIT", "surefire:test"],
+        result = command(["./mvnw", "--batch-mode", "-Dtest=" + ",".join(TEST_NAMES), "surefire:test"],
                          timeout=300, capture=False, check=False, env=environment)
         return result.returncode
     finally:

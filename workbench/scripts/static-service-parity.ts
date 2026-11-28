@@ -215,7 +215,9 @@ export async function runStaticServiceParity(
       serviceDirectory: service,
       runtimeConfigurationPath: join(directory, configurationName),
       signal,
-      startupTimeoutMs: 10000,
+      // Cold CI startup can exceed ten seconds. Keep startup bounded within
+      // the existing thirty-second campaign deadline, without retrying runs.
+      startupTimeoutMs: 20000,
     });
     const live = AbortSignal.any([signal, session.signal]);
     const url = session.baseUrl.replace("http:", "ws:");

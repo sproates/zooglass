@@ -35,18 +35,19 @@ test(
     );
 
     const child = spawn(
-      "npm",
+      process.execPath,
       [
-        "run",
-        "integrate",
-        "--",
+        "--import",
+        "tsx",
+        "--import",
+        "./test/support/observe-viewer-sockets.ts",
+        "src/cli/integrate.ts",
         "--fast",
         ...scenarios.map((scenario) => scenario.path),
       ],
       {
         cwd: process.cwd(),
         stdio: ["ignore", "pipe", "pipe"],
-        shell: process.platform === "win32",
       },
     );
 
@@ -146,12 +147,12 @@ test(
       "Expected every source socket to connect before its scenario runs.",
     );
     assert.equal(
-      (output.match(/WebSocket client connected:/g) ?? []).length,
+      (output.match(/Observed viewer socket opened/g) ?? []).length,
       expectedConnections,
       `Expected all scenario client connections to run.\n${output}`,
     );
     assert.equal(
-      (output.match(/WebSocket client disconnected:/g) ?? []).length,
+      (output.match(/Observed viewer socket closed/g) ?? []).length,
       expectedConnections,
       `Expected all scenario client disconnections to run.\n${output}`,
     );

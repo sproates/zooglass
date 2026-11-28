@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.zooglass.ZooGlassApplication;
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.ViewerLogCapture;
 import io.zooglass.runtime.Publication;
 import io.zooglass.runtime.RuntimeConfiguration;
 import io.zooglass.runtime.ViewCoordinator;
@@ -95,6 +97,33 @@ class ViewerAdmissionTests {
         if (client != null) client.close();
         if (service != null) service.close();
         if (policy != null) policy.close();
+    }
+
+    @Test
+    void protectedSnapshotOutcomesHaveBoundedPrivateDiagnostics() throws Exception {
+        var access = service.getBean(AdmissionAccess.class);
+        try (var capture = new ViewerLogCapture()) {
+            access.configureLogging(capture.operations);
+            String path = "/views/match/SENTINEL-entity";
+            String token = "SENTINEL-credential";
+            decision.set(ignored -> ALLOW);
+            assertThat(get(path, token).statusCode()).isIn(200, 404);
+            assertThat(capture.records).isEmpty();
+            assertThat(get(path, null).statusCode()).isEqualTo(401);
+            assertThat(capture.next("access.refused")).containsEntry("reason", "unauthenticated")
+                    .containsEntry("transport", "http").doesNotContainKey("operation");
+            decision.set(ignored -> "{\"decision\":\"deny\"}");
+            assertThat(get(path, token).statusCode()).isEqualTo(403);
+            assertThat(capture.next("access.refused")).containsEntry("reason", "denied");
+            decision.set(ignored -> "SENTINEL-malformed\npolicy");
+            assertThat(get(path, token).statusCode()).isEqualTo(503);
+            assertThat(capture.next("access.unavailable")).containsEntry("operation", "snapshot")
+                    .containsEntry("transport", "http").containsEntry("reason", "unavailable");
+            assertThat(get(path, token).statusCode()).isEqualTo(503);
+            assertThat(capture.records).isEmpty();
+        } finally {
+            access.configureLogging(service.getBean(OperationalLog.class));
+        }
     }
 
     @Test

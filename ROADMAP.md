@@ -67,9 +67,9 @@ restart, including rejection of an incompatible template change without losing s
 
 - **Operational logging — implementation underway.** The [logging plan](docs/design/operational-logging.md)
   defines quiet defaults, safe structured context and bounded lifecycle, storage,
-  access and delivery failure records. The design is accepted; lifecycle, storage
-  and processing foundations are proposed pending merge. Delivery and access
-  logging remain next.
+  access and delivery failure records. Lifecycle, storage and processing foundations
+  are delivered in [PR #208](https://github.com/sproates/zooglass/pull/208).
+  Delivery and access completion is proposed pending merge.
   Per-event explanations remain a separate capability.
 
 These are planned directions, not delivered capabilities, and have no scheduled

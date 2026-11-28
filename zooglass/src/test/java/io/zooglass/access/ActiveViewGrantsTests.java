@@ -3,6 +3,7 @@ package io.zooglass.access;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import io.zooglass.logging.ViewerLogCapture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -144,6 +145,25 @@ class ActiveViewGrantsTests {
         assertThat(lost).isEmpty();
         atMillis(1000);
         assertThat(grants.due()).hasSize(1);
+    }
+
+    @Test
+    void onlyAppliedRenewalRejectionReportsAnUnavailableDecision() throws Exception {
+        try (var capture = new ViewerLogCapture()) {
+            access.configureLogging(capture.operations);
+            subscribe(FIRST);
+            atMillis(500);
+            var old = grants.due().getFirst();
+            assertThat(grants.admit(socket, FIRST, grant(FIRST))).isTrue();
+            var unavailable = new AccessDecision.Rejected(AccessDecision.Reason.UNAVAILABLE);
+            grants.complete(old, unavailable);
+            assertThat(capture.records).isEmpty();
+            atMillis(1000);
+            grants.complete(grants.due().getFirst(), unavailable);
+            assertThat(lost).containsExactly(socket);
+            assertThat(capture.next("access.unavailable")).containsEntry("operation", "renewal")
+                    .containsEntry("transport", "websocket");
+        }
     }
 
     @Test

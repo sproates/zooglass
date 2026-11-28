@@ -12,16 +12,13 @@ import io.zooglass.access.ActiveViewGrants;
 import io.zooglass.access.ReleaseFixture;
 import io.zooglass.runtime.RuntimeConfiguration.Delivery;
 
-import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.SendHandler;
 import jakarta.websocket.SendResult;
-import jakarta.websocket.Session;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.adapter.NativeWebSocketSession;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,35 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 class AuthorisedWriterTests {
 
-    private record Sent(String payload, SendHandler completion) {
-        void finish() {
-            completion.onResult(new SendResult());
-        }
-    }
-
-    private static final class Socket {
-        final NativeWebSocketSession viewer = mock(NativeWebSocketSession.class);
-        final Session nativeSession = mock(Session.class);
-        final RemoteEndpoint.Async remote = mock(RemoteEndpoint.Async.class);
-        final LinkedBlockingQueue<Sent> sent = new LinkedBlockingQueue<>();
-
-        Socket() {
-            when(viewer.isOpen()).thenReturn(true);
-            when(viewer.getNativeSession(Session.class)).thenReturn(nativeSession);
-            when(nativeSession.getAsyncRemote()).thenReturn(remote);
-            doAnswer(call -> {
-                sent.add(new Sent(call.getArgument(0), call.getArgument(1)));
-                return null;
-            }).when(remote).sendText(anyString(), any(SendHandler.class));
-        }
-
-        Sent next() throws InterruptedException {
-            var next = sent.poll(2, TimeUnit.SECONDS);
-            assertThat(next).as("transport handoff").isNotNull();
-            return next;
-        }
-    }
-
     private static OutboundQueue.Frame frame(String payload, ActiveViewGrants.Lease lease) {
         return new OutboundQueue.Frame(payload).forLease(lease);
     }
@@ -70,7 +38,7 @@ class AuthorisedWriterTests {
     @ValueSource(strings = {"expire", "replace", "unsubscribe", "deny"})
     void aFrameTakenBeforeInvalidationCannotReachTheTransport(String action) throws Exception {
         try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
-            var socket = new Socket();
+            var socket = new NativeWriterSocket();
             var lease = fixture.admit(socket.viewer);
             var taken = new CountDownLatch(1);
             var resume = new CountDownLatch(1);
@@ -121,8 +89,8 @@ class AuthorisedWriterTests {
     @Test
     void networkCompletionDoesNotHoldGrantLocksOrBlockAnotherViewer() throws Exception {
         try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
-            var slow = new Socket();
-            var healthy = new Socket();
+            var slow = new NativeWriterSocket();
+            var healthy = new NativeWriterSocket();
             var slowLease = fixture.admit(slow.viewer);
             var healthyLease = fixture.admit(healthy.viewer);
             var failures = new LinkedBlockingQueue<Exception>();
@@ -161,7 +129,7 @@ class AuthorisedWriterTests {
     @ValueSource(strings = {"disconnectOnOverflow", "coalesceLatestState"})
     void replacementDiscardsQueuedOldGenerationBeforeAdmittingNewBaseline(String policy) throws Exception {
         try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
-            var socket = new Socket();
+            var socket = new NativeWriterSocket();
             var old = fixture.admit(socket.viewer);
             var failures = new LinkedBlockingQueue<Exception>();
             var writer = new OutboundWriter(socket.viewer, executor,
@@ -193,7 +161,7 @@ class AuthorisedWriterTests {
     @Test
     void asynchronousTransportFailureReachesWriterCleanup() throws Exception {
         try (var fixture = new ReleaseFixture(); var executor = new SocketDeliveryDriver()) {
-            var socket = new Socket();
+            var socket = new NativeWriterSocket();
             var lease = fixture.admit(socket.viewer);
             var failures = new LinkedBlockingQueue<Exception>();
             var writer = new OutboundWriter(socket.viewer, executor, new Delivery(null),
@@ -211,12 +179,12 @@ class AuthorisedWriterTests {
     @Test
     void aLeaseCannotBeSentThroughAnotherViewersTransport() throws Exception {
         try (var fixture = new ReleaseFixture()) {
-            var owner = new Socket();
-            var other = new Socket();
+            var owner = new NativeWriterSocket();
+            var other = new NativeWriterSocket();
             var lease = fixture.admit(owner.viewer);
             fixture.admit(other.viewer);
             doAnswer(call -> {
-                var sent = new Sent(call.getArgument(0), call.getArgument(1));
+                var sent = new NativeWriterSocket.Sent(call.getArgument(0), call.getArgument(1));
                 other.sent.add(sent);
                 sent.finish();
                 return null;

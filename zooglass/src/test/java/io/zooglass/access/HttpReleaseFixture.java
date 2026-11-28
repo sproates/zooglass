@@ -63,7 +63,8 @@ class HttpReleaseFixture {
     FilterRegistrationBean<Filter> observedWrites() {
         Filter filter = (request, response, chain) -> {
             var http = (HttpServletRequest) request;
-            var probe = probes.get(http.getHeader("X-Test-Case"));
+            String testCase = http.getHeader("X-Test-Case");
+            var probe = testCase == null ? null : probes.get(testCase);
             if (probe == null) {
                 chain.doFilter(request, response);
                 return;

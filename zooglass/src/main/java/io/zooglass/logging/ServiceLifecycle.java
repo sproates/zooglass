@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Runtime readiness and context closure belong to the owning service context only. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class ServiceLifecycle {
     private final OperationalLog log;

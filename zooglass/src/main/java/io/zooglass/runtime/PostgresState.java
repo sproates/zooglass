@@ -46,7 +46,7 @@ final class PostgresState implements StateStore {
         try {
             current = PostgresImage.restore(row.image(), row.revision(), profile.configuration());
         } catch (RuntimeException failure) {
-            throw invalidate(failure);
+            throw invalidate(new java.sql.SQLNonTransientException("Invalid retained image", failure));
         }
     }
 
@@ -94,6 +94,45 @@ final class PostgresState implements StateStore {
             }
         }
         return new StorageUnavailable("PostgreSQL attempt requires recovery", failure);
+    }
+
+    void probe(long deadline) {
+        try {
+            int previous = db.getNetworkTimeout();
+            db.setNetworkTimeout(Runnable::run, remaining(deadline));
+            transaction(() -> {
+                authority.probe(current().version(), () -> refreshProbeBudget(deadline));
+                refreshProbeBudget(deadline); // Commit shares the remaining absolute deadline.
+                db.setNetworkTimeout(Runnable::run, remaining(deadline));
+                return null;
+            });
+            remaining(deadline);
+            db.setNetworkTimeout(Runnable::run, previous);
+        } catch (SQLException failure) {
+            throw invalidate(failure);
+        }
+    }
+
+    private void refreshProbeBudget(long deadline) throws SQLException {
+        db.setNetworkTimeout(Runnable::run, remaining(deadline));
+        try (var sql = db.createStatement()) {
+            sql.execute("SET LOCAL lock_timeout=" + remaining(deadline));
+            sql.execute("SET LOCAL statement_timeout=" + remaining(deadline));
+        }
+    }
+
+    private int remaining(long deadline) throws SQLException {
+        long millis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime());
+        if (millis < 1) throw new SQLException("Probe deadline expired");
+        return Math.toIntExact(millis);
+    }
+
+    void abortProbe() {
+        try {
+            db.abort(Runnable::run);
+        } catch (SQLException ignored) {
+            // The probe still owns the operation gate until its transaction settles and the attempt is retired.
+        }
     }
 
     long capture() {

@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /** Serialises admission, storage commits and snapshot reads. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class ViewCoordinator implements AutoCloseable {
 

@@ -25,9 +25,31 @@ public final class ViewerBoundaryFilter extends OncePerRequestFilter {
         this.access = access;
     }
 
+    private boolean ha;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void deployment(org.springframework.core.env.Environment environment) {
+        ha = "ha-static-v1".equals(environment.getProperty("zooglass.deployment.profile"));
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain chain) throws IOException, ServletException {
+        if (ha) {
+            response.setHeader("Cache-Control", "no-store");
+            String path = request.getServletPath();
+            if ("/ha/ready".equals(path) && !operator.listener(request) && request.isSecure()) {
+                request.setAttribute(io.zooglass.runtime.HaEndpoints.PROBE_DEADLINE,
+                        System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2));
+                chain.doFilter(request, response);
+                return;
+            }
+            if (!access.protectedMode() && !("/views".equals(path) || path.startsWith("/views/")
+                    || "/events".equals(path) || "/progress".equals(path) || "/facts/retire".equals(path))) {
+                response.setStatus(403);
+                return;
+            }
+        }
         if (!access.protectedMode()) {
             chain.doFilter(request, response);
             return;

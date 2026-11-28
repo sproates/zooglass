@@ -683,7 +683,7 @@ Document and trace admission share lossless values and explicit structural check
 ```mermaid
 flowchart TB
   contract["timeline/contract.ts"] -->|lifecycle admission| lifecycle["timeline/lifecycle.ts"]
-  contract -->|lossless JSON| json["timeline/json.ts"]
+  contract -->|lossless JSON| json["json/lossless.ts via timeline/json.ts"]
   trace["timeline/trace-contract.ts"] -->|event data| event["timeline/event-schema.ts"]
   event -->|runtime envelopes| envelopes["timeline/envelopes.ts"]
   contract -->|observations| envelopes
@@ -1496,3 +1496,25 @@ flowchart LR
 
 The profiler changes observation only. It does not alter durability, retention,
 publication sequencing or the campaign's qualification rules.
+
+## HA reference client
+
+These modules consume real HA service endpoints. They do not implement runtime
+reconciliation or participate in the deterministic timeline. One shared ownership
+object stops all roles on incarnation change while retaining unresolved producer
+bytes. The timeline JSON entry point re-exports the same exact parser.
+
+```mermaid
+flowchart TB
+  viewer["service/ha/viewer.ts"] -->|connection and request epochs| state["service/ha/viewer-state.ts"]
+  viewer -->|verified HTTP and WebSocket I/O| transport["service/ha/transport.ts"]
+  producer["service/ha/producer.ts"] -->|retry original retained bytes| transport
+  state -->|shared incarnation and generation watermark| owner["service/ha/ownership.ts"]
+  producer -->|pin retained work and reject replacement incarnation| owner
+  viewer -->|finite steps and recovery episode| recovery["service/ha/recovery.ts"]
+  producer -->|one bounded publication episode| recovery
+  viewer -->|validate incoming envelopes| protocol["service/ha/protocol.ts"]
+  producer -->|validate hello and exact receipt| protocol
+  protocol -->|preserve numbers and reject ambiguous JSON| json["json/lossless.ts"]
+  timeline["timeline/json.ts"] -->|compatibility export| json
+```

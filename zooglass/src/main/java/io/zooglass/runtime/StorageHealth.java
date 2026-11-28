@@ -5,6 +5,7 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /** Storage failure removes service health until restart recovery succeeds. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class StorageHealth implements HealthIndicator {
 

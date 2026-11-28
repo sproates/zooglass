@@ -2,7 +2,7 @@
 
 A viewer must be able to reconnect to another ZooGlass process, obtain a fresh authorised snapshot and recognise data still arriving from its old connection. A producer that lost a receipt must be able to find out whether its publication committed. Both operations depend on the generation and revision checked by PostgreSQL.
 
-**Proposed contract for the integration branch.** Storage and owner admission have real-database coverage. The routes, client behaviour and deployment settings below are requirements for the transport implementation. Two-process and proxy qualification follow separately. [Clustering design](clustering-high-availability.md) · [Current PostgreSQL boundary](../../zooglass/docs/postgresql-storage.md)
+**Implemented contract on the integration branch, pending merge and qualification.** Storage, owner admission and service/client interoperability have focused real-database and TLS coverage. See the [service setup](../../zooglass/docs/ha-service.md) and [Node reference client](../../workbench/docs/ha-client.md). Two-process fault and proxy qualification follow separately. [Clustering design](clustering-high-availability.md) · [Current PostgreSQL boundary](../../zooglass/docs/postgresql-storage.md)
 
 ## Entering HA mode
 
@@ -10,7 +10,7 @@ Selecting the `ha-static-v1` deployment profile requires PostgreSQL storage, sch
 
 Each candidate listens while waiting for ownership and refuses application traffic until it can prove readiness. Run one candidacy loop and one outstanding ownership operation per process. A fresh attempt must acquire, recover, build and activate in that order. Renew the recovering or active attempt against the primary. On lost or uncertain authority retire the attempt, detach subscriptions, cancel queued work, abort outstanding HTTP output where possible and close its sockets. Re-entry requires a new attempt, generation and recovery. Existing sockets cannot switch to the next generation in place.
 
-The proposed deployment defaults are a 15-second lease, renewal every 5 seconds and a 1-second delay between candidacy attempts, with at most 250 ms of jitter. The settings must be positive and the renewal interval strictly shorter than the lease. The internal lease supports 1 to 300,000 whole milliseconds. Bound acquisition and JDBC I/O as well as the existing database lock, statement and idle-transaction waits. Timeouts and missed renewal never grant permission to continue. These are scheduling bounds, not a recovery-time claim. A permanent configuration or binding error stops candidacy until corrected. A busy owner or unavailable primary leaves the candidate unavailable and eligible for bounded retry.
+The deployment defaults are a 15-second lease, renewal every 5 seconds and a 1-second delay between candidacy attempts, with at most 250 ms of jitter. The settings must be positive and the renewal interval strictly shorter than the lease. The internal lease supports 1 to 300,000 whole milliseconds. Bound acquisition and JDBC I/O as well as the existing database lock, statement and idle-transaction waits. Timeouts and missed renewal never grant permission to continue. These are scheduling bounds, not a recovery-time claim. A permanent configuration or binding error stops candidacy until corrected. A busy owner or unavailable primary leaves the candidate unavailable and eligible for bounded retry.
 
 ## Routes and negotiation
 

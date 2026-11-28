@@ -991,3 +991,7 @@ overhead with paired client-only trials; it does not measure service capacity.
 The [SQLite profiling diagnostic](docs/sqlite-profile-diagnostic.md) retains one
 unprofiled/profiled pair to separate changed-row write time from JDBC commit
 time. It preserves FULL durability and makes no capacity claim.
+
+The integration branch also provides an [HA reference client](docs/ha-client.md)
+for real-service viewer recovery and retained producer retries. It supports explicit
+direct or stable origins; the larger direct/proxy fault qualification remains pending.

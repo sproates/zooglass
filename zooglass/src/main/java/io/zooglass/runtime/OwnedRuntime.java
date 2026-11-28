@@ -1,6 +1,10 @@
 package io.zooglass.runtime;
 
+import io.zooglass.access.ViewResource;
+import io.zooglass.api.ViewSnapshot;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -65,23 +69,139 @@ final class OwnedRuntime implements AutoCloseable {
         }
     }
 
-    synchronized Published publish(Publication input) {
+    private record Transition(PublicationOutcome outcome, long revision, List<ViewCoordinator.Snapshot> updates) {}
+
+    private Transition reconcile(Publication input) {
         requireActive();
         var snapshots = new ArrayList<ViewCoordinator.Snapshot>();
         var detach = coordinator.listen(snapshots::add);
         try {
             var result = coordinator.apply(input);
-            // New success is backed by its checked commit. Duplicates and refusals require a current capture.
             long revision = "committed".equals(result.status()) ? result.version() : store.capture();
-            var receipt = capture(result, revision);
-            var updates = snapshots.stream().map(snapshot -> capture(snapshot, revision)).toList();
-            return new Published(receipt, updates);
-        } catch (RuntimeException failure) {
-            throw store.invalidate(failure);
+            return new Transition(result, revision, snapshots);
         } finally {
             detach.run();
         }
     }
+
+    synchronized Published publish(Publication input) {
+        requireActive();
+        try {
+            var result = reconcile(input);
+            return new Published(capture(result.outcome, result.revision),
+                    result.updates.stream().map(snapshot -> capture(snapshot, result.revision)).toList());
+        } catch (RuntimeException failure) {
+            throw store.invalidate(failure);
+        }
+    }
+
+    /** Fully serialised public payload, unexposed until a particular recipient obtains a permit. */
+    final class Frame {
+        private final Object recipient;
+        private final String kind;
+        private final Content content;
+        private final int maximumBytes;
+
+        private Frame(Object recipient, String kind, Object payload, long revision) {
+            this.recipient = recipient;
+            this.kind = kind;
+            content = capture(payload, revision);
+            maximumBytes = "accessRefusal".equals(kind) ? content.body.getBytes(StandardCharsets.UTF_8).length
+                    : Math.addExact(envelope("").getBytes(StandardCharsets.UTF_8).length, 19);
+        }
+
+        int maximumBytes() { return maximumBytes; }
+        String kind() { return kind; }
+
+        private String envelope(String authority) {
+            if ("accessRefusal".equals(kind)) return content.body;
+            return "{\"kind\":\"" + kind + "\",\"incarnation\":\"" + content.owner.incarnation()
+                    + "\",\"generation\":\"" + content.owner.generation() + "\",\"contentRevision\":\"" + content.revision
+                    + "\",\"authorityRevision\":\"" + authority + "\",\"payload\":" + content.body + "}";
+        }
+
+        String admit(Object destination) {
+            if (recipient != destination) throw new IllegalStateException("Different HA recipient");
+            var authority = new String[1];
+            handoff(content, admission -> authority[0] = admission.authorityRevision());
+            return envelope(authority[0]);
+        }
+    }
+
+    final class Change {
+        private final ViewSnapshot snapshot;
+        private final long revision;
+
+        private Change(ViewCoordinator.Snapshot snapshot, long revision) {
+            this.snapshot = ViewSnapshot.from(snapshot);
+            this.revision = revision;
+        }
+
+        ViewResource resource() { return new ViewResource(snapshot.viewId(), snapshot.entityId()); }
+
+        Frame forSubscription(Object recipient, String subscription) {
+            return new Frame(recipient, "update", Map.of("subscription", subscription, "snapshot", snapshot), revision);
+        }
+    }
+
+    record PublicationFrames(Frame receipt, List<Change> changes) {}
+
+    synchronized PublicationFrames publication(Object source, Publication input) {
+        requireActive();
+        try {
+            var result = reconcile(input);
+            return new PublicationFrames(new Frame(source, "receipt", result.outcome, result.revision),
+                    result.updates.stream().map(snapshot -> new Change(snapshot, result.revision)).toList());
+        } catch (RuntimeException failure) {
+            throw store.invalidate(failure);
+        }
+    }
+
+    synchronized Frame hello(Object destination) {
+        return new Frame(destination, "hello", Map.of(), store.capture());
+    }
+
+    synchronized Frame malformed(Object destination) {
+        return new Frame(destination, "receipt", PublicationOutcome.malformed(), store.capture());
+    }
+
+    synchronized Frame snapshotFrame(Object destination, ViewResource resource) {
+        long revision = store.capture();
+        return coordinator.snapshot(resource.viewId(), resource.entityId()).map(snapshot ->
+                new Frame(destination, "snapshot", ViewSnapshot.from(snapshot), revision))
+                .orElseGet(() -> new Frame(destination, "notFound", Map.of(), revision));
+    }
+
+    synchronized List<Frame> opening(Object destination, String id, ViewResource resource) {
+        long revision = store.capture();
+        var snapshot = coordinator.snapshot(resource.viewId(), resource.entityId());
+        if (snapshot.isEmpty()) {
+            return List.of(new Frame(destination, "requestError", Map.of("code", "unknownView", "subscription", id), revision));
+        }
+        return List.of(new Frame(destination, "subscribed", Map.of("subscription", id, "viewId", resource.viewId(),
+                        "entityId", resource.entityId(), "recovery", "freshSnapshot"), revision),
+                new Frame(destination, "baseline", Map.of("subscription", id, "snapshot", ViewSnapshot.from(snapshot.get())), revision));
+    }
+
+    synchronized Frame refusal(Object destination, String id, io.zooglass.access.AccessDecision.Reason reason) {
+        String code = reason == io.zooglass.access.AccessDecision.Reason.UNAVAILABLE ? "accessUnavailable" : "accessDenied";
+        return new Frame(destination, "accessRefusal", Map.of("error", code, "subscription", id), store.capture());
+    }
+
+    synchronized Frame unsubscribed(Object destination, String id, ViewResource resource) {
+        return new Frame(destination, "unsubscribed", Map.of("subscription", id, "viewId", resource.viewId(),
+                "entityId", resource.entityId()), store.capture());
+    }
+
+    synchronized Frame invalid(Object destination) {
+        return new Frame(destination, "requestError", StateRowJson.JSON.createObjectNode()
+                .put("code", "invalidRequest").putNull("subscription"), store.capture());
+    }
+
+    synchronized void probe(long deadline) { requireActive(); store.probe(deadline); }
+
+    /** Called only by the deadline watchdog for the probe holding the exclusive service gate. */
+    void abortProbe() { store.abortProbe(); }
 
     synchronized Content snapshot(String viewId, String entityId) {
         requireActive();

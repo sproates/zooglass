@@ -76,7 +76,7 @@ configuration, bounded barriers, expectations and access mode. Each case has a
 | 11   | Protected reconnect               | Protected | Direct       | Fresh admission, policy refusal/outage and grant expiry do not leak snapshots                              |
 | 12   | Backend recovery and cancellation | Protected | Direct       | Exact committed state survives database outage and candidate restart; cancellation cleans owned resources  |
 | 13   | Stable origin, open               | Open      | Proxy        | Successor baseline, retained retry and continued updates; delayed results are discarded                    |
-| 14   | Stable origin, protected          | Protected | Proxy        | Fresh admission, stale-health refusal, expiry, probe/TLS rejection and backend recovery                    |
+| 14   | Stable origin, protected          | Protected | Proxy        | Fresh admission, stale-health refusal, denied renewal, probe/TLS rejection and backend recovery            |
 
 Case 10 deliberately uses protected access to exercise an actual candidate tenant
 mismatch. Case 13 selects `coalesceLatestState`; the other cases select
@@ -87,7 +87,13 @@ Protected publications and retries use a trusted sidecar beside each JVM. It
 connects to that JVM's loopback operator listener with a separate operator token.
 Viewer credentials and HAProxy never grant source access. HAProxy passes viewer
 TLS through to ZooGlass, validates its own authenticated readiness probes and does
-not replay requests or migrate established sockets.
+not replay requests or migrate established sockets. The hostname fault changes
+both the probe SNI and its fallback `verifyhost`: HAProxy checks the SNI name
+when supplied, as described in its [certificate verification reference](https://docs.haproxy.org/3.2/configuration.html#5.2-verify).
+
+Probe faults use a [master-worker reload](https://docs.haproxy.org/3.2/management.html#4)
+inside the existing container, preserving its published client address. Each reload
+checks that address; it does not restart a container with a newly allocated port.
 
 ## Fault barriers and negative controls
 

@@ -60,6 +60,11 @@ export async function case7(ctx: CaseContext): Promise<void> {
     await ctx.cluster.nodes[first.index].resume();
   }
 
+  const initialStatic = await capture(ctx, current.index, {
+    viewId: "static",
+    entityId: "42",
+  });
+  assert.equal((initialStatic.payload.version as Decimal).text, "1");
   const viewer = await subscription(ctx, current.index),
     events: ViewerEvent[] = [];
   const ownership = new Ownership(),
@@ -107,7 +112,8 @@ export async function case7(ctx: CaseContext): Promise<void> {
       entityId: "42",
     });
     assert.equal(unchanged.contentRevision, 8n);
-    assert.equal((unchanged.payload.version as Decimal).text, "0");
+    assert.equal((unchanged.payload.version as Decimal).text, "1");
+    assert.deepEqual(unchanged.payload, initialStatic.payload);
 
     const after = await ctx.cluster.nodes[current.index].armBarrier("after");
     await publish(ctx, current.index, input(9));

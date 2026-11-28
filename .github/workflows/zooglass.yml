@@ -26,6 +26,8 @@ jobs:
       - run: ./mvnw --batch-mode verify
       - name: Verify PostgreSQL storage using prepared test classes
         run: python3 scripts/test-postgresql.py
+      - name: Check preparation rejects stale evidence
+        run: python3 scripts/test-ha-preparation.py
       - name: Prepare capture-fence negative controls explicitly
         run: |
           ./mvnw --batch-mode dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/ha-test-classpath.txt

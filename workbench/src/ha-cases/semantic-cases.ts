@@ -3,6 +3,7 @@ import https from "node:https";
 import { Decimal, encodeJson, parseJson, type Json } from "../json/lossless.js";
 import {
   decode,
+  AccessFailure,
   object,
   mediaType,
   type ObjectValue,
@@ -270,6 +271,37 @@ async function durableState(ctx: CaseContext): Promise<string> {
   );
 }
 
+async function reconciledRefusal(
+  ctx: CaseContext,
+  index: number,
+  bytes: string,
+  reason: string,
+  expectedState: string,
+): Promise<void> {
+  const result = await ctx.cluster.nodes[index].publish(bytes);
+  assert.equal(result.status, "unresolved");
+  assert.equal(result.reason, reason);
+  assert.ok(
+    result.receiptJson,
+    "Known reconciliation refusal must carry its real receipt",
+  );
+  const rejected = object(parseJson(result.receiptJson));
+  assert.equal(rejected.status, "rejected");
+  assert.equal(rejected.reason, reason);
+  assert.equal(result.publication?.bytes, bytes);
+  assert.ok(result.publication?.incarnation);
+  // The application fixture verifies the refusal against durable state before explicitly reconciling it.
+  assert.equal(await durableState(ctx), expectedState);
+  ctx.record("retained-refusal-reconciled", {
+    node: String(index),
+    receipt: rejected,
+    bytes,
+    incarnation: result.publication.incarnation,
+    durableStateUnchanged: true,
+  });
+  await ctx.cluster.nodes[index].discardAfterReconciliation(bytes);
+}
+
 export async function case10(ctx: CaseContext): Promise<void> {
   let owner = await ctx.cluster.readyOwner();
   const first = event("backup", 2, "score", 19);
@@ -282,16 +314,12 @@ export async function case10(ctx: CaseContext): Promise<void> {
     [event("primary", 6, "unmatched", 1), "identityConflict"],
   ];
   for (const [bytes, reason] of rejectInputs) {
-    const rejected = await publish(ctx, owner.index, bytes);
-    assert.equal(rejected.status, "rejected");
-    assert.equal(rejected.reason, reason);
+    await reconciledRefusal(ctx, owner.index, bytes, reason, before);
   }
   assert.equal(await durableState(ctx), before);
   owner = await takeover(ctx, owner);
   for (const [bytes, reason] of rejectInputs) {
-    const rejected = await publish(ctx, owner.index, bytes);
-    assert.equal(rejected.status, "rejected");
-    assert.equal(rejected.reason, reason);
+    await reconciledRefusal(ctx, owner.index, bytes, reason, before);
   }
   const duplicate = await publish(ctx, owner.index, retained);
   assert.equal(duplicate.status, "duplicate");
@@ -510,20 +538,51 @@ export async function case11(ctx: CaseContext): Promise<void> {
         expectedValue(19),
       );
       assert.ok((await ctx.cluster.policyState()).decisions > admittedBefore);
-      // No new request can refresh this membership. Its real policy grant must close it.
-      const expiry = deadline();
-      await assert.rejects(channel.next(expiry));
+      // Renewal starts normally, but its response arrives after the existing grant expires.
+      const beforeRenewal = (await ctx.cluster.policyState()).decisions;
+      // Bound from arming, not a possibly late observation of the pending request.
+      // Neither the five-second policy timeout nor its delayed reply can cause this close.
+      const armedAt = performance.now();
+      const expiry = AbortSignal.any([ctx.signal, AbortSignal.timeout(2000)]);
+      await ctx.cluster.policy("allow", 1000, 5000);
+      const pendingRenewal = await waitFor(
+        async () => {
+          const state = await ctx.cluster.policyState();
+          return state.decisions > beforeRenewal && state.pendingResponses > 0
+            ? state
+            : undefined;
+        },
+        "renewal awaiting delayed policy response",
+        expiry,
+        2000,
+      );
+      await assert.rejects(
+        channel.next(expiry),
+        (error) =>
+          error instanceof AccessFailure &&
+          error.message === "Socket access lost",
+      );
       assert.equal(
         expiry.aborted,
         false,
         "Grant expiry must close the socket before the harness deadline",
       );
+      const closeAfterMillis = Math.round(performance.now() - armedAt);
+      assert.ok(closeAfterMillis < 2000);
       ctx.record("fresh-admission-and-grant-expiry", {
+        pendingRenewalObserved: true,
+        grantLifetimeMillis: "1000",
+        policyDelayMillis: "5000",
+        policyTimeoutMillis: "5000",
+        closureDeadlineMillis: "2000",
+        closeAfterMillis: String(closeAfterMillis),
+        renewalDecisions: String(pendingRenewal.decisions - beforeRenewal),
         generation: String(hello.generation),
         baseline: baseline.payload,
       });
     } finally {
       channel.close();
+      await ctx.cluster.policy("allow", 5000, 0);
     }
   } finally {
     await first.close();

@@ -3,8 +3,9 @@
 The integration branch adds `ha-static-v1`: one active ZooGlass process and takeover
 candidates sharing one PostgreSQL primary and runtime schema. Each response is
 checked against database ownership. The service and Node reference client are
-implemented here; the two-process fault harness, real proxy deployment and finite
-qualification remain outstanding. This is not a production HA certification or a
+implemented here. The [real-process fault harness](../../workbench/docs/ha-fault-harness.md)
+adds isolated two-JVM and HAProxy acceptance checks; finite recorded deployment
+qualification remains outstanding. This is not a production HA certification or a
 horizontal scaling capability.
 
 Read the [supported static profile](postgresql-storage.md) and

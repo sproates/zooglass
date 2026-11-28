@@ -55,6 +55,7 @@ export function rawGet(
     const request = https.get(
       origin + path,
       {
+        agent: false,
         ca: ctx.cluster.ca,
         rejectUnauthorized: true,
         signal: signal(ctx),

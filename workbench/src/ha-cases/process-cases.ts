@@ -26,10 +26,21 @@ function version(value: unknown): string {
 }
 export async function case1(ctx: CaseContext): Promise<void> {
   const owner = await ctx.cluster.readyOwner();
-  const statuses = await Promise.all(
-    ctx.cluster.nodes.map((node) =>
-      rawGet(ctx, node.viewer, "/ha/ready", ctx.cluster.credentials.probe),
-    ),
+  const statuses = await waitFor(
+    async () => {
+      const replies = await Promise.all(
+        ctx.cluster.nodes.map((node) =>
+          rawGet(ctx, node.viewer, "/ha/ready", ctx.cluster.credentials.probe),
+        ),
+      );
+      // Concurrent readiness work may truthfully return busy503 on both candidates.
+      // Return any serving observation; the assertions below must reject two200s.
+      return replies.some((reply) => reply.status === 200)
+        ? replies
+        : undefined;
+    },
+    "a serving readiness observation",
+    ctx.signal,
   );
   assert.equal(statuses.filter((reply) => reply.status === 200).length, 1);
   assert.equal(statuses.filter((reply) => reply.status === 503).length, 1);

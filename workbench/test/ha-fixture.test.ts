@@ -122,6 +122,14 @@ test("fixture configuration preserves passthrough TLS and private local producer
   assert.match(proxy, /verifyhost node-a/);
   assert.doesNotMatch(proxy, /8081|ssl crt|forwardfor/);
   assert.match(proxy, /retries 0/);
+  const wrongName = proxyConfiguration(credentials, undefined, "wrong.invalid");
+  assert.equal(
+    (
+      wrongName.match(/verifyhost wrong\.invalid check-sni wrong\.invalid/g) ??
+      []
+    ).length,
+    2,
+  );
   const app = application(
     "applicationPolicy",
     "node-a",
@@ -167,6 +175,8 @@ test("fault barriers publish complete exclusive tokens and distinguish interrupt
   await files.waitReached("before", token);
   await writeFile(join(directory, `before-${token}.interrupted`), "");
   assert.equal(await files.release("before", token), "interrupted");
+  await assert.rejects(files.arm("write-locked"), { code: "ENOENT" });
+  await writeFile(join(directory, "authority.installed"), "installed");
   const other = await files.arm("write-locked");
   await writeFile(join(directory, `write-locked-${other}.expired`), "");
   await assert.rejects(files.waitReached("write-locked", other), /expired/);

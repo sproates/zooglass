@@ -85,7 +85,7 @@
     "prepare:ha": "node scripts/prepare-ha.js",
     "ha:verify": "node scripts/prepare-ha.js --verify",
     "ha:run": "node dist/ha-cases/run.js",
-    "test:ha-fixture": "node --import tsx --test test/ha-fixture.test.ts test/ha-runner.test.ts"
+    "test:ha-fixture": "node --import tsx --test test/ha-fixture.test.ts test/ha-runner.test.ts test/ha-proxy-health.test.ts test/ha-policy-delay.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -6,6 +6,7 @@ import { Ownership } from "../service/ha/ownership.js";
 import { NodeTransport } from "../service/ha/transport.js";
 import { decode } from "../service/ha/protocol.js";
 import { encodeJson } from "../json/lossless.js";
+import { PolicyReplies } from "./policy-delay.js";
 import { TcpGate } from "./tcp-gate.js";
 import type { SidecarSettings, PolicyMode } from "./types.js";
 
@@ -40,7 +41,9 @@ const producer = new HaProducer({
 let mode: PolicyMode = "allow",
   decisions = 0,
   lifetimeMillis = 2000,
+  delayMillis = 0,
   publishing = false;
+const replies = new PolicyReplies();
 const policy = https.createServer({ key, cert: ca }, (request, response) => {
   request.resume();
   if (request.headers.authorization !== `Bearer ${config.policyToken}`) {
@@ -48,19 +51,25 @@ const policy = https.createServer({ key, cert: ca }, (request, response) => {
     return;
   }
   decisions++;
-  if (mode === "unavailable") {
-    response.writeHead(503).end();
-    return;
-  }
-  response
-    .writeHead(200, { "content-type": "application/json" })
-    .end(
+  const decisionMode = mode,
+    lifetime = lifetimeMillis;
+  replies.send(response, delayMillis, () => {
+    if (decisionMode === "unavailable") {
+      response.writeHead(503).end();
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" }).end(
       JSON.stringify(
-        mode === "deny"
+        decisionMode === "deny"
           ? { decision: "deny" }
-          : { decision: "allow", subject: "fixture-viewer", lifetimeMillis },
+          : {
+              decision: "allow",
+              subject: "fixture-viewer",
+              lifetimeMillis: lifetime,
+            },
       ),
     );
+  });
 });
 await new Promise<void>((resolve) => policy.listen(19443, "0.0.0.0", resolve));
 async function body(
@@ -91,7 +100,15 @@ const control = http.createServer((request, response) => {
       return;
     }
     if (request.method === "GET" && request.url === "/policy") {
-      response.end(JSON.stringify({ mode, decisions, lifetimeMillis }));
+      response.end(
+        JSON.stringify({
+          mode,
+          decisions,
+          lifetimeMillis,
+          delayMillis,
+          pendingResponses: replies.pending,
+        }),
+      );
       return;
     }
     if (request.method === "GET" && request.url === "/owner") {
@@ -127,6 +144,13 @@ const control = http.createServer((request, response) => {
       request.url === "/policy" &&
       ["allow", "deny", "unavailable"].includes(String(input.mode))
     ) {
+      if (
+        input.delayMillis !== undefined &&
+        (!Number.isInteger(input.delayMillis) ||
+          Number(input.delayMillis) < 0 ||
+          Number(input.delayMillis) > 5000)
+      )
+        throw new Error("Invalid policy delay");
       if (input.lifetimeMillis !== undefined) {
         if (
           !Number.isInteger(input.lifetimeMillis) ||
@@ -136,6 +160,8 @@ const control = http.createServer((request, response) => {
           throw new Error("Invalid grant lifetime");
         lifetimeMillis = Number(input.lifetimeMillis);
       }
+      if (input.delayMillis !== undefined)
+        delayMillis = Number(input.delayMillis);
       mode = input.mode as PolicyMode;
       response.end("{}");
       return;
@@ -195,6 +221,21 @@ const control = http.createServer((request, response) => {
       response.end(JSON.stringify(result));
       return;
     }
+    if (request.url === "/discard-after-reconciliation") {
+      if (
+        publishing ||
+        typeof input.bytes !== "string" ||
+        producer.retained?.bytes !== input.bytes
+      )
+        throw new Error(
+          "Reconciliation must name the idle retained publication",
+        );
+      producer.discardAfterReconciliation();
+      response.end(
+        JSON.stringify({ discarded: producer.retained === undefined }),
+      );
+      return;
+    }
     if (request.url === "/publish" && typeof input.bytes === "string") {
       if (publishing) throw new Error("Only one publication may be pending");
       if (producer.retained && producer.retained.bytes !== input.bytes)
@@ -234,6 +275,7 @@ async function close() {
   if (closing) return;
   closing = true;
   producer.close();
+  replies.close();
   control.closeAllConnections();
   policy.closeAllConnections();
   await Promise.all([

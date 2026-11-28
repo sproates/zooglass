@@ -291,6 +291,7 @@ jobs:
     needs:
       [
         test-and-build,
+        ha-faults,
         timeline,
         browser-host,
         native-lifecycle,
@@ -308,4 +309,4 @@ jobs:
         env:
           PLAN: ${{ inputs.plan }}
           RESULTS: ${{ toJSON(needs) }}
-          GROUPS: '{"test-and-build":["static","core","demo","reconnect"],"timeline":["core"],"browser-host":["browser"],"native-lifecycle":["native","reconnect"],"browser-engines":["engines"]}'
+          GROUPS: '{"test-and-build":["static","core","demo","reconnect"],"ha-faults":["core"],"timeline":["core"],"browser-host":["browser"],"native-lifecycle":["native","reconnect"],"browser-engines":["engines"]}'

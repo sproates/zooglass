@@ -118,7 +118,7 @@ export const faultCases: readonly FaultCase[] = [
     [
       "stale write cannot commit",
       "FIFO content7 authority8 then content8",
-      "unchanged view version0 at capture8",
+      "unchanged view version1 at capture8",
       "new output refused on former owner",
     ],
     ["latestBySequence", "arrival"],
@@ -221,7 +221,7 @@ export const faultCases: readonly FaultCase[] = [
     [
       "protected proxy owner termination",
       "frozen old proxy health across takeover",
-      "grant expiry",
+      "denied grant renewal",
       "bad probe credentials and hostname",
       "backend outage",
     ],

@@ -99,11 +99,12 @@ function snapshotAt(
 async function proxySnapshot(ctx: CaseContext): Promise<Envelope> {
   return waitFor(
     async () => {
-      const reply = await proxyTransport(ctx).read(
+      const reply = await rawGet(
+        ctx,
         ctx.cluster.proxy.origin,
         "/views/match/42",
-        signal(ctx),
       );
+      if (reply.status !== 200) return undefined;
       const frame = decode(reply.body, maxBytes);
       return !("error" in frame) && frame.kind === "snapshot"
         ? frame
@@ -314,7 +315,7 @@ export async function case14(ctx: CaseContext): Promise<void> {
     assert.equal(
       expiry.aborted,
       false,
-      "Service grant expiry must close before the harness deadline",
+      "Denied renewal must close before the harness deadline",
     );
     const receipt = await publish(
       ctx,
@@ -341,12 +342,9 @@ export async function case14(ctx: CaseContext): Promise<void> {
       "completed failed proxy probes on both backends",
       ctx.signal,
     );
+    // Health removes backends for new TCP connections, not existing passthrough tunnels.
     await assert.rejects(
-      proxyTransport(ctx).read(
-        ctx.cluster.proxy.origin,
-        "/views/match/42",
-        signal(ctx),
-      ),
+      rawGet(ctx, ctx.cluster.proxy.origin, "/views/match/42"),
     );
     ctx.record("invalid-proxy-probe-refused", {
       kind,

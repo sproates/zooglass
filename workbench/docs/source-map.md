@@ -1521,7 +1521,6 @@ flowchart TB
   timeline["timeline/json.ts"] -->|compatibility export| json
 ```
 
-
 ## Two-process HA fault harness
 
 [`ha-cases/run.ts`](../src/ha-cases/run.ts) is the `ha:run` command. It verifies
@@ -1542,7 +1541,9 @@ flowchart TB
   process -->|checked reads and retained publications| context["ha-cases/context.ts"]
   ordering -->|observe service database lock| database["ha-cases/database-barrier.ts"]
   semantic -->|authored semantic assertions| context
+  semantic -->|observe expired lease and real acquisition rollback| binding["ha-cases/binding-observation.ts"]
   proxy -->|real TLS frames and delayed callbacks| wire["ha-cases/wire.ts"]
+  proxy -->|require completed failed backend probes| health["ha-fixture/proxy-health.ts"]
   context -->|verified HTTP and WebSocket transport| transport["service/ha/transport.ts"]
   wire -->|real service socket observations| transport
   run -->|own two JVMs and supporting containers| cluster["ha-fixture/cluster.ts"]
@@ -1555,11 +1556,13 @@ flowchart TB
   cluster -->|ephemeral verified TLS| tls["ha-fixture/certificates.ts"]
   cluster -->|deadline-bound control requests| requests["ha-fixture/requests.ts"]
   cluster -->|arm and release prepared JVM hooks| barriers["ha-fixture/barriers.ts"]
+  cluster -->|parse bounded backend health statistics| health["ha-fixture/proxy-health.ts"]
   run["ha-cases/run.ts"] -->|immutable container versions| images["ha-fixture/images.ts"]
   run -->|pass verified images and artifacts| cluster
   sidecar["ha-fixture/sidecar.ts"] -->|partition only its JVM database connection| gate["ha-fixture/tcp-gate.ts"]
   sidecar -->|trusted local source and retained retries| producer["service/ha/producer.ts"]
   sidecar -->|source hello and operator requests| transport["service/ha/transport.ts"]
+  sidecar -->|bounded delayed policy replies and cancellation| policyDelay["ha-fixture/policy-delay.ts"]
 ```
 
 `sidecar.ts` executes inside the owned Node container beside a JVM. Its controlled

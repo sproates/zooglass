@@ -39,6 +39,7 @@ export function application(
           "zooglass.access.origin": "https://fixture-viewer.example",
           "zooglass.access.policy-url": "https://node-a:19443/decision",
           "zooglass.access.service-token": credentials.policy,
+          "zooglass.access.timeout-ms": 5000,
           "zooglass.access.operator-port": 8081,
           "zooglass.access.operator-token": credentials.operator,
         }
@@ -71,6 +72,6 @@ backend zoo
   option httpchk
   http-check send meth GET uri /ha/ready ver HTTP/1.1 hdr Host localhost hdr Authorization "Bearer ${probeToken}"
   http-check expect status 200
-${(["node-a", "node-b"] as const).map((name) => `  server ${name} ${name}:8443 check check-ssl verify required ca-file /fixture/cert.pem verifyhost ${verifyHost ?? name} check-sni ${name} inter 200ms fall 3 rise 2`).join("\n")}
+${(["node-a", "node-b"] as const).map((name) => `  server ${name} ${name}:8443 check check-ssl verify required ca-file /fixture/cert.pem verifyhost ${verifyHost ?? name} check-sni ${verifyHost ?? name} inter 200ms fall 3 rise 2`).join("\n")}
 `;
 }

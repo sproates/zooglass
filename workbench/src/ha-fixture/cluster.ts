@@ -34,6 +34,7 @@ export interface NodeFixture {
   viewer: string;
   control: string;
   publish(bytes: string): Promise<SourceResult>;
+  discardAfterReconciliation(bytes: string): Promise<void>;
   armBarrier(stage: BarrierStage): Promise<string>;
   waitBarrier(stage: BarrierStage, token: string): Promise<void>;
   releaseBarrier(
@@ -305,6 +306,17 @@ export class HaCluster {
         control: `http://127.0.0.1:${await this.port(container, 19090)}`,
         publish: async (bytes) =>
           this.control(node, "/publish", { bytes }) as Promise<SourceResult>,
+        discardAfterReconciliation: async (bytes) => {
+          const result = (await this.control(
+            node,
+            "/discard-after-reconciliation",
+            { bytes },
+          )) as { discarded?: boolean };
+          if (result.discarded !== true)
+            throw new Error(
+              "Fixture reconciliation did not discard the named publication",
+            );
+        },
         kill: (signal) =>
           this.signalNode(node, signal === "SIGTERM" ? "TERM" : "KILL"),
         pause: () => this.signalNode(node, "STOP"),
@@ -450,18 +462,30 @@ export class HaCluster {
       this.options.signal,
     );
   }
-  async policy(mode: PolicyMode, lifetimeMillis?: number): Promise<void> {
-    await this.control(this.nodes[0], "/policy", { mode, lifetimeMillis });
+  async policy(
+    mode: PolicyMode,
+    lifetimeMillis?: number,
+    delayMillis?: number,
+  ): Promise<void> {
+    await this.control(this.nodes[0], "/policy", {
+      mode,
+      lifetimeMillis,
+      delayMillis,
+    });
   }
   async policyState(): Promise<{
     mode: PolicyMode;
     decisions: number;
     lifetimeMillis: number;
+    delayMillis: number;
+    pendingResponses: number;
   }> {
     return (await this.control(this.nodes[0], "/policy")) as {
       mode: PolicyMode;
       decisions: number;
       lifetimeMillis: number;
+      delayMillis: number;
+      pendingResponses: number;
     };
   }
   async database(available: boolean): Promise<void> {
@@ -597,7 +621,20 @@ export class HaCluster {
       join(this.directory, "haproxy.cfg"),
       proxyConfiguration(this.credentials, options.token, options.verifyHost),
     );
-    await docker(["restart", this.names.proxy], undefined, this.options.signal);
+    await docker(
+      ["exec", this.names.proxy, "haproxy", "-c", "-f", "/fixture/haproxy.cfg"],
+      undefined,
+      this.options.signal,
+    );
+    // Reload the master, not the container: Docker reassigns ephemeral published ports on restart.
+    await docker(
+      ["kill", "--signal", "USR2", this.names.proxy],
+      undefined,
+      this.options.signal,
+    );
+    const published = `https://localhost:${await this.port(this.names.proxy, 8443)}`;
+    if (published !== this.proxy.origin)
+      throw new Error("Proxy reload changed the stable origin");
   }
   private closeTask?: Promise<void>;
   close(): Promise<void> {

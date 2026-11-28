@@ -63,14 +63,21 @@ restart, including rejection of an incompatible template change without losing s
   the [bounded completion contract](workbench/docs/timeline-completion.md) remain distinct.
 - **Event explanations.** [Production publication decisions](zooglass/docs/publication-decisions.md) are delivered. The [V5 evidence and offline report](workbench/docs/timeline-explanations.md) are delivered in [PR #194](https://github.com/sproates/zooglass/pull/194). The [fixed 12-execution qualification](workbench/docs/timeline-explanation-qualification.md) passes, including a production reason mutant and independently audited retained evidence. Coverage remains the static arrival/latest/history family.
 
+## Operational logging
+
+[Operational logging](zooglass/docs/operational-logging.md) is delivered through
+[PR #208](https://github.com/sproates/zooglass/pull/208) and
+[PR #209](https://github.com/sproates/zooglass/pull/209). Lifecycle, storage,
+processing, delivery and access records use safe structured fields and bounded
+repetition. Per-event explanations remain a separate capability.
+
 ## Further direction
 
-- **Operational logging — implementation underway.** The [logging plan](docs/design/operational-logging.md)
-  defines quiet defaults, safe structured context and bounded lifecycle, storage,
-  access and delivery failure records. Lifecycle, storage and processing foundations
-  are delivered in [PR #208](https://github.com/sproates/zooglass/pull/208).
-  Delivery and access completion is proposed pending merge.
-  Per-event explanations remain a separate capability.
+The [first high-availability design](docs/design/clustering-high-availability.md)
+is proposed for review. It recommends one active ZooGlass instance and one takeover
+candidate with PostgreSQL authority, a limited static-view profile and explicit
+client recovery. No clustering capability is implemented yet. Horizontal scaling
+and database failover remain outside that first proposal.
 
 These are planned directions, not delivered capabilities, and have no scheduled
 delivery date:
@@ -81,7 +88,10 @@ delivery date:
 - **Reusable front-end components.** Investigate which parts of the demos would be useful in applications that provide their own UI.
 - **Real data sources.** Investigate which independently operated sources to support first and whether their integration code would make a useful adapter.
 - **Performance measurement and optimisation.** The accepted [single-instance baseline](docs/design/single-instance-performance.md) defines a finite measurement campaign before clustering work. A [scoped 100/s memory/SQLite result](workbench/docs/performance-baseline-20261125.md) is documented with raw evidence and independent audit; the [coverage report](workbench/docs/performance-coverage-20261128.md) distinguishes the finished campaign schedule from the wider matrix that remains unqualified. Further measurement should answer a concrete workload question. SQLite optimisation and alternative storage backends are separate decisions; the tested persistence configuration is not a universal ZooGlass throughput ceiling. Measure clustered scaling when that capability exists; current correctness tests are not throughput or latency benchmarks.
-- **Clustering and high availability.** Investigate failover, distributing work across instances and client continuity. Define state ownership, replication and protection against conflicting writers, building on the existing single-instance SQLite recovery guarantees.
+- **Clustering and high availability.** Review the proposed first profile above,
+  its ownership and output boundaries, finite qualification and implementation
+  sequence before starting code. Broader profiles and distributing work across
+  instances need later decisions.
 
 Broader replay, query and distributed-storage
 capabilities can be considered separately as concrete needs emerge; they are not

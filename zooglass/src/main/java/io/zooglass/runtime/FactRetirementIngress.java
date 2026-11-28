@@ -1,7 +1,8 @@
 package io.zooglass.runtime;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.OperationalLog.SourceOperation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -16,13 +17,17 @@ import java.util.Map;
 @Component
 public final class FactRetirementIngress extends TextWebSocketHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FactRetirementIngress.class);
     private final ViewCoordinator coordinator;
-    private final ObjectMapper json;
+    private final IngressReceipts receipts;
 
     public FactRetirementIngress(ViewCoordinator coordinator, ObjectMapper json) {
+        this(coordinator, json, OperationalLog.NONE);
+    }
+
+    @Autowired
+    public FactRetirementIngress(ViewCoordinator coordinator, ObjectMapper json, OperationalLog operations) {
         this.coordinator = coordinator;
-        this.json = json;
+        this.receipts = new IngressReceipts(json, operations, SourceOperation.RETIREMENT);
     }
 
     @Override
@@ -32,17 +37,15 @@ public final class FactRetirementIngress extends TextWebSocketHandler {
         try {
             control = FactRetirement.parse(message.getPayload());
         } catch (RuntimeException failure) {
-            send(session, FactRetirementOutcome.rejected(null, null, "invalidFactRetirement"));
+            receipts.invalid();
+            receipts.send(session, FactRetirementOutcome.rejected(null, null, "invalidFactRetirement"));
             return;
         }
         FactRetirementOutcome outcome;
         try {
             outcome = coordinator.retire(control);
         } catch (RuntimeException failure) {
-            LOG.warn(
-                    "Fact retirement failed in session {} ({})",
-                    session.getId(),
-                    failure.getClass().getSimpleName());
+            receipts.processingFailed(failure);
             outcome =
                     new FactRetirementOutcome(
                             "factRetirement",
@@ -53,10 +56,6 @@ public final class FactRetirementIngress extends TextWebSocketHandler {
                             Map.of(),
                             List.of());
         }
-        send(session, outcome);
-    }
-
-    private void send(WebSocketSession session, FactRetirementOutcome outcome) throws IOException {
-        session.sendMessage(new TextMessage(json.writeValueAsString(outcome)));
+        receipts.send(session, outcome);
     }
 }

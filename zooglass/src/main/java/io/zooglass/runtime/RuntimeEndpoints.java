@@ -1,6 +1,8 @@
 package io.zooglass.runtime;
 
 import io.zooglass.api.ViewSnapshot;
+import io.zooglass.logging.OperationalLog;
+import org.springframework.beans.factory.annotation.Autowired;
 import io.zooglass.access.AdmissionAccess;
 import io.zooglass.access.OperatorAccess;
 import io.zooglass.delivery.HttpSnapshotDelivery;
@@ -51,6 +53,13 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
         this.coordinator = coordinator;
     }
 
+    private OperationalLog operations = OperationalLog.NONE;
+
+    @Autowired
+    void setOperationalLog(OperationalLog operations) {
+        this.operations = operations;
+    }
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         // The connector boundary filter admits these routes only for local operators
@@ -74,11 +83,13 @@ public final class RuntimeEndpoints implements WebSocketConfigurer {
         try {
             definition = RuntimeConfiguration.parseView(body);
         } catch (RuntimeException invalid) {
+            operations.registrationMalformed();
             return ResponseEntity.badRequest().build();
         }
         try {
             return ResponseEntity.status(coordinator.define(definition) ? 201 : 409).build();
         } catch (IllegalArgumentException invalid) {
+            operations.registrationInvalid();
             return ResponseEntity.badRequest().build();
         }
     }

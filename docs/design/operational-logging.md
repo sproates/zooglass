@@ -1,6 +1,7 @@
 # Operational logging
 
-Status: proposed design; implementation has not started.
+Status: accepted design. The foundation implementation is proposed in the current
+PR; delivery and access logging remain pending.
 
 An operator should be able to tell whether ZooGlass started with the intended
 operating modes, why it stopped serving useful work, and whether a fault requires

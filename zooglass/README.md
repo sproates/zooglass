@@ -159,3 +159,12 @@ grants and a separate local operator connection.
 static publication updates through an optional Java API. [V5 timeline recording and offline reports](../workbench/docs/timeline-explanations.md)
 are available for static arrival/latest/history publications. Other families retain
 observed-event summaries without detailed decision reasons.
+
+## Operational logging
+
+[Operational logs](docs/operational-logging.md) describe lifecycle, storage and
+processing failures with safe structured fields and bounded repetition. Readable
+console output is the default; optional JSON output uses Spring Boot's existing
+logging controls. Delivery/access event migration remains a subsequent slice.
+Logs complement health and receipts; they are not per-publication explanations
+or a durable audit trail.

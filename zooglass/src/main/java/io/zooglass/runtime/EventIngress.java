@@ -1,7 +1,8 @@
 package io.zooglass.runtime;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.zooglass.logging.OperationalLog;
+import io.zooglass.logging.OperationalLog.SourceOperation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -16,13 +17,17 @@ import java.util.List;
 @Component
 public final class EventIngress extends TextWebSocketHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EventIngress.class);
     private final ViewCoordinator coordinator;
-    private final ObjectMapper json;
+    private final IngressReceipts receipts;
 
     public EventIngress(ViewCoordinator coordinator, ObjectMapper json) {
+        this(coordinator, json, OperationalLog.NONE);
+    }
+
+    @Autowired
+    public EventIngress(ViewCoordinator coordinator, ObjectMapper json, OperationalLog operations) {
         this.coordinator = coordinator;
-        this.json = json;
+        this.receipts = new IngressReceipts(json, operations, SourceOperation.PUBLICATION);
     }
 
     /** A missing decision describes unavailable detail, never proof that processing rolled back. */
@@ -44,17 +49,18 @@ public final class EventIngress extends TextWebSocketHandler {
 
     private Result handle(WebSocketSession session, TextMessage message, boolean explained)
             throws IOException {
-        Result result = process(session.getId(), message.getPayload(), explained);
+        Result result = process(message.getPayload(), explained);
         // Transport failure after application cannot undo state. A retry recovers the result.
-        send(session, result.outcome());
+        receipts.send(session, result.outcome());
         return result;
     }
 
-    private Result process(String sessionId, String wire, boolean explained) {
+    private Result process(String wire, boolean explained) {
         Publication event;
         try {
             event = PublicationJson.parse(wire);
         } catch (RuntimeException exception) {
+            receipts.invalid();
             return new Result(PublicationOutcome.malformed(), null);
         }
 
@@ -66,10 +72,7 @@ public final class EventIngress extends TextWebSocketHandler {
             return new Result(coordinator.apply(event), null);
         } catch (RuntimeException exception) {
             // Do not label a strategy/storage failure as malformed source input or log payloads.
-            LOG.warn(
-                    "Publication processing failed in session {} ({})",
-                    sessionId,
-                    exception.getClass().getSimpleName());
+            receipts.processingFailed(exception);
             return new Result(
                     new PublicationOutcome(
                             "failed",
@@ -80,9 +83,5 @@ public final class EventIngress extends TextWebSocketHandler {
                             List.of()),
                     null);
         }
-    }
-
-    private void send(WebSocketSession session, PublicationOutcome outcome) throws IOException {
-        session.sendMessage(new TextMessage(json.writeValueAsString(outcome)));
     }
 }

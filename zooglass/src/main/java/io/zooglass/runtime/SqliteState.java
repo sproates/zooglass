@@ -1,5 +1,7 @@
 package io.zooglass.runtime;
 
+import io.zooglass.logging.OperationalLog;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -8,6 +10,7 @@ final class SqliteState implements StateStore {
 
     private final Connection connection;
     private final SqliteStateRows rows;
+    private final OperationalLog operations;
     private StateImage current;
     private boolean available;
 
@@ -23,6 +26,12 @@ final class SqliteState implements StateStore {
             RuntimeConfiguration configuration,
             java.util.function.UnaryOperator<StateImage> recover,
             String tenant) {
+        this(location, configuration, recover, tenant, OperationalLog.NONE);
+    }
+
+    SqliteState(String location, RuntimeConfiguration configuration,
+            java.util.function.UnaryOperator<StateImage> recover, String tenant, OperationalLog operations) {
+        this.operations = operations;
         if (tenant != null) {
             StoreTenant.requireTenant(tenant);
         }
@@ -54,7 +63,7 @@ final class SqliteState implements StateStore {
     @Override
     public StateImage current() {
         if (!available) {
-            throw new IllegalStateException("Storage requires restart recovery");
+            throw new StorageUnavailable("Storage requires restart recovery", null);
         }
         return current;
     }
@@ -71,9 +80,7 @@ final class SqliteState implements StateStore {
             connection.commit();
             current = prepared;
         } catch (SQLException | RuntimeException failure) {
-            available = false;
-            closeAfterFailure(failure);
-            throw new IllegalStateException(
+            throw unavailable(OperationalLog.StoreOperation.REGISTER,
                     "Could not persist view registration; restart required", failure);
         }
     }
@@ -87,10 +94,15 @@ final class SqliteState implements StateStore {
             // The prepared image needs no further allocation or transformation.
             current = next;
         } catch (SQLException | RuntimeException failure) {
-            available = false;
-            closeAfterFailure(failure);
-            throw new IllegalStateException("Storage failed; restart required", failure);
+            throw unavailable(OperationalLog.StoreOperation.INSTALL, "Storage failed; restart required", failure);
         }
+    }
+
+    private StorageUnavailable unavailable(OperationalLog.StoreOperation operation, String message, Exception failure) {
+        available = false;
+        operations.storageLost(operation);
+        closeAfterFailure(failure);
+        return new StorageUnavailable(message, failure);
     }
 
     private void closeAfterFailure(Exception failure) {
@@ -119,7 +131,7 @@ final class SqliteState implements StateStore {
         try {
             connection.close();
         } catch (SQLException failure) {
-            throw new IllegalStateException("Cannot close SQLite database", failure);
+            throw new StorageCloseFailure(failure);
         }
     }
 }

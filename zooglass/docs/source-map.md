@@ -264,6 +264,33 @@ flowchart LR
   gate -.->|implements| policy
 ```
 
+## Operational logging foundation
+
+The service owns a typed recorder; ordinary runtime and controlled-host constructors
+keep a no-op recorder. Operational fields and suppression do not enter state,
+receipts or replay identities. Storage loss is signalled once and emitted outside
+the coordinator monitor. Ingress records distinguish processing from sending its
+receipt. Delivery/access logging migration belongs to the next slice.
+
+```mermaid
+flowchart LR
+  application["ZooGlassApplication.java"] -->|registers startup/readiness/closing listener| lifecycle["logging/ServiceLifecycle.java"]
+  lifecycle -->|owns service recorder and lifecycle events| log["logging/OperationalLog.java"]
+  log -->|fixed fields and bounded repetition| sink["SLF4J / Boot console output"]
+  ingress["runtime/EventIngress.java / ProgressIngress.java / FactRetirementIngress.java"] -->|records parsing, processing and receipt-send failures| receipts["runtime/IngressReceipts.java"]
+  receipts -->|safe operational signal| log
+  state["runtime/SqliteState.java"] -->|one terminal availability signal| log
+  state -->|typed restart-required failure| unavailable["runtime/StorageUnavailable.java"]
+  unavailable -->|prevents duplicate ingress error| receipts
+  state -->|typed cleanup failure| closeFailure["runtime/StorageCloseFailure.java"]
+  closeFailure -->|reported after leaving runtime monitor| coordinator["runtime/ViewCoordinator.java"]
+  coordinator -->|cleanup failure signal| log
+  endpoints["runtime/RuntimeEndpoints.java"] -->|registration parsing/validation rejection| log
+```
+
+See the [operator guide](operational-logging.md) for event meanings and the explicit
+boundary between ZooGlass records and framework/vendor logging.
+
 ## Application, snapshots and delivery
 
 `ZooGlassApplication` starts Spring and WebSocket support. `runtime/RuntimeEndpoints`

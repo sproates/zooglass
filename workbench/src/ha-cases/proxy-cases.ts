@@ -215,7 +215,8 @@ async function stableTakeover(ctx: CaseContext): Promise<void> {
     );
     ctx.record("stable-origin-failover", {
       elapsedMillis: String(baselineMillis),
-      timingBoundary: "termination-request-to-harness-confirmed-client-baseline",
+      timingBoundary:
+        "termination-request-to-harness-confirmed-client-baseline",
       from: String(owner.index),
       to: String(successor.index),
       generation: String(successor.generation),

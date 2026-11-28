@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 /** Parsing errors and processing failures have separate, payload-free outcomes. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class EventIngress extends TextWebSocketHandler {
 

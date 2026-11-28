@@ -26,6 +26,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 /** Enqueues committed snapshots and subscription replies under the coordinator monitor. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public class SnapshotBroadcaster implements AutoCloseable {
 

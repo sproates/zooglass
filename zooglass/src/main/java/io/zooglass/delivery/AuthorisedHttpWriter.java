@@ -20,24 +20,34 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
     private final HttpServletResponse response;
     private final ServletOutputStream output;
     private final Runnable abort;
-    private final AccessGrant grant;
-    private final ViewResource resource;
+    private final java.util.function.BooleanSupplier permitted;
+    private final String mediaType;
     private final int status;
     private byte[] body;
     private int offset;
     private boolean stopped;
+    private Runnable detach = () -> {};
     private boolean headersPrepared;
 
     AuthorisedHttpWriter(AsyncContext context, HttpServletResponse response, ServletOutputStream output,
             Runnable abort, AccessGrant grant, ViewResource resource, int status, byte[] body) {
+        this(context, response, output, abort, () -> grant.permits(resource), "application/json", status, body);
+    }
+
+    AuthorisedHttpWriter(AsyncContext context, HttpServletResponse response, ServletOutputStream output,
+            Runnable abort, java.util.function.BooleanSupplier permitted, String mediaType, int status, byte[] body) {
         this.context = context;
         this.response = response;
         this.output = output;
         this.abort = abort;
-        this.grant = grant;
-        this.resource = resource;
+        this.permitted = permitted;
+        this.mediaType = mediaType;
         this.status = status;
         this.body = body;
+    }
+
+    synchronized void observeRetirement(java.util.function.Function<Runnable, Runnable> observe) {
+        if (!stopped) detach = observe.apply(() -> onTimeout(null));
     }
 
     @Override
@@ -47,11 +57,11 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
                 response.setStatus(status);
                 response.setContentLength(body.length);
                 if (body.length > 0) {
-                    response.setContentType("application/json");
+                    response.setContentType(mediaType);
                 }
                 headersPrepared = true;
             }
-            if (!grant.permits(resource)) {
+            if (!permitted.getAsBoolean()) {
                 refuse();
                 return;
             }
@@ -76,6 +86,7 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
             abort.run();
         } else {
             response.resetBuffer();
+            response.setContentType(null);
             response.setStatus(503);
             response.setContentLength(0);
         }
@@ -85,6 +96,7 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
     private void finish() {
         stopped = true;
         body = null;
+        detach.run();
         context.complete();
     }
 
@@ -105,6 +117,7 @@ final class AuthorisedHttpWriter implements WriteListener, AsyncListener {
 
     @Override
     public synchronized void onComplete(AsyncEvent event) {
+        detach.run();
         stopped = true;
         body = null;
     }

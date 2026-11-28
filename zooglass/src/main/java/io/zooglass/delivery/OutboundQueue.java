@@ -18,7 +18,8 @@ final class OutboundQueue {
     }
 
     /** Shared string-backed payload and UTF-8 size, with a recipient-specific generation lease. */
-    record Frame(TextMessage message, int bytes, ActiveViewGrants.Lease lease) {
+    record Frame(TextMessage message, int bytes, ActiveViewGrants.Lease lease, HaDelivery.Pending pending) {
+        Frame(TextMessage message, int bytes, ActiveViewGrants.Lease lease) { this(message, bytes, lease, null); }
         Frame(String payload) {
             this(new TextMessage(payload));
         }

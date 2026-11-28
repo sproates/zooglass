@@ -47,7 +47,7 @@ final class PostgresSchema {
             relation.setString(1, table);
             try (var row = relation.executeQuery()) {
                 if (row.next()) {
-                    if (!row.getBoolean(1)) throw new SQLException("PostgreSQL requires a permanent runtime table");
+                    if (!row.getBoolean(1)) throw new java.sql.SQLNonTransientException("PostgreSQL requires a permanent runtime table");
                     return;
                 }
             }

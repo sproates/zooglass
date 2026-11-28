@@ -13,6 +13,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
 
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class ProgressIngress extends TextWebSocketHandler {
 

@@ -40,7 +40,10 @@ public class ViewerHandlerBoundary {
         if (handler instanceof WebSocketHttpRequestHandler) {
             return true;
         }
-        if (handler instanceof HandlerMethod method && method.getBeanType() == RuntimeEndpoints.class) {
+        if (handler instanceof HandlerMethod method && method.getBeanType() == io.zooglass.runtime.HaEndpoints.class
+                && method.getMethod().getName().equals("probe")) return true;
+        if (handler instanceof HandlerMethod method && (method.getBeanType() == RuntimeEndpoints.class
+                || method.getBeanType() == io.zooglass.runtime.HaEndpoints.class)) {
             return method.getMethod().getName().equals("lookup")
                     || method.getMethod().getName().equals("snapshot");
         }

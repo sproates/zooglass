@@ -17,6 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 
 /** Keeps protected snapshot serialisation ahead of a nonblocking, grant-checked writer. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class HttpSnapshotDelivery {
 
@@ -42,6 +43,14 @@ public final class HttpSnapshotDelivery {
             return result;
         }
         byte[] body = result.getBody() == null ? new byte[0] : json.writeValueAsBytes(result.getBody());
+        var resource = new ViewResource(viewId, entityId);
+        send(request, response, result.getStatusCode().value(), body, "application/json", () -> grant.permits(resource), abort -> () -> {});
+        return null;
+    }
+
+    public static void send(HttpServletRequest request, HttpServletResponse response, int status,
+            byte[] body, String mediaType, java.util.function.BooleanSupplier permitted,
+            java.util.function.Function<Runnable, Runnable> observeRetirement) throws IOException {
         Runnable abort = HttpTransportAbort.forRequest(request);
         response.setHeader("Cache-Control", "no-store");
         var output = response.getOutputStream();
@@ -49,10 +58,14 @@ public final class HttpSnapshotDelivery {
         // No HTTP renewal: a finite response must finish within its original grant.
         // A non-reading client cannot retain its snapshot indefinitely.
         context.setTimeout(5000);
-        var writer = new AuthorisedHttpWriter(context, response, output, abort, grant,
-                new ViewResource(viewId, entityId), result.getStatusCode().value(), body);
+        var writer = new AuthorisedHttpWriter(context, response, output, abort, permitted, mediaType, status, body);
         context.addListener(writer);
-        output.setWriteListener(writer);
-        return null;
+        writer.observeRetirement(observeRetirement);
+        try {
+            output.setWriteListener(writer);
+        } catch (RuntimeException failure) {
+            writer.onError(failure);
+            throw failure;
+        }
     }
 }

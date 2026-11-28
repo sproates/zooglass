@@ -18,6 +18,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public class SnapshotSubscriptions extends TextWebSocketHandler {
 

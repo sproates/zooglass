@@ -31,15 +31,25 @@ final class AuthorisedSocketTransport {
     }
 
     void send(OutboundQueue.Frame frame) throws IOException, InterruptedException {
+        send(frame, () -> true);
+    }
+
+    void send(OutboundQueue.Frame frame, java.util.function.BooleanSupplier current) throws IOException, InterruptedException {
         var remote = transport.getAsyncRemote();
         var completed = new CompletableFuture<Void>();
-        boolean released = grants.release(viewer, frame.lease(), () -> remote.sendText(frame.message().getPayload(), result -> {
-            if (result.isOK()) {
+        boolean released = grants.release(viewer, frame.lease(), () -> {
+            if (!current.getAsBoolean()) {
                 completed.complete(null);
-            } else {
-                completed.completeExceptionally(result.getException());
+                return;
             }
-        }));
+            remote.sendText(frame.message().getPayload(), result -> {
+                if (result.isOK()) {
+                    completed.complete(null);
+                } else {
+                    completed.completeExceptionally(result.getException());
+                }
+            });
+        });
         if (!released) {
             return;
         }

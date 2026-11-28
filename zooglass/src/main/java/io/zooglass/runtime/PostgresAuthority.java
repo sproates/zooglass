@@ -51,7 +51,13 @@ final class PostgresAuthority {
 
     Identity identity() { return identity; }
 
-    private Row lock() throws SQLException {
+    @FunctionalInterface
+    interface QueryBudget { void refresh() throws SQLException; }
+
+    private Row lock() throws SQLException { return lock(() -> {}); }
+
+    private Row lock(QueryBudget budget) throws SQLException {
+        budget.refresh();
         try (var sql = db.createStatement(); var row = sql.executeQuery("""
                 SELECT schema_version,profile,runtime_id,tenant,configuration,incarnation,attempt,generation,
                        role,revision,lease_until FROM %s WHERE singleton=1 FOR UPDATE
@@ -60,9 +66,10 @@ final class PostgresAuthority {
                     || !Arrays.equals(PostgresSchema.bytes(profile.runtimeId()), row.getBytes("runtime_id"))
                     || !Arrays.equals(PostgresSchema.bytes(profile.tenant()), row.getBytes("tenant"))
                     || !config.equals(row.getString("configuration"))) {
-                throw new SQLException("Incompatible PostgreSQL runtime binding");
+                throw new java.sql.SQLNonTransientException("Incompatible PostgreSQL runtime binding");
             }
             // A row-lock wait can outlive the lease. Only sample the database clock after the lock is held.
+            budget.refresh();
             try (var clock = db.createStatement(); var time = clock.executeQuery("SELECT pg_catalog.clock_timestamp()")) {
                 time.next();
                 return new Row(row.getObject("incarnation", UUID.class), row.getObject("attempt", UUID.class),
@@ -73,7 +80,10 @@ final class PostgresAuthority {
     }
 
     private Row require(String role) throws SQLException {
-        var row = lock();
+        return require(lock(), role);
+    }
+
+    private Row require(Row row, String role) throws SQLException {
         if (!matches(row) || !row.leased() || !role.equals(row.role)) throw new SQLException("Runtime authority lost");
         return row;
     }
@@ -117,6 +127,10 @@ final class PostgresAuthority {
         var row = require("active");
         verifyRevision(row, revision);
         return revision;
+    }
+
+    void probe(long revision, QueryBudget budget) throws SQLException {
+        verifyRevision(require(lock(budget), "active"), revision);
     }
 
     long admit(long contentRevision, long installedRevision) throws SQLException {

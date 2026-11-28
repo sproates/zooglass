@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the required PostgreSQL tests against an owned fixture; never build Java."""
 
+import argparse
 import os
 from pathlib import Path
 import secrets
@@ -11,8 +12,12 @@ import time
 
 IMAGE = "postgres:18.7-bookworm@sha256:e742a2668255221388004f3a42b6150a2103f5054ab3a4a93ae9e4f01e551c35"
 SERVICE = Path(__file__).resolve().parents[1]
-TEST_NAMES = ("PostgresStaticStoreIT", "PostgresOwnershipIT")
-TEST_DIRECTORY = SERVICE / "target/test-classes/io/zooglass/runtime"
+TEST_NAMES = (
+    "io.zooglass.runtime.PostgresStaticStoreIT",
+    "io.zooglass.runtime.PostgresOwnershipIT",
+    "io.zooglass.access.HaTransportIT",
+)
+TEST_DIRECTORY = SERVICE / "target/test-classes"
 
 
 def command(arguments, *, timeout=30, capture=True, check=True, env=None):
@@ -44,7 +49,12 @@ def interrupted(signum, _frame):
 
 
 def main():
-    if any(not (TEST_DIRECTORY / f"{name}.class").is_file() for name in TEST_NAMES):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--node-client", action="store_true", help="Run Node client interoperability against the prepared service JAR")
+    args = parser.parse_args()
+    if args.node_client and not (SERVICE / "target/zooglass.jar").is_file():
+        raise RuntimeError("Prepared service JAR missing; prepare it explicitly first")
+    if not args.node_client and any(not (TEST_DIRECTORY / (name.replace(".", "/") + ".class")).is_file() for name in TEST_NAMES):
         raise RuntimeError("Prepared PostgreSQL test classes are missing. Run ./mvnw -DskipTests package explicitly first.")
     # A unique owned container; no shared host directories or existing databases.
     name = "zooglass-postgres-test-" + secrets.token_hex(8)
@@ -71,7 +81,7 @@ def main():
             raise RuntimeError("Expected one loopback-only PostgreSQL fixture port")
         port = int(binding.rsplit(":", 1)[1])
         environment.update(
-            ZOOGLASS_POSTGRES_URL=f"jdbc:postgresql://127.0.0.1:{port}/zooglass?sslmode=disable&connectTimeout=5&socketTimeout=10",
+            ZOOGLASS_POSTGRES_URL=f"jdbc:postgresql://127.0.0.1:{port}/zooglass",
             ZOOGLASS_POSTGRES_USER="zooglass",
             ZOOGLASS_POSTGRES_PASSWORD=password,
         )
@@ -79,7 +89,11 @@ def main():
         if not version.startswith("18.7 ") and version != "18.7":
             raise RuntimeError("Pinned fixture did not report PostgreSQL 18.7")
         print(f"PostgreSQL fixture: {version}; image {IMAGE}", flush=True)
-        result = command(["./mvnw", "--batch-mode", "-Dtest=" + ",".join(TEST_NAMES), "surefire:test"],
+        suite = (["node", "--import", str(SERVICE.parent / "workbench/node_modules/tsx/dist/loader.mjs"),
+                  "--test", str(SERVICE.parent / "workbench/test/ha-service/client.test.ts")]
+                 if args.node_client else
+                 ["./mvnw", "--batch-mode", "-Dtest=" + ",".join(TEST_NAMES), "surefire:test"])
+        result = command(suite,
                          timeout=300, capture=False, check=False, env=environment)
         return result.returncode
     finally:

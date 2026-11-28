@@ -10,12 +10,12 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Each test owns a unique schema in the explicitly supplied disposable PostgreSQL fixture. */
-final class PostgresTestDatabase implements AutoCloseable {
+public final class PostgresTestDatabase implements AutoCloseable {
     private final String url = required("ZOOGLASS_POSTGRES_URL");
     private final Properties credentials = new Properties();
     private final String schema = "zg_test_" + UUID.randomUUID().toString().replace("-", "");
 
-    PostgresTestDatabase() throws SQLException {
+    public PostgresTestDatabase() throws SQLException {
         if (!url.startsWith("jdbc:postgresql:")) throw new IllegalArgumentException("Expected a PostgreSQL JDBC fixture");
         credentials.setProperty("user", required("ZOOGLASS_POSTGRES_USER"));
         credentials.setProperty("password", required("ZOOGLASS_POSTGRES_PASSWORD"));
@@ -37,7 +37,9 @@ final class PostgresTestDatabase implements AutoCloseable {
         return DriverManager.getConnection(url, credentials);
     }
 
-    Connection open() throws SQLException {
+    public String schema() { return schema; }
+
+    public Connection open() throws SQLException {
         var db = connect();
         try (var sql = db.createStatement()) {
             sql.execute("SET search_path TO " + schema);

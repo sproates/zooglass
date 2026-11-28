@@ -170,5 +170,7 @@ logging controls. Routine viewer connection records are DEBUG.
 Logs complement health and receipts; they are not per-publication explanations
 or a durable audit trail.
 
-The [PostgreSQL storage foundation](docs/postgresql-storage.md) is internal to the
-clustering integration work. Public PostgreSQL serving is not yet available.
+The integration branch adds an explicit [HA service profile](docs/ha-service.md)
+using [PostgreSQL ownership](docs/postgresql-storage.md) and a bounded
+[Node recovery client](../workbench/docs/ha-client.md). Focused transport checks
+are available; the full two-process and proxy qualification remains pending.

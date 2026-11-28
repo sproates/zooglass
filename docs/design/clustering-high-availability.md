@@ -256,12 +256,34 @@ An authority permit does not extend a grant or authorise a different resource.
 Refused or inactive nodes return bounded unavailable outcomes and no private
 snapshot; liveness and serving readiness remain distinct.
 
+The proposed [HA client protocol](ha-client-protocol.md) specifies negotiation,
+frames, refusal outcomes, client recovery and proxy readiness for slice 3.
+It is a contract checkpoint, not a claim that these interfaces are implemented.
+
 ## Deployment and reconnect
 
-Start with two explicit candidate addresses and bounded client reconnect/backoff.
-No membership service, transparent request forwarding or new load-balancer product
-is required. A stable viewer endpoint may route only to serving-ready nodes, but
-routing is not a safety mechanism and existing connections may outlive its decision.
+Qualify both two explicit candidate addresses and one stable viewer address through
+an owned, pinned HAProxy fixture. Use the same reusable client recovery logic for
+both, with bounded reconnect/backoff. Applications using the stable address do not
+manage cluster membership. No membership service or custom gateway is required.
+The proxy routes new connections to serving-ready nodes; routing is not a safety
+mechanism and existing connections may outlive its decision.
+
+For protected viewers, use TCP TLS passthrough and terminate TLS at ZooGlass.
+Validate certificates for both the stable hostname and direct candidate hostnames
+against the configured trusted CA. Keep forwarded-header trust disabled. Readiness
+probes use verified HTTPS and a dedicated credential, separate from operator and
+policy credentials. Specify the minimal viewer-listener readiness route and its
+authentication/error contract before implementation; it returns no private state
+or ownership details. It checks current authority within a bound. A timeout or
+non-success removes a backend from routing, but an old positive result never
+substitutes for an authority check on subsequent work.
+
+Do not replay application requests in the proxy. Clients reconnect, reauthorise,
+obtain a fresh baseline and reject delayed HTTP results and old WebSocket callbacks.
+Producers retain identities for explicit retries after uncertain acknowledgements.
+A passthrough proxy with no ready backend produces bounded connection failure; it
+need not manufacture an HTTP error inside a TLS session it does not terminate.
 
 Protected source/control sockets currently use the loopback operator listener.
 Preserve that boundary. The initial protected qualification runs a trusted source
@@ -306,7 +328,7 @@ at explicit barriers; capture transaction outcome, generation and externally
 observed receipts/snapshots. Assert authored expected state and original receipt
 identities, not agreement between two implementations of the same proposed model.
 
-Freeze a manifest containing these twelve cases before the qualification run:
+Freeze a manifest containing these fourteen cases before the qualification run:
 
 1. Simultaneous acquisition and initial empty state, with exactly one active owner.
 2. Normal publication and orderly owner handover, with retained receipt and view.
@@ -330,23 +352,46 @@ Freeze a manifest containing these twelve cases before the qualification run:
     authorisation, no snapshot leakage, fresh baseline only after new admission.
 12. Backend outage and recovery, candidate restart and harness cancellation:
     fail closed, recover exact committed state, clean up owned resources.
+13. Open-demo deployment through the stable proxy address: terminate the owner,
+    reconnect to the successor, obtain a fresh snapshot and continue updates.
+    Retry retained publications and verify their original outcomes. Reject delayed
+    HTTP results and old WebSocket callbacks after the new baseline.
+14. Protected deployment through the stable TLS proxy address: terminate the owner
+    and verify a different instance, higher generation, fresh policy decision and
+    fresh baseline. Include denied/expired access without snapshot leakage,
+    backend outage/recovery, no-ready routing, invalid probe credentials and
+    certificate rejection. Keep protected source retries on local trusted fixtures.
+    In a separate bounded substep, leave the former owner alive and reachable while
+    the proxy retains its last positive health result. After the successor acquires
+    authority, route new work to that former owner and require refusal despite
+    stale routing. Previously admitted bytes retain the documented in-flight limit.
+    Check delayed HTTP results and WebSocket callbacks against the new baseline.
 
 The frozen manifest must enumerate each case's bounded substeps, fault barriers,
 expected outcomes and profile combinations. Map open-demo and protected access
-explicitly to those steps: case 11 covers protected admission/reconnect and case
-12 covers protected backend loss; other cases use open-demo unless the manifest
+explicitly to those steps: case 11 covers protected admission/reconnect, case
+12 covers protected backend loss and case 14 covers protected proxy deployment;
+other cases use open-demo unless the manifest
 states otherwise. Include every admitted field/mapping/contribution/delivery
 choice in that coverage map, and reject a missing combination or unsupported
 expansion before calling the qualification complete.
 
 Run each top-level script once with the fault barriers and once with deliberate
-additional process pauses: 24 executions. Compound cases contain several authored
-observations; 24 is a workload bound, not a count of atomic faults or statistical
+additional process pauses: 28 executions. Compound cases contain several authored
+observations; 28 is a workload bound, not a count of atomic faults or statistical
 proof. Add two negative controls that bypass generation validation
 and cached-state revision validation; both must fail their invariant check. Record
 real recovery durations without turning this into a throughput campaign. Failure
 requires a fix and rerun of affected cases, not an unbounded repeat count. Retain
 small manifests/hashes in the repository and larger evidence as release assets.
+
+The two proxy scripts supplement the direct cases; do not double the full matrix.
+Record the pinned proxy configuration, verified TLS topology, bounded substeps,
+backend identities, deadlines and owned-resource cleanup. Publish a reproducible
+deployment guide. This qualifies service-process failover with the proxy and
+PostgreSQL available, not proxy redundancy, database HA or physical-host/network
+availability. These checks fit the existing client, harness and qualification
+slices; no additional implementation slice is introduced.
 
 Workbench may orchestrate the real interfaces and capture faults. Its current
 deterministic profiles do not model two owners or PostgreSQL. A fake authority

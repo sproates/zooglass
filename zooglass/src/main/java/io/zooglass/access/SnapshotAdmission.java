@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 /** Authorises before lookup. HttpSnapshotDelivery checks the grant again at chunk release. */
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class SnapshotAdmission {
 

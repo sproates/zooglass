@@ -25,6 +25,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import java.io.IOException;
 
 /** The single publication, control, snapshot and subscription API. */
+@io.zooglass.runtime.StandaloneDeployment
 @RestController
 public final class RuntimeEndpoints implements WebSocketConfigurer {
 

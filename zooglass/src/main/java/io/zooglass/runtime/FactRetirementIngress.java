@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+@io.zooglass.runtime.StandaloneDeployment
 @Component
 public final class FactRetirementIngress extends TextWebSocketHandler {
 

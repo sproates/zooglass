@@ -1,11 +1,12 @@
 # PostgreSQL storage and ownership foundations
 
-PostgreSQL storage is an internal foundation for the accepted
+PostgreSQL storage supports the integration branch
+[HA service profile](ha-service.md), under the accepted
 [clustering design](../../docs/design/clustering-high-availability.md).
-Public service configuration still rejects `storage: postgresql`. This slice
-provides internal storage and ownership APIs, not a deployable clustered service.
+Standalone service configuration still rejects `storage: postgresql`; explicit
+HA deployment settings are required. Full failover qualification remains pending.
 
-The internal `ha-static-v1` profile admits up to three sources, two views and four
+The `ha-static-v1` profile admits up to three sources, two views and four
 fields in total, with at most three fields per view. It supports arrival,
 latest-by-sequence and bounded history, envelope entity mappings, source priority
 and required contributions. Freshness must be unspecified and progress untracked.
@@ -58,8 +59,9 @@ A failed callback does not make that capture reusable.
 
 These internal checks authorise admission, not arrival at a remote client. A
 process can pause after permission is granted, so previously admitted bytes may
-arrive after takeover. HA protocol negotiation, client generation handling,
-protected readiness and transport integration remain separate work. Standalone
+arrive after takeover. The [HA wire protocol](../../docs/design/ha-client-protocol.md),
+[reference client](../../workbench/docs/ha-client.md) and protected readiness handle
+that distinction on the integration branch. Full fault qualification follows. Standalone
 HTTP and WebSocket paths cannot construct this PostgreSQL runtime.
 
 The internal schema is version 2. Version 1 fixtures from the earlier storage-only

@@ -354,8 +354,10 @@ strategies remain in `strategy/update`, selected by `FieldStrategySelection`.
 ## Publication path
 
 The `runtime/` package contains the single coordinator and its memory/SQLite
-storage, plus an internal [PostgreSQL foundation](postgresql-storage.md). Public
-PostgreSQL serving is not enabled. See the [publication guide](publications.md) for configuration and wire examples.
+storage, plus [PostgreSQL ownership](postgresql-storage.md) for the explicit
+[HA service profile](ha-service.md) on the integration branch. Standalone serving
+remains memory/SQLite. See the [publication guide](publications.md) for ordinary
+configuration and wire examples.
 
 Each box below is a file in
 [`src/main/java/io/zooglass/runtime/`](../src/main/java/io/zooglass/runtime/), except the
@@ -734,7 +736,8 @@ flowchart TB
 
 These files live in `runtime/`. `OwnedRuntime` is constructed through the private
 coordinator factory; it exposes captures and checked handoff, never a raw
-coordinator. Public service configuration cannot enable this path yet.
+coordinator. The explicit HA service profile below owns this path; standalone
+service configuration cannot enable PostgreSQL.
 
 ```mermaid
 flowchart LR
@@ -755,3 +758,25 @@ flowchart LR
 Handoff callbacks run after runtime and database locks are released. Immutable
 content stays opaque until its single-use authority check succeeds. See the
 [storage and ownership guide](postgresql-storage.md) for boundaries and tests.
+
+
+## HA service transport
+
+The conditional HA components replace the standalone coordinator and routes.
+Policy I/O stays outside the owner gate; recipient captures and final native
+authorisation remain separate checks. Readiness owns only its reserved operation.
+
+```mermaid
+flowchart TB
+  settings["runtime/HaSettings.java"] -->|validate immutable profile and connection settings| owner["runtime/HaOwner.java"]
+  endpoints["runtime/HaEndpoints.java"] -->|checked snapshot and bounded readiness| owner
+  sockets["runtime/HaSockets.java"] -->|route publication and subscription commands| peer["runtime/HaPeer.java"]
+  handshake["runtime/HaHandshake.java"] -->|negotiate and authenticate| sockets
+  peer -->|serialise captures and membership changes| owner
+  owner -->|acquire, recover, renew and retire| runtime["runtime/OwnedRuntime.java"]
+  peer -->|retain bounded recipient captures| delivery["delivery/HaDelivery.java"]
+  delivery -->|consume checked authority before release| owner
+  delivery -->|recheck native identity, grant and membership| native["delivery/AuthorisedSocketTransport.java"]
+  endpoints -->|recheck each HTTP chunk| http["delivery/HttpSnapshotDelivery.java"]
+  commands["runtime/HaCommand.java"] -->|validate exact command shape| peer
+```

@@ -28,8 +28,9 @@ covers a specific single-instance memory/SQLite workload. The
 [roadmap](ROADMAP.md#further-direction) sets out broader performance measurement,
 clustering and high availability; those are not current guarantees. The
 [first HA profile](docs/design/clustering-high-availability.md) is accepted for
-bounded process failover. Its internal foundations are being implemented on an
-integration branch; clustered serving is not yet available.
+bounded process failover. The integration branch adds [HA transport and client
+recovery](zooglass/docs/ha-service.md); full two-process and proxy qualification
+remains pending.
 
 ## What ZooGlass handles
 

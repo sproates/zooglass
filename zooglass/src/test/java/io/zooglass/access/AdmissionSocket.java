@@ -19,7 +19,12 @@ final class AdmissionSocket implements AutoCloseable {
     private final WebSocket socket;
 
     AdmissionSocket(HttpClient client, URI endpoint, Map<String, String> headers) {
+        this(client, endpoint, headers, null);
+    }
+
+    AdmissionSocket(HttpClient client, URI endpoint, Map<String, String> headers, String subprotocol) {
         var builder = client.newWebSocketBuilder();
+        if (subprotocol != null) builder.subprotocols(subprotocol);
         headers.forEach(builder::header);
         socket = builder.buildAsync(endpoint, new WebSocket.Listener() {
             private final StringBuilder text = new StringBuilder();
@@ -52,6 +57,8 @@ final class AdmissionSocket implements AutoCloseable {
             }
         }).orTimeout(5, TimeUnit.SECONDS).join();
     }
+
+    String subprotocol() { return socket.getSubprotocol(); }
 
     void subscribe(String view, String entity) {
         socket.sendText(new JsonMapper().writeValueAsString(

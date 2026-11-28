@@ -67,4 +67,3 @@ final class HaPeer {
 
     void reply(OwnedRuntime.Frame frame) { delivery.batch(List.of(pending(frame, lease(null), () -> true))); }
 }
-

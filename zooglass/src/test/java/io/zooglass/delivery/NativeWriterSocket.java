@@ -40,4 +40,3 @@ final class NativeWriterSocket {
         return next;
     }
 }
-

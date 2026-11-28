@@ -55,6 +55,9 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$core_browser_cache" npx c8 --reports-dir=coverage/standard npm run test:core
           test ! -d ../demos/vehicle-tracker/dist
           test -z "$(ls -A "$core_browser_cache")"
+      - name: Verify offline HA qualification audit
+        if: fromJSON(inputs.plan).static
+        run: python3 -m unittest discover -s test -p ha_qualification_audit_test.py
       - name: Verify HA Node client against PostgreSQL and TLS service
         if: fromJSON(inputs.plan).core
         run: python3 ../zooglass/scripts/test-postgresql.py --node-client

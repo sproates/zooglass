@@ -4,8 +4,9 @@ The integration branch provides a reusable Node.js client for the
 [`ha-static-v1` service](../../zooglass/docs/ha-service.md). It reconnects with a fresh
 baseline, rejects obsolete results and retries a producer's original publication
 bytes when its receipt is uncertain. It runs against real service interfaces, not
-the deterministic timeline. Browser cross-origin operation and the full direct/proxy
-fault qualification are not yet claimed.
+the deterministic timeline. The [finite direct/proxy qualification](ha-qualification.md)
+passed on its review branch; integration merge and main promotion remain pending.
+Browser cross-origin operation is not claimed.
 
 ## Viewer
 
@@ -123,5 +124,6 @@ There is no unbounded history or command queue.
 invalidation, stale responses, retained retries, limits and verified TLS. The
 [service guide](../../zooglass/docs/ha-service.md#verify-locally) runs the client
 against a prepared Java service and disposable PostgreSQL database. Test execution
-never builds Java. The real proxy fixture and larger failover campaign follow
-separately; passing these checks does not qualify database or infrastructure HA.
+never builds Java. The [retained fault campaign](ha-qualification.md) separately
+checks direct and proxy failover. Neither these checks nor that campaign qualify
+database or infrastructure HA.

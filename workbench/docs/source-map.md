@@ -1527,12 +1527,16 @@ flowchart TB
 prepared inputs, runs the fixed manifest and records observations and cleanup.
 It does not build Java or replace real service decisions with simulated results.
 The [harness guide](ha-fault-harness.md) distinguishes one acceptance run from the
-later repeated qualification.
+[finite qualification](ha-qualification.md). The offline audit checks both retained
+passes against frozen inputs and negative-control records without running services.
 
 ```mermaid
 flowchart TB
   run["ha-cases/run.ts"] -->|fixed cases and access modes| manifest["ha-cases/manifest.ts"]
   run -->|verify executable identities| prepared["ha-cases/prepared.ts"]
+  audit["scripts/audit-ha-qualification.py"] -->|compare retained identities| prepared
+  audit -->|require frozen case inventory| manifest
+  run -->|retained reports and observations| audit
   run -->|bounded evidence and cleanup checks| support["ha-cases/runner-support.ts"]
   run -->|cases 1 to 6| process["ha-cases/process-cases.ts"]
   run -->|cases 7 and 8| ordering["ha-cases/ordering-cases.ts"]

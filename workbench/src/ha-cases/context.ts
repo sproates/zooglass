@@ -113,6 +113,7 @@ export async function takeover(
   previous: Owner,
   graceful = false,
 ): Promise<Owner> {
+  const faultStarted = performance.now();
   await ctx.cluster.nodes[previous.index].kill(
     graceful ? "SIGTERM" : "SIGKILL",
   );
@@ -130,6 +131,8 @@ export async function takeover(
   );
   assert.equal(next.incarnation, previous.incarnation);
   ctx.record("takeover", {
+    elapsedMillis: String(Math.round(performance.now() - faultStarted)),
+    timingBoundary: "termination-request-to-successor-readiness",
     from: String(previous.index),
     to: String(next.index),
     generation: String(next.generation),

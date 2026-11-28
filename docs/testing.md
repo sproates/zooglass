@@ -946,4 +946,7 @@ test fault agent and capture controls explicitly; `npm run prepare:ha` prepares
 Node modules only. `npm run ha:run -- --output NEW_DIR` runs the fixed acceptance
 set without building Java. The separate `test-postgresql.py --ha-controls` check
 must detect both prepared read-fence controls. One complete acceptance run does
-not replace the later normal/additional-pause qualification campaign.
+not replace the [normal/additional-pause qualification campaign](../workbench/docs/ha-qualification.md).
+Its offline auditor compares both reports with frozen manifest and prepared identities,
+checks observations, pause evidence and controls, and rejects incomplete evidence.
+CI runs the focused Python audit tests in the static Workbench job.

@@ -4,7 +4,8 @@ PostgreSQL storage supports the integration branch
 [HA service profile](ha-service.md), under the accepted
 [clustering design](../../docs/design/clustering-high-availability.md).
 Standalone service configuration still rejects `storage: postgresql`; explicit
-HA deployment settings are required. Full failover qualification remains pending.
+HA deployment settings are required. The [finite failover qualification](../../workbench/docs/ha-qualification.md)
+passed on its review branch; integration merge and main promotion remain pending.
 
 The `ha-static-v1` profile admits up to three sources, two views and four
 fields in total, with at most three fields per view. It supports arrival,
@@ -61,7 +62,8 @@ These internal checks authorise admission, not arrival at a remote client. A
 process can pause after permission is granted, so previously admitted bytes may
 arrive after takeover. The [HA wire protocol](../../docs/design/ha-client-protocol.md),
 [reference client](../../workbench/docs/ha-client.md) and protected readiness handle
-that distinction on the integration branch. Full fault qualification follows. Standalone
+that distinction on the integration branch. The [finite fault qualification](../../workbench/docs/ha-qualification.md) passed
+on its review branch; integration merge and main promotion remain pending. Standalone
 HTTP and WebSocket paths cannot construct this PostgreSQL runtime.
 
 The internal schema is version 2. Version 1 fixtures from the earlier storage-only

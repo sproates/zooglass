@@ -4,12 +4,13 @@ The integration branch adds `ha-static-v1`: one active ZooGlass process and take
 candidates sharing one PostgreSQL primary and runtime schema. Each response is
 checked against database ownership. The service and Node reference client are
 implemented here. The [real-process fault harness](../../workbench/docs/ha-fault-harness.md)
-adds isolated two-JVM and HAProxy acceptance checks; finite recorded deployment
-qualification remains outstanding. This is not a production HA certification or a
+adds isolated two-JVM and HAProxy acceptance checks. The [finite qualification](../../workbench/docs/ha-qualification.md)
+passed on its review branch; integration merge and main promotion remain pending. This is not a production HA certification or a
 horizontal scaling capability.
 
-Read the [supported static profile](postgresql-storage.md) and
-[wire contract](../../docs/design/ha-client-protocol.md) first. Standalone service
+Read the [supported static profile](postgresql-storage.md),
+[wire contract](../../docs/design/ha-client-protocol.md) and
+[operator guide](ha-operations.md) first. Standalone service
 configuration and existing demo protocols retain their meaning.
 
 ## Configure candidates
@@ -91,8 +92,8 @@ An expired check retires its uncertain attempt rather than releasing a late 200.
 Neither ordinary process health nor a proxy's cached health decision authorises
 application output.
 
-A future qualified proxy deployment will use TCP TLS passthrough and this readiness
-check. Keep clients configured for one explicit stable origin or two explicit direct
+The checked [proxy deployment](ha-operations.md) uses TCP TLS passthrough and this
+readiness check. Keep clients configured for one explicit stable origin or two explicit direct
 origins. No redirects, discovered endpoints or proxy-level publication retries are
 part of this contract.
 

@@ -2,7 +2,7 @@
 
 A viewer must be able to reconnect to another ZooGlass process, obtain a fresh authorised snapshot and recognise data still arriving from its old connection. A producer that lost a receipt must be able to find out whether its publication committed. Both operations depend on the generation and revision checked by PostgreSQL.
 
-**Implemented contract on the integration branch, pending merge and qualification.** Storage, owner admission and service/client interoperability have focused real-database and TLS coverage. See the [service setup](../../zooglass/docs/ha-service.md) and [Node reference client](../../workbench/docs/ha-client.md). Two-process fault and proxy qualification follow separately. [Clustering design](clustering-high-availability.md) · [Current PostgreSQL boundary](../../zooglass/docs/postgresql-storage.md)
+**Implemented contract on the integration branch; main promotion is pending.** Storage, owner admission and service/client interoperability have focused real-database and TLS coverage. See the [service setup](../../zooglass/docs/ha-service.md) and [Node reference client](../../workbench/docs/ha-client.md). The [two-process and proxy qualification](../../workbench/docs/ha-qualification.md) passed on its review branch; its integration merge remains pending. [Clustering design](clustering-high-availability.md) · [Current PostgreSQL boundary](../../zooglass/docs/postgresql-storage.md)
 
 ## Entering HA mode
 

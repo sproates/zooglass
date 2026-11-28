@@ -1,7 +1,6 @@
 # Operational logging
 
-Status: accepted design. The foundation is delivered in PR #208; delivery and
-access completion is proposed in the current implementation PR.
+Status: accepted design, delivered through PR #208 and PR #209.
 
 An operator should be able to tell whether ZooGlass started with the intended
 operating modes, why it stopped serving useful work, and whether a fault requires

@@ -104,14 +104,15 @@ jobs:
           npm run prepare:ha
       - name: Verify fourteen real-process fault cases once
         run: npm run ha:run -- --output "$RUNNER_TEMP/ha-faults"
+      - name: Stage public HA evidence without traversing private fixture files
+        if: always()
+        run: node ../.github/ci/ha-evidence.mjs "$RUNNER_TEMP/ha-faults" "$RUNNER_TEMP/ha-public-evidence"
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ha-fault-acceptance
           # Never upload fixture keys, credentials, database files or the whole workspace.
-          path: |
-            ${{ runner.temp }}/ha-faults/report.json
-            ${{ runner.temp }}/ha-faults/**/observations.jsonl
+          path: ${{ runner.temp }}/ha-public-evidence/
           if-no-files-found: warn
 
   timeline:

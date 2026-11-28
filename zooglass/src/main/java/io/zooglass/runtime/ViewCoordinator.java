@@ -135,11 +135,23 @@ public final class ViewCoordinator implements AutoCloseable {
 
     ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant,
             Supplier<AlarmScheduler> alarms, OperationalLog operations) {
+        this(configuration, database, clock, tenant, alarms, operations, null, null);
+    }
+
+    /** Internal store qualification only. No HTTP, WebSocket or Spring path constructs this profile. */
+    static ViewCoordinator postgres(HaStaticProfile profile, PostgresState.Connections connections) {
+        return new ViewCoordinator(profile.configuration(), "", ReceiptClock.SYSTEM, profile.tenant(),
+                SystemAlarmScheduler::new, OperationalLog.NONE, profile, Objects.requireNonNull(connections));
+    }
+
+    private ViewCoordinator(RuntimeConfiguration configuration, String database, ReceiptClock clock, String tenant,
+            Supplier<AlarmScheduler> alarms, OperationalLog operations, HaStaticProfile profile,
+            PostgresState.Connections postgres) {
         this.operations = operations;
         this.clock = Objects.requireNonNull(clock);
         this.alarms = Objects.requireNonNull(alarms);
         this.configuration = configuration;
-        configuration.validate();
+        if (profile == null) configuration.validate();
         factsEnabled = configuration.tracksFacts();
         epochs = new HashMap<>();
         configuration.sources().forEach(source -> epochs.put(source.id(), source.epoch()));
@@ -168,7 +180,9 @@ public final class ViewCoordinator implements AutoCloseable {
                         ? new FreshnessRuntime(views.byId(), clock, this::expire, alarms.get())
                         : null;
         try {
-            if (configuration.storage().equals("sqlite")) {
+            if (profile != null) {
+                storage = new PostgresState(profile, postgres);
+            } else if (configuration.storage().equals("sqlite")) {
                 storage =
                         new SqliteState(
                                 database,
@@ -333,7 +347,7 @@ public final class ViewCoordinator implements AutoCloseable {
         var result =
                 new PublicationOutcome(
                         storage.durable() ? "committed" : "applied",
-                        storage.durable() ? "sqlite" : "memory",
+                        configuration.storage(),
                         event.stream(),
                         event.publicationSequence(),
                         version,
@@ -396,7 +410,7 @@ public final class ViewCoordinator implements AutoCloseable {
             var result =
                     new ProgressOutcome(
                             storage.durable() ? "committed" : "applied",
-                            storage.durable() ? "sqlite" : "memory",
+                            configuration.storage(),
                             control,
                             version,
                             staged.changedViews());
@@ -527,6 +541,9 @@ public final class ViewCoordinator implements AutoCloseable {
 
     /** Registration has no backfill; SQLite records the expanded configuration atomically. */
     public synchronized boolean define(RuntimeConfiguration.View definition) {
+        if ("postgresql".equals(configuration.storage())) {
+            throw new UnsupportedOperationException("Static HA configuration is immutable");
+        }
         if (definition == null) {
             throw new IllegalArgumentException("View definition is required");
         }

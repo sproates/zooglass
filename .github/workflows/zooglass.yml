@@ -24,6 +24,8 @@ jobs:
           cache-dependency-path: zooglass/pom.xml
 
       - run: ./mvnw --batch-mode verify
+      - name: Verify PostgreSQL storage using prepared test classes
+        run: python3 scripts/test-postgresql.py
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -31,4 +33,5 @@ jobs:
           path: |
             zooglass/target/site/jacoco/
             zooglass/target/resource-observations.json
+            zooglass/target/surefire-reports/
           if-no-files-found: warn

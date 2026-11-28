@@ -169,3 +169,6 @@ console output is the default; optional JSON output uses Spring Boot's existing
 logging controls. Routine viewer connection records are DEBUG.
 Logs complement health and receipts; they are not per-publication explanations
 or a durable audit trail.
+
+The [PostgreSQL storage foundation](docs/postgresql-storage.md) is internal to the
+clustering integration work. Public PostgreSQL serving is not yet available.

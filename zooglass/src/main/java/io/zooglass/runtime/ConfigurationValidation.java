@@ -31,6 +31,15 @@ final class ConfigurationValidation {
     }
 
     static void validate(RuntimeConfiguration config, java.util.function.Consumer<String> context) {
+        validate(config, context, false);
+    }
+
+    static void validatePostgres(RuntimeConfiguration config) {
+        validate(config, ignored -> {}, true);
+    }
+
+    private static void validate(RuntimeConfiguration config, java.util.function.Consumer<String> context,
+            boolean postgres) {
         context.accept("");
         int contractVersion = config.contractVersion();
         String storage = config.storage();
@@ -39,9 +48,11 @@ final class ConfigurationValidation {
         int maxHistoryEntries = config.maxHistoryEntries();
         var sources = config.sources();
         var views = config.views();
-        if (contractVersion != 2 || !("memory".equals(storage) || "sqlite".equals(storage))) {
+        boolean supported = postgres ? "postgresql".equals(storage) : "memory".equals(storage) || "sqlite".equals(storage);
+        if (contractVersion != 2 || !supported) {
             throw new IllegalArgumentException(
-                    "Runtime requires contractVersion 2 and storage memory or sqlite");
+                    postgres ? "HA requires contractVersion 2 and storage postgresql"
+                            : "Runtime requires contractVersion 2 and storage memory or sqlite");
         }
         if (maxStreams < 1
                 || identityWindow < 1

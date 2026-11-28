@@ -76,6 +76,44 @@ jobs:
           path: workbench/coverage/standard/
           if-no-files-found: warn
 
+  ha-faults:
+    if: fromJSON(inputs.plan).core
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workbench
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: workbench/.nvmrc
+          cache: npm
+          cache-dependency-path: workbench/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: zooglass/pom.xml
+      - run: npm ci
+      - name: Prepare service and launch-only fault agent explicitly
+        run: |
+          npm run prepare:service
+          python3 ../zooglass/scripts/prepare-ha-fault-agent.py
+          npm run prepare:ha
+      - name: Verify fourteen real-process fault cases once
+        run: npm run ha:run -- --output "$RUNNER_TEMP/ha-faults"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ha-fault-acceptance
+          # Never upload fixture keys, credentials, database files or the whole workspace.
+          path: |
+            ${{ runner.temp }}/ha-faults/report.json
+            ${{ runner.temp }}/ha-faults/**/observations.jsonl
+          if-no-files-found: warn
+
   timeline:
     if: fromJSON(inputs.plan).core
     timeout-minutes: 15

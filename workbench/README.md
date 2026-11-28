@@ -994,4 +994,6 @@ time. It preserves FULL durability and makes no capacity claim.
 
 The integration branch also provides an [HA reference client](docs/ha-client.md)
 for real-service viewer recovery and retained producer retries. It supports explicit
-direct or stable origins; the larger direct/proxy fault qualification remains pending.
+direct or stable origins. The [HA fault harness](docs/ha-fault-harness.md) supplies
+fourteen real two-process acceptance cases with PostgreSQL and HAProxy. Tests use
+explicitly prepared artifacts; the later repeated fault qualification remains pending.

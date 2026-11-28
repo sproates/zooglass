@@ -780,3 +780,28 @@ flowchart TB
   endpoints -->|recheck each HTTP chunk| http["delivery/HttpSnapshotDelivery.java"]
   commands["runtime/HaCommand.java"] -->|validate exact command shape| peer
 ```
+
+
+## HA test tooling
+
+These files are test-only inputs for the Workbench
+[real-process fault harness](../../workbench/docs/ha-fault-harness.md). The agent
+pauses actual service methods at finite barriers; it does not remove checks.
+The two capture controls instead change one read fence each in isolated,
+non-serving test classes. Explicit preparation precedes execution in both paths.
+
+Paths below are relative to `zooglass/`. Dashed arrows identify instrumentation
+or prepared class substitution, not production imports.
+
+```mermaid
+flowchart TB
+  prepare["scripts/prepare-ha-fault-agent.py"] -->|compile and hash test agent| agent["test-support/ha-fault-agent/WriterAgent.java"]
+  prepare -->|generate output permit hooks| writer["test-support/ha-fault-agent/InstrumentWriter.java"]
+  prepare -->|generate write check and row-lock hooks| authority["test-support/ha-fault-agent/InstrumentAuthority.java"]
+  agent -->|file barrier protocol| barrier["test-support/ha-fault-agent/WriterBarrier.java"]
+  writer -.->|instrument prepared service class| output["src/main/java/io/zooglass/delivery/HaDelivery.java"]
+  authority -.->|instrument prepared service class| checks["src/main/java/io/zooglass/runtime/PostgresAuthority.java"]
+  controls["scripts/prepare-ha-controls.py"] -.->|isolated capture-only substitutions| checks
+  test["src/test/java/io/zooglass/runtime/PostgresFenceControlsIT.java"] -->|run reference and both prepared overrides| scenario["src/test/java/io/zooglass/runtime/PostgresFenceScenario.java"]
+  scenario -->|independent real-database capture assertions| checks
+```

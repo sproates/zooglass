@@ -26,6 +26,12 @@ jobs:
       - run: ./mvnw --batch-mode verify
       - name: Verify PostgreSQL storage using prepared test classes
         run: python3 scripts/test-postgresql.py
+      - name: Prepare capture-fence negative controls explicitly
+        run: |
+          ./mvnw --batch-mode dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/ha-test-classpath.txt
+          python3 scripts/prepare-ha-controls.py --test-classpath target/ha-test-classpath.txt
+      - name: Verify real-read fence controls using prepared classes
+        run: python3 scripts/test-postgresql.py --ha-controls
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -33,5 +39,7 @@ jobs:
           path: |
             zooglass/target/site/jacoco/
             zooglass/target/resource-observations.json
+            zooglass/target/ha-fence-controls/manifest.json
+            zooglass/target/ha-fence-controls/results.json
             zooglass/target/surefire-reports/
           if-no-files-found: warn
